@@ -1,0 +1,31 @@
+{
+  "passed": false,
+  "rationale": "4/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(USING|WITH\\\\s+CHECK)' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex 'active_org_id' flags=''"
+    },
+    {
+      "id": 2,
+      "passed": false,
+      "description": "regex '(P1|P0|UNSAFE|cross.?tenant|cross.?org|writer.+reader|orphan)' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(org_members|EXISTS|membership\\\\s+check)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(insert|INSERT).+(membership|org_id)' flags='is'"
+    }
+  ]
+}

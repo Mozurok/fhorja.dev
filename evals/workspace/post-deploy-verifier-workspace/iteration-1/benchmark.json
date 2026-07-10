@@ -1,0 +1,72 @@
+{
+  "skill_name": "post-deploy-verifier",
+  "iteration": 1,
+  "eval_count": 3,
+  "results": [
+    {
+      "id": "orphan-ac-with-db-invariant",
+      "without_skill": {
+        "passed": true,
+        "duration_seconds": 121,
+        "tokens_input": 37687,
+        "tokens_output": 6650
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 132,
+        "tokens_input": 45941,
+        "tokens_output": 8107
+      }
+    },
+    {
+      "id": "query-shape-vagueness-trap",
+      "without_skill": {
+        "passed": true,
+        "duration_seconds": 96,
+        "tokens_input": 38743,
+        "tokens_output": 6837
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 118,
+        "tokens_input": 45525,
+        "tokens_output": 8034
+      }
+    },
+    {
+      "id": "silent-noop-flag-and-rollback",
+      "without_skill": {
+        "passed": true,
+        "duration_seconds": 85,
+        "tokens_input": 37075,
+        "tokens_output": 6543
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 147,
+        "tokens_input": 44604,
+        "tokens_output": 7872
+      }
+    }
+  ],
+  "summary": {
+    "without_skill": {
+      "pass_rate": 1,
+      "total_duration_seconds": 302,
+      "total_tokens_input": 113505,
+      "total_tokens_output": 20030
+    },
+    "with_skill": {
+      "pass_rate": 1,
+      "total_duration_seconds": 397,
+      "total_tokens_input": 136070,
+      "total_tokens_output": 24013
+    },
+    "delta": {
+      "pass_rate": 0,
+      "duration_seconds": 95,
+      "tokens_input": 22565,
+      "tokens_output": 3983
+    }
+  }
+}

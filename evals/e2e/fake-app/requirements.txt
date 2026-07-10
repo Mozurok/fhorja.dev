@@ -1,0 +1,5 @@
+flask>=3.0,<4.0
+
+# Slice 2 ("reject malformed email") MUST use stdlib `re` -- do NOT add an
+# email-validation library here. The walkthrough's diff scope is kept tight
+# to handlers/signup.py so the sweep's findings remain focused.

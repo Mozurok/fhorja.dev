@@ -1,0 +1,33 @@
+{
+  "id": "rendered-vs-declared-size-threshold",
+  "prompt": "You are auditing a text pair. The CSS declares `font-size: 18pt` (which would qualify as LARGE text per WCAG 2.2, threshold 3:1 AA). But the page's responsive design renders at 80% of declared size on screens narrower than 600px. Per persona Step 4 (verify threshold per design context): which threshold applies -- the declared 18pt (LARGE = 3:1) or the rendered ~14.4pt (NORMAL = 4.5:1)?\n\nDesign:\n- Token foreground: `color.text.helper` = `#767676`\n- Token background: `color.surface.background` = `#FFFFFF`\n- CSS declares: `font-size: 18pt; @media (max-width: 600px) { font-size: 0.8em; }`\n- The token is used in mobile-first helper text under inputs.\n\nKnown ratio: `#767676` on `#FFFFFF` ~ 4.54:1.\n\nProduce: (1) the declared-size threshold verdict (LARGE = 3:1 AA); (2) the rendered-size threshold verdict on mobile (~14.4pt < 18pt LARGE boundary; NORMAL = 4.5:1 AA); (3) which verdict applies for WCAG compliance?; (4) remediation if the verdict differs by size.",
+  "expected_output": "Ratio: 4.54:1 (rounded down per Step 3, do not round up to clear 4.5). Declared 18pt LARGE threshold: 3:1 AA -- 4.54:1 PASS-AA LARGE, PASS-AAA LARGE (4.5:1). Rendered ~14.4pt NORMAL threshold: 4.5:1 AA -- 4.54:1 PASS-AA NORMAL by 0.04 margin (precision discipline: barely passing, no margin for darker rendering or lower-contrast displays). Which verdict applies: per WCAG 2.2 the threshold is determined by the RENDERED size, not the declared. The mobile rendering at ~14.4pt is below the 18pt LARGE boundary; the pair MUST be scored against the NORMAL threshold (4.5:1). The pair PASSES that threshold by 0.04, which is sufficient but borderline. Remediation: (a) darken `color.text.helper` to provide margin: #6B6B6B yields ~5.3:1 PASS-AA NORMAL with comfortable margin; (b) override the mobile size to remain >= 18pt actual (defeats the responsive design intent); (c) accept the borderline pass with documented note that any future rendering change (different screen, OS-level dark mode quirks, browser zoom) could push it below 4.5:1. The discriminator: a baseline plan that scores the pair against the DECLARED 18pt threshold (3:1) and ships PASS-AA-LARGE misses the rendered-size threshold; persona Step 4 explicitly demands threshold-per-rendered-context, not declared-context.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(rendered|declared|effective\\s+size|font-?size)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(LARGE|large.+text|14\\.4|18pt|responsive)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(4\\.54|4\\.5[0-4])",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(NORMAL|normal-?text|4\\.5:1)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(#767676|#6B6B6B|color\\.text\\.helper|darken)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

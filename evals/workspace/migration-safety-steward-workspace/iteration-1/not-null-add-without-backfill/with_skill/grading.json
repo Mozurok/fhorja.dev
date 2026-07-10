@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "contains 'NEEDS-PHASING'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex 'Phase\\\\s*1.+Phase\\\\s*2' flags='is'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex 'backfill|batch' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex 'ALTER\\\\s+TABLE\\\\s+users\\\\s+(ADD|ALTER)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex 'rollback' flags='i'"
+    }
+  ]
+}

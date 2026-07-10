@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex 'pg_repack' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex 'CONCURRENTLY' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(long-?running|OLAP|write\\\\s+contention|prior\\\\s+failure|fail.+CONCURRENTLY|waits?.+transaction)' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(NEEDS-PHASING|UNSAFE)' flags=''"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(orders|idx_orders_user_id)' flags=''"
+    }
+  ]
+}

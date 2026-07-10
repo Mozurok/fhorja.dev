@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex 'checkout_v2_enabled|LaunchDarkly|flag.+(enabled|rollout|10%|0%)' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(negative\\\\s+check|did\\\\s+not\\\\s+ship|silent\\\\s+no-?op|prove.+(shipped|ship))' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '@bruno' flags=''"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(ld-?cli|flagsmith|set\\\\s+(rollout|percent)|disable\\\\s+flag|flip\\\\s+flag|rollout\\\\s+set)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(2%|80%|threshold|over\\\\s+10\\\\s+min)' flags='i'"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(link.+body|link/body|triad|three\\\\s+pair|differenti|distinguish)' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(SC\\\\s+1\\\\.4\\\\.1|1\\\\.4\\\\.1|use\\\\s+of\\\\s+color)' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex 'FAIL-?AA' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(underline|weight|bold|differentiator|non-?color)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(1\\\\.6|1\\\\.62|#0033AA)' flags='i'"
+    }
+  ]
+}

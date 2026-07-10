@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(OLD\\\\s+solution|incumbent|switching\\\\s+FROM|from\\\\s+what)' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex 'PUSH.+PULL.+ANXIETY.+HABIT' flags='is'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(TRIGGER|trigger).+(STRUGGLE|struggle).+(SWITCH|switch)' flags='is'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(paper\\\\s+journal|Apple\\\\s+Health|Notion|spreadsheet|nothing|existing\\\\s+tracker|previous\\\\s+app)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(refuse|cannot\\\\s+ground|missing|insufficient|not\\\\s+enough|hypothesis\\\\s+does\\\\s+not\\\\s+name)' flags='i'"
+    }
+  ]
+}

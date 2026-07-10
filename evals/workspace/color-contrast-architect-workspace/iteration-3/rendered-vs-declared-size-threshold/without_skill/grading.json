@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(rendered|declared|effective\\\\s+size|font-?size)'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(LARGE|large.+text|14\\\\.4|18pt|responsive)'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(4\\\\.54|4\\\\.5[0-4])'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(NORMAL|normal-?text|4\\\\.5:1)'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(#767676|#6B6B6B|color\\\\.text\\\\.helper|darken)'"
+    }
+  ]
+}

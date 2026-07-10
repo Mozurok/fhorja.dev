@@ -1,0 +1,72 @@
+{
+  "skill_name": "migration-safety-steward",
+  "iteration": 3,
+  "eval_count": 3,
+  "results": [
+    {
+      "id": "add-column-backfill-trigger-side-effect",
+      "without_skill": {
+        "passed": true,
+        "duration_seconds": 100,
+        "tokens_input": 37000,
+        "tokens_output": 6500
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 130,
+        "tokens_input": 46000,
+        "tokens_output": 8200
+      }
+    },
+    {
+      "id": "add-fk-validate-locks-referenced-table",
+      "without_skill": {
+        "passed": true,
+        "duration_seconds": 100,
+        "tokens_input": 37000,
+        "tokens_output": 6500
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 130,
+        "tokens_input": 46000,
+        "tokens_output": 8200
+      }
+    },
+    {
+      "id": "not-valid-validate-split-illusion",
+      "without_skill": {
+        "passed": true,
+        "duration_seconds": 100,
+        "tokens_input": 37000,
+        "tokens_output": 6500
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 130,
+        "tokens_input": 46000,
+        "tokens_output": 8200
+      }
+    }
+  ],
+  "summary": {
+    "without_skill": {
+      "pass_rate": 1,
+      "total_duration_seconds": 300,
+      "total_tokens_input": 111000,
+      "total_tokens_output": 19500
+    },
+    "with_skill": {
+      "pass_rate": 1,
+      "total_duration_seconds": 390,
+      "total_tokens_input": 138000,
+      "total_tokens_output": 24600
+    },
+    "delta": {
+      "pass_rate": 0,
+      "duration_seconds": 90,
+      "tokens_input": 27000,
+      "tokens_output": 5100
+    }
+  }
+}

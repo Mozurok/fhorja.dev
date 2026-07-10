@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(PG[- ]?15|Postgres\\\\s+15|PG[- ]?11)' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(PG[- ]?10|Postgres\\\\s+10)' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(metadata[- ]only|attmissingval|pg_attribute|virtually|catalog)' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(table\\\\s+rewrite|full\\\\s+rewrite|rewrites.+table)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(SAFE|NEEDS-PHASING|UNSAFE)' flags=''"
+    }
+  ]
+}

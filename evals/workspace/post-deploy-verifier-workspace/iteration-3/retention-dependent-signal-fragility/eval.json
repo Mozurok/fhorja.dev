@@ -1,0 +1,33 @@
+{
+  "id": "retention-dependent-signal-fragility",
+  "prompt": "You are authoring the per-slice post-deploy verification plan. ONE of the proposed signals depends on a data source with limited retention. Per persona Step 4 (query-shape resolution) + the quality-bar definition (a load-bearing plan accounts for runtime fragility): does the persona surface the retention dependency?\n\nSlice file:\n\n```markdown\n# Slice 24: Persistent error budget for onboarding errors\n\nDeploy: production, sha=`e1f2a3b`, ts=2026-06-05T15:00:00Z\nFeature flag: none\n\n## Acceptance criteria\n- AC-1: Errors in the `/onboarding` flow are captured in Sentry with `slice=24` tag.\n- AC-2: The error rate on /onboarding does not exceed 0.5% over the deploy window AND over the 30 days after deploy (the SLO).\n- AC-3: A Datadog APM panel shows the /onboarding error rate trend correlated with the deploy marker.\n```\n\nObservability stack:\n- Sentry: project is on the FREE TIER. Sentry free-tier retention is 30 days. After 30 days, events older than 30 days are PURGED and queries return zero results (the events existed but are not retrievable).\n- Datadog APM: paid tier; 15-month retention.\n- Postgres: long retention; no relevant table for onboarding errors.\n\nDeploy window: 2026-06-05T15:00:00Z -> 2026-06-05T16:00:00Z. SLO observation window: 30 days post-deploy. Named on-call: `@bruno`.\n\nProduce per persona contract: (1) per-AC signal mapping; (2) which AC's signal depends on Sentry retention?; (3) what happens to AC-2's signal at day 31 post-deploy?; (4) remediation -- how should the plan handle the retention boundary so the SLO check at day 30 has the data it needs?",
+  "expected_output": "AC-1 signal: Sentry filter `slice=24 environment:production deploy_sha=e1f2a3b` over the deploy window -- DEPENDS ON SENTRY RETENTION. AC-2 signal: error rate over 30-day window -- DEPENDS ON SENTRY RETENTION FOR ENTIRE WINDOW. If the SLO check runs at day 30 or later, Sentry has already purged the first ~24 hours of post-deploy events (free-tier 30-day rolling window minus a buffer for the query latency). The signal vanishes silently -- the query returns zero events for that window, looking identical to a clean deploy. AC-3 (Datadog APM) does NOT have this problem (15-month retention). Remediation per persona Step 4 + Step 5: (a) MIRROR critical Sentry signals to Datadog Logs OR a retention-stable store before the retention boundary -- if AC-2's 30-day SLO is load-bearing, the plan MUST include a mirror or a long-retention destination, not just the Sentry filter; (b) the verification plan needs a 'retention-checkpoint' clause: at day 25 (5 days before retention boundary), an oncall task re-runs the AC-1 query and PERSISTS the result count in a long-retention store (a comment on the slice closure record, OR a row in a verification_log table); (c) at day 30, the SLO check reads from the persisted snapshot, NOT from Sentry; OR (d) upgrade Sentry to a paid tier with longer retention BEFORE this slice ships (cost decision; route via decision-interview). Persona must FLAG the retention-dependent signal at plan-author time, not let it silently expire. The discriminator: a baseline plan that authors the Sentry filter without checking retention fails when the 30-day SLO check happens after the retention boundary; persona Step 4 query-shape resolution must include retention semantics.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(retention|30[- ]days?|purged?|expired?|rolling\\s+window)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(free[- ]tier|Sentry.+retention|signal\\s+vanish|signal.+expire)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(mirror|persist|long[- ]retention|snapshot|checkpoint|long-term\\s+store)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(e1f2a3b|deploy_sha)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(fragile|fragility|vanish.+silent|silent.+expire)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

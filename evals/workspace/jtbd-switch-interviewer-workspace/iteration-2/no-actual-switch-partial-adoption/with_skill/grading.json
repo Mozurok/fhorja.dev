@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(partial\\\\s+adoption|add-?on|not\\\\s+a\\\\s+switch|no\\\\s+switch|both\\\\s+(tools|systems))' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(framework\\\\s+does\\\\s+not\\\\s+apply|four-?forces.+(does\\\\s+not|inappropriate|cannot)|not\\\\s+score|decline\\\\s+to\\\\s+score)' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(disconfirm|refute|refuted|re-?frame|hypothesis.+(refuted|incorrect|wrong|disconfirmed))' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(Asana|Linear)' flags=''"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(I1|interview\\\\s+1|the\\\\s+interview)' flags='i'"
+    }
+  ]
+}

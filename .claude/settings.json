@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/scripts/typecheck-hook.sh\"",
+            "timeout": 30000
+          }
+        ]
+      }
+    ]
+  }
+}

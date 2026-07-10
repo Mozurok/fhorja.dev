@@ -1,0 +1,33 @@
+{
+  "id": "design-token-multi-context-canonical-enum",
+  "prompt": "You are auditing color tokens flagged in a design system. ONE token (`color.text.muted`) is documented for THREE contexts: 14px body text (normal-text 4.5:1 AA), form-input border (ui-component 3:1 AA), and focus-ring tertiary state (focus-indicator 3:1 AA). Per persona Step 4 (verify contrast per design context) + the canonical verdict enum (PASS-AAA / PASS-AA / FAIL-AA / UNRESOLVED): score the pair against the STRICTEST applicable threshold.\n\nDesign:\n- `color.text.muted` = `#888888`\n- `color.surface.background` = `#FFFFFF`\n\nComputed ratio: ~3.54:1.\n\nProduce the audit per persona contract: (1) per-context threshold; (2) which is the strictest applicable; (3) verdict per the canonical enum; (4) concrete token-hex remediation.",
+  "expected_output": "Pair: color.text.muted #888888 on color.surface.background #FFFFFF, ratio 3.54:1 (do not round). Per persona Step 4: token serves 3 contexts; the strictest is normal-text (4.5:1 AA). Verdict: FAIL-AA (canonical enum). Remediation: darken to ~#6B6B6B which yields ~5.33:1 PASS-AA across all 3 contexts. The discriminator: a baseline plan that uses 'FAIL AA' (space) instead of canonical 'FAIL-AA' (hyphen) misses the substrate-consumer enum contract; per persona Step 5 the matrix row must use the explicit enum.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "FAIL-AA",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(multi[- ]?context|strictest|3.54|3\\.54)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(color\\.text\\.muted|#888888|#6B6B6B|#6b6b6b)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(normal[- ]?text|4\\.5:1|4\\.5)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(remediation|darken|token\\s+delta)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

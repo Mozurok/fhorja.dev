@@ -1,0 +1,33 @@
+{
+  "id": "icon-in-button-multi-target",
+  "prompt": "You are auditing an icon-button design: an icon sits to the left of a text label inside a button. Per persona Step 4 + Step 5 (multi-context + follow-the-data): an icon-in-button has THREE adjacencies, not two.\n\nDesign:\n- Button background: `color.button.subtle.bg` = `#F0F0F0` (light gray)\n- Button label text: `color.text.primary` = `#4A4A4A`\n- Icon stroke color: `color.icon.default` = `#8A8A8A` (mid gray)\n- The icon sits IMMEDIATELY LEFT of the text label (~4px gap)\n\nThree adjacencies to score:\n1. Label vs button bg (`#4A4A4A` on `#F0F0F0`) -- normal-text context (4.5:1 AA)\n2. Icon vs button bg (`#8A8A8A` on `#F0F0F0`) -- ui-component context (3:1 AA)\n3. Icon vs label (`#8A8A8A` adjacent to `#4A4A4A`) -- WCAG SC 1.4.1 differentiable-state pair? Or no requirement because both serve same affordance?\n\nProduce: (1) all THREE contrast ratios with computed values; (2) per-pair verdict; (3) WCAG analysis: which pairs are required to pass and at what threshold?; (4) remediation if any pair fails.",
+  "expected_output": "Pair 1 (label vs bg): #4A4A4A on #F0F0F0. Ratio ~ 7.45:1. PASS-AAA normal-text. Pair 2 (icon vs bg): #8A8A8A on #F0F0F0. Ratio ~ 2.67:1. FAIL-AA ui-component (3:1 needed for icons that convey state or are essential to understanding). Pair 3 (icon vs label): #8A8A8A adjacent to #4A4A4A. Ratio ~ 2.79:1. Per WCAG SC 1.4.1: this pair is NOT required to meet 3:1 because the icon and label together signal one affordance (the action of the button), not differentiable states; the icon is decorative/redundant when paired with a clear label. BUT if the button could ever appear icon-only (in a constrained layout, mobile small screen, or icon-only variant), then the icon takes on the label's semantic role and pair 2 (icon vs bg) MUST be PASS-AA. Remediation for Pair 2: darken icon to ~#666666 (~4.5:1 vs #F0F0F0) -- PASS-AA ui-component AND preserves visual distinction from label. The discriminator: a baseline plan that audits only label/bg (the obvious text pair) misses the icon/bg ui-component pair which is the load-bearing failure if the design ever uses an icon-only variant.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(icon.+(bg|background)|icon\\s+vs|icon-?stroke)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "FAIL-?AA",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(ui-?component|3:1|differenti|icon-?only)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(2\\.67|2\\.6|2\\.7|2\\.79|three\\s+(pair|adjacenc)|3\\s+(pair|adjacenc))",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(darken|reduce.+luminance|6{4,6})",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

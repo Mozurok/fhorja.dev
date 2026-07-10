@@ -1,0 +1,31 @@
+{
+  "passed": false,
+  "rationale": "4/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex 'materialized\\\\s+view|mv_notes_summary' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(do(es)?\\\\s+not\\\\s+inherit|bypass|leak|all\\\\s+users|cross.?tenant)' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(REVOKE|DROP\\\\s+MATERIALIZED|SECURITY\\\\s+INVOKER|CREATE\\\\s+VIEW)' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": false,
+      "description": "regex '(P1|P0|UNSAFE)' flags=''"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex 'follow.?the.?data|trace' flags='i'"
+    }
+  ]
+}

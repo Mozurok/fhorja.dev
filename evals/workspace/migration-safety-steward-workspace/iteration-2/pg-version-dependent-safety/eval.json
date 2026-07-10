@@ -1,0 +1,33 @@
+{
+  "id": "pg-version-dependent-safety",
+  "prompt": "You are auditing the following Postgres migration before it ships to production. The SAME statement is SAFE on one PG version and UNSAFE on another. Per persona Step 4 (lock duration risk): cross-reference the lock level with row count AND PG version semantics.\n\nMigration file:\n\n```sql\n-- migrations/20260606140005_add_signup_source_with_default.sql\nALTER TABLE users ADD COLUMN signup_source text NOT NULL DEFAULT 'unknown';\n```\n\nContext (Scenario A): Postgres version 15, `users` row count ~50M, rolling deploy.\nContext (Scenario B): Postgres version 10, `users` row count ~50M, rolling deploy.\n\n(Yes, PG10 is EOL. The team inherited a legacy production cluster they haven't migrated yet. Audit BOTH scenarios.)\n\nProduce per persona Step 1-6: (1) per-statement verdict for BOTH PG15 and PG10 scenarios (the SAME SQL statement gets DIFFERENT verdicts); (2) explanation of WHY the verdict differs by PG version (PG11+ metadata-only ADD COLUMN with constant DEFAULT vs PG10- table-rewrite); (3) per NEEDS-PHASING scenario, concrete phased SQL; (4) rollback per scenario.",
+  "expected_output": "PG15 verdict: SAFE-with-caveat. ADD COLUMN with constant DEFAULT is metadata-only on PG11+; brief AccessExclusiveLock for catalog update only, no table rewrite. The NOT NULL is also metadata-only because the DEFAULT applies to existing rows virtually (PG stores the DEFAULT in pg_attribute.attmissingval; existing rows return the default on read without a physical write). PG10 verdict: UNSAFE / NEEDS-PHASING. ADD COLUMN with DEFAULT on PG10- rewrites the entire table under AccessExclusiveLock; on 50M rows this locks for minutes-to-hours = production incident. Phased remediation for PG10: Phase 1 ADD COLUMN nullable (no default), Phase 2 batched UPDATE to set 'unknown', Phase 3 ALTER COLUMN SET DEFAULT 'unknown' + ALTER COLUMN SET NOT NULL. The discriminator: a baseline plan that ignores PG version OR scores both scenarios identically misses the load-bearing PG11+ metadata-only optimization (which would NEEDS-PHASING the PG15 case unnecessarily, costing developer time) AND the PG10 disaster (which would manifest as table-rewrite production downtime).",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(PG[- ]?15|Postgres\\s+15|PG[- ]?11)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(PG[- ]?10|Postgres\\s+10)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(metadata[- ]only|attmissingval|pg_attribute|virtually|catalog)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(table\\s+rewrite|full\\s+rewrite|rewrites.+table)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(SAFE|NEEDS-PHASING|UNSAFE)",
+      "flags": ""
+    }
+  ],
+  "timeout_seconds": 300
+}

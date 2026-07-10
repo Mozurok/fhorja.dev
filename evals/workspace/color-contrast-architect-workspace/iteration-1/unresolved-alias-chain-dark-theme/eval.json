@@ -1,0 +1,33 @@
+{
+  "id": "unresolved-alias-chain-dark-theme",
+  "prompt": "You are auditing color pairs across LIGHT and DARK themes. One pair has a broken alias chain in dark theme: the alias resolves cleanly in light but not in dark. Per the persona protocol, an unresolved token blocks the pair and is reported as UNRESOLVED rather than guessed. Produce a pairwise contrast matrix per WCAG 2.2 AA across both themes; respect the alias chain.\n\nToken source (excerpt):\n\n```json\n{\n  \"color.surface.background\": { \"light\": \"#FFFFFF\", \"dark\": \"#0F1115\" },\n  \"color.text.primary\":       { \"light\": \"#222222\", \"dark\": \"#F5F5F5\" },\n  \"color.notification.warning.fg\": {\n    \"light\": { \"$alias\": \"color.semantic.warning.text\" },\n    \"dark\":  { \"$alias\": \"color.semantic.warning.text\" }\n  },\n  \"color.notification.warning.bg\": {\n    \"light\": \"#FFF4D6\",\n    \"dark\":  \"#332100\"\n  },\n  \"color.semantic.warning.text\": {\n    \"light\": \"#7A4A00\"\n  }\n}\n```\n\nNotice: `color.semantic.warning.text` is defined ONLY for light theme. In dark theme the alias chain breaks.\n\nDocumented pairs (audit BOTH themes):\n\n| Token foreground | Token background | Design context |\n|---|---|---|\n| `color.text.primary` | `color.surface.background` | normal-text |\n| `color.notification.warning.fg` | `color.notification.warning.bg` | normal-text |\n\nKnown ratios (when resolvable):\n- light: `#222222` on `#FFFFFF` ~ 15.9:1\n- dark: `#F5F5F5` on `#0F1115` ~ 16.5:1\n- light: `#7A4A00` on `#FFF4D6` ~ 6.3:1\n- dark: `color.notification.warning.fg` alias chain broken -> UNRESOLVED\n\nProduce: (1) contrast matrix with one row per (pair, theme); pairs whose tokens cannot be resolved in a given theme are reported with verdict UNRESOLVED and the alias chain printed; (2) recommendation for the unresolved pair (define the dark variant; do NOT guess a value).",
+  "expected_output": "The `color.notification.warning.fg` on `color.notification.warning.bg` row for DARK theme MUST be reported as UNRESOLVED (alias chain `color.notification.warning.fg -> color.semantic.warning.text` breaks because the dark variant of `color.semantic.warning.text` is undefined). Persona Step 2 forbids guessing a value. Recommendation: define `color.semantic.warning.text` for dark theme (e.g. a value like #FFD480 that yields ~7.0:1 against #332100), then re-audit. The light row passes (~6.3:1 PASS-AA). The text.primary rows both pass strongly. The discriminator: a baseline reviewer may invent a plausible default (#FFA500, #F5A623) and report a PASS or FAIL based on that guess, when the correct action is to flag the unresolved chain and block on the missing token definition.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "UNRESOLVED",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "alias\\s+(chain|resolution|path|broken)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "color\\.semantic\\.warning\\.text",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "dark",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(define|undefined|not\\s+defined|missing|do\\s+not\\s+guess|cannot\\s+resolve)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

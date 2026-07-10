@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(service:webhook-api|service:\\\\s*webhook|service=webhook)' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '9f8e7d6|deploy_sha' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(curl|fixture|test\\\\s+payload|stripe\\\\s+signature|signed\\\\s+payload|stripe-cli)' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(2026-06-05T14:30|14:30.+15:30|deploy\\\\s+window|time\\\\s+range)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(negative\\\\s+check|did\\\\s+not\\\\s+ship|silent\\\\s+no-?op|prove.+not\\\\s+ship)' flags='i'"
+    }
+  ]
+}

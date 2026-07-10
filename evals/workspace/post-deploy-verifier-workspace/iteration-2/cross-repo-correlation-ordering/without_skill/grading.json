@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(POST_DEPLOY_PLAN\\\\.backend|backend.+plan|app-api.+plan)' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(POST_DEPLOY_PLAN\\\\.frontend|frontend.+plan|app-web.+plan)' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(Cross-repo|deploy[- ]order|ordering\\\\s+requirement|order\\\\s+matters|first|before)' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(spurious|misattribut|wrong\\\\s+attribution|deploy-order\\\\s+bug|not\\\\s+a\\\\s+code\\\\s+bug)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(8e7d6c5|a1b2c3d|app-api|app-web)' flags='i'"
+    }
+  ]
+}

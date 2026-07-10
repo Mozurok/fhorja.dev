@@ -1,0 +1,33 @@
+{
+  "id": "alpha-transparent-foreground-compositing",
+  "prompt": "You are auditing the following pair from a design system. The foreground token has alpha < 1.0 (semi-transparent). Per persona Step 2 (resolve token values per theme) + Step 3 (compute WCAG ratio): the ratio depends on the COMPOSED color (foreground over background blended through alpha), not the foreground's raw RGB.\n\nDocumented pair (light theme):\n\n| Token foreground | Token background | Design context |\n|---|---|---|\n| `color.text.overlay-on-image` (rgba(255, 255, 255, 0.85)) -- semi-transparent white | (depends on what image / surface it composes against) | normal-text (image captions over hero photos) |\n\nThe design system says: 'this token is used for captions placed over hero images on the homepage and product pages.' The hero images are NOT controlled by the design system; they're uploaded per-content. They range from white-dominant (cloud photos) to mid-tone (product shots) to dark (lifestyle photos).\n\nProduce: (1) compositing-aware contrast analysis -- what is the COMPOSED foreground color over (a) a fully white background, (b) a mid-tone gray #808080, (c) a dark photo background #1a1a1a; (3) verdict per scenario; (3) does the token PASS or FAIL WCAG 2.2 AA for normal-text across the range of plausible image backgrounds?; (4) remediation.",
+  "expected_output": "Compositing math: foreground rgba(255,255,255,0.85) over a solid background RGB(R,G,B) composes to RGB' = 0.85*255 + 0.15*R = 216.75 + 0.15*R per channel. (a) Over white #FFFFFF: composed = (255, 255, 255) -- identical to white background, contrast = 1:1, FAIL-AA (all text would be invisible). (b) Over mid-tone #808080: composed = 217 + 19.2 = 236 per channel, hex ~#ECECEC; contrast against #808080 = ~3.0:1, FAIL-AA for normal text (4.5:1 needed); could pass for large text (3:1 AA). (c) Over dark #1a1a1a: composed = 217 + 3.9 = 221 per channel, hex ~#DDDDDD; contrast against #1a1a1a = ~12.5:1, PASS-AAA. The token CANNOT be uniformly PASS-AA without controlling the image background. Per persona Step 2: a token whose value depends on runtime-computed compositing should be reported as UNRESOLVED-COMPOSITING (or equivalent runtime-dependent label) per pair-per-image-bucket. Remediation: (a) add a per-image-darkness gate at the rendering layer (drop a black overlay with alpha until composed contrast >= 4.5:1) -- shifts the audit boundary to runtime; OR (b) restrict use of this token to image surfaces that meet a minimum darkness threshold (constrain image inputs); OR (c) replace the token with two variants color.text.overlay-on-dark and color.text.overlay-on-light each at alpha=1.0; OR (d) add a text-shadow / scrim to guarantee minimum contrast regardless of background. The discriminator: a baseline plan that scores 'white at alpha 0.85 against unspecified background' as PASS-AA or simply 'audit later' misses the compositing dependency entirely.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(alpha|transparency|composit|compositing|composed)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(UNRESOLVED|runtime|image|background.+depend|depends?\\s+on)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "FAIL-?AA",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(scrim|overlay|shadow|two\\s+variants|per[- ]image|gate.+rendering)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(white|#FFFFFF|#1a1a1a|#808080|mid-?tone|dark.+photo)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

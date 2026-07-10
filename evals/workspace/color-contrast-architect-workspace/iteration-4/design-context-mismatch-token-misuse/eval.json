@@ -1,0 +1,33 @@
+{
+  "id": "design-context-mismatch-token-misuse",
+  "prompt": "You are auditing a token's usage. The token `color.text.disabled` (`#999999`) was DESIGNED for the disabled-state context (where contrast is INTENTIONALLY lower as a visual affordance per WCAG 2.2 SC 1.4.3 exception for incidental text on disabled UI components). But the token is being USED in a NEW context: small print disclaimers (e.g. legal disclaimers under signup forms). Per persona Step 4 + Step 8 (surface tooling caveats): the same hex token now has different applicability.\n\nDesign:\n- `color.text.disabled` = `#999999`\n- `color.surface.background` = `#FFFFFF`\n- Computed ratio: ~2.85:1.\n\nDocumented usages:\n1. Disabled-button label text -- DESIGNED context: WCAG 1.4.3 exception applies (incidental text).\n2. Small print disclaimer text under signup form -- NEW context: NOT incidental; users MUST read it (legal); WCAG 1.4.3 exception does NOT apply.\n\nProduce: (1) per-usage verdict (the token PASSES for usage 1 under the exception, FAILS for usage 2); (2) the canonical enum per usage; (3) remediation -- can the same token serve both, or must they fork?",
+  "expected_output": "Usage 1 (disabled-button label): WCAG 1.4.3 incidental-text exception applies (disabled UI components are exempt from contrast minimums). Verdict: PASS-AA (with exception note); ratio 2.85:1 is irrelevant under the exception. Usage 2 (legal disclaimer): NOT incidental; users MUST read; WCAG 1.4.3 4.5:1 applies. Verdict: FAIL-AA (ratio 2.85:1 < 4.5:1). The token CANNOT serve both contexts under the same hex; must FORK into `color.text.disabled` (intentionally low for disabled state) + `color.text.legal` (must meet 4.5:1, candidate #595959 yielding ~7:1 PASS-AAA). The discriminator: a baseline plan that audits the token in isolation and reports either pass-under-exception or fail-by-ratio misses the per-USAGE context dependency. Persona Step 4 explicitly demands per-context scoring; Step 8 surfaces tooling caveats (the token's named-purpose vs actual-use mismatch).",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(SC\\s+1\\.4\\.3|1\\.4\\.3|incidental|exception)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "FAIL-AA",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(fork|split\\s+token|two\\s+tokens|new\\s+token|color\\.text\\.legal)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(2\\.85|2\\.8|color\\.text\\.disabled|#999999)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(per[- ]context|per[- ]usage|context\\s+dependency)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

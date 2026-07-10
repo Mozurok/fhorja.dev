@@ -1,0 +1,33 @@
+{
+  "id": "query-shape-vagueness-trap",
+  "prompt": "You are authoring the per-slice post-deploy verification plan for the following Stripe webhook handler slice. Produce: (1) per-AC signal mapping table; (2) log queries with EXACT structured fields (service, route, status, deploy_sha, time window); (3) dashboard panel URLs with time ranges bounded by the deploy window; (4) smoke-test walkthrough with EXACT inputs (curl command with signed payload OR test fixture name + exact assertion); (5) negative check; (6) rollback trigger checklist. Vagueness is forbidden -- not 'monitor the dashboard for errors' but a panel URL with the time range and scoped tags; not 'check Sentry' but a Sentry filter query string.\n\nSlice file (SLICES/22_stripe_webhook_idempotency.md):\n\n```markdown\n# Slice 22: Stripe webhook idempotency\n\nDeploy: production, sha=`9f8e7d6`, ts=2026-06-05T14:30:00Z\nFeature flag: none\n\n## Acceptance criteria\n- AC-1: `POST /api/v1/webhooks/stripe` returns 200 on first receipt of a `customer.subscription.created` event.\n- AC-2: A duplicate of the same event (same `event.id`) returns 200 but does NOT re-execute side effects (no new subscription row, no duplicate billing email).\n- AC-3: Webhook signature verification rejects unsigned requests with 400 (security regression check).\n```\n\nObservability stack: Datadog Logs `https://app.datadoghq.com/logs`, Datadog APM `https://app.datadoghq.com/apm/services/webhook-api`, Sentry `https://sentry.io/fhorja`, Postgres `db.fhorja.supabase.co`, feature-flag system: NONE.\n\nNamed on-call human: `@bruno`.\n\nDeploy window: 2026-06-05T14:30:00Z -> 2026-06-05T15:30:00Z (1h smoke window).",
+  "expected_output": "Every signal is query-shaped: log queries include service:webhook-api OR equivalent + status:... + deploy_sha:9f8e7d6 + time-window bounded by the 14:30-15:30 deploy window. Dashboard URLs include the panel ID + the time range as URL params or explicit notes. Smoke-test for AC-2 includes the EXACT curl command (or equivalent test fixture name) with a signed payload, AND the exact assertion (no new row in subscriptions; no new email_send event). AC-3 smoke is an unsigned curl returning 400. Negative check: log query for the pre-slice non-idempotent code path showing zero hits, OR a dashboard panel showing duplicate-event signal at zero. Rollback: `@bruno` + exact command (e.g. `vercel rollback <deploy-id>` or `git revert 9f8e7d6 && vercel --prod`). Baseline failure mode: 'check Datadog and Sentry' / 'smoke the webhook' without exact filters, panel IDs, or curl commands -- which is generic ops advice, not a slice-specific runbook.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(service:webhook-api|service:\\s*webhook|service=webhook)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "9f8e7d6|deploy_sha",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(curl|fixture|test\\s+payload|stripe\\s+signature|signed\\s+payload|stripe-cli)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(2026-06-05T14:30|14:30.+15:30|deploy\\s+window|time\\s+range)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(negative\\s+check|did\\s+not\\s+ship|silent\\s+no-?op|prove.+not\\s+ship)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

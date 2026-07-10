@@ -1,0 +1,33 @@
+{
+  "id": "confirmation-bias-team-already-knows",
+  "prompt": "You are reviewing a JTBD research brief. The team explicitly states their conclusion in advance: 'We already know users switch because of X. We want to RUN INTERVIEWS TO CONFIRM this.' Per persona methodology: confirmation-seeking interviews produce biased evidence; persona must REFRAME the research question from 'confirm X' to 'understand why users switched without pre-supposing X'.\n\nResearch brief:\n\n> 'We already know that our enterprise users switch from Salesforce to our product because they want a better mobile experience. We want to run 5-7 JTBD interviews to CONFIRM this is the reason so we can prioritize mobile in the roadmap.'\n\nProduce per persona contract: (1) assessment -- is the brief actionable as written?; (2) the confirmation-bias risk explicitly named; (3) reframed research question that the persona can actually answer.",
+  "expected_output": "Assessment: the brief as written is NOT actionable; running 5-7 interviews to 'confirm' a pre-supposed conclusion is by definition not switch research, it's confirmation-seeking. Confirmation-bias risk: the team has already concluded 'mobile is the reason'; an interview script designed to 'confirm' will lead-witness the subjects toward mobile-related answers (just like the script-bias scenario from iter 2). Even if subjects mention OTHER forces (e.g. pricing, integrations, support quality), the team's pre-conclusion will filter those out as 'noise' during synthesis. Reframed research question: 'For enterprise users who switched from Salesforce to our product, what were the FOUR forces -- PUSH from Salesforce, PULL toward our product, ANXIETY about switching, HABIT keeping them in Salesforce -- WITHOUT pre-supposing any single force is dominant?' The persona MUST: (a) explicitly name the confirmation-bias risk; (b) refuse to draft a script that probes 'mobile' as the lead theme; (c) recommend the team commit to investigating mobile as ONE of multiple hypotheses, not the sole hypothesis; (d) note that if mobile genuinely IS the dominant force, an unbiased script will surface it; if it's NOT dominant, the team's roadmap prioritization is at risk of being wrong. The discriminator: a baseline plan that drafts a 'mobile-confirmation' script without raising the confirmation-bias issue misses the methodology guardrail -- persona's quality bar explicitly warns against the team laundering its prior through the interview round.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(confirmation[- ]bias|biased|pre-?suppos|leading|confirm[- ]seek)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(reframe|re-?frame|four[- ]?forces|without\\s+(pre-?supposing|pre-?conclud|assuming))",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(refuse|cannot.+draft|will\\s+not|should\\s+not)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(PUSH|PULL|ANXIETY|HABIT)",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(mobile|Salesforce|enterprise)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

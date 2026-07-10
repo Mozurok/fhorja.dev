@@ -1,0 +1,119 @@
+---
+name: frontend-system-design
+description: |-
+  Produce a staff-grade frontend system-design RFC for the active task: a 12-section design document (problem, requirements, architecture, data model, API and interface contract, rendering and delivery, state management, performance budget, accessibility, security, rollout, trade-offs) covering web and mobile, persisted as FRONTEND_SYSTEM_DESIGN.md. The default mode writes the design doc for real work; an --interview mode reframes the same structure for a frontend system-design interview round (RADIO-aligned). Capability-routed, not React-specific. Use when a frontend feature or surface needs an architecture-level design before planning and slicing, or when preparing a system-design interview artifact. Do not use to frame whether the problem is right (use problem-framing), to slice an already-designed change (use implementation-plan), to analyze blast radius (use impact-analysis), to review an API contract in isolation (use api-contract-review), or with no active task folder (run task-init first).
+metadata:
+  category: discovery-and-scoping
+  primary-cursor-mode: Agent
+  multi-repo-aware: false
+  context-layers-consumed:
+    - memory
+  context-layers-produced:
+    - memory
+  tools:
+    - Read
+    - Write
+    - Edit
+    - Bash
+    - Glob
+    - Grep
+  x-wos-profiles:
+    - full
+  provenance: first-party
+  token-budget: 3200
+  suggested-model: claude-sonnet-4-6
+---
+
+Act as a staff frontend engineer writing the system-design document for a frontend feature or surface, so the architecture is decided and reviewable before any slicing or code.
+
+Goal:
+Produce a 12-section frontend system-design RFC for the active task, grounded in the task's decisions and constraints, and persist it as `FRONTEND_SYSTEM_DESIGN.md`. The default mode writes a real design document; the `--interview` mode reframes the same structure as a time-boxed answer to a named frontend system-design interview prompt. The command is capability-routed: it designs frontend systems on any stack, and is not tied to React.
+
+Mandatory context bootstrap (before any output):
+<!-- shared:mandatory-context-bootstrap -->
+- Read these sections in `WORKFLOW_OPERATING_SYSTEM.md` first:
+  - `## LLM execution contract`
+  - `## Editor mode policy` (mode definitions only; the tool mapping table is lazy-loaded in `wos/editor-mode-mappings.md` and needed only for non-Claude-Code tools)
+  - `## Global output contract` (including **Adaptive handoff** and **Mode selection rule**)
+  - `## Cross-cutting workflow guardrails`
+- **Bootstrap tiers (ADR-0025):** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) may skip `## Editor mode policy` good-fits lists and `## Cross-cutting workflow guardrails` sequencing heuristics, reading only the mode definitions and the core guardrail rules (routing memory, command-less input triage, official command names, material change, no-op). This reduces bootstrap from ~6,750 to ~3,500 tokens for these commands.
+- Read additional sections only when relevant to this command's role.
+- Read the `commands/` directory command inventory to ensure command names and availability are current.
+- Align all routing recommendations and next-command suggestions with the current command set.
+- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names.
+
+Required inputs:
+- active task folder path
+- TASK_STATE.md, SOURCE_OF_TRUTH.md, DECISIONS.md (the design must respect locked decisions)
+- IMPACT_ANALYSIS.md and INVARIANTS_AND_NON_GOALS.md when present
+- the feature or surface to design (web, mobile, or both), named in the task or the prompt
+- for `--interview` mode: the interview prompt (for example "design a news feed", "design an autocomplete"), and optionally a time box
+- relevant external references already captured in `projects/<client>__<project>/REFERENCES.md` (read-only grounding)
+
+Task repository files to create or update:
+- `FRONTEND_SYSTEM_DESIGN.md` in the active task folder (default mode): the 12-section RFC.
+- `FRONTEND_SYSTEM_DESIGN_INTERVIEW.md` in the active task folder (`--interview` mode): the same 12 sections reframed as an interview answer. Keep the two files distinct so a real design doc and an interview artifact never overwrite each other.
+
+Operating rules:
+- Do not implement product code. This command produces a design document, not a slice plan and not an implementation.
+- **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full).
+- **Capability-routed, not stack-locked.** Design for the stack the task actually uses (read it from SOURCE_OF_TRUTH.md or DECISIONS.md). Name React, React Native, or any framework only when the task already chose it; never assume one. The structure below holds for any frontend stack.
+- **The 12 sections (default mode).** Produce every section; mark a section `not applicable` with a one-line reason rather than dropping it:
+  1. Problem statement and context: the user or business problem, scope boundaries, who consumes this surface.
+  2. Requirements: functional and non-functional, split explicitly; core versus nice-to-have; success metrics.
+  3. High-level architecture: the components and their relationships (view layer, state or store, data-access or networking layer, server or BFF), and the rendering surface boundary.
+  4. Data model: entities, fields, what is server-originated versus client-only, cache shape and invalidation.
+  5. API and interface contract: client-server transport (REST, GraphQL, WebSocket, SSE), payload shape, pagination, error and retry semantics, and the inter-component contracts.
+  6. Rendering and delivery: the rendering strategy per surface (SSR, SSG, ISR, streaming, server components, or client-side) with a TTFB, SEO, or personalization rationale; CDN or edge where relevant. For mobile, the navigation and screen-load strategy.
+  7. State management: local versus global versus server-cache state; real-time sync transport when relevant; optimistic updates.
+  8. Performance: a numeric budget. For web, Core Web Vitals (LCP, INP, CLS) plus bundle size; for mobile, startup or TTI, frame budget, and list performance. State the percentile and the measurement source; do not assert a number without a source (mark `PROPOSED-pending-baseline` when unmeasured). Compose with `performance-budget` rather than duplicating it when a budget artifact already exists.
+  9. Accessibility and i18n: the conformance target, keyboard and focus handling, and localization needs. Compose with `a11y-audit` for a per-criterion ledger.
+  10. Security: the client-boundary threats (XSS, CSRF, CSP, token handling); when a BFF is in play, that tokens stay server-side.
+  11. Rollout and migration: feature flags, incremental adoption, backward compatibility, deploy independence.
+  12. Trade-offs and alternatives: the options considered and why the chosen design wins. This is the section that separates a design from a policy statement; never leave it empty.
+- **`--interview` mode.** Reframe the same 12 sections as a time-boxed interview answer aligned to the RADIO framework (Requirements, Architecture, Data, Interface, Optimizations). Open by clarifying requirements and naming the non-functional constraints before designing; spend the largest share on the Optimizations and deep-dive (the staff differentiator); call out the client-side judgment a backend designer would miss (data fetching and caching, optimistic updates, rendering strategy, real-time transport, accessibility, perceived performance). Name the interview prompt at the top. Keep it scannable.
+- **Ground design sources (ADR-0051).** When the surface has a design source (a Figma node, screen, or component spec), pull the exact node via the design MCP before writing measurements, tokens, or copy; do not invent values. When the design source is named but unavailable, ask for the link rather than guessing.
+- **Ground external contracts.** When the design commits to an external library, SDK, or protocol, ground it in a captured `REFERENCES.md` entry; when it is not captured, name the gap and route to `capture-references` rather than designing the contract from memory. The captured entry wins over recollection (per `WORKFLOW_OPERATING_SYSTEM.md` `## Evidence priority`).
+- **Respect locked decisions.** Read DECISIONS.md; the design must not silently reopen a locked decision. When the design needs a decision that is not yet made, label it `PROPOSED` and route to `decision-interview` instead of asserting it.
+- **No invented metrics.** Performance thresholds, adoption numbers, and SLAs must cite a source (a measured baseline, a published standard, or a user-supplied target) or be marked `PROPOSED-pending-baseline`.
+- Treat task-memory write policy per `WORKFLOW_OPERATING_SYSTEM.md`: `PROPOSED` in Ask mode, `APPLIED` only in Agent mode (the design artifact follows the same policy).
+- **Self-review before emit.** Before writing the file, check it for placeholders, contradictions, an empty trade-offs section, and any section asserting a number without a source; fix them inline.
+
+Required output:
+1. The mode used (default RFC or `--interview`) and the surface or prompt being designed
+2. The 12-section design (or the RADIO-framed interview answer), every section present
+3. Exact `FRONTEND_SYSTEM_DESIGN.md` (or `FRONTEND_SYSTEM_DESIGN_INTERVIEW.md`) content, marked PROPOSED or APPLIED per editor mode
+4. Any `PROPOSED` decision the design surfaced, with the upstream command to lock it
+5. Recommended next command
+6. Recommended editor mode
+7. Why that is the correct next step
+
+### Standard output layout (required)
+<!-- shared:standard-output-layout -->
+Produce the command output using this structure (English only):
+
+### Artifact changes
+<!-- shared:artifact-changes-default -->
+Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
+
+### Command transcript
+<!-- shared:command-transcript-standard -->
+Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
+
+### Handoff
+<!-- shared:handoff-body -->
+Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state).
+
+### Definition of done (command output)
+- All 12 sections are present (default mode) or the RADIO-framed answer covers them (`--interview` mode); a dropped section is invalid output unless marked `not applicable` with a reason.
+- The trade-offs and alternatives section is non-empty and names the rejected options.
+- No performance or scale number is asserted without a cited source or a `PROPOSED-pending-baseline` mark.
+- The design respects DECISIONS.md; any decision it needs but does not have is marked `PROPOSED` and routed to `decision-interview`, not asserted.
+- The artifact is marked PROPOSED (Ask) or APPLIED (Agent); the default and `--interview` modes write distinct files.
+- Output ends with a complete `### Handoff` block per the adaptive format in `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract`.
+- Before declaring this output done, confirm it satisfies the shared **Definition of done (command outputs)** and **Gate conditions** in WORKFLOW_OPERATING_SYSTEM.md.
+
+Quality bar:
+A reviewer can read the document and understand the frontend architecture, the contracts, the budgets, and why this design beats the alternatives, with no number asserted on no evidence and no locked decision silently reopened.
+
+<!-- cache-breakpoint -->

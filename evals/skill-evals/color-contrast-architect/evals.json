@@ -1,0 +1,124 @@
+{
+  "skill_name": "color-contrast-architect",
+  "version": "4.0",
+  "description": "K.7 iteration-4 evals for color-contrast-architect. Iter 3 (+0.667) dipped from iter 2 peak (+1.000). Iter 4 designed to RELIABLY hold +0.667 via 3 scenarios that target consistent canonical-enum + multi-context + UNRESOLVED-reporting discriminators -- the patterns iter 1+2 already showed baseline misses. Goal: sustain non-regressing trend (iter 3-4-5 window) toward L3 qualification.",
+  "evals": [
+    {
+      "id": "design-token-multi-context-canonical-enum",
+      "prompt": "You are auditing color tokens flagged in a design system. ONE token (`color.text.muted`) is documented for THREE contexts: 14px body text (normal-text 4.5:1 AA), form-input border (ui-component 3:1 AA), and focus-ring tertiary state (focus-indicator 3:1 AA). Per persona Step 4 (verify contrast per design context) + the canonical verdict enum (PASS-AAA / PASS-AA / FAIL-AA / UNRESOLVED): score the pair against the STRICTEST applicable threshold.\n\nDesign:\n- `color.text.muted` = `#888888`\n- `color.surface.background` = `#FFFFFF`\n\nComputed ratio: ~3.54:1.\n\nProduce the audit per persona contract: (1) per-context threshold; (2) which is the strictest applicable; (3) verdict per the canonical enum; (4) concrete token-hex remediation.",
+      "expected_output": "Pair: color.text.muted #888888 on color.surface.background #FFFFFF, ratio 3.54:1 (do not round). Per persona Step 4: token serves 3 contexts; the strictest is normal-text (4.5:1 AA). Verdict: FAIL-AA (canonical enum). Remediation: darken to ~#6B6B6B which yields ~5.33:1 PASS-AA across all 3 contexts. The discriminator: a baseline plan that uses 'FAIL AA' (space) instead of canonical 'FAIL-AA' (hyphen) misses the substrate-consumer enum contract; per persona Step 5 the matrix row must use the explicit enum.",
+      "assertions": [
+        {
+          "type": "regex",
+          "pattern": "FAIL-AA",
+          "flags": ""
+        },
+        {
+          "type": "regex",
+          "pattern": "(multi[- ]?context|strictest|3.54|3\\.54)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(color\\.text\\.muted|#888888|#6B6B6B|#6b6b6b)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(normal[- ]?text|4\\.5:1|4\\.5)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(remediation|darken|token\\s+delta)",
+          "flags": "i"
+        }
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "id": "broken-alias-chain-cross-theme",
+      "prompt": "You are auditing color pairs across LIGHT and DARK themes. The alias chain for one token breaks in DARK theme. Per persona Step 2 (resolve token values per theme) + Step 5 (theme coverage): an unresolved token MUST be reported as UNRESOLVED, never guessed.\n\nToken source (JSON excerpt):\n\n```json\n{\n  \"color.surface.background\": { \"light\": \"#FFFFFF\", \"dark\": \"#0F1115\" },\n  \"color.text.error\": {\n    \"light\": { \"$alias\": \"color.semantic.error.fg\" },\n    \"dark\":  { \"$alias\": \"color.semantic.error.fg\" }\n  },\n  \"color.semantic.error.fg\": {\n    \"light\": \"#B5453A\"\n  }\n}\n```\n\nNote: `color.semantic.error.fg` is UNDEFINED for dark theme. The alias breaks.\n\nDocumented pairs (audit BOTH themes):\n\n| Token foreground | Token background | Design context |\n|---|---|---|\n| `color.text.error` | `color.surface.background` | normal-text |\n\nProduce: (1) per-theme contrast matrix; (2) light-theme ratio with verdict; (3) dark-theme verdict (UNRESOLVED per persona Step 2 -- do not guess a value); (4) recommendation.",
+      "expected_output": "Light theme: #B5453A on #FFFFFF, ratio ~5.5:1, verdict PASS-AA normal-text (canonical enum). Dark theme: alias chain `color.text.error` -> `color.semantic.error.fg` BREAKS because `color.semantic.error.fg` has no dark variant. Verdict: UNRESOLVED (canonical enum). Recommendation: define `color.semantic.error.fg.dark` (e.g. #FF8A7A which yields ~6.3:1 against #0F1115 PASS-AA); re-audit after the token is added. The discriminator: a baseline plan that GUESSES a dark value (e.g. infers from light variant + brightness adjustment) violates persona Step 2's UNRESOLVED-not-guessed rule. The canonical UNRESOLVED enum communicates 'cannot evaluate this pair' to the substrate consumer.",
+      "assertions": [
+        {
+          "type": "regex",
+          "pattern": "UNRESOLVED",
+          "flags": ""
+        },
+        {
+          "type": "regex",
+          "pattern": "(alias\\s+(chain|broken)|broken\\s+alias|alias.+(undefined|missing))",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "color\\.semantic\\.error\\.fg",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(do\\s+not\\s+guess|cannot\\s+guess|not\\s+guess|missing.+dark|undefined)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "PASS-AA",
+          "flags": ""
+        }
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "id": "design-context-mismatch-token-misuse",
+      "prompt": "You are auditing a token's usage. The token `color.text.disabled` (`#999999`) was DESIGNED for the disabled-state context (where contrast is INTENTIONALLY lower as a visual affordance per WCAG 2.2 SC 1.4.3 exception for incidental text on disabled UI components). But the token is being USED in a NEW context: small print disclaimers (e.g. legal disclaimers under signup forms). Per persona Step 4 + Step 8 (surface tooling caveats): the same hex token now has different applicability.\n\nDesign:\n- `color.text.disabled` = `#999999`\n- `color.surface.background` = `#FFFFFF`\n- Computed ratio: ~2.85:1.\n\nDocumented usages:\n1. Disabled-button label text -- DESIGNED context: WCAG 1.4.3 exception applies (incidental text).\n2. Small print disclaimer text under signup form -- NEW context: NOT incidental; users MUST read it (legal); WCAG 1.4.3 exception does NOT apply.\n\nProduce: (1) per-usage verdict (the token PASSES for usage 1 under the exception, FAILS for usage 2); (2) the canonical enum per usage; (3) remediation -- can the same token serve both, or must they fork?",
+      "expected_output": "Usage 1 (disabled-button label): WCAG 1.4.3 incidental-text exception applies (disabled UI components are exempt from contrast minimums). Verdict: PASS-AA (with exception note); ratio 2.85:1 is irrelevant under the exception. Usage 2 (legal disclaimer): NOT incidental; users MUST read; WCAG 1.4.3 4.5:1 applies. Verdict: FAIL-AA (ratio 2.85:1 < 4.5:1). The token CANNOT serve both contexts under the same hex; must FORK into `color.text.disabled` (intentionally low for disabled state) + `color.text.legal` (must meet 4.5:1, candidate #595959 yielding ~7:1 PASS-AAA). The discriminator: a baseline plan that audits the token in isolation and reports either pass-under-exception or fail-by-ratio misses the per-USAGE context dependency. Persona Step 4 explicitly demands per-context scoring; Step 8 surfaces tooling caveats (the token's named-purpose vs actual-use mismatch).",
+      "assertions": [
+        {
+          "type": "regex",
+          "pattern": "(SC\\s+1\\.4\\.3|1\\.4\\.3|incidental|exception)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "FAIL-AA",
+          "flags": ""
+        },
+        {
+          "type": "regex",
+          "pattern": "(fork|split\\s+token|two\\s+tokens|new\\s+token|color\\.text\\.legal)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(2\\.85|2\\.8|color\\.text\\.disabled|#999999)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(per[- ]context|per[- ]usage|context\\s+dependency)",
+          "flags": "i"
+        }
+      ],
+      "timeout_seconds": 300
+    }
+  ],
+  "trigger_evals": {
+    "should_trigger": [
+      "design-bootstrap just extracted our color tokens from Figma into foundations/color.md, but there is no contrast matrix anywhere. Can you audit every foreground/background pair against WCAG before we lock these tokens?",
+      "We have light and dark themes documented. Check that all our documented text-on-surface and border-on-surface pairs hit WCAG 2.2 AA across both themes before the visual choices get locked in.",
+      "DECISIONS.md proposes #2F6BFF as our primary accent color but nobody confirmed its contrast against the white surface and the dark-mode background. Validate it before we commit.",
+      "Our foundations/color.md lists all the role tokens but there's no pairwise contrast verification. Build the contrast matrix with per-context thresholds (normal text, large text, UI components, focus rings) and flag anything that fails AA.",
+      "The screen-spec for the onboarding flow references color.text.secondary on color.surface.elevated and I don't think that pair was ever checked for WCAG. Audit it and every related documented pair, light and dark, with token-level remediation for any failures.",
+      "Before we sign off the color foundations, I want a full audit: every documented token pair, both themes, scored per design context, with a hex-level fix proposed for each failing pair rather than a vague 'increase contrast'."
+    ],
+    "should_not_trigger": [
+      "The Button component is already coded. Verify the implementation matches its spec doc, including that the contrast ratios documented in the spec are actually met in the code.",
+      "Generate the full 15-section spec for the Badge component from its Figma node, including the accessibility section with computed contrast ratios for its label-on-fill pair.",
+      "We need to pick a brand accent color for the new product. There are no theme variants and no accessibility target locked yet. Help me decide between teal and indigo.",
+      "The Card screen was implemented last week. Review it against docs/app/screens/buyer/03-card.md to confirm tokens, variants, and states match the documented spec.",
+      "Document the Chip component spec from Figma: anatomy, variants, sizes, states, and the accessibility section with its single label-on-background contrast ratio computed inline.",
+      "Decide whether dark mode should use pure black or an elevated dark gray as the base surface. This is a behavior and rollout decision, not a contrast check; no WCAG target is locked yet."
+    ]
+  }
+}

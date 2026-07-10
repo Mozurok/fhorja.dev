@@ -1,0 +1,72 @@
+{
+  "skill_name": "jtbd-switch-interviewer",
+  "iteration": 1,
+  "eval_count": 3,
+  "results": [
+    {
+      "id": "feature-wishlist-no-incumbent",
+      "without_skill": {
+        "passed": true,
+        "duration_seconds": 126,
+        "tokens_input": 37554,
+        "tokens_output": 6627
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 167,
+        "tokens_input": 44122,
+        "tokens_output": 7787
+      }
+    },
+    {
+      "id": "mixed-evidence-cluster-strength",
+      "without_skill": {
+        "passed": false,
+        "duration_seconds": 94,
+        "tokens_input": 37738,
+        "tokens_output": 6660
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 120,
+        "tokens_input": 44287,
+        "tokens_output": 7816
+      }
+    },
+    {
+      "id": "paraphrase-laundering-trap",
+      "without_skill": {
+        "passed": false,
+        "duration_seconds": 62,
+        "tokens_input": 35254,
+        "tokens_output": 6221
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 95,
+        "tokens_input": 41719,
+        "tokens_output": 7362
+      }
+    }
+  ],
+  "summary": {
+    "without_skill": {
+      "pass_rate": 0.3333333333333333,
+      "total_duration_seconds": 282,
+      "total_tokens_input": 110546,
+      "total_tokens_output": 19508
+    },
+    "with_skill": {
+      "pass_rate": 1,
+      "total_duration_seconds": 382,
+      "total_tokens_input": 130128,
+      "total_tokens_output": 22965
+    },
+    "delta": {
+      "pass_rate": 0.6666666666666667,
+      "duration_seconds": 100,
+      "tokens_input": 19582,
+      "tokens_output": 3457
+    }
+  }
+}

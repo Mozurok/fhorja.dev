@@ -1,0 +1,32 @@
+{
+  "id": "create-index-without-concurrently",
+  "prompt": "You are auditing the following Postgres migration before it ships to production. Per-statement verdict required. Migration file:\n\n```sql\n-- migrations/20260606120002_index_orders_by_user.sql\nCREATE INDEX idx_orders_user_id ON orders(user_id);\n```\n\nContext:\n- Postgres version: 14\n- `orders` table row count estimate: ~120,000,000 rows (120M); high write concurrency\n- Deployment strategy: single-shot cutover with NO maintenance window\n- No online-DDL tooling in scope\n\nProduce: (1) per-statement verdict table with lock_level, (2) risks grouped by severity with concrete production symptom (e.g. specific lock contention class), (3) statement-shaped remediation, (4) note whether the remediation can run inside a transaction block.",
+  "expected_output": "Verdict NEEDS-PHASING or UNSAFE. Lock level identified as a write-blocking lock (ShareLock on the table, blocking concurrent writes for the duration of the build, which on 120M rows is significant). Remediation: CREATE INDEX CONCURRENTLY idx_orders_user_id ON orders(user_id); explicit note that CONCURRENTLY cannot run inside a migration transaction (must be its own migration or non-transactional). Specific production symptom (write blocking, timeouts).",
+  "assertions": [
+    {
+      "type": "contains",
+      "target": "CONCURRENTLY"
+    },
+    {
+      "type": "regex",
+      "pattern": "CREATE\\s+INDEX\\s+CONCURRENTLY",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "transaction|BEGIN",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(NEEDS-PHASING|UNSAFE|P0|P1)",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "lock",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

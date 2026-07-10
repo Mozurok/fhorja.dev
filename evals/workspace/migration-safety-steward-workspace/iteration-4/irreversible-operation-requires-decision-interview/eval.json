@@ -1,0 +1,33 @@
+{
+  "id": "irreversible-operation-requires-decision-interview",
+  "prompt": "You are auditing a Postgres migration. The migration includes an IRREVERSIBLE operation. Per persona Step 5 (Identify rollback strategy per statement): statements with no safe reverse MUST be flagged IRREVERSIBLE and routed for explicit user confirmation via Handoff to decision-interview -- not just remediated.\n\nMigration file:\n\n```sql\n-- migrations/20260608120001_drop_legacy_columns.sql\nALTER TABLE users DROP COLUMN legacy_signup_referrer;\nALTER TABLE users DROP COLUMN legacy_acquisition_channel;\nALTER TABLE users DROP COLUMN legacy_marketing_consent;\n```\n\nContext:\n- Postgres version: 15\n- `users` row count: ~10,000,000 rows (10M)\n- All 3 columns have been unread in application code for 6+ months (verified via tracing)\n- BUT: the columns contain historical data that compliance team relies on for LGPD audit responses (last quarterly audit referenced legacy_marketing_consent)\n- Deployment: rolling deploy, no maintenance window\n- No backup of column data exists outside the table\n\nProduce per persona contract: (1) per-statement verdict; (2) IRREVERSIBLE flag per statement; (3) rollback per statement (the absence of a safe rollback is itself the finding); (4) recommended next command -- should this go to implementation-plan (re-slice) OR decision-interview (explicit user confirmation OR data-preservation backup) OR approve-proposed (all SAFE)?",
+  "expected_output": "All 3 statements: classification DROP-COLUMN. The columns are UNREAD (code-no-longer-reads condition met) BUT the data is IRRECOVERABLE once dropped AND compliance has a historical dependency. Verdict per statement: IRREVERSIBLE. Recommended next command: decision-interview (NOT implementation-plan, NOT approve-proposed). Persona Step 5 explicitly: 'Statements with no safe reverse MUST be flagged IRREVERSIBLE and routed for explicit user confirmation via Handoff to decision-interview.' The audit MUST surface: (a) the compliance dependency on legacy_marketing_consent (a P0 BLOCKER -- dropping this destroys LGPD audit material; column data must be ARCHIVED outside the table BEFORE the drop, OR the drop is blocked); (b) the lack of backup as a P1 risk; (c) explicit user confirmation required via decision-interview, NOT via implementation-plan re-slicing. The discriminator: a baseline plan that recommends 'two-phase drop' or 'add code change first then drop' misses the routing-shape requirement -- the irrecoverable data + compliance dependency is a DECISION question (do we accept this loss? do we archive?) not an implementation question.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "IRREVERSIBLE",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "decision-interview",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(LGPD|compliance|audit|legacy_marketing_consent)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(archive|backup|preserve|export.+data)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(P0|UNSAFE|BLOCKER)",
+      "flags": ""
+    }
+  ],
+  "timeout_seconds": 300
+}

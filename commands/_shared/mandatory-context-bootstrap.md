@@ -1,0 +1,11 @@
+- Read these sections in `WORKFLOW_OPERATING_SYSTEM.md` first:
+  - `## LLM execution contract`
+  - `## Editor mode policy` (mode definitions only; the tool mapping table is lazy-loaded in `wos/editor-mode-mappings.md` and needed only for non-Claude-Code tools)
+  - `## Global output contract` (including **Adaptive handoff** and **Mode selection rule**)
+  - `## Cross-cutting workflow guardrails`
+- **Bootstrap tiers (ADR-0025):** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) may skip `## Editor mode policy` good-fits lists and `## Cross-cutting workflow guardrails` sequencing heuristics, reading only the mode definitions and the core guardrail rules (routing memory, command-less input triage, official command names, material change, no-op). This reduces bootstrap from ~6,750 to ~3,500 tokens for these commands.
+- Read additional sections only when relevant to this command's role.
+- Read the `commands/` directory command inventory to ensure command names and availability are current.
+- Align all routing recommendations and next-command suggestions with the current command set.
+- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names.
+

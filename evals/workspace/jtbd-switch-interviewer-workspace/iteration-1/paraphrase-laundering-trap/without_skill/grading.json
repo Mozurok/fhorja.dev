@@ -1,0 +1,31 @@
+{
+  "passed": false,
+  "rationale": "3/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(paraphrase|no\\\\s+verbatim|no\\\\s+direct\\\\s+quote|summary\\\\s+only|insufficient\\\\s+evidence)' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": false,
+      "description": "regex '(We do not have evidence|do not have evidence for|evidence\\\\s+gap)' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(re-?interview|follow-?up|capture\\\\s+verbatim|re-?run|re-?contact)' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": false,
+      "description": "regex '(PUSH|PULL|ANXIETY|HABIT)' flags=''"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(I1|I2|I3)' flags=''"
+    }
+  ]
+}

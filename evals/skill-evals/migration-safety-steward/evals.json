@@ -1,0 +1,124 @@
+{
+  "skill_name": "migration-safety-steward",
+  "version": "4.0",
+  "description": "K.7 iteration-4 (RECOVERY) evals for migration-safety-steward. Iter 3 (delta=0) regressed below iter 1+2 floor (+0.333). Iter 4 shifts discriminator from output-shape to ROUTING-shape per persona Step 9: scenarios where the right action is to ESCALATE (route to decision-interview for IRREVERSIBLE statements) or to STOP and ASK (per Step 1 'unknown row count = treat as >1M; if still under-specified, STOP and Handoff to targeted-questions'). Baseline tends to produce best-effort remediation; persona's quality bar enforces routing protocol when context is incomplete or operations are irreversible. Goal: recover trend (+0.333 floor).",
+  "evals": [
+    {
+      "id": "irreversible-operation-requires-decision-interview",
+      "prompt": "You are auditing a Postgres migration. The migration includes an IRREVERSIBLE operation. Per persona Step 5 (Identify rollback strategy per statement): statements with no safe reverse MUST be flagged IRREVERSIBLE and routed for explicit user confirmation via Handoff to decision-interview -- not just remediated.\n\nMigration file:\n\n```sql\n-- migrations/20260608120001_drop_legacy_columns.sql\nALTER TABLE users DROP COLUMN legacy_signup_referrer;\nALTER TABLE users DROP COLUMN legacy_acquisition_channel;\nALTER TABLE users DROP COLUMN legacy_marketing_consent;\n```\n\nContext:\n- Postgres version: 15\n- `users` row count: ~10,000,000 rows (10M)\n- All 3 columns have been unread in application code for 6+ months (verified via tracing)\n- BUT: the columns contain historical data that compliance team relies on for LGPD audit responses (last quarterly audit referenced legacy_marketing_consent)\n- Deployment: rolling deploy, no maintenance window\n- No backup of column data exists outside the table\n\nProduce per persona contract: (1) per-statement verdict; (2) IRREVERSIBLE flag per statement; (3) rollback per statement (the absence of a safe rollback is itself the finding); (4) recommended next command -- should this go to implementation-plan (re-slice) OR decision-interview (explicit user confirmation OR data-preservation backup) OR approve-proposed (all SAFE)?",
+      "expected_output": "All 3 statements: classification DROP-COLUMN. The columns are UNREAD (code-no-longer-reads condition met) BUT the data is IRRECOVERABLE once dropped AND compliance has a historical dependency. Verdict per statement: IRREVERSIBLE. Recommended next command: decision-interview (NOT implementation-plan, NOT approve-proposed). Persona Step 5 explicitly: 'Statements with no safe reverse MUST be flagged IRREVERSIBLE and routed for explicit user confirmation via Handoff to decision-interview.' The audit MUST surface: (a) the compliance dependency on legacy_marketing_consent (a P0 BLOCKER -- dropping this destroys LGPD audit material; column data must be ARCHIVED outside the table BEFORE the drop, OR the drop is blocked); (b) the lack of backup as a P1 risk; (c) explicit user confirmation required via decision-interview, NOT via implementation-plan re-slicing. The discriminator: a baseline plan that recommends 'two-phase drop' or 'add code change first then drop' misses the routing-shape requirement -- the irrecoverable data + compliance dependency is a DECISION question (do we accept this loss? do we archive?) not an implementation question.",
+      "assertions": [
+        {
+          "type": "regex",
+          "pattern": "IRREVERSIBLE",
+          "flags": ""
+        },
+        {
+          "type": "regex",
+          "pattern": "decision-interview",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(LGPD|compliance|audit|legacy_marketing_consent)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(archive|backup|preserve|export.+data)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(P0|UNSAFE|BLOCKER)",
+          "flags": ""
+        }
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "id": "underspecified-context-stop-and-ask",
+      "prompt": "You are auditing the following Postgres migration. The required inputs per persona spec include row count and PG version; both are MISSING from the slice context. Per persona Step 1 + Step 4: 'unknown row count = treat as >1M; if still under-specified, STOP and Handoff to targeted-questions for missing context'.\n\nMigration file:\n\n```sql\n-- migrations/20260608120002_add_orders_status_index.sql\nCREATE INDEX idx_orders_status ON orders(status);\n```\n\nContext as provided by the slice:\n- Table: `orders`\n- Postgres version: NOT SPECIFIED\n- Row count: NOT SPECIFIED\n- Deployment strategy: NOT SPECIFIED\n- Online-DDL tooling: NOT SPECIFIED\n\nProduce per persona contract: (1) bias verdict per Step 6 (NEEDS-PHASING when context underspecified); (2) the missing context items that block a definitive audit; (3) recommended next command -- should this go to implementation-plan, decision-interview, OR targeted-questions to gather the missing inputs?",
+      "expected_output": "Verdict: NEEDS-PHASING (bias-toward-NEEDS-PHASING per persona Step 6 when row count + PG version + deployment strategy all unknown). The audit CANNOT produce a definitive remediation because: (a) without PG version, cannot decide if CREATE INDEX is metadata-only optimized; (b) without row count, the >1M threshold = unknown, treat as >1M = NEEDS-PHASING; (c) without deployment strategy, cannot decide if CONCURRENTLY is required (rolling deploy = yes; maintenance window = optional). Recommended next command: targeted-questions to gather PG version + row count + deployment strategy + online-DDL tooling BEFORE the migration audit can be definitive. The persona MUST refuse to ship a confident verdict on missing context. The discriminator: a baseline plan that produces a best-effort verdict (e.g. 'use CONCURRENTLY just to be safe') misses the routing-shape requirement -- under-specified context is a question-routing situation, not a take-best-guess situation. Persona Step 1 explicitly: 'STOP and Handoff to targeted-questions for missing context'.",
+      "assertions": [
+        {
+          "type": "regex",
+          "pattern": "targeted-questions",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(unknown|missing|under-?specified|not\\s+specified|undefined)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "NEEDS-PHASING",
+          "flags": ""
+        },
+        {
+          "type": "regex",
+          "pattern": "(STOP|cannot.+definitive|cannot\\s+produce|refuse|requires\\s+(input|context))",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(PG\\s+version|Postgres\\s+version|row\\s+count|deployment\\s+strategy)",
+          "flags": "i"
+        }
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "id": "online-ddl-required-tooling-not-in-scope",
+      "prompt": "You are auditing a Postgres migration where the only safe variant requires online-DDL tooling (pg_repack or equivalent), but the slice says NO online-DDL tooling is in scope. Per persona Step 8 + Step 9: if the safe variant requires a tool not available, the persona must STOP and route to decision-interview to either authorize the tool OR accept the risk OR re-shape the slice -- NOT produce a 'best-effort' plan.\n\nMigration file:\n\n```sql\n-- migrations/20260608120003_alter_orders_amount_type.sql\nALTER TABLE orders ALTER COLUMN amount_cents TYPE numeric(20,4) USING amount_cents::numeric(20,4);\n```\n\nContext:\n- Postgres version: 14\n- `orders` row count: ~500,000,000 rows (500M)\n- Deployment strategy: rolling deploy, NO MAINTENANCE WINDOW EVER (24/7 production with global users)\n- Online-DDL tooling: NOT IN SCOPE per slice (team has not adopted pg_repack / Reshape)\n- Note: ALTER TYPE numeric -> numeric with different precision causes table rewrite under AccessExclusiveLock; on 500M rows this would lock the table for HOURS\n\nProduce per persona contract: (1) verdict (UNSAFE because no safe variant exists without online-DDL); (2) the gap -- safe variant REQUIRES pg_repack/Reshape but is not in scope; (3) recommended next command -- decision-interview to authorize tooling OR re-shape slice (e.g. defer the type change) OR accept the risk.",
+      "expected_output": "Verdict: UNSAFE. The naive ALTER TYPE on 500M rows under AccessExclusiveLock locks for HOURS = production outage. There is NO safe variant achievable with native Postgres alone: the canonical approach (add new column, backfill in batches, swap reads, drop old) is theoretically possible but requires app code changes + careful coordination + significant engineering time, AND the swap-step itself still requires AccessExclusiveLock for an instant. The pg_repack / Reshape variant performs the rewrite under triggers without long lock, but is OUT OF SCOPE per the slice context. Recommended next command: decision-interview. The decision needed: (a) authorize pg_repack adoption + ship slice with safe online-DDL variant; (b) accept the multi-hour lock during a planned maintenance window (requires policy change since 'no maintenance window ever' is current strategy); (c) defer the type change entirely and document the precision constraint in the data layer instead. The persona MUST NOT ship a best-effort plan; the decision is genuinely tradeoff-bearing and belongs to the user/team. The discriminator: a baseline plan that produces a 'phased approach' assuming the team will accept the lock OR that recommends pg_repack without flagging the in-scope constraint misses the routing-shape requirement.",
+      "assertions": [
+        {
+          "type": "regex",
+          "pattern": "decision-interview",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(pg_repack|Reshape|online-?DDL\\s+tool)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "UNSAFE",
+          "flags": ""
+        },
+        {
+          "type": "regex",
+          "pattern": "(not\\s+in\\s+scope|out\\s+of\\s+scope|authorize|adopt)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(AccessExclusiveLock|table\\s+rewrite|hours|outage)",
+          "flags": "i"
+        }
+      ],
+      "timeout_seconds": 300
+    }
+  ],
+  "trigger_evals": {
+    "should_trigger": [
+      "We're about to ship migrations/20260622_add_not_null_email.sql which runs ALTER TABLE users ALTER COLUMN email SET NOT NULL on a table with ~40M rows. Can you check this is production-safe before we apply it?",
+      "The IMPLEMENTATION_PLAN slice adds a CREATE INDEX idx_orders_status ON orders(status) migration on a busy 200M-row table. Before approving the plan, audit the DDL for lock duration and whether it needs CONCURRENTLY.",
+      "DECISIONS.md just locked a rename of the column customer_id to account_id on the live invoices table, but there's no rollback or two-phase strategy written down. Review the schema change for production safety before we plan the slices.",
+      "TASK_STATE active files in scope now lists /supabase/migrations/20260622_drop_legacy_cols.sql which drops three columns the app still reads. Audit the DDL for two-phase deploy safety and reversibility before deploy.",
+      "Our PR draft contains a .sql migration that does ALTER TABLE payments ALTER COLUMN amount_cents TYPE numeric on a 500M-row table with no maintenance window. Is the type change going to lock us up in production, and what's the safe variant?",
+      "Before this ALTER TABLE adds a foreign key to a multi-million-row orders table, can you tell me whether it'll take a long lock and how to phase it so we don't take an outage?"
+    ],
+    "should_not_trigger": [
+      "The migration adds a new tenant-scoped table accounts_billing to Supabase but the slice acceptance has no RLS policy declared. Audit it for tenant isolation gaps before we deploy.",
+      "This policy DDL uses CREATE POLICY with a USING clause but no WITH CHECK, so inserts might leak across tenants. Can you review the RLS boundary before this ships?",
+      "The diff adds an endpoint that returns customer SSN and bank account numbers in the response body. Review whether we're handling this PII safely and whether anything leaks outside the self-service path.",
+      "We just finished implementing the checkout refactor across the service and repository layers. Give me a focused engineering risk review for correctness and maintainability before I open the PR.",
+      "A SECURITY DEFINER function was added that reads from a tenant-scoped table without an RLS-aware guard. Check whether it bypasses our row-level isolation before we merge.",
+      "The new public login endpoint sets a session cookie and does a role check. Trace the auth and authz flow and run an OWASP pass before this goes out."
+    ]
+  }
+}

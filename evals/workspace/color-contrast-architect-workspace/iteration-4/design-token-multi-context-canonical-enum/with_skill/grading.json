@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex 'FAIL-AA'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(multi[- ]?context|strictest|3.54|3\\\\.54)'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(color\\\\.text\\\\.muted|#888888|#6B6B6B|#6b6b6b)'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(normal[- ]?text|4\\\\.5:1|4\\\\.5)'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(remediation|darken|token\\\\s+delta)'"
+    }
+  ]
+}

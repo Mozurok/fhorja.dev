@@ -1,0 +1,33 @@
+{
+  "id": "feature-wishlist-no-incumbent",
+  "prompt": "You are designing a JTBD switch-interview round for the following product brief. Produce: (1) restated switch hypothesis naming the OLD solution being abandoned and the NEW solution being adopted (user framing, not feature framing); (2) the interview script as a numbered question list ordered backward from the SWITCH moment through the STRUGGLE period to the originating TRIGGER; (3) explicit four-forces probes labeled PUSH / PULL / ANXIETY / HABIT.\n\nTeam brief:\n\n> We want to launch a habit-tracker mobile app. The thesis is users want a beautiful, gamified habit-tracker with streak rewards and friend leaderboards. Validate that users want one. Subject pool: 8 reachable mid-20s knowledge-workers via our founder's personal Discord (consent posture: warm, transactional gift card incentive offered).\n\nIf the brief cannot ground a switch hypothesis as written, say so explicitly and propose the missing piece BEFORE drafting any questions. Do not produce a generic 'what features do you want in a habit-tracker' script.",
+  "expected_output": "The persona refuses to accept the brief as-is because no OLD solution is named (the brief is a feature wishlist with no incumbent to switch FROM). It restates the hypothesis with an explicit candidate OLD solution (paper journal / Apple Health / Notion template / existing tracker app / nothing-at-all). The interview script is structured backward: SWITCH moment -> STRUGGLE period -> TRIGGER event, NOT 'what features do you want'. Four-forces probes are present and labeled PUSH (what made the old solution intolerable), PULL (what made the new attractive), ANXIETY (what made switching scary), HABIT (what kept them stuck).",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(OLD\\s+solution|incumbent|switching\\s+FROM|from\\s+what)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "PUSH.+PULL.+ANXIETY.+HABIT",
+      "flags": "is"
+    },
+    {
+      "type": "regex",
+      "pattern": "(TRIGGER|trigger).+(STRUGGLE|struggle).+(SWITCH|switch)",
+      "flags": "is"
+    },
+    {
+      "type": "regex",
+      "pattern": "(paper\\s+journal|Apple\\s+Health|Notion|spreadsheet|nothing|existing\\s+tracker|previous\\s+app)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(refuse|cannot\\s+ground|missing|insufficient|not\\s+enough|hypothesis\\s+does\\s+not\\s+name)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

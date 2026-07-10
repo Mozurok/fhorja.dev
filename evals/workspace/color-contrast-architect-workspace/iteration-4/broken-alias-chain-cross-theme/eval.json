@@ -1,0 +1,33 @@
+{
+  "id": "broken-alias-chain-cross-theme",
+  "prompt": "You are auditing color pairs across LIGHT and DARK themes. The alias chain for one token breaks in DARK theme. Per persona Step 2 (resolve token values per theme) + Step 5 (theme coverage): an unresolved token MUST be reported as UNRESOLVED, never guessed.\n\nToken source (JSON excerpt):\n\n```json\n{\n  \"color.surface.background\": { \"light\": \"#FFFFFF\", \"dark\": \"#0F1115\" },\n  \"color.text.error\": {\n    \"light\": { \"$alias\": \"color.semantic.error.fg\" },\n    \"dark\":  { \"$alias\": \"color.semantic.error.fg\" }\n  },\n  \"color.semantic.error.fg\": {\n    \"light\": \"#B5453A\"\n  }\n}\n```\n\nNote: `color.semantic.error.fg` is UNDEFINED for dark theme. The alias breaks.\n\nDocumented pairs (audit BOTH themes):\n\n| Token foreground | Token background | Design context |\n|---|---|---|\n| `color.text.error` | `color.surface.background` | normal-text |\n\nProduce: (1) per-theme contrast matrix; (2) light-theme ratio with verdict; (3) dark-theme verdict (UNRESOLVED per persona Step 2 -- do not guess a value); (4) recommendation.",
+  "expected_output": "Light theme: #B5453A on #FFFFFF, ratio ~5.5:1, verdict PASS-AA normal-text (canonical enum). Dark theme: alias chain `color.text.error` -> `color.semantic.error.fg` BREAKS because `color.semantic.error.fg` has no dark variant. Verdict: UNRESOLVED (canonical enum). Recommendation: define `color.semantic.error.fg.dark` (e.g. #FF8A7A which yields ~6.3:1 against #0F1115 PASS-AA); re-audit after the token is added. The discriminator: a baseline plan that GUESSES a dark value (e.g. infers from light variant + brightness adjustment) violates persona Step 2's UNRESOLVED-not-guessed rule. The canonical UNRESOLVED enum communicates 'cannot evaluate this pair' to the substrate consumer.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "UNRESOLVED",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(alias\\s+(chain|broken)|broken\\s+alias|alias.+(undefined|missing))",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "color\\.semantic\\.error\\.fg",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(do\\s+not\\s+guess|cannot\\s+guess|not\\s+guess|missing.+dark|undefined)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "PASS-AA",
+      "flags": ""
+    }
+  ],
+  "timeout_seconds": 300
+}

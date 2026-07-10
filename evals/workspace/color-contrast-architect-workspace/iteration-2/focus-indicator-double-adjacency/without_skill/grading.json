@@ -1,0 +1,31 @@
+{
+  "passed": false,
+  "rationale": "3/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(focus|focus[- ]ring|focus\\\\s+indicator)' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(adjacency|each\\\\s+adjacent|both\\\\s+adjacent|SC\\\\s+1\\\\.4\\\\.11|1\\\\.4\\\\.11)' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": false,
+      "description": "regex 'FAIL-?AA' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(#0066CC|#0099FF|button[- ]interior|button.+bg)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": false,
+      "description": "regex '(1\\\\.5|1\\\\.59|FAIL.+button|fails.+interior)' flags='i'"
+    }
+  ]
+}

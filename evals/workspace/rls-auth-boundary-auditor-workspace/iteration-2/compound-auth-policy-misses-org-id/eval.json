@@ -1,0 +1,33 @@
+{
+  "id": "compound-auth-policy-misses-org-id",
+  "prompt": "You are reviewing a Supabase migration for tenant isolation gaps before deploy. The data model is compound auth: each row belongs to ONE user WITHIN ONE org; a user may belong to multiple orgs (via a `org_members` table). Audit the policy posture and produce: (1) per-table posture table; (2) gaps with severity citing concrete failure modes (think carefully: surface-correct SQL may still leak); (3) migration-shaped remediation; (4) follow-the-data trace.\n\nMigration file:\n\n```sql\n-- migrations/20260606140001_tasks_with_org_scope.sql\nCREATE TABLE org_members (\n  org_id uuid NOT NULL,\n  user_id uuid NOT NULL,\n  role text DEFAULT 'member',\n  PRIMARY KEY (org_id, user_id)\n);\n\nALTER TABLE org_members ENABLE ROW LEVEL SECURITY;\nALTER TABLE org_members FORCE ROW LEVEL SECURITY;\n\nCREATE POLICY org_members_select ON org_members\n  FOR SELECT USING (user_id = auth.uid());\n\nCREATE TABLE tasks (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  org_id uuid NOT NULL,\n  user_id uuid NOT NULL,\n  title text NOT NULL,\n  created_at timestamptz DEFAULT now()\n);\n\nALTER TABLE tasks ENABLE ROW LEVEL SECURITY;\nALTER TABLE tasks FORCE ROW LEVEL SECURITY;\n\nCREATE POLICY tasks_user_select ON tasks\n  FOR SELECT USING (user_id = auth.uid())\n  WITH CHECK (user_id = auth.uid());\n\nCREATE POLICY tasks_user_insert ON tasks\n  FOR INSERT WITH CHECK (user_id = auth.uid());\n\nCREATE POLICY tasks_user_update ON tasks\n  FOR UPDATE USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());\n\nCREATE POLICY tasks_user_delete ON tasks\n  FOR DELETE USING (user_id = auth.uid());\n```\n\nAuth model: `auth.uid()`. Tenant scope: COMPOUND -- per-org-per-user. Concrete data scenario: user U1 belongs to BOTH org A and org B; user U2 belongs to org B only. U1 creates tasks under (org_A, U1) and (org_B, U1). Question to drive the audit: can U1 ever leak a task across orgs through this policy set, and if so, how?",
+  "expected_output": "The policies LOOK correct (user_id = auth.uid()) but ignore org_id. U1 can SELECT all tasks where user_id = U1 regardless of org context (when U1 leaves org B, U1 still sees those tasks). Worse: U1 can INSERT a task with (org_id = org_C, user_id = U1) where U1 is NOT a member of org_C -- the WITH CHECK only validates user_id, not org membership. Cross-org write leak. Remediation adds an EXISTS check against org_members for both READ and WRITE paths.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "org_id|org_members",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "EXISTS\\s*\\(\\s*SELECT.+org_members",
+      "flags": "is"
+    },
+    {
+      "type": "regex",
+      "pattern": "(WITH\\s+CHECK|INSERT).+org",
+      "flags": "is"
+    },
+    {
+      "type": "regex",
+      "pattern": "(P1|P0|UNSAFE|cross-org|cross.?tenant)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "CREATE\\s+POLICY",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

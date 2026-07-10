@@ -1,0 +1,33 @@
+{
+  "id": "conditional-policy-using-vs-with-check-split",
+  "prompt": "You are auditing the following Supabase migration. The policy splits USING and WITH CHECK on DIFFERENT JWT claims. Per persona Step 4 (verify tenant scope in USING and WITH CHECK): a split where the two sides reference different claims means the SELECT path and the INSERT/UPDATE path can disagree under specific auth flows.\n\nMigration file:\n\n```sql\n-- migrations/20260606150002_invited_member_invoices.sql\nCREATE TABLE invoices (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  org_id uuid NOT NULL,\n  created_by uuid NOT NULL,\n  amount_cents bigint NOT NULL,\n  status text NOT NULL DEFAULT 'draft',\n  created_at timestamptz DEFAULT now()\n);\nALTER TABLE invoices ENABLE ROW LEVEL SECURITY;\nALTER TABLE invoices FORCE ROW LEVEL SECURITY;\n\n-- The SELECT path uses org_id derived from the current JWT's 'active_org_id' claim,\n-- which is set when the user explicitly switches their active org in the UI.\nCREATE POLICY invoices_select_active_org ON invoices\n  FOR SELECT USING (org_id = (auth.jwt() ->> 'active_org_id')::uuid);\n\n-- The INSERT path uses created_by = auth.uid(), no org_id check at all.\nCREATE POLICY invoices_insert_self ON invoices\n  FOR INSERT WITH CHECK (created_by = auth.uid());\n\n-- The UPDATE path uses created_by = auth.uid() on USING and on WITH CHECK.\nCREATE POLICY invoices_update_self ON invoices\n  FOR UPDATE USING (created_by = auth.uid()) WITH CHECK (created_by = auth.uid());\n```\n\nAuth model: Supabase auth.uid() + a custom JWT claim 'active_org_id' set when a user switches orgs via a custom Edge Function that re-issues the session.\n\nConcrete scenario: user U1 is a member of org A (default) AND org B. U1's current JWT has `active_org_id = A`. U1 INSERTs an invoice with `(org_id = B, created_by = U1, amount_cents = 5000000, status = 'draft')`. What happens? Can U1 do this? After the INSERT, can U1 SELECT this invoice back?\n\nProduce: (1) per-policy posture; (2) gap citing the USING vs WITH CHECK claim split as the failure mode; (3) follow-the-data tracing both SELECT and INSERT paths; (4) migration-shaped remediation closing the split.",
+  "expected_output": "The INSERT policy `invoices_insert_self` checks ONLY `created_by = auth.uid()`. U1 CAN INSERT an invoice with `org_id = B` even though U1's active_org_id is A and even if U1 is NOT a member of org B (the policy does not verify membership). After INSERT, U1 CANNOT SELECT this invoice back because the SELECT policy requires `org_id = active_org_id (A)`. The row is orphaned: it exists, U1 created it, but U1 cannot read it. Worse: any OTHER user U2 whose active_org_id is B (and who is a member of org B) WILL see this invoice as if it were created by an unrelated U1 -- writer-vs-reader divergence that creates phantom records visible across tenants. Even worse: if U1 later switches active_org_id to B (re-issues JWT), U1 will see this invoice. This is a P1 cross-tenant write leak masked by a SELECT denial. Remediation: align USING and WITH CHECK -- add membership check to INSERT and UPDATE policies, AND verify active_org_id MATCHES org_id at write time (closes the case where U1 with active_org_id=A inserts org_id=B). Concrete SQL: `CREATE POLICY invoices_insert_member ON invoices FOR INSERT WITH CHECK (created_by = auth.uid() AND org_id = (auth.jwt() ->> 'active_org_id')::uuid AND org_id IN (SELECT org_id FROM org_members WHERE user_id = auth.uid()));` plus equivalent on UPDATE.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(USING|WITH\\s+CHECK)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "active_org_id",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(P1|P0|UNSAFE|cross.?tenant|cross.?org|writer.+reader|orphan)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(org_members|EXISTS|membership\\s+check)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(insert|INSERT).+(membership|org_id)",
+      "flags": "is"
+    }
+  ],
+  "timeout_seconds": 300
+}

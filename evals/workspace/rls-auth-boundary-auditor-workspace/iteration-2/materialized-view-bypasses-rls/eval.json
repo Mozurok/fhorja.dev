@@ -1,0 +1,33 @@
+{
+  "id": "materialized-view-bypasses-rls",
+  "prompt": "You are reviewing a Supabase migration for tenant isolation gaps. Audit ALL objects touched (follow-the-data discipline) and produce: (1) per-table-AND-per-view posture table; (2) gaps with severity citing the specific bypass mechanism; (3) migration-shaped remediation. Pay close attention to objects derived from RLS-protected tables.\n\nMigration file:\n\n```sql\n-- migrations/20260606140002_notes_summary_view.sql\nCREATE TABLE notes (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  user_id uuid NOT NULL,\n  body text NOT NULL,\n  created_at timestamptz DEFAULT now()\n);\n\nALTER TABLE notes ENABLE ROW LEVEL SECURITY;\nALTER TABLE notes FORCE ROW LEVEL SECURITY;\n\nCREATE POLICY notes_select_own ON notes\n  FOR SELECT USING (user_id = auth.uid());\n\nCREATE POLICY notes_insert_own ON notes\n  FOR INSERT WITH CHECK (user_id = auth.uid());\n\nCREATE MATERIALIZED VIEW mv_notes_summary AS\nSELECT user_id, COUNT(*) AS note_count, MAX(created_at) AS last_note_at\nFROM notes\nGROUP BY user_id;\n\nCREATE UNIQUE INDEX mv_notes_summary_pkey ON mv_notes_summary(user_id);\n\nGRANT SELECT ON mv_notes_summary TO authenticated;\n```\n\nAuth model: `auth.uid()`. Tenant scope: per-user. Concrete scenario: user U1 issues `SELECT * FROM mv_notes_summary;` from the supabase-js client (uses the authenticated role). What does U1 see?",
+  "expected_output": "Materialized views do NOT inherit RLS from their underlying tables. mv_notes_summary returns ALL users' note counts to ANY authenticated caller -- cross-tenant aggregate leak (counts + last_note_at across users). Follow-the-data trace must surface mv_notes_summary as a leakage path. Remediation options: (a) drop the GRANT to authenticated + replace with a SECURITY INVOKER function that filters by auth.uid(); (b) enable RLS on the materialized view (Postgres 14+ requires explicit policy); (c) re-design as a regular view that respects RLS pass-through.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "materialized\\s+view|mv_notes_summary",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(do(es)?\\s+not\\s+inherit|bypass|leak|all\\s+users|cross.?tenant)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(REVOKE|DROP\\s+MATERIALIZED|SECURITY\\s+INVOKER|CREATE\\s+VIEW)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(P1|P0|UNSAFE)",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "follow.?the.?data|trace",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

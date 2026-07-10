@@ -1,0 +1,15 @@
+# TypeScript pre-existing error baseline
+#
+# One error pattern per line (matched with grep -F, literal string).
+# Lines starting with # are comments.
+# Empty lines are ignored.
+#
+# Usage: when tsc reports errors that are pre-existing and not caused
+# by your current changes, add a substring of the error line here.
+# The typecheck-hook.sh script will filter these out and only surface
+# NEW errors introduced by your edits.
+#
+# Example patterns:
+# middleware.ts(5,1): error TS2304
+# Cannot find name 'process'
+# Property '[Internal]' is missing

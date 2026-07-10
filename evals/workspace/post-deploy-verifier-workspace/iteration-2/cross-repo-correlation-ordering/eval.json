@@ -1,0 +1,33 @@
+{
+  "id": "cross-repo-correlation-ordering",
+  "prompt": "You are authoring the per-slice post-deploy verification plan for a MULTI-REPO slice. The task has TWO repos per SOURCE_OF_TRUTH.md: `app-api` (backend) and `app-web` (frontend). The slice ships changes to BOTH. The ordering matters: if the frontend deploys BEFORE the backend, AC-3 spuriously fails because the frontend calls a new endpoint that the backend hasn't yet exposed -> 404 -> AC-3 verification shows the new flow doesn't work, but the actual cause is deploy-order not code-bug.\n\nProduce: (1) per-AC signal mapping SPLIT into backend (POST_DEPLOY_PLAN.backend.md) and frontend (POST_DEPLOY_PLAN.frontend.md); (2) explicit Cross-repo: line in the backend file naming the ordering requirement and the spurious-failure mode if violated; (3) negative check; (4) rollback per repo.\n\nSlice file (SLICES/19_team_invitations.md):\n\n```markdown\n# Slice 19: Team invitations\n\nDeploy targets:\n- app-api: sha=`8e7d6c5`, ts=2026-06-05T11:00:00Z, env=production\n- app-web: sha=`a1b2c3d`, ts=2026-06-05T11:30:00Z, env=production (must deploy AFTER app-api)\n\n## Acceptance criteria\n- AC-1 (api): `POST /api/v1/teams/:id/invitations` accepts an email and returns 201 with an invitation token.\n- AC-2 (api): `GET /api/v1/invitations/:token` returns the invitation metadata; expired tokens return 410.\n- AC-3 (web): The team-settings page shows a 'Send invitation' form that POSTs to /api/v1/teams/:id/invitations and displays the returned token.\n- AC-4 (web): The invitation-acceptance page (/accept/:token) calls `GET /api/v1/invitations/:token` and renders the team metadata.\n```\n\nObservability stack: Datadog Logs + APM, Sentry, PostgreSQL (direct queries). Repos: app-api (backend, monorepo `apps/api/`), app-web (frontend, monorepo `apps/web/`).\n\nNamed on-call: `@bruno`.\n\nProduce per persona Step 7 (multi-repo split): two separate POST_DEPLOY_PLAN files. The backend file MUST include a Cross-repo: line. AC-3 verification CANNOT begin until both deploys land in correct order.",
+  "expected_output": "Backend file (POST_DEPLOY_PLAN.backend.md): AC-1 + AC-2 signals (log query with service:app-api + deploy_sha:8e7d6c5 + time-window; SQL invariant on invitations table). MUST include Cross-repo: line: 'app-web sha=a1b2c3d MUST land AFTER app-api sha=8e7d6c5; if app-web deploys first, the team-settings form (AC-3) calls /api/v1/teams/:id/invitations against an api version that returns 404, producing a spurious AC-3 failure that LOOKS like a code bug but is a deploy-order bug. Wait until app-api healthy (AC-1 log query returns >0 hits) before deploying app-web.' Frontend file (POST_DEPLOY_PLAN.frontend.md): AC-3 + AC-4 smoke walkthroughs with exact route + form inputs + expected DOM text. Negative check per repo. Rollback per repo: @bruno + exact revert commands per repo. The discriminator: a baseline plan that doesn't split + doesn't surface the cross-repo ordering note will produce spurious AC-3 failure attribution and waste oncall time.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(POST_DEPLOY_PLAN\\.backend|backend.+plan|app-api.+plan)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(POST_DEPLOY_PLAN\\.frontend|frontend.+plan|app-web.+plan)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(Cross-repo|deploy[- ]order|ordering\\s+requirement|order\\s+matters|first|before)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(spurious|misattribut|wrong\\s+attribution|deploy-order\\s+bug|not\\s+a\\s+code\\s+bug)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(8e7d6c5|a1b2c3d|app-api|app-web)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

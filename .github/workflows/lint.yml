@@ -1,0 +1,99 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  lint-commands:
+    name: Lint command files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Make scripts executable
+        run: chmod +x ./scripts/lint-commands.sh ./scripts/build-agent-skills.sh
+
+      - name: Run command lint (includes skills drift check)
+        run: ./scripts/lint-commands.sh --verbose
+
+  validate-skills-spec:
+    name: Validate skills against open Agent Skills spec
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install skills-ref (pinned)
+        # Pinned to a known-good agentskills/agentskills SHA. Bump intentionally
+        # after reading the upstream changelog; never auto-bump.
+        run: |
+          pip install --upgrade pip
+          pip install "git+https://github.com/agentskills/agentskills.git@2d3e01f590f68bee2cb76a3200823e93b2cc9eaa#subdirectory=skills-ref"
+
+      - name: Validate every skill
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          fail=0
+          total=0
+          for d in .claude/skills/*/; do
+            total=$((total + 1))
+            name="$(basename "$d")"
+            if skills-ref validate "$d"; then
+              echo "PASS: $name"
+            else
+              echo "FAIL: $name"
+              fail=$((fail + 1))
+            fi
+          done
+          echo "skills-ref validate: $((total - fail)) passed / $total total"
+          if [[ "$fail" -gt 0 ]]; then
+            echo "::error::$fail skill(s) failed Agent Skills spec validation"
+            exit 1
+          fi
+
+  lint-markdown-links:
+    name: Check internal markdown links
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run lychee link checker
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --no-progress
+            --max-concurrency 4
+            --include-fragments
+            --exclude-path 'evals/workspace'
+            './**/*.md'
+          fail: true
+
+  lint-shellcheck:
+    name: Shellcheck on bash scripts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run shellcheck
+        # Pinned per CONTRIBUTING's action-pinning rule (no mutable refs).
+        uses: ludeeus/action-shellcheck@2.0.0
+        with:
+          scandir: './scripts'
+          # Gate on errors only; warning-level findings (SC2034 unused vars, style)
+          # are advisory per DECISIONS.md D-3. SC2088/SC2115 tracked as follow-ups.
+          severity: error

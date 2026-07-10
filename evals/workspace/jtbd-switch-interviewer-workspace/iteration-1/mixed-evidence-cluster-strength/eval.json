@@ -1,0 +1,33 @@
+{
+  "id": "mixed-evidence-cluster-strength",
+  "prompt": "You are synthesizing a JTBD switch-interview round across 3 captured interviews. Produce: (1) per-interview synthesis (timeline, four forces with verbatim quotes and interview ID attribution); (2) cross-interview cluster roll-up tagging each force STRONG (3+ interviews), EMERGING (2 interviews), or ANECDOTAL (1 interview); (3) PROPOSED decision block(s) ONLY for clusters strong enough to justify them (anecdotal clusters MUST NOT drive proposals); (4) a 'We do not have evidence for X' gap subsection naming any surviving team assumption not confirmed or disconfirmed.\n\nContext: team is shipping a Supabase-backed expense-tracker SaaS. Team's prior assumption (the assumption the round is testing): 'users switch from Excel to our SaaS because of automation (auto-categorization, receipt OCR).'\n\nInterview transcripts (compressed; the quoted lines are exact user language):\n\n**Interview I1** (subject: freelance designer, switched 3 months ago from Excel + manual entry to a competing SaaS):\n- On the moment of switch: \"I was up at 2am the night before my taxes were due and I realized I'd double-counted a whole month.\"\n- On the old solution: \"Every time I added a row I was scared I'd break the formula in the totals column.\"\n- On the new solution: \"What sold me was honestly that I could just photograph a receipt and stop thinking about it.\"\n- On what almost stopped her: \"I really hesitated giving them my bank login. I still don't fully trust it.\"\n- On habit: did not surface anything about Excel muscle memory.\n\n**Interview I2** (subject: solo consultant, switched 6 weeks ago from Excel to a competing SaaS):\n- On the moment of switch: \"I'd put it off for a year. Then I billed the wrong client and lost a $400 retainer because of a row I'd accidentally dragged.\"\n- On the old solution: \"I knew the formulas in that sheet better than I knew my own apartment.\"\n- On the new solution: \"They had a one-click import that just worked. I gave it ten minutes and it was done.\"\n- On what almost stopped him: \"I genuinely worried I would lose history. My sheet had five years of data.\"\n- On habit: \"Honestly the muscle memory of keyboard-only navigation in Excel is the thing I miss the most.\"\n\n**Interview I3** (subject: small-business owner, switched 1 month ago from Excel to a competing SaaS):\n- On the moment of switch: \"My accountant told me he'd fire me as a client if I sent him another shoebox of receipts and a sheet with broken formulas.\"\n- On the old solution: \"It took me four hours every Sunday and I always found another error the next week.\"\n- On the new solution: \"Once it was importing receipts from my email I never went back.\"\n- On what almost stopped her: did not surface any anxiety.\n- On habit: \"I kept the spreadsheet open in another tab for a month before I admitted I didn't need it.\"\n\nAuth model and data scope assumptions: not relevant; this is a qualitative synthesis task.",
+  "expected_output": "Four-forces cluster strength MUST be: PUSH = STRONG (all 3 interviews describe an error-cost trigger and intolerable old solution); PULL = STRONG (all 3 describe a concrete onboarding moment that sold them: photograph receipt / one-click import / email import); ANXIETY = EMERGING (only I1 and I2 surfaced anxiety; I3 explicitly did not); HABIT = EMERGING (I2 and I3 named habit; I1 did not). The team's prior assumption ('automation = auto-categorization, receipt OCR') is PARTIALLY confirmed via OCR/import quotes but NOT confirmed for auto-categorization, which should land in 'We do not have evidence for X'. ANXIETY around bank-login/data-loss is the load-bearing finding the team probably did not plan for; persona should PROPOSE it as a risk in IMPLEMENTATION_PLAN.md ## Risks and mitigations. ANECDOTAL clusters (none in this case at the force level, though specific sub-claims like 'bank-login distrust' surface only once and must be tagged anecdotal at the sub-claim level) MUST NOT drive a PROPOSED decision.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "STRONG",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "EMERGING",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(I1|I2|I3)",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(We do not have evidence|do not have evidence for|evidence\\s+gap|gap\\s+subsection)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "PROPOSED\\s+by\\s+jtbd-switch-interviewer",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

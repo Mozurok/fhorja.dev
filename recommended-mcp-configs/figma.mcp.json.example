@@ -1,0 +1,12 @@
+{
+  "_comment": "Figma MCP server. Copy into your repo .mcp.json under mcpServers, set the env, then approve the pending server in Claude Code. Backs the Fhorja design-system commands (component-spec, screen-spec, design-bootstrap). The Figma desktop app also exposes a local MCP endpoint; prefer whichever your team standardizes on.",
+  "mcpServers": {
+    "figma": {
+      "command": "npx",
+      "args": ["-y", "figma-developer-mcp", "--stdio"],
+      "env": {
+        "FIGMA_API_KEY": "${FIGMA_API_KEY}"
+      }
+    }
+  }
+}

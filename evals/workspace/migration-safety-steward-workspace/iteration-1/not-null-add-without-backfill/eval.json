@@ -1,0 +1,32 @@
+{
+  "id": "not-null-add-without-backfill",
+  "prompt": "You are auditing the following Postgres migration before it ships to production. Per-statement verdict required. Migration file:\n\n```sql\n-- migrations/20260606120001_add_signup_source.sql\nALTER TABLE users ADD COLUMN signup_source text NOT NULL DEFAULT 'unknown';\n```\n\nContext:\n- Postgres version: 14\n- `users` table row count estimate: ~50,000,000 rows (50M)\n- Deployment strategy: rolling deploy, no maintenance window\n- No online-DDL tooling in scope (no pg-osc, no Reshape)\n\nProduce: (1) per-statement verdict table (statement_id, classification, lock_level, est_row_count_bucket, verdict, rollback, remediation), (2) risks grouped by severity, (3) recommended phasing if NEEDS-PHASING with concrete Phase 1 / Phase 2 SQL statements, (4) rollback plan per statement.",
+  "expected_output": "Verdict NEEDS-PHASING (single-statement ALTER ADD COLUMN ... NOT NULL DEFAULT on PG14 with 50M rows holds AccessExclusiveLock during the table rewrite). Phased remediation: Phase 1 add nullable + set default with backfill in batches (UPDATE WHERE signup_source IS NULL LIMIT 10000 in a loop), Phase 2 SET NOT NULL after backfill completes. Explicit rollback per phase. Bias toward NEEDS-PHASING because row count is in the >1M bucket.",
+  "assertions": [
+    {
+      "type": "contains",
+      "target": "NEEDS-PHASING"
+    },
+    {
+      "type": "regex",
+      "pattern": "Phase\\s*1.+Phase\\s*2",
+      "flags": "is"
+    },
+    {
+      "type": "regex",
+      "pattern": "backfill|batch",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "ALTER\\s+TABLE\\s+users\\s+(ADD|ALTER)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "rollback",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

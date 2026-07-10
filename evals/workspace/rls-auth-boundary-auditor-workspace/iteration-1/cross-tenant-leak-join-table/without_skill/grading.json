@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "contains 'project_collaborators'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex 'ALTER\\\\s+TABLE\\\\s+project_collaborators\\\\s+ENABLE\\\\s+ROW\\\\s+LEVEL\\\\s+SECURITY' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex 'CREATE\\\\s+POLICY' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex 'P1' flags=''"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '\\\\|\\\\s*projects\\\\s*\\\\|.*\\\\n.*\\\\|\\\\s*project_collaborators\\\\s*\\\\|' flags='s'"
+    }
+  ]
+}

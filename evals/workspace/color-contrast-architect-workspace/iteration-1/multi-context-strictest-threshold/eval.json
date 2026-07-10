@@ -1,0 +1,33 @@
+{
+  "id": "multi-context-strictest-threshold",
+  "prompt": "You are auditing the following documented color pairs for a design system. One token plays a DUAL role across the screen specs in scope: it is used BOTH as the foreground for small body text (the 14px form-helper text under input fields) AND as the foreground for the form-input border. Both usages share the same background. Produce a pairwise contrast matrix per WCAG 2.2 AA and apply the multi-context scoring rule strictly.\n\nDocumented pairs (light theme only):\n\n| Token foreground (hex) | Token background (hex) | Documented usages |\n|---|---|---|\n| `color.text.muted` (#888888) | `color.surface.background` (#FFFFFF) | (a) 14px form-helper body text, (b) form-input border |\n| `color.text.primary` (#222222) | `color.surface.background` (#FFFFFF) | normal-text |\n\nKnown ratios:\n- `#888888` on `#FFFFFF` ~ 3.54:1\n- `#222222` on `#FFFFFF` ~ 15.9:1\n\nWCAG target: AA. The `color.text.muted` token serves TWO design contexts (normal-text and ui-component) which carry DIFFERENT AA thresholds (4.5:1 and 3:1 respectively). Apply the strictest applicable threshold and produce: (1) contrast matrix with explicit design_context labeling (and a multi-context flag where applicable); (2) failing pair list with concrete remediation; (3) summary count.",
+  "expected_output": "The `color.text.muted` pair at 3.54:1 MUST be scored against the STRICTEST applicable threshold (normal-text 4.5:1 AA), NOT the looser ui-component threshold (3:1) where it would PASS. The verdict is FAIL-AA because as small body text it fails. Persona must explicitly label it multi-context and note the dual usage. Remediation: darken color.text.muted to something like #6B6B6B (~5.33:1) so it passes BOTH contexts, OR split into two tokens (one for body text, one for borders). The discriminator: a baseline reviewer who picks the looser threshold (ui-component, 3:1) reports PASS and manufactures false confidence on form-helper text accessibility.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "multi[-\\s]?context",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "FAIL-?AA",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(strictest|stricter|highest\\s+threshold|4\\.5)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "color\\.text\\.muted",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "3\\.5[34]",
+      "flags": ""
+    }
+  ],
+  "timeout_seconds": 300
+}

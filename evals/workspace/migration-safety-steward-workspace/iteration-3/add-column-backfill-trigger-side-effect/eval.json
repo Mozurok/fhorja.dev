@@ -1,0 +1,33 @@
+{
+  "id": "add-column-backfill-trigger-side-effect",
+  "prompt": "You are auditing the following Postgres migration paired with a backfill plan. The table has an existing AFTER UPDATE trigger that fires expensive side-effects (publishes a domain event to a Kafka topic). Per persona Step 4 + Step 5 (lock duration + follow-the-data including triggers): does the batched-backfill plan account for the trigger cost?\n\nMigration file + backfill (in same slice):\n\n```sql\n-- migrations/20260607130002_add_user_signup_source.sql\nALTER TABLE users ADD COLUMN signup_source text DEFAULT NULL;\n```\n\nBackfill plan (per the slice file):\n\n```sql\n-- Run AFTER migration is applied; script in /scripts/backfill-signup-source.sh\nUPDATE users SET signup_source = 'organic'\nWHERE signup_source IS NULL\n  AND id IN (SELECT id FROM users WHERE signup_source IS NULL ORDER BY id LIMIT 10000);\n-- (loop until zero rows updated; ~5000 batches for 50M rows)\n```\n\nContext:\n- Postgres version: 15\n- `users` row count: ~50M\n- Existing trigger on users: `AFTER UPDATE FOR EACH ROW EXECUTE FUNCTION publish_user_changed_event()` which inserts into Kafka via a postgres-kafka-bridge -- average ~80ms per fired event under normal load; ~3,500 events/sec to Kafka under normal write load with backfill = ~10x normal write rate to Kafka\n- Deployment strategy: rolling deploy + backfill script run by oncall\n- Kafka consumer SLO: process events within 60s of emission; consumer is sized for ~5,000 events/sec peak\n\nProduce: (1) per-statement verdict; (2) the HIDDEN cost of the backfill (trigger fires + Kafka pressure); (3) recommended backfill strategy that accounts for trigger cost (DISABLE TRIGGER during backfill OR a different update path OR pace the backfill to keep Kafka under SLO); (4) rollback.",
+  "expected_output": "ALTER TABLE: SAFE. UPDATE backfill alone (without trigger): NEEDS-PHASING (rate-limited batched is canonical). BUT with the trigger fire-per-row: NEEDS-PHASING with SPECIFIC trigger consideration: 50M backfill rows x 80ms trigger cost / 10000 batch size = each batch fires 10,000 events through publish_user_changed_event(). The backfill at the planned pace (batches of 10,000 with no inter-batch sleep) would push 10x the normal Kafka write rate, which exceeds the consumer's 5,000 events/sec budget, causing Kafka backlog growth + consumer falling behind SLO. Three remediation options: (a) DISABLE TRIGGER publish_user_changed_event ON users; do backfill; ENABLE TRIGGER (Note: this means downstream Kafka consumers don't see the backfill events -- coordinate with consumer team before this); (b) split the UPDATE into a path that bypasses the trigger (rewrite as a separate column write via background batch worker that does NOT fire the AFTER UPDATE trigger -- e.g. via a sentinel session variable that the trigger checks); (c) pace the backfill: reduce batch size to 2,000 + add 1s sleep between batches to keep effective rate under 2,000 events/sec well below consumer budget. The discriminator: a baseline plan that scores the backfill as 'use batched UPDATE with LIMIT' (canonical pattern) misses the trigger side-effect cost; persona Step 5 follow-the-data must include the AFTER UPDATE trigger.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(trigger|AFTER\\s+UPDATE|publish_user_changed_event)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(Kafka|kafka|event\\s+publish|side[- ]effect|cascade)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(DISABLE\\s+TRIGGER|disable\\s+trigger|bypass|pace|throttle|smaller\\s+batch)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(NEEDS-PHASING|UNSAFE)",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(consumer|SLO|backlog|rate\\s+limit|events?/sec)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

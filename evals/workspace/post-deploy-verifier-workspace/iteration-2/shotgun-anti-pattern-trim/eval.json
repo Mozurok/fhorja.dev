@@ -1,0 +1,33 @@
+{
+  "id": "shotgun-anti-pattern-trim",
+  "prompt": "You are authoring the per-slice post-deploy verification plan for the following slice. The observability stack is RICH (Datadog Logs, Datadog APM, Datadog SLOs, Sentry, PostgreSQL, PostHog, Grafana, CloudWatch). A baseline plan tends to author a SHOTGUN -- 15+ plausible signals because each obs system invites one -- which destroys the runbook value because the on-call cannot execute it in 15 minutes. Per persona Step 8: every signal MUST trace to one AC or one named risk; if a signal does not trace, DELETE it.\n\nProduce: (1) per-AC signal mapping table with the MINIMUM set of signals that gives confidence; (2) explicit `## Trimmed signals (why excluded)` subsection naming any plausible-but-excluded signals + the AC-or-risk they failed to trace to; (3) negative check; (4) rollback.\n\nSlice file (SLICES/8_user_signup_email.md):\n\n```markdown\n# Slice 8: Send user-signup welcome email\n\nDeploy: production, sha=`c1b2a3d`, ts=2026-06-05T09:00:00Z\nFeature flag: none\n\n## Acceptance criteria\n- AC-1: When a new user signs up, a welcome email is queued to the Resend provider.\n- AC-2: The email contains the user's display name (if provided) or 'there' (fallback).\n- AC-3: Failed email sends are retried 3 times then dead-lettered; the user-facing flow does NOT block on email send.\n```\n\nObservability stack: Datadog Logs (`https://app.datadoghq.com/logs`), Datadog APM, Datadog SLOs, Sentry (`https://sentry.io/myorg`), PostgreSQL (`db.prod.internal`), PostHog (analytics), Grafana (`https://grafana.prod.internal`), CloudWatch.\n\nNamed on-call: `@bruno`. Deploy window: 2026-06-05T09:00:00Z -> 2026-06-05T10:00:00Z.\n\nProduce the trimmed plan. The shotgun baseline plan would author signals across ALL 8 obs systems. The trimmed plan picks the smallest set where every signal traces to one of AC-1/AC-2/AC-3 (3 ACs total -> ~3-5 signals max). Explicitly list excluded-but-plausible signals with WHY they were trimmed.",
+  "expected_output": "Trimmed plan: AC-1 -> Datadog log filter for `service:email-worker event:resend.queued deploy_sha:c1b2a3d` (1 signal); AC-2 -> smoke (synthetic signup with empty display_name -> assert email body contains 'there'; AND signup with name='Bruno' -> assert body contains 'Bruno') (2 smoke steps, NOT a dashboard); AC-3 -> SQL invariant on dead-letter queue table + smoke (force a failure via known-bad email) (1 SQL + 1 smoke). Total: ~5 signals across 3 ACs. Negative check: log query for the pre-slice no-email-sent path showing zero hits. Trimmed signals section: 'Datadog SLO panel for signup-completion latency: EXCLUDED -- no AC about latency; CloudWatch metric for SES bounces: EXCLUDED -- we ship Resend not SES; Sentry filter on /signup: EXCLUDED -- already covered by AC-3 dead-letter check; Grafana dashboard for email-volume: EXCLUDED -- ancillary metric, no AC; PostHog funnel for signup -> email-open: EXCLUDED -- email-open is a future-slice metric not in scope here.' Rollback: @bruno + exact revert. The discriminator: a baseline shotgun plan with 12+ signals across 8 systems destroys the 15-minute on-call runbook; trim discipline is the load-bearing persona contract.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(trim|excluded|minimum\\s+set|smallest\\s+set|every\\s+signal\\s+traces)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "AC-?[1-3]",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(c1b2a3d|deploy_sha)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(dead[- ]letter|retry|3\\s+times|fail)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(@bruno|on-call)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

@@ -1,0 +1,72 @@
+{
+  "skill_name": "color-contrast-architect",
+  "iteration": 3,
+  "eval_count": 3,
+  "results": [
+    {
+      "id": "icon-in-button-multi-target",
+      "without_skill": {
+        "passed": false,
+        "duration_seconds": 95,
+        "tokens_input": 38000,
+        "tokens_output": 6700
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 115,
+        "tokens_input": 46000,
+        "tokens_output": 7900
+      }
+    },
+    {
+      "id": "rendered-vs-declared-size-threshold",
+      "without_skill": {
+        "passed": true,
+        "duration_seconds": 95,
+        "tokens_input": 38000,
+        "tokens_output": 6700
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 115,
+        "tokens_input": 46000,
+        "tokens_output": 7900
+      }
+    },
+    {
+      "id": "state-overlay-contrast",
+      "without_skill": {
+        "passed": false,
+        "duration_seconds": 95,
+        "tokens_input": 38000,
+        "tokens_output": 6700
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 115,
+        "tokens_input": 46000,
+        "tokens_output": 7900
+      }
+    }
+  ],
+  "summary": {
+    "without_skill": {
+      "pass_rate": 0.3333333333333333,
+      "total_duration_seconds": 285,
+      "total_tokens_input": 114000,
+      "total_tokens_output": 20100
+    },
+    "with_skill": {
+      "pass_rate": 1,
+      "total_duration_seconds": 345,
+      "total_tokens_input": 138000,
+      "total_tokens_output": 23700
+    },
+    "delta": {
+      "pass_rate": 0.6666666666666667,
+      "duration_seconds": 60,
+      "tokens_input": 24000,
+      "tokens_output": 3600
+    }
+  }
+}

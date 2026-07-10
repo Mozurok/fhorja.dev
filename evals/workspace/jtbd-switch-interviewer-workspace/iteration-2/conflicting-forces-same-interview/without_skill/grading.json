@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex 'PUSH' flags=''"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex 'HABIT' flags=''"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(conflict|conflicting|contradiction|tension|co-?exist|simultaneously)' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(muscle\\\\s+memory|fluency|familiar|comfortable)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex 'ANECDOTAL' flags=''"
+    }
+  ]
+}

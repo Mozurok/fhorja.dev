@@ -1,0 +1,33 @@
+{
+  "id": "state-overlay-contrast",
+  "prompt": "You are auditing a button's color contrast across interaction states. The default state is documented. The HOVER state adds a 12% white overlay over the button background; the ACTIVE state adds a 20% black overlay. Per persona Step 4 (verify contrast per design context): does the audit cover each state, or only the default?\n\nDesign:\n- Button background (default): `color.button.primary.bg` = `#0066CC`\n- Button label: `color.button.primary.fg` = `#FFFFFF`\n- Hover overlay: 12% white added to button bg\n- Active overlay: 20% black added to button bg\n\nComputed composed bg values:\n- Default: `#0066CC`\n- Hover: `#0066CC` blended with 12% white = approximately `#1F77D1` (lighter)\n- Active: `#0066CC` blended with 20% black = approximately `#0052A3` (darker)\n\nThe label color stays `#FFFFFF` across states.\n\nProduce: (1) THREE contrast pairs (label vs default, label vs hover, label vs active); (2) verdict per state; (3) does any state fail the WCAG 2.2 AA threshold for normal text (4.5:1) or for ui-component (3:1)?; (4) recommended remediation if any state fails.",
+  "expected_output": "Default: #FFFFFF on #0066CC. Ratio ~ 5.17:1. PASS-AA normal-text, FAIL-AAA. Hover: #FFFFFF on #1F77D1. Lighter background, lower contrast. Computed ratio ~ 4.21:1. FAIL-AA normal-text (4.5:1 needed), PASS-AA ui-component (3:1 OK). The HOVER state fails the normal-text threshold while the label is rendered as text. Active: #FFFFFF on #0052A3. Darker background, higher contrast. Ratio ~ 6.45:1. PASS-AA, FAIL-AAA. Remediation: (a) reduce hover overlay from 12% to 6-8% (closer to default; keeps hover affordance but maintains ratio); (b) change the overlay strategy from white-overlay to darker-tint on hover (counterintuitive but preserves contrast); (c) accept hover FAIL with documented reclassification (label-on-hover is briefly displayed during pointer interaction; argument for AA exemption per WCAG context allowance) -- requires DECISIONS.md PROPOSED block. The discriminator: a baseline plan that audits the default state pair only and ships PASS-AA misses the hover state regression entirely; persona Step 4 explicitly demands per-state scoring when design tokens include state overlays.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(hover|active|state|per-?state)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "FAIL-?AA",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(overlay|composed|blend|compositing|tint)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(4\\.21|4\\.2|reduce.+overlay|tint.+darker|reclassif)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(#0066CC|#1F77D1|button\\s+bg)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

@@ -1,0 +1,31 @@
+{
+  "passed": false,
+  "rationale": "3/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(icon.+(bg|background)|icon\\\\s+vs|icon-?stroke)'"
+    },
+    {
+      "id": 1,
+      "passed": false,
+      "description": "regex 'FAIL-?AA'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(ui-?component|3:1|differenti|icon-?only)'"
+    },
+    {
+      "id": 3,
+      "passed": false,
+      "description": "regex '(2\\\\.67|2\\\\.6|2\\\\.7|2\\\\.79|three\\\\s+(pair|adjacenc)|3\\\\s+(pair|adjacenc))'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(darken|reduce.+luminance|6{4,6})'"
+    }
+  ]
+}

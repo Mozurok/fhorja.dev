@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(absence|absent|zero\\\\s+events?|silent)' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(heartbeat|canary|synthetic|positive\\\\s+case|AC-1.+canary|correlat)' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(broken\\\\s+pipeline|broken\\\\s+logger|log.+broken|signal\\\\s+pipeline)' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(b2c3d4e|deploy_sha)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(quota_exceeded|premium|non-?premium)' flags='i'"
+    }
+  ]
+}

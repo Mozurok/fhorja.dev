@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex 'UNRESOLVED'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(alias\\\\s+(chain|broken)|broken\\\\s+alias|alias.+(undefined|missing))'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex 'color\\\\.semantic\\\\.error\\\\.fg'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(do\\\\s+not\\\\s+guess|cannot\\\\s+guess|not\\\\s+guess|missing.+dark|undefined)'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex 'PASS-AA'"
+    }
+  ]
+}

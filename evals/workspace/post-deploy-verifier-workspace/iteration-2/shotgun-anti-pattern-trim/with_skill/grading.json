@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(trim|excluded|minimum\\\\s+set|smallest\\\\s+set|every\\\\s+signal\\\\s+traces)' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex 'AC-?[1-3]' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(c1b2a3d|deploy_sha)' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(dead[- ]letter|retry|3\\\\s+times|fail)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(@bruno|on-call)' flags='i'"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "id": "cross-tenant-leak-join-table",
+  "prompt": "You are reviewing the Supabase migration below for cross-tenant leakage via a join table that lacks its own RLS. Per-tenant model: each `projects` row belongs to one user; `project_collaborators` is the many-to-many join. Audit the policy posture across BOTH tables (follow-the-data discipline) and produce: (1) per-table posture table covering BOTH `projects` AND `project_collaborators` (silent omission of the join table is the failure mode this audit is designed to catch); (2) gaps with severity; (3) migration-shaped remediation enabling RLS on the join table + adding a policy. Migration file content:\n\n```sql\n-- migrations/20260605120003_projects_and_collaborators.sql\nCREATE TABLE projects (\n  id uuid PRIMARY KEY,\n  owner_id uuid NOT NULL,\n  name text NOT NULL\n);\n\nALTER TABLE projects ENABLE ROW LEVEL SECURITY;\nALTER TABLE projects FORCE ROW LEVEL SECURITY;\n\nCREATE POLICY owner_sees_project ON projects\n  FOR SELECT USING (owner_id = auth.uid())\n  WITH CHECK (owner_id = auth.uid());\n\nCREATE TABLE project_collaborators (\n  project_id uuid REFERENCES projects(id) ON DELETE CASCADE,\n  user_id uuid NOT NULL,\n  role text DEFAULT 'viewer',\n  PRIMARY KEY (project_id, user_id)\n);\n\n-- NOTE: no RLS enabled on project_collaborators (intentional gap)\n```\n\nAuth model: `auth.uid()`. Tenant scope: per-user.",
+  "expected_output": "Per-table table covers BOTH `projects` AND `project_collaborators`. P1 finding for `project_collaborators` lacking RLS entirely. Concrete remediation enabling RLS + adding policy that joins through projects.owner_id OR uses an existing membership check.",
+  "assertions": [
+    {
+      "type": "contains",
+      "target": "project_collaborators"
+    },
+    {
+      "type": "regex",
+      "pattern": "ALTER\\s+TABLE\\s+project_collaborators\\s+ENABLE\\s+ROW\\s+LEVEL\\s+SECURITY",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "CREATE\\s+POLICY",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "P1",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "\\|\\s*projects\\s*\\|.*\\n.*\\|\\s*project_collaborators\\s*\\|",
+      "flags": "s"
+    }
+  ],
+  "timeout_seconds": 300
+}

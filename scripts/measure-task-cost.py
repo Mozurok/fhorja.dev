@@ -1,0 +1,215 @@
+#!/usr/bin/env python3
+"""
+Measure end-to-end token cost of a canonical task run.
+
+Simulates a typical 9-phase task lifecycle (task-init through pr-package),
+computing per-phase static prefix (spec + command file), dynamic input
+(task memory + user invocation), and totals under three cost models:
+  - uncached (no prompt cache; baseline)
+  - cached (Anthropic 5-minute TTL; write on first phase, read on rest)
+
+Per ADR-0020 the simulation is intentionally bounded:
+  - chars/4 approximation per ADR-0013 (within ~10% of Claude tokenizer)
+  - canonical phases and growth assumptions locked in this script
+  - no real API call; no per-tool cache-hit tracking (violates ADR-0005)
+  - no trend tracking across runs (consume --json output if needed)
+
+Usage:
+  python3 scripts/measure-task-cost.py
+  python3 scripts/measure-task-cost.py --json
+  python3 scripts/measure-task-cost.py > scripts/baseline-task-cost-2026-05-18.md
+"""
+
+from __future__ import annotations
+import argparse
+import json
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+CHARS_PER_TOKEN = 4.0
+
+# Anthropic prompt cache pricing multipliers (5-minute TTL).
+WRITE_MULT = 1.25
+READ_MULT = 0.1
+BASE_MULT = 1.0
+
+# Canonical 9-phase task lifecycle. Each entry: (command_name, description).
+# Locked at slice 09 authoring; revisions require slice history update + ADR-0020 notes.
+PHASES = [
+    ("task-init", "create 5 mandatory task files; read project memory"),
+    ("impact-analysis", "author IMPACT_ANALYSIS.md"),
+    ("decision-interview", "lock D-1..D-N in DECISIONS.md"),
+    ("implementation-plan", "author IMPLEMENTATION_PLAN.md + SLICES/*"),
+    ("implement-approved-slice", "execute slice 01"),
+    ("slice-closure", "close slice 01"),
+    ("implement-approved-slice", "execute slice 02"),
+    ("slice-closure", "close slice 02"),
+    ("pr-package", "author PR_PACKAGE.md"),
+]
+
+# Canonical artifact sizes (token estimates; locked per ADR-0020).
+USER_INPUT_TOKENS = 200       # typical slash-command invocation
+TASK_STATE_INITIAL = 1500     # post-task-init size
+TASK_STATE_GROWTH = 300       # accumulation per phase
+
+
+def measure_file(path: Path) -> int:
+    """Return ~token count for a file (chars / 4)."""
+    if not path.exists():
+        return 0
+    text = path.read_text(encoding="utf-8")
+    return round(len(text) / CHARS_PER_TOKEN)
+
+
+def fmt_int(n: int) -> str:
+    return f"{n:,}".replace(",", ".")
+
+
+def simulate_run():
+    """Run the canonical 9-phase simulation. Return list of phase dicts plus totals."""
+    wos_path = ROOT / "WORKFLOW_OPERATING_SYSTEM.md"
+    wos_tokens = measure_file(wos_path)
+
+    # Measure each unique command file once; phases share commands.
+    cmd_token_cache: dict[str, int] = {}
+    for cmd_name, _ in PHASES:
+        if cmd_name not in cmd_token_cache:
+            cmd_token_cache[cmd_name] = measure_file(ROOT / "commands" / f"{cmd_name}.md")
+
+    rows: list[dict] = []
+    task_state = TASK_STATE_INITIAL
+    for i, (cmd_name, desc) in enumerate(PHASES, 1):
+        cmd_tokens = cmd_token_cache[cmd_name]
+        static = wos_tokens + cmd_tokens
+        dynamic = task_state + USER_INPUT_TOKENS
+
+        # Uncached: pay full static + dynamic every phase.
+        uncached_phase = static + dynamic
+
+        # Cached: first phase writes; rest reads. Dynamic always at base.
+        if i == 1:
+            cached_static = static * WRITE_MULT
+        else:
+            cached_static = static * READ_MULT
+        cached_phase = cached_static + dynamic
+
+        rows.append({
+            "phase": i,
+            "command": cmd_name,
+            "description": desc,
+            "wos_tokens": wos_tokens,
+            "cmd_tokens": cmd_tokens,
+            "task_state_tokens": task_state,
+            "user_input_tokens": USER_INPUT_TOKENS,
+            "static_total": static,
+            "dynamic_total": dynamic,
+            "uncached_phase": uncached_phase,
+            "cached_phase": round(cached_phase),
+        })
+        task_state += TASK_STATE_GROWTH
+
+    uncached_total = sum(r["uncached_phase"] for r in rows)
+    cached_total = sum(r["cached_phase"] for r in rows)
+    return {
+        "rows": rows,
+        "uncached_total": uncached_total,
+        "cached_total": cached_total,
+        "wos_tokens": wos_tokens,
+        "phases": len(PHASES),
+        "cache_savings_pct": round((1 - cached_total / uncached_total) * 100, 1) if uncached_total else 0.0,
+        "assumptions": {
+            "chars_per_token": CHARS_PER_TOKEN,
+            "write_mult": WRITE_MULT,
+            "read_mult": READ_MULT,
+            "user_input_tokens": USER_INPUT_TOKENS,
+            "task_state_initial": TASK_STATE_INITIAL,
+            "task_state_growth": TASK_STATE_GROWTH,
+        },
+    }
+
+
+def render_markdown(sim: dict) -> str:
+    out = []
+    out.append("# Task cost baseline (canonical 9-phase run)")
+    out.append("")
+    out.append(f"Generated by `python3 scripts/measure-task-cost.py` (ADR-0020).")
+    out.append("")
+    out.append("Method: chars / 4 (approximation; ~10% precision vs Claude tokenizer per ADR-0013). Cache assumptions: Anthropic 5-minute TTL; first phase writes (1.25x), subsequent phases read (0.1x). Real per-tool cache behavior may differ; this is a simulation, not a measurement (ADR-0020).")
+    out.append("")
+
+    a = sim["assumptions"]
+    out.append("## Assumptions (locked at slice 09)")
+    out.append("")
+    out.append(f"- Spec bootstrap tokens: measured from `WORKFLOW_OPERATING_SYSTEM.md` -> {fmt_int(sim['wos_tokens'])} tokens.")
+    out.append(f"- Command file tokens: measured per phase from `commands/<name>.md`.")
+    out.append(f"- User input per phase: {fmt_int(a['user_input_tokens'])} tokens (constant; typical slash-command invocation).")
+    out.append(f"- TASK_STATE initial size (post-task-init): {fmt_int(a['task_state_initial'])} tokens.")
+    out.append(f"- TASK_STATE growth per phase: +{fmt_int(a['task_state_growth'])} tokens (accumulation across slices).")
+    out.append(f"- Cache write multiplier (Anthropic 5-min TTL): {a['write_mult']}x.")
+    out.append(f"- Cache read multiplier (Anthropic 5-min TTL): {a['read_mult']}x.")
+    out.append("")
+
+    out.append("## Per-phase breakdown")
+    out.append("")
+    out.append("| # | Command | Description | Spec | Cmd | TASK_STATE | User | Uncached | Cached |")
+    out.append("|---|---|---|---:|---:|---:|---:|---:|---:|")
+    for r in sim["rows"]:
+        out.append(
+            f"| {r['phase']} | `{r['command']}` | {r['description']} | {fmt_int(r['wos_tokens'])} | {fmt_int(r['cmd_tokens'])} | {fmt_int(r['task_state_tokens'])} | {fmt_int(r['user_input_tokens'])} | {fmt_int(r['uncached_phase'])} | {fmt_int(r['cached_phase'])} |"
+        )
+    out.append("")
+
+    out.append("## Totals")
+    out.append("")
+    out.append(f"- **Uncached total** (no prompt cache; baseline): **{fmt_int(sim['uncached_total'])} tokens** across {sim['phases']} phases.")
+    out.append(f"- **Cached total** (Anthropic 5-min TTL; first phase writes, rest read): **{fmt_int(sim['cached_total'])} tokens** across {sim['phases']} phases.")
+    out.append(f"- **Cache savings**: {sim['cache_savings_pct']}% reduction vs uncached.")
+    out.append("")
+
+    out.append("## What this is NOT")
+    out.append("")
+    out.append("Per ADR-0020:")
+    out.append("- Not a real model API measurement (no tool call; no API key).")
+    out.append("- Not per-tool cache-hit instrumentation (Cursor/Claude Code/Codex etc. cache differently; out of scope per ADR-0005 multi-tool neutrality).")
+    out.append("- Not a trend dashboard (single-baseline snapshot; consume `--json` for trend tooling).")
+    out.append("- Not latency (latency depends on model AND tool AND network; not derivable from tokens alone).")
+    out.append("")
+    out.append("Future deltas: re-run after structural changes; compare against this baseline by date in filename (`scripts/baseline-task-cost-<YYYY-MM-DD>.md`).")
+    return "\n".join(out)
+
+
+def render_json(sim: dict) -> str:
+    return json.dumps(
+        {
+            "schema_version": "1.0",
+            "generated_by": "scripts/measure-task-cost.py",
+            "adr": "ADR-0020",
+            "method": f"chars / {CHARS_PER_TOKEN}",
+            "phases": sim["rows"],
+            "totals": {
+                "uncached": sim["uncached_total"],
+                "cached": sim["cached_total"],
+                "cache_savings_pct": sim["cache_savings_pct"],
+            },
+            "wos_tokens": sim["wos_tokens"],
+            "assumptions": sim["assumptions"],
+        },
+        indent=2,
+    )
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Simulate end-to-end token cost of a canonical task run.")
+    parser.add_argument("--json", action="store_true", help="Emit JSON instead of markdown.")
+    args = parser.parse_args()
+
+    sim = simulate_run()
+    if args.json:
+        print(render_json(sim))
+    else:
+        print(render_markdown(sim))
+
+
+if __name__ == "__main__":
+    main()

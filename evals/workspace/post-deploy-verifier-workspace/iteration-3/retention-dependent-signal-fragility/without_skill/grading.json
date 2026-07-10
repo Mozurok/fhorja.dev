@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(retention|30[- ]days?|purged?|expired?|rolling\\\\s+window)' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(free[- ]tier|Sentry.+retention|signal\\\\s+vanish|signal.+expire)' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(mirror|persist|long[- ]retention|snapshot|checkpoint|long-term\\\\s+store)' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(e1f2a3b|deploy_sha)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(fragile|fragility|vanish.+silent|silent.+expire)' flags='i'"
+    }
+  ]
+}

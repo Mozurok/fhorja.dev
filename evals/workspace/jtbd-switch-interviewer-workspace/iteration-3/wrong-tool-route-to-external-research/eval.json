@@ -1,0 +1,33 @@
+{
+  "id": "wrong-tool-route-to-external-research",
+  "prompt": "You are reviewing a research brief. The team wants the answer to a question that does NOT require user research; it requires desk research (market sizing, competitive analysis, secondary sources). Per persona Step 1 + the persona's 'Do not use' section: persona must STOP and route to external-research, not run a JTBD interview round.\n\nResearch brief:\n\n> 'How big is the total addressable market for AI coding tools in the Brazilian SaaS segment? What are the top 5 competitors and their pricing tiers?'\n\nProduce per persona contract: (1) assessment -- is this a JTBD switch-interview question?; (2) if no, the correct routing; (3) the failure mode if a JTBD round is run on a desk-research question.\n\nPer persona spec (description field): 'Do not use ... when desk research suffices (use external-research)'.",
+  "expected_output": "Assessment: this is NOT a JTBD switch-interview question. The brief asks for market sizing (TAM) and competitive analysis (top 5 competitors + pricing) -- these are facts available from secondary sources (industry reports, competitor websites, analyst publications). JTBD switch interviews surface MOTIVATION (why users switched) -- they do not produce market-size estimates or competitor lists. Correct routing: external-research command. Per persona's 'Do not use' clause: when desk research suffices, route to external-research. Failure mode if a JTBD round runs anyway: the persona would draft an interview script but the questions cannot answer 'how big is the market' or 'who are the top 5 competitors' -- the interview round would produce qualitative anecdotes that are NOT EVIDENCE for the quantitative claims, leading to either (a) script bias toward fabricating market-sized claims OR (b) interviews that succeed but don't answer the question, wasting interview budget. The persona MUST refuse to proceed and route the brief to external-research. The discriminator: a baseline plan that drafts a JTBD script for this brief (because the prompt asks for it) misses the routing-shape requirement -- persona Step 1 + the 'Do not use' clause explicitly forbid running JTBD on a desk-research question.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "external-research",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(desk\\s+research|secondary\\s+source|market\\s+siz|TAM|wrong\\s+tool|not.+JTBD)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(refuse|STOP|do\\s+not\\s+use|cannot|should\\s+not)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(motivation|qualitative|why.+(switch|chose)|switch.+interview)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(route|routing|recommended\\s+next)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

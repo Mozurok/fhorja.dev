@@ -1,0 +1,33 @@
+{
+  "id": "orphan-ac-with-db-invariant",
+  "prompt": "You are authoring the per-slice post-deploy verification plan for the following shipped slice. The slice has FIVE acceptance criteria (AC-1 through AC-5). One of them is a DB-invariant claim that has no log or dashboard equivalent -- it must be checked with a concrete SQL/view query. Produce: (1) per-AC signal mapping table (every AC must map to at least one signal; zero orphan ACs); (2) the exact log queries / dashboard URLs / SQL invariant query / smoke-test inputs filled in -- no 'check the logs' vagueness; (3) negative check(s); (4) rollback trigger checklist with named humans and exact commands.\n\nSlice file (SLICES/14_subscription_uniqueness.md):\n\n```markdown\n# Slice 14: Subscription uniqueness invariant\n\nDeploy: production, sha=`a1b2c3d`, ts=2026-06-05T10:00:00Z\nFeature flag: none (the change ships unconditionally)\n\n## Acceptance criteria\n- AC-1: `POST /api/v1/subscriptions` returns 409 Conflict when the caller already has an active subscription (was 200 before this slice).\n- AC-2: The subscription-list page (`/account/subscriptions`) displays a 'You already have an active subscription' error banner instead of the empty 'Start a subscription' CTA when the user has one.\n- AC-3: Stripe webhook `customer.subscription.created` is idempotent -- a duplicate webhook does NOT create a second active row.\n- AC-4: DB INVARIANT: no user has more than one row in `subscriptions` where `status = 'active'`. This is the load-bearing claim of the slice.\n- AC-5: The Datadog SLO 'subscription_creation_p99_latency_ms' did not regress (p99 stays under 800ms over the 24h window post-deploy).\n```\n\nObservability stack: Datadog Logs (`https://app.datadoghq.com/logs`), Datadog APM (`https://app.datadoghq.com/apm/services`), Sentry (`https://sentry.io/fhorja`), Postgres (Supabase `db.fhorja.supabase.co`), feature-flag system: NONE.\n\nNamed on-call human: `@bruno` (sole on-call).",
+  "expected_output": "Every AC maps to at least one signal: AC-1 -> log query OR API smoke test with exact route + body; AC-2 -> smoke-test walkthrough on `/account/subscriptions` with expected DOM text; AC-3 -> idempotency log filter + DB invariant query (SELECT-based); AC-4 -> DB invariant query: `SELECT user_id, COUNT(*) FROM subscriptions WHERE status='active' GROUP BY user_id HAVING COUNT(*) > 1;` expecting zero rows; AC-5 -> Datadog dashboard panel URL or SLO ID with time range bounded by deploy_sha=a1b2c3d window. Negative check: log query for the pre-slice 200 OK code path (`status:200 route:/api/v1/subscriptions deploy_sha:a1b2c3d`) showing zero hits on the duplicate-subscription case. Rollback: named human `@bruno`, exact rollback command (e.g. `git revert a1b2c3d && vercel --prod` or equivalent). Zero orphan ACs is the load-bearing discriminator: a baseline plan that skips AC-4 (the DB invariant) is the failure mode.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "AC-?[1-5]",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "SELECT.+(subscriptions|status\\s*=\\s*'active')",
+      "flags": "is"
+    },
+    {
+      "type": "regex",
+      "pattern": "(a1b2c3d|deploy_sha)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(negative\\s+check|did\\s+not\\s+ship|silent\\s+no-?op|prove.+not)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(@bruno|on-call)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

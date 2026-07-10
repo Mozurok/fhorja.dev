@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(trigger|AFTER\\\\s+UPDATE|publish_user_changed_event)' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(Kafka|kafka|event\\\\s+publish|side[- ]effect|cascade)' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(DISABLE\\\\s+TRIGGER|disable\\\\s+trigger|bypass|pace|throttle|smaller\\\\s+batch)' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(NEEDS-PHASING|UNSAFE)' flags=''"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(consumer|SLO|backlog|rate\\\\s+limit|events?/sec)' flags='i'"
+    }
+  ]
+}

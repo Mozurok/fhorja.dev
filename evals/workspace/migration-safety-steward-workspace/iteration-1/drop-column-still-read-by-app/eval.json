@@ -1,0 +1,33 @@
+{
+  "id": "drop-column-still-read-by-app",
+  "prompt": "You are auditing the following Postgres migration before it ships to production. Per-statement verdict required. Migration file:\n\n```sql\n-- migrations/20260606120003_drop_legacy_email.sql\nALTER TABLE users DROP COLUMN legacy_email_verified;\n```\n\nContext:\n- Postgres version: 14\n- `users` table row count estimate: ~50M\n- Deployment strategy: single rolling deploy\n- Application code: the current production version of the backend STILL reads `legacy_email_verified` in 3 call sites (legacy auth flow); the deploy that drops it has not yet shipped the code change\n- No online-DDL tooling in scope\n\nProduce: (1) per-statement verdict, (2) classification of reversibility (REVERSIBLE / IRREVERSIBLE), (3) phased remediation if NEEDS-PHASING, (4) explicit two-phase deploy strategy if applicable, (5) rollback plan including data-recovery implications.",
+  "expected_output": "Verdict UNSAFE (production code still reads the column; immediate DROP causes runtime errors). IRREVERSIBLE classification (DROP COLUMN permanently deletes data; no clean rollback once the column is gone). Two-phase deploy strategy: Phase 1 ship code that no longer reads legacy_email_verified, verify in production for an observation window (e.g. 7 days), Phase 2 drop the column. Rollback for Phase 2 = none (data destroyed); flag for explicit user confirmation before the DROP.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(UNSAFE|IRREVERSIBLE|P0)",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(two-phase|2-phase|Phase\\s*1.+Phase\\s*2)",
+      "flags": "is"
+    },
+    {
+      "type": "regex",
+      "pattern": "verify|observe|observation\\s+window|wait",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "rollback",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "legacy_email_verified",
+      "flags": ""
+    }
+  ],
+  "timeout_seconds": 300
+}

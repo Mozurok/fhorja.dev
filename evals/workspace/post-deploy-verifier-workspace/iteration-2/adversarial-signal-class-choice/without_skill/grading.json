@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex 'AC-?[1-7]' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(PostHog|analytics\\\\s+event|click[- ]event)' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(per[- ]tenant|per[- ]org|group\\\\s+by\\\\s+org_id|count\\\\(\\\\*\\\\).*org_id)' flags='is'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(audit_log|select.+(quota_exceeded|event_type))' flags='is'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(d4c5b6a|deploy_sha)' flags='i'"
+    }
+  ]
+}

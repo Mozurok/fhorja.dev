@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "contains 'service_role'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(UNJUSTIFIED|justification|bypass)' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(JWT|auth\\\\.uid\\\\(\\\\)|user.{0,15}token|membership\\\\s+check|server.?side\\\\s+validat)' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex 'createClient|supabaseAdmin|SUPABASE_SERVICE_ROLE_KEY' flags=''"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(P1|P2|UNSAFE)' flags=''"
+    }
+  ]
+}

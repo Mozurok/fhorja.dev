@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "contains 'FORCE ROW LEVEL SECURITY'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "contains 'WITH CHECK'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex 'ALTER TABLE\\\\s+documents\\\\s+FORCE\\\\s+ROW\\\\s+LEVEL\\\\s+SECURITY' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex 'P1' flags=''"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '\\\\|\\\\s*documents\\\\s*\\\\|' flags=''"
+    }
+  ]
+}

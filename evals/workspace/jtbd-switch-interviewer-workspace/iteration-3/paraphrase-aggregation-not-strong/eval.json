@@ -1,0 +1,33 @@
+{
+  "id": "paraphrase-aggregation-not-strong",
+  "prompt": "You are synthesizing a JTBD switch-interview round. Three interviews each provide PARAPHRASE evidence (not verbatim quotes) about the team's hypothesis. Per persona Step 4 (Demand verbatim over paraphrase) + Step 5 (STRONG = 3+ interviews with VERBATIM quotes): can 3 paraphrases across 3 interviews be clustered as STRONG?\n\nTeam hypothesis: 'users switch from Microsoft Word to Notion because they want collaboration.'\n\nInterview notes (3 interviews; each captured by a different researcher; NONE contain verbatim quotes):\n- I1 (researcher A): 'User said they switched for the collaboration features. They mentioned how much easier it was to share docs with their team.'\n- I2 (researcher B): 'Collaboration came up several times. The user emphasized real-time editing with their team as the main reason.'\n- I3 (researcher C): 'User talked about wanting to work with others on the same document. Collaboration was central to their decision.'\n\nProduce per persona contract: (1) per-interview synthesis honoring verbatim-vs-paraphrase distinction; (2) cluster strength assessment for 'collaboration as PULL force'; (3) recommended next action.\n\nPer JTBD methodology: STRONG = 3+ INDEPENDENT VERBATIM quotes; aggregation of paraphrases does NOT upgrade to STRONG because the paraphrases may be researcher-introduced framing of the same underlying force OR researcher-introduced phrasing of different underlying forces. Without verbatim, the evidence type is INSUFFICIENT regardless of count.",
+  "expected_output": "Per-interview tagging: all 3 interviews provide PARAPHRASE only; ZERO verbatim quotes captured. Per persona Step 4: paraphrase is where the team's prior assumption sneaks back in (the team's hypothesis was 'collaboration'; all 3 paraphrases echo 'collaboration' which may be researcher-introduced framing). Cluster strength: NOT STRONG despite 3-interview count. The persona MUST NOT upgrade to STRONG because: (a) verbatim quotes are required to anchor a force; (b) paraphrase aggregation amplifies any researcher-bias systematically; (c) the team's prior hypothesis is reflected in all 3 paraphrases which is suspicious. Per Step 5 strength tagging: this cluster is INSUFFICIENT-EVIDENCE (a category below ANECDOTAL because even n=1 with verbatim would qualify as ANECDOTAL; paraphrase alone is below ANECDOTAL). Recommended action: re-interview the same 3 subjects with verbatim capture (audio recording transcribed, OR structured note-taking with quote-mark discipline). Cannot drive a PROPOSED decision from this round. 'We do not have evidence for X' section: the team's hypothesis 'collaboration is the PULL force' remains UNVALIDATED despite 3 interviews running -- absence of verbatim is absence of evidence. The discriminator: a baseline plan that clusters the 3 paraphrases as 'collaboration STRONG' validates the bias-laundering pattern that persona Step 4 explicitly catches.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(paraphrase|verbatim|no\\s+(direct\\s+)?quotes|INSUFFICIENT)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(not\\s+STRONG|NOT\\s+STRONG|cannot.+STRONG|below\\s+ANECDOTAL)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(re-?interview|re-?run|audio.+record|verbatim\\s+capture)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(We do not have evidence|do not have evidence for|evidence\\s+gap|UNVALIDATED)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(researcher[- ]bias|introduced\\s+framing|team's?\\s+(prior|hypothesis))",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

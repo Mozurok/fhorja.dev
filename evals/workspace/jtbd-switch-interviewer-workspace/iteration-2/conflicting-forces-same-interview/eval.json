@@ -1,0 +1,33 @@
+{
+  "id": "conflicting-forces-same-interview",
+  "prompt": "You are synthesizing a JTBD switch-interview where the same user describes PUSH (old solution intolerable) AND HABIT (old solution comfortable) about the SAME old solution. Per persona Step 3 + Step 4: the four forces are not mutually exclusive but THIS USER experienced them simultaneously about ONE solution. Persona must SURFACE the conflict, not cluster the quotes.\n\nTeam hypothesis: 'users switch from QuickBooks Online to FreshBooks because invoicing in QBO is intolerable.'\n\nInterview I1 (subject: freelance consultant, switched 5 weeks ago):\n- Verbatim quotes captured:\n  - On the moment of switch: 'I had a client tell me they couldn't pay because my QBO invoice had the wrong tax code for the third time. That was the moment.'\n  - On the old solution: 'QBO invoicing is genuinely terrible. The tax engine is opaque. I spent two hours every month fixing line items.'\n  - ALSO on the old solution: 'But I knew exactly where every button was. After 6 years of using it, my muscle memory was reflexive. I miss that fluency more than I expected.'\n  - On the new solution: 'FreshBooks is cleaner but I have to think about every click for the first month. It's slow because it's new, not because it's actually slow.'\n  - On what almost stopped the switch: 'I really hesitated because I knew there'd be a productivity dip.'\n\nFour forces are surfacing simultaneously and TWO are about the SAME old solution: PUSH (invoicing intolerable) AND HABIT (muscle memory missed). Persona must NOT cluster these as 'feelings about QBO'; the framework requires surfacing them as separate force entries with the contradiction made explicit.\n\nProduce: (1) per-interview synthesis with all four forces extracted separately + verbatim quotes; (2) explicit handling of the PUSH-vs-HABIT conflict on the same old solution; (3) cross-interview cluster tagging note (single interview, so all forces start as ANECDOTAL); (4) recommended next action for the round.",
+  "expected_output": "Per-interview synthesis must show: PUSH = STRONG quote (invoicing failure with paying client = concrete switch trigger); ANXIETY = quote about productivity dip; HABIT = quote about muscle memory and missed fluency; PULL = quote about FreshBooks being cleaner (qualified by the 'slow because new not because actually slow' caveat). Persona MUST surface that PUSH and HABIT are BOTH about QBO -- the user found QBO intolerable for the failure mode (invoicing) AND comfortable for the navigation (muscle memory). This is not a contradiction in the user's experience; it's a contradiction in how the four-forces taxonomy would aggregate them. Persona must NOT cluster these as 'overall QBO sentiment'; must record both as separate force entries with the conflict noted. All forces start as ANECDOTAL (n=1) so NO PROPOSED decisions are drivable; observation only. Recommended next: targeted follow-up interviews probing whether the PUSH-vs-HABIT split pattern repeats (is the muscle-memory loss the dominant ANXIETY for switchers in this segment, or is it specific to this user's 6-year tenure?). The discriminator: a baseline plan that clusters all QBO quotes under 'old solution issues' and writes 'user switched because QBO is bad' misses both the force separation and the methodological subtlety that PUSH and HABIT can co-exist about one solution.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "PUSH",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "HABIT",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(conflict|conflicting|contradiction|tension|co-?exist|simultaneously)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(muscle\\s+memory|fluency|familiar|comfortable)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "ANECDOTAL",
+      "flags": ""
+    }
+  ],
+  "timeout_seconds": 300
+}

@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex 'external-research'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(desk\\\\s+research|secondary\\\\s+source|market\\\\s+siz|TAM|wrong\\\\s+tool|not.+JTBD)'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(refuse|STOP|do\\\\s+not\\\\s+use|cannot|should\\\\s+not)'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(motivation|qualitative|why.+(switch|chose)|switch.+interview)'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(route|routing|recommended\\\\s+next)'"
+    }
+  ]
+}

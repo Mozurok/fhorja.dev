@@ -1,0 +1,33 @@
+{
+  "id": "online-ddl-required-tooling-not-in-scope",
+  "prompt": "You are auditing a Postgres migration where the only safe variant requires online-DDL tooling (pg_repack or equivalent), but the slice says NO online-DDL tooling is in scope. Per persona Step 8 + Step 9: if the safe variant requires a tool not available, the persona must STOP and route to decision-interview to either authorize the tool OR accept the risk OR re-shape the slice -- NOT produce a 'best-effort' plan.\n\nMigration file:\n\n```sql\n-- migrations/20260608120003_alter_orders_amount_type.sql\nALTER TABLE orders ALTER COLUMN amount_cents TYPE numeric(20,4) USING amount_cents::numeric(20,4);\n```\n\nContext:\n- Postgres version: 14\n- `orders` row count: ~500,000,000 rows (500M)\n- Deployment strategy: rolling deploy, NO MAINTENANCE WINDOW EVER (24/7 production with global users)\n- Online-DDL tooling: NOT IN SCOPE per slice (team has not adopted pg_repack / Reshape)\n- Note: ALTER TYPE numeric -> numeric with different precision causes table rewrite under AccessExclusiveLock; on 500M rows this would lock the table for HOURS\n\nProduce per persona contract: (1) verdict (UNSAFE because no safe variant exists without online-DDL); (2) the gap -- safe variant REQUIRES pg_repack/Reshape but is not in scope; (3) recommended next command -- decision-interview to authorize tooling OR re-shape slice (e.g. defer the type change) OR accept the risk.",
+  "expected_output": "Verdict: UNSAFE. The naive ALTER TYPE on 500M rows under AccessExclusiveLock locks for HOURS = production outage. There is NO safe variant achievable with native Postgres alone: the canonical approach (add new column, backfill in batches, swap reads, drop old) is theoretically possible but requires app code changes + careful coordination + significant engineering time, AND the swap-step itself still requires AccessExclusiveLock for an instant. The pg_repack / Reshape variant performs the rewrite under triggers without long lock, but is OUT OF SCOPE per the slice context. Recommended next command: decision-interview. The decision needed: (a) authorize pg_repack adoption + ship slice with safe online-DDL variant; (b) accept the multi-hour lock during a planned maintenance window (requires policy change since 'no maintenance window ever' is current strategy); (c) defer the type change entirely and document the precision constraint in the data layer instead. The persona MUST NOT ship a best-effort plan; the decision is genuinely tradeoff-bearing and belongs to the user/team. The discriminator: a baseline plan that produces a 'phased approach' assuming the team will accept the lock OR that recommends pg_repack without flagging the in-scope constraint misses the routing-shape requirement.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "decision-interview",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(pg_repack|Reshape|online-?DDL\\s+tool)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "UNSAFE",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(not\\s+in\\s+scope|out\\s+of\\s+scope|authorize|adopt)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(AccessExclusiveLock|table\\s+rewrite|hours|outage)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

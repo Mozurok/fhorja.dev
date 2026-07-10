@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex 'decision-interview'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(pg_repack|Reshape|online-?DDL\\\\s+tool)'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex 'UNSAFE'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(not\\\\s+in\\\\s+scope|out\\\\s+of\\\\s+scope|authorize|adopt)'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(AccessExclusiveLock|table\\\\s+rewrite|hours|outage)'"
+    }
+  ]
+}

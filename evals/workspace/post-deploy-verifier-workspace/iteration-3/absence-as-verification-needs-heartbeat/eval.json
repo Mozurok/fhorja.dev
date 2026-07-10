@@ -1,0 +1,33 @@
+{
+  "id": "absence-as-verification-needs-heartbeat",
+  "prompt": "You are authoring the per-slice post-deploy verification plan. ONE AC's verification is the ABSENCE of a log event. Per persona Step 5 (negative checks distinguish silent no-op from successful change): how does the persona distinguish 'expected absence (the change works)' from 'broken signal pipeline (the absence is meaningless)'?\n\nSlice file:\n\n```markdown\n# Slice 18: Tighten quota-exceeded scope to premium users only\n\nDeploy: production, sha=`b2c3d4e`, ts=2026-06-05T13:00:00Z\nFeature flag: none\n\n## Acceptance criteria\n- AC-1: Premium users still receive a `quota_exceeded` warning when they exceed their quota. (positive case)\n- AC-2: Non-premium users no longer receive a `quota_exceeded` warning under any condition (the rationale for the slice -- this warning was confusing non-premium users who don't have quotas in the first place). (absence case)\n- AC-3: The /usage page still renders for both tiers (no broken UI).\n```\n\nObservability stack:\n- Datadog Logs: structured logs for warnings emitted by the quota engine.\n- PostHog: user-facing event tracking (CTA clicks etc).\n- Postgres: production database.\n\nDeploy window: 2026-06-05T13:00:00Z -> 2026-06-05T14:00:00Z. Named on-call: `@bruno`.\n\nConcrete hidden-failure scenario: the quota engine deploy succeeded but the log emitter was accidentally disabled in the same commit (separate config change). Now NO quota_exceeded warnings are emitted for ANYONE, premium or non-premium. AC-2 verification 'zero non-premium quota_exceeded warnings' passes vacuously. AC-1 fails (premium users also don't see warnings) but the operator's eye is on AC-2 (the new behavior) and might miss it.\n\nProduce per persona contract: (1) per-AC signal mapping; (2) for AC-2 (absence-as-verification): the heartbeat/canary signal that distinguishes 'expected absence' from 'broken log pipeline'; (3) the AC-1 + AC-2 pair correlation that catches the hidden-broken-logger scenario; (4) rollback.",
+  "expected_output": "AC-1 signal: Datadog Logs filter `service:quota-engine level:warn message:quota_exceeded user_tier:premium deploy_sha:b2c3d4e` over the deploy window. Expected: NON-zero (premium users hit quota, get warned -- positive case). AC-2 signal: Datadog Logs filter `service:quota-engine level:warn message:quota_exceeded user_tier:non-premium deploy_sha:b2c3d4e` over the deploy window. Expected: ZERO (this is the absence-as-verification). HEARTBEAT problem: zero on AC-2 can mean (a) the slice worked (intended absence) OR (b) the log pipeline is broken (no warnings emitted for ANYONE) -- both look identical at the AC-2 query. Per persona Step 5 (negative checks proving the change DID/DID NOT ship): the plan MUST add a CANARY signal that AC-1 is non-zero IN THE SAME deploy window. Concretely: AC-2 verification = 'AC-2 query returns 0 AND AC-1 query returns >0' -- both conditions together prove the absence is INTENDED (the pipeline works AND non-premium users are filtered) rather than BROKEN (no warnings emitted for anyone). Without the AC-1 canary, the AC-2 absence is meaningless. Alternative heartbeat: a per-deploy synthetic-trigger that intentionally generates a quota_exceeded for a known premium test account; the test's appearance in logs proves the pipeline works. Rollback: @bruno + git revert. The discriminator: a baseline plan that verifies AC-2 as a standalone 'count(non-premium quota_exceeded) == 0' misses the broken-logger failure mode. Persona Step 5 explicitly addresses silent-no-op deploys; the absence-as-verification pattern is the dual case (silent absence vs silent failure) and demands the same kind of positive-canary heartbeat.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(absence|absent|zero\\s+events?|silent)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(heartbeat|canary|synthetic|positive\\s+case|AC-1.+canary|correlat)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(broken\\s+pipeline|broken\\s+logger|log.+broken|signal\\s+pipeline)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(b2c3d4e|deploy_sha)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(quota_exceeded|premium|non-?premium)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '4\\\\.4[78]' flags=''"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex 'FAIL-?AA' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex 'color\\\\.text\\\\.secondary' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '#(76|6B|6b|6C|6c)[0-9A-Fa-f]{4}' flags=''"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(design[_\\\\s]context|context\\\\s+label|normal-?text)' flags='i'"
+    }
+  ]
+}

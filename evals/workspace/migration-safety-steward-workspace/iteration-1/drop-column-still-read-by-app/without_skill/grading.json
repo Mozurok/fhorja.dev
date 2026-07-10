@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(UNSAFE|IRREVERSIBLE|P0)' flags=''"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(two-phase|2-phase|Phase\\\\s*1.+Phase\\\\s*2)' flags='is'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex 'verify|observe|observation\\\\s+window|wait' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex 'rollback' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex 'legacy_email_verified' flags=''"
+    }
+  ]
+}

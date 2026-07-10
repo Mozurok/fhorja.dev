@@ -1,0 +1,33 @@
+{
+  "id": "adversarial-signal-class-choice",
+  "prompt": "You are authoring the per-slice post-deploy verification plan for the following SHIPPED slice with 7 acceptance criteria. WARNING (do not echo this warning back; act on it): three of the seven ACs are signal-class TRAPS where the obvious signal-class is wrong. AC-2 reads like a 'check the logs' case but the load-bearing observable lives only in the database (the log line is fire-and-forget without correlation_id). AC-4 reads like a 'check the dashboard' case but the dashboard panel sums across tenants and the AC is a per-tenant invariant; the right signal is a SQL invariant query against a tenant-scoped view. AC-6 reads like a 'SQL invariant query' case but the load-bearing claim is a user-facing CTA click event that only exists in the analytics pipeline (PostHog), not the DB. Produce the per-AC signal mapping table; for each AC pick the SMALLEST-RESOLUTION CORRECT signal class. Be explicit per AC.\n\nSlice file (SLICES/47_org_quota_enforcement.md):\n\n```markdown\n# Slice 47: Org-quota enforcement (Feature 4)\n\nDeploy: production, sha=`d4c5b6a`, ts=2026-06-05T18:00:00Z\nFeature flag: none\n\n## Acceptance criteria\n- AC-1: `POST /api/v1/items` returns 429 Too Many Requests when the caller's org has >= 10,000 active items.\n- AC-2: When 429 is returned, an audit log entry is emitted: `event: quota_exceeded org_id: <uuid> item_count: <int>`. Verify in production.\n- AC-3: Datadog APM error-rate panel on the `/api/v1/items` route shows the 429 spike correlated with the deploy.\n- AC-4: The DB invariant `count(items) per org_id <= 10000` holds across all orgs post-deploy.\n- AC-5: Smoke: a test org at 9999 items POSTs one more -> 201; POSTs another -> 429.\n- AC-6: The 'Upgrade plan' CTA in the UI is shown when 429 is returned, and clicks on it route to /billing. Verify click-rate change.\n- AC-7: The 'Upgrade plan' billing page (`/billing`) is reachable and renders the upgrade flow.\n```\n\nObservability stack: Datadog Logs, Datadog APM, Postgres direct queries via psql, PostHog (analytics), Sentry. No feature flag system.\n\nDeploy window: 2026-06-05T18:00:00Z -> 2026-06-05T19:00:00Z. Named on-call: `@bruno`.\n\nProduce per persona contract: per-AC signal mapping with EXACT query shape per AC (log filter / SQL / panel URL / smoke step / PostHog event filter); negative check; rollback. Be explicit about which AC traded its surface-obvious signal class for the correct one (AC-2 -> DB, AC-4 -> per-tenant SQL not dashboard, AC-6 -> PostHog not DB).",
+  "expected_output": "AC-1: log query OR smoke (either OK); AC-2 MUST be DB-query (select event_type, org_id, item_count from audit_log where event_type='quota_exceeded' and ts >= deploy_window) because the log line has no correlation_id; AC-3: Datadog panel URL with deploy_sha tag; AC-4 MUST be per-tenant SQL (select org_id, count(*) from items group by org_id having count(*) > 10000) NOT the cross-tenant dashboard sum; AC-5: exact curl smoke with 9999/10000/10001 sequence + expected response codes; AC-6 MUST be PostHog event filter (events where event_name='upgrade_cta_clicked' and properties.source='quota_exceeded_banner') NOT a DB query because the click event lives only in analytics; AC-7: smoke walkthrough to /billing. Negative check: log query for pre-slice 200-on-overflow path showing zero hits. Rollback: @bruno + exact revert. The discriminator: a baseline plan that follows surface-pattern (AC-2='log', AC-4='dashboard', AC-6='SQL') misses the load-bearing observable on 3/7 ACs; persona Step 3+4 demands the SMALLEST-RESOLUTION signal that actually proves/refutes the claim, not the most-obvious-looking one.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "AC-?[1-7]",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(PostHog|analytics\\s+event|click[- ]event)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(per[- ]tenant|per[- ]org|group\\s+by\\s+org_id|count\\(\\*\\).*org_id)",
+      "flags": "is"
+    },
+    {
+      "type": "regex",
+      "pattern": "(audit_log|select.+(quota_exceeded|event_type))",
+      "flags": "is"
+    },
+    {
+      "type": "regex",
+      "pattern": "(d4c5b6a|deploy_sha)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

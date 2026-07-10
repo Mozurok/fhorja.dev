@@ -1,0 +1,7 @@
+{
+  "start_ts": "2026-06-05T20:30:00.000Z",
+  "end_ts": "2026-06-05T20:32:00.000Z",
+  "duration_seconds": 115,
+  "tokens_input": 46000,
+  "tokens_output": 7900
+}

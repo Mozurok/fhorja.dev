@@ -1,0 +1,33 @@
+{
+  "id": "nested-security-definer-search-path",
+  "prompt": "You are auditing the following Supabase migration. TWO SECURITY DEFINER functions chain: f1 calls f2. f2 has an explicit `SET search_path` but f1 does not. The CALLING role's search_path leaks through f1 into f2's resolution context, opening search_path-hijacking against tables f2 references unqualified.\n\nMigration file:\n\n```sql\n-- migrations/20260606150003_audit_log_chain.sql\nCREATE TABLE audit_log (\n  id bigserial PRIMARY KEY,\n  actor_id uuid NOT NULL,\n  action text NOT NULL,\n  payload jsonb,\n  created_at timestamptz DEFAULT now()\n);\nALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;\nALTER TABLE audit_log FORCE ROW LEVEL SECURITY;\nCREATE POLICY audit_log_select_own ON audit_log\n  FOR SELECT USING (actor_id = auth.uid());\n\n-- Inner function: writes to audit_log table referenced unqualified.\nCREATE OR REPLACE FUNCTION log_action(p_action text, p_payload jsonb)\nRETURNS void\nLANGUAGE plpgsql\nSECURITY DEFINER\nSET search_path = pg_catalog, public\nAS $$\nBEGIN\n  INSERT INTO audit_log (actor_id, action, payload) VALUES (auth.uid(), p_action, p_payload);\nEND;\n$$;\n\n-- Outer function: invokes log_action; calls auth.uid() unqualified; NO explicit search_path.\nCREATE OR REPLACE FUNCTION record_user_event(p_event text, p_details jsonb)\nRETURNS void\nLANGUAGE plpgsql\nSECURITY DEFINER\nAS $$\nBEGIN\n  PERFORM log_action(p_event, p_details);\nEND;\n$$;\n\nGRANT EXECUTE ON FUNCTION record_user_event TO authenticated;\n```\n\nAuth model: auth.uid(). The outer function is the one exposed via GRANT. record_user_event runs with the OWNER's privileges (postgres role) due to SECURITY DEFINER.\n\nConcrete attack scenario: a hostile authenticated user U_evil creates a schema `evil_schema` they OWN, inside which they create `CREATE FUNCTION evil_schema.uid() RETURNS uuid LANGUAGE sql AS 'SELECT '00000000-0000-0000-0000-000000000001'::uuid';`. Then U_evil sets their session `SET search_path = evil_schema, public;` and calls `SELECT record_user_event('test', '{}');`. What happens? Can U_evil cause record_user_event's `log_action` invocation to insert audit_log rows attributed to a different actor_id?\n\nProduce: (1) function-by-function audit including SET search_path declarations; (2) gap citing search_path hijacking via the nested SECURITY DEFINER chain; (3) follow-the-data trace showing how the calling role's search_path leaks; (4) migration-shaped remediation.",
+  "expected_output": "The GAP is in `record_user_event`: NO explicit `SET search_path`. When U_evil calls this function with their poisoned search_path (`evil_schema, public`), record_user_event runs as DEFINER (postgres role) but resolves unqualified names against U_evil's current search_path. The auth.uid() call inside record_user_event's body resolves to `evil_schema.uid` (not `auth.uid`) which returns the spoofed UUID. Then PERFORM log_action is called -- log_action HAS `SET search_path = pg_catalog, public` so INSIDE log_action's body, auth.uid() resolves correctly. BUT the spoofed UUID has already been computed before the inner SET takes effect, depending on argument evaluation order. More importantly: if record_user_event's body had used auth.uid() directly (rather than passing through), the spoof would land. The vulnerable surface is the entire body of record_user_event before any SET search_path inside it. Persona must flag: every SECURITY DEFINER function MUST have its own SET search_path = pg_catalog, public at the top of the body, regardless of whether inner functions also have one (defense in depth; the inner SET does NOT propagate up the call stack). Remediation: add `SET search_path = pg_catalog, public` to record_user_event's body. ALSO recommend qualifying all references inside SECURITY DEFINER bodies (e.g. `auth.uid()` not `uid()`, `public.audit_log` not `audit_log`).",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "search_path",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(SECURITY\\s+DEFINER|definer)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(record_user_event|log_action)",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(hijack|spoof|poison|attack|evil)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(P1|P0|UNSAFE)",
+      "flags": ""
+    }
+  ],
+  "timeout_seconds": 300
+}

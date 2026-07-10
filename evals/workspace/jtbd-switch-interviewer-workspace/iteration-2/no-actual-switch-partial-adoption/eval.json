@@ -1,0 +1,33 @@
+{
+  "id": "no-actual-switch-partial-adoption",
+  "prompt": "You are synthesizing a JTBD switch-interview for a team validating a hypothesis. The interview transcript reads like a switch on the surface but reveals partial adoption under probing.\n\nTeam hypothesis: 'users switch from Asana to Linear because of speed.'\n\nInterview I1 (subject: PM at a 30-person startup, 'switched to Linear 3 months ago'):\n- Q: 'Tell me about the switch.' A: 'We started using Linear for our roadmap tracking. It is much snappier.'\n- Q: 'And Asana?' A: 'We still use Asana for marketing campaigns and client requests. We never really moved that over.'\n- Q: 'So both?' A: 'Yeah, the engineering team is on Linear. Marketing and client services are still on Asana.'\n- Q: 'What's the breakdown of time?' A: 'Honestly half-half. Linear for sprint stuff, Asana for everything cross-functional.'\n- Q: 'What would make you fully switch?' A: 'I don't think we will. They serve different needs now.'\n\nProduce: (1) per-interview synthesis tagged with the ADOPTION TYPE (SWITCH vs PARTIAL ADOPTION vs ADD-ON vs NO-SWITCH); (2) explanation of why the four-forces switch framework DOES or DOES NOT apply here; (3) recommended action -- can the team treat this interview as evidence for their 'switch because of speed' hypothesis?\n\nPer JTBD methodology: a SWITCH means abandoning the old solution. Persistent parallel use is PARTIAL ADOPTION or ADD-ON, which the four-forces framework was NOT designed for and which should not be scored under PUSH/PULL/ANXIETY/HABIT as if it were a switch event.",
+  "expected_output": "Adoption type: PARTIAL ADOPTION or ADD-ON (NOT a switch). The team's switch hypothesis is REFUTED by this interview; Linear was added as a complementary tool for engineering, not as a replacement for Asana. The four-forces switch framework does NOT apply because there's no SWITCH event -- the subject describes additive tool adoption, which is a different motivational shape (the user did not abandon, did not move data, did not retire workflows). Persona MUST: (a) explicitly tag this interview as PARTIAL ADOPTION / NOT-A-SWITCH; (b) decline to score four-forces; (c) recommend the team's hypothesis 'users switch from Asana because of speed' be DISCONFIRMED for this segment OR re-framed as 'users adopt Linear FOR engineering use cases while continuing to use Asana for cross-functional'; (d) recommend additional interviews probing for ACTUAL switches (subjects who abandoned Asana entirely) before continuing to treat this as switch-validation evidence. The discriminator: a baseline plan that paraphrases the interview as 'user switched to Linear because of speed' (the team's prior assumption laundered through partial-adoption evidence) is the classic JTBD failure mode this persona is designed to prevent.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(partial\\s+adoption|add-?on|not\\s+a\\s+switch|no\\s+switch|both\\s+(tools|systems))",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(framework\\s+does\\s+not\\s+apply|four-?forces.+(does\\s+not|inappropriate|cannot)|not\\s+score|decline\\s+to\\s+score)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(disconfirm|refute|refuted|re-?frame|hypothesis.+(refuted|incorrect|wrong|disconfirmed))",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(Asana|Linear)",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(I1|interview\\s+1|the\\s+interview)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

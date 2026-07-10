@@ -1,0 +1,72 @@
+{
+  "skill_name": "rls-auth-boundary-auditor",
+  "iteration": 2,
+  "eval_count": 3,
+  "results": [
+    {
+      "id": "compound-auth-policy-misses-org-id",
+      "without_skill": {
+        "passed": true,
+        "duration_seconds": 122,
+        "tokens_input": 39780,
+        "tokens_output": 7020
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 212,
+        "tokens_input": 60578,
+        "tokens_output": 10690
+      }
+    },
+    {
+      "id": "materialized-view-bypasses-rls",
+      "without_skill": {
+        "passed": false,
+        "duration_seconds": 85,
+        "tokens_input": 37190,
+        "tokens_output": 6564
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 164,
+        "tokens_input": 47338,
+        "tokens_output": 8354
+      }
+    },
+    {
+      "id": "service-role-bypass-no-server-validation",
+      "without_skill": {
+        "passed": false,
+        "duration_seconds": 78,
+        "tokens_input": 36999,
+        "tokens_output": 6529
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 127,
+        "tokens_input": 45410,
+        "tokens_output": 8014
+      }
+    }
+  ],
+  "summary": {
+    "without_skill": {
+      "pass_rate": 0.3333333333333333,
+      "total_duration_seconds": 285,
+      "total_tokens_input": 113969,
+      "total_tokens_output": 20113
+    },
+    "with_skill": {
+      "pass_rate": 1,
+      "total_duration_seconds": 503,
+      "total_tokens_input": 153326,
+      "total_tokens_output": 27058
+    },
+    "delta": {
+      "pass_rate": 0.6666666666666667,
+      "duration_seconds": 218,
+      "tokens_input": 39357,
+      "tokens_output": 6945
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "id": "security-definer-without-guard",
+  "prompt": "You are reviewing the Supabase migration below for RLS bypass via a SECURITY DEFINER function. Per-tenant model: each `notes` row belongs to one user. Audit the function and produce: (1) per-table posture table; (2) gaps with severity; (3) migration-shaped remediation including a CREATE OR REPLACE FUNCTION that adds the auth.uid() guard + sets search_path. Migration file content:\n\n```sql\n-- migrations/20260605120002_get_user_notes.sql\nCREATE TABLE notes (\n  id uuid PRIMARY KEY,\n  user_id uuid NOT NULL,\n  text text\n);\n\nALTER TABLE notes ENABLE ROW LEVEL SECURITY;\nALTER TABLE notes FORCE ROW LEVEL SECURITY;\n\nCREATE POLICY user_owns_note ON notes\n  FOR SELECT\n  USING (user_id = auth.uid())\n  WITH CHECK (user_id = auth.uid());\n\nCREATE OR REPLACE FUNCTION get_all_notes()\n  RETURNS SETOF notes\n  LANGUAGE sql\n  SECURITY DEFINER\nAS $$\n  SELECT * FROM notes;\n$$;\n```\n\nAuth model: `auth.uid()`. Tenant scope: per-user.",
+  "expected_output": "Identify P1 finding: SECURITY DEFINER function `get_all_notes` returns all rows regardless of caller; missing auth.uid() guard + missing SET search_path. Concrete remediation rewrites the function with both guards.",
+  "assertions": [
+    {
+      "type": "contains",
+      "target": "SECURITY DEFINER"
+    },
+    {
+      "type": "contains",
+      "target": "search_path"
+    },
+    {
+      "type": "contains",
+      "target": "auth.uid()"
+    },
+    {
+      "type": "regex",
+      "pattern": "CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+get_all_notes",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "P1",
+      "flags": ""
+    }
+  ],
+  "timeout_seconds": 300
+}

@@ -1,0 +1,33 @@
+{
+  "id": "cross-policy-interaction-via-join",
+  "prompt": "You are auditing the following Supabase migration. Each table's policy LOOKS CORRECT in isolation. The gap surfaces only when the data is followed across a VIEW that joins both. Per persona Step 5 (follow-the-data): trace EVERY relationship; flag the gap in the join object specifically.\n\nMigration file:\n\n```sql\n-- migrations/20260606150001_team_projects.sql\nCREATE TABLE team_members (\n  team_id uuid NOT NULL,\n  user_id uuid NOT NULL,\n  role text NOT NULL DEFAULT 'member',\n  PRIMARY KEY (team_id, user_id)\n);\nALTER TABLE team_members ENABLE ROW LEVEL SECURITY;\nALTER TABLE team_members FORCE ROW LEVEL SECURITY;\nCREATE POLICY team_members_select ON team_members\n  FOR SELECT USING (user_id = auth.uid());\n\nCREATE TABLE projects (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  team_id uuid NOT NULL,\n  name text NOT NULL,\n  budget_cents bigint NOT NULL,\n  created_at timestamptz DEFAULT now()\n);\nALTER TABLE projects ENABLE ROW LEVEL SECURITY;\nALTER TABLE projects FORCE ROW LEVEL SECURITY;\nCREATE POLICY projects_select ON projects\n  FOR SELECT USING (\n    team_id IN (SELECT team_id FROM team_members WHERE user_id = auth.uid())\n  );\n\nCREATE VIEW v_team_project_summary AS\nSELECT\n  tm.team_id,\n  tm.user_id AS team_member_user_id,\n  p.id AS project_id,\n  p.name AS project_name,\n  p.budget_cents\nFROM team_members tm\nJOIN projects p ON p.team_id = tm.team_id;\n\nGRANT SELECT ON v_team_project_summary TO authenticated;\n```\n\nAuth model: `auth.uid()`. Tenant scope: per-team.\n\nConcrete scenario: user U1 is a member of team T1 (`team_members(T1, U1)`). user U2 is a member of team T1 AND team T2 (`team_members(T1, U2)` and `team_members(T2, U2)`). Project P_T2 belongs to team T2.\n\nQuestion to drive audit: U1 issues `SELECT * FROM v_team_project_summary;` from a supabase-js client. What does U1 see? Specifically, can U1 observe any rows about (a) team T2's projects, OR (b) user U2's team memberships in teams U1 is NOT a member of?\n\nProduce: (1) per-object posture table including the VIEW; (2) gaps with severity citing the SPECIFIC combinatorial bypass; (3) follow-the-data trace showing how the row materializes through the join; (4) migration-shaped remediation.",
+  "expected_output": "The VIEW v_team_project_summary BYPASSES team_members's tighter SELECT policy through the JOIN. SQL views run with the privileges of the QUERYING role, so the row-level filter on team_members applies: U1 can only see team_members rows where user_id = U1. So U1 sees `team_members(T1, U1)` and NOT `team_members(T1, U2)` or `team_members(T2, U2)`. BUT the JOIN to projects uses team_id from the visible team_members row (T1), and projects' policy permits SELECT on projects where team_id IN (teams U1 is a member of), which includes T1. So U1 sees projects in T1 only, via U1's own membership row. The gap is more subtle: if U1 were also in T2, OR if the projects policy had a cross-team condition, the join would surface team T2's project budgets to U1 because the team_members FILTER does NOT cascade to the projects table's visibility decision through the JOIN. Concrete bypass scenario: a malicious U1 who knows team T2 exists CAN observe T2 project rows IF U1 manages to insert a team_members(T2, U1) row (via a different bypass), because the view-join would then expose T2 projects through U1's new T1+T2 union. Persona must follow-the-data and flag: (a) views inherit policies of underlying tables BUT (b) the join SEMANTICS allow a user to see a row IF EITHER end of the join is permitted, not BOTH. Remediation: rewrite the view as SECURITY INVOKER with explicit join predicate `WHERE tm.user_id = auth.uid()` filtering the team_members side AND `WHERE p.team_id IN (SELECT team_id FROM team_members WHERE user_id = auth.uid())` on projects side -- redundant by design so the policy interaction is explicit, not implicit. OR drop the GRANT and replace with a SECURITY INVOKER function.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(view|v_team_project_summary)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(JOIN|join.+semantics|follow.+data|cascade|propagat)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(SECURITY\\s+INVOKER|invoker|drop.+grant|REVOKE)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(P1|P0|UNSAFE|cross.?team|cross.?tenant)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(team_members|projects)",
+      "flags": ""
+    }
+  ],
+  "timeout_seconds": 300
+}

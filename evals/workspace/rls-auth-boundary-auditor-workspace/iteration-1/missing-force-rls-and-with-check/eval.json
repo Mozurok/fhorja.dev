@@ -1,0 +1,32 @@
+{
+  "id": "missing-force-rls-and-with-check",
+  "prompt": "You are reviewing the Supabase migration below for tenant isolation gaps before deploy. Per-tenant model: each `documents` row belongs to one user (`auth.uid()` is the tenant). Audit the policy posture and produce: (1) per-table posture table; (2) gaps with severity P1/P2/P3 citing concrete failure modes; (3) migration-shaped remediation as ready-to-apply SQL using the actual column names. Migration file content:\n\n```sql\n-- migrations/20260605120001_documents.sql\nCREATE TABLE documents (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  user_id uuid NOT NULL,\n  title text NOT NULL,\n  body text,\n  created_at timestamptz DEFAULT now()\n);\n\nALTER TABLE documents ENABLE ROW LEVEL SECURITY;\n\nCREATE POLICY user_owns_doc ON documents\n  FOR ALL\n  USING (user_id = auth.uid());\n```\n\nAuth model: `auth.uid()` (default Supabase). Tenant scope: per-user.",
+  "expected_output": "Per-table posture table listing `documents`; P1 finding for missing FORCE ROW LEVEL SECURITY + missing WITH CHECK clause on FOR ALL policy (insert path bypass); concrete remediation SQL adding both.",
+  "files": [],
+  "assertions": [
+    {
+      "type": "contains",
+      "target": "FORCE ROW LEVEL SECURITY"
+    },
+    {
+      "type": "contains",
+      "target": "WITH CHECK"
+    },
+    {
+      "type": "regex",
+      "pattern": "ALTER TABLE\\s+documents\\s+FORCE\\s+ROW\\s+LEVEL\\s+SECURITY",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "P1",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "\\|\\s*documents\\s*\\|",
+      "flags": ""
+    }
+  ],
+  "timeout_seconds": 300
+}

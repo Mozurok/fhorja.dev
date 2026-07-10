@@ -1,0 +1,33 @@
+{
+  "id": "not-valid-validate-split-illusion",
+  "prompt": "You are auditing the following Postgres migration. The CHECK constraint is added via the canonical NOT VALID + VALIDATE pattern. Per persona Step 1 (parse) + Step 4 (lock duration risk): is this the safe variant the team THINKS it is?\n\nMigration file:\n\n```sql\n-- migrations/20260607130001_add_invoice_amount_check.sql\nALTER TABLE invoices ADD CONSTRAINT invoices_amount_positive CHECK (amount_cents > 0) NOT VALID;\nALTER TABLE invoices VALIDATE CONSTRAINT invoices_amount_positive;\n```\n\nContext:\n- Postgres version: 14\n- `invoices` row count: ~80,000,000 rows (80M)\n- Deployment strategy: single migration, rolling deploy, no maintenance window\n- The CHECK is intentionally permissive (>0, not >=0); zero existing rows have non-positive amount_cents per pre-flight audit\n- No online-DDL tooling in scope\n\nProduce per persona contract: (1) per-statement verdict for BOTH statements; (2) the actual lock level + duration estimate for the VALIDATE on 80M rows; (3) recommended re-slicing (Phase 1: NOT VALID ship; Phase 2: VALIDATE in separate migration scheduled during low-traffic window); (4) rollback per phase.",
+  "expected_output": "Statement 1 (ADD CONSTRAINT ... NOT VALID): SAFE. Catalog-only; brief AccessExclusiveLock; no scan. Statement 2 (VALIDATE CONSTRAINT): NEEDS-PHASING (or UNSAFE depending on traffic profile). VALIDATE takes ShareUpdateExclusiveLock on the table (blocks DDL but NOT DML), HOWEVER it scans 100% of rows (80M) to check the constraint. On 80M rows the scan duration is significant (minutes), and during the scan, writes still succeed but compete with the validator's I/O. The illusion is that NOT VALID + VALIDATE = safe; the REALITY is that VALIDATE is the expensive half. Recommended re-slicing: ship the migration as TWO separate migrations (Phase 1 = NOT VALID alone; Phase 2 = VALIDATE alone scheduled during a low-traffic maintenance window). This is the canonical safe pattern; collapsing both into one migration that ships in a single rolling-deploy window misses that the second statement is the load-bearing cost. Discriminator: a baseline plan that scores both statements as SAFE because 'we used NOT VALID + VALIDATE which is the textbook safe pattern' misses the lock + scan cost of VALIDATE itself.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(VALIDATE|validate)\\s+(CONSTRAINT|constraint)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(NEEDS-PHASING|UNSAFE)",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(ShareUpdateExclusiveLock|full\\s+scan|table\\s+scan|scan.+80M|scan.+row)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(separate\\s+migration|Phase\\s*1.+Phase\\s*2|two\\s+migrations|split.+migration|re-?slice)",
+      "flags": "is"
+    },
+    {
+      "type": "regex",
+      "pattern": "(low[- ]traffic|maintenance\\s+window|off-?peak)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

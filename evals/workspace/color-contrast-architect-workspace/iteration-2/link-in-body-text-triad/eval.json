@@ -1,0 +1,33 @@
+{
+  "id": "link-in-body-text-triad",
+  "prompt": "You are auditing a system-level color triad: a link is rendered inline within body text on a page background. THREE pairs need WCAG audit, not the two an auditor typically checks (body/background and link/background). The third pair (link/body) determines whether the link is DISTINGUISHABLE from body text by color alone -- WCAG SC 1.4.1 (use of color) and SC 1.4.11 (non-text contrast).\n\nDocumented design:\n- Page surface: `color.surface.background` = `#FFFFFF`\n- Body text: `color.text.primary` = `#222222`\n- Inline link: `color.link.default` = `#0033AA`\n- Link state: links currently styled with COLOR ONLY (no underline, no different weight). The team's reasoning: 'underlines make the prose visually noisy; the color is enough'.\n\nProduce: (1) THREE pair audits with computed ratios + verdicts: body/background, link/background, link/body; (2) WCAG SC 1.4.1 analysis (use of color: link must be distinguishable from surrounding text by more than color alone OR the color contrast between link and body text must be 3:1+); (3) verdict on whether the 'color only, no underline' policy meets WCAG 2.2 AA; (4) remediation options.",
+  "expected_output": "Body/background (#222222 on #FFFFFF): ~15.9:1 PASS-AAA. Link/background (#0033AA on #FFFFFF): luminance of #0033AA ~ 0.07; ratio ~ 7.7:1 PASS-AAA. Link/body (#0033AA on #222222): both dark; luminance #0033AA ~ 0.07, luminance #222222 ~ 0.024; ratio ~ (0.07+0.05)/(0.024+0.05) = 1.62:1. FAIL-AA for the differentiable-state pair (3:1 needed per WCAG SC 1.4.1 when color is the ONLY differentiator). SC 1.4.1 verdict: the 'color only, no underline' policy FAILS because a user with red-green colorblindness or any vision-impairment that compresses the blue-vs-black distinction perceives the link and body as identical -- the link is not distinguishable by anything other than color, and the color contrast between them is 1.62:1 (below the 3:1 floor). Remediation options: (a) underline the link (adds a non-color differentiator; SC 1.4.1 satisfied; the link/body color contrast becomes a soft preference, not a hard requirement); (b) change the link color to one that meets >= 3:1 vs body text -- candidate: #006FB8 (lighter blue) vs #222222 ~ 4.0:1 PASS-AA; or use bold weight + color (non-color differentiator); (c) use a different visual treatment per state -- color + weight + underline-on-hover. The discriminator: a baseline plan that audits body/background + link/background (both PASS-AAA) and concludes 'link styling is fine' misses the link/body adjacency entirely, which is the load-bearing pair for a no-underline policy.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(link.+body|link/body|triad|three\\s+pair|differenti|distinguish)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(SC\\s+1\\.4\\.1|1\\.4\\.1|use\\s+of\\s+color)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "FAIL-?AA",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(underline|weight|bold|differentiator|non-?color)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(1\\.6|1\\.62|#0033AA)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

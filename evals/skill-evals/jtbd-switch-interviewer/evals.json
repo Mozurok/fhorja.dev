@@ -1,0 +1,124 @@
+{
+  "skill_name": "jtbd-switch-interviewer",
+  "version": "3.0",
+  "description": "K.7 iteration-3 (RECOVERY) evals for jtbd-switch-interviewer. Iter 2 (+0.333) regressed below iter 1 floor (+0.667). Iter 3 probes methodology guardrails that baseline cannot replicate even when told: (1) paraphrase-aggregation trap -- 3 paraphrases across 3 interviews must NOT cluster as STRONG; persona Step 5 explicit; (2) wrong-tool-for-task -- the question is desk research, not user research; persona Step 1 must STOP and route to external-research; (3) team-already-knows-the-answer framing -- persona must surface confirmation-bias risk and re-route. Goal: recover trend (+0.667 floor).",
+  "evals": [
+    {
+      "id": "paraphrase-aggregation-not-strong",
+      "prompt": "You are synthesizing a JTBD switch-interview round. Three interviews each provide PARAPHRASE evidence (not verbatim quotes) about the team's hypothesis. Per persona Step 4 (Demand verbatim over paraphrase) + Step 5 (STRONG = 3+ interviews with VERBATIM quotes): can 3 paraphrases across 3 interviews be clustered as STRONG?\n\nTeam hypothesis: 'users switch from Microsoft Word to Notion because they want collaboration.'\n\nInterview notes (3 interviews; each captured by a different researcher; NONE contain verbatim quotes):\n- I1 (researcher A): 'User said they switched for the collaboration features. They mentioned how much easier it was to share docs with their team.'\n- I2 (researcher B): 'Collaboration came up several times. The user emphasized real-time editing with their team as the main reason.'\n- I3 (researcher C): 'User talked about wanting to work with others on the same document. Collaboration was central to their decision.'\n\nProduce per persona contract: (1) per-interview synthesis honoring verbatim-vs-paraphrase distinction; (2) cluster strength assessment for 'collaboration as PULL force'; (3) recommended next action.\n\nPer JTBD methodology: STRONG = 3+ INDEPENDENT VERBATIM quotes; aggregation of paraphrases does NOT upgrade to STRONG because the paraphrases may be researcher-introduced framing of the same underlying force OR researcher-introduced phrasing of different underlying forces. Without verbatim, the evidence type is INSUFFICIENT regardless of count.",
+      "expected_output": "Per-interview tagging: all 3 interviews provide PARAPHRASE only; ZERO verbatim quotes captured. Per persona Step 4: paraphrase is where the team's prior assumption sneaks back in (the team's hypothesis was 'collaboration'; all 3 paraphrases echo 'collaboration' which may be researcher-introduced framing). Cluster strength: NOT STRONG despite 3-interview count. The persona MUST NOT upgrade to STRONG because: (a) verbatim quotes are required to anchor a force; (b) paraphrase aggregation amplifies any researcher-bias systematically; (c) the team's prior hypothesis is reflected in all 3 paraphrases which is suspicious. Per Step 5 strength tagging: this cluster is INSUFFICIENT-EVIDENCE (a category below ANECDOTAL because even n=1 with verbatim would qualify as ANECDOTAL; paraphrase alone is below ANECDOTAL). Recommended action: re-interview the same 3 subjects with verbatim capture (audio recording transcribed, OR structured note-taking with quote-mark discipline). Cannot drive a PROPOSED decision from this round. 'We do not have evidence for X' section: the team's hypothesis 'collaboration is the PULL force' remains UNVALIDATED despite 3 interviews running -- absence of verbatim is absence of evidence. The discriminator: a baseline plan that clusters the 3 paraphrases as 'collaboration STRONG' validates the bias-laundering pattern that persona Step 4 explicitly catches.",
+      "assertions": [
+        {
+          "type": "regex",
+          "pattern": "(paraphrase|verbatim|no\\s+(direct\\s+)?quotes|INSUFFICIENT)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(not\\s+STRONG|NOT\\s+STRONG|cannot.+STRONG|below\\s+ANECDOTAL)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(re-?interview|re-?run|audio.+record|verbatim\\s+capture)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(We do not have evidence|do not have evidence for|evidence\\s+gap|UNVALIDATED)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(researcher[- ]bias|introduced\\s+framing|team's?\\s+(prior|hypothesis))",
+          "flags": "i"
+        }
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "id": "wrong-tool-route-to-external-research",
+      "prompt": "You are reviewing a research brief. The team wants the answer to a question that does NOT require user research; it requires desk research (market sizing, competitive analysis, secondary sources). Per persona Step 1 + the persona's 'Do not use' section: persona must STOP and route to external-research, not run a JTBD interview round.\n\nResearch brief:\n\n> 'How big is the total addressable market for AI coding tools in the Brazilian SaaS segment? What are the top 5 competitors and their pricing tiers?'\n\nProduce per persona contract: (1) assessment -- is this a JTBD switch-interview question?; (2) if no, the correct routing; (3) the failure mode if a JTBD round is run on a desk-research question.\n\nPer persona spec (description field): 'Do not use ... when desk research suffices (use external-research)'.",
+      "expected_output": "Assessment: this is NOT a JTBD switch-interview question. The brief asks for market sizing (TAM) and competitive analysis (top 5 competitors + pricing) -- these are facts available from secondary sources (industry reports, competitor websites, analyst publications). JTBD switch interviews surface MOTIVATION (why users switched) -- they do not produce market-size estimates or competitor lists. Correct routing: external-research command. Per persona's 'Do not use' clause: when desk research suffices, route to external-research. Failure mode if a JTBD round runs anyway: the persona would draft an interview script but the questions cannot answer 'how big is the market' or 'who are the top 5 competitors' -- the interview round would produce qualitative anecdotes that are NOT EVIDENCE for the quantitative claims, leading to either (a) script bias toward fabricating market-sized claims OR (b) interviews that succeed but don't answer the question, wasting interview budget. The persona MUST refuse to proceed and route the brief to external-research. The discriminator: a baseline plan that drafts a JTBD script for this brief (because the prompt asks for it) misses the routing-shape requirement -- persona Step 1 + the 'Do not use' clause explicitly forbid running JTBD on a desk-research question.",
+      "assertions": [
+        {
+          "type": "regex",
+          "pattern": "external-research",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(desk\\s+research|secondary\\s+source|market\\s+siz|TAM|wrong\\s+tool|not.+JTBD)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(refuse|STOP|do\\s+not\\s+use|cannot|should\\s+not)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(motivation|qualitative|why.+(switch|chose)|switch.+interview)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(route|routing|recommended\\s+next)",
+          "flags": "i"
+        }
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "id": "confirmation-bias-team-already-knows",
+      "prompt": "You are reviewing a JTBD research brief. The team explicitly states their conclusion in advance: 'We already know users switch because of X. We want to RUN INTERVIEWS TO CONFIRM this.' Per persona methodology: confirmation-seeking interviews produce biased evidence; persona must REFRAME the research question from 'confirm X' to 'understand why users switched without pre-supposing X'.\n\nResearch brief:\n\n> 'We already know that our enterprise users switch from Salesforce to our product because they want a better mobile experience. We want to run 5-7 JTBD interviews to CONFIRM this is the reason so we can prioritize mobile in the roadmap.'\n\nProduce per persona contract: (1) assessment -- is the brief actionable as written?; (2) the confirmation-bias risk explicitly named; (3) reframed research question that the persona can actually answer.",
+      "expected_output": "Assessment: the brief as written is NOT actionable; running 5-7 interviews to 'confirm' a pre-supposed conclusion is by definition not switch research, it's confirmation-seeking. Confirmation-bias risk: the team has already concluded 'mobile is the reason'; an interview script designed to 'confirm' will lead-witness the subjects toward mobile-related answers (just like the script-bias scenario from iter 2). Even if subjects mention OTHER forces (e.g. pricing, integrations, support quality), the team's pre-conclusion will filter those out as 'noise' during synthesis. Reframed research question: 'For enterprise users who switched from Salesforce to our product, what were the FOUR forces -- PUSH from Salesforce, PULL toward our product, ANXIETY about switching, HABIT keeping them in Salesforce -- WITHOUT pre-supposing any single force is dominant?' The persona MUST: (a) explicitly name the confirmation-bias risk; (b) refuse to draft a script that probes 'mobile' as the lead theme; (c) recommend the team commit to investigating mobile as ONE of multiple hypotheses, not the sole hypothesis; (d) note that if mobile genuinely IS the dominant force, an unbiased script will surface it; if it's NOT dominant, the team's roadmap prioritization is at risk of being wrong. The discriminator: a baseline plan that drafts a 'mobile-confirmation' script without raising the confirmation-bias issue misses the methodology guardrail -- persona's quality bar explicitly warns against the team laundering its prior through the interview round.",
+      "assertions": [
+        {
+          "type": "regex",
+          "pattern": "(confirmation[- ]bias|biased|pre-?suppos|leading|confirm[- ]seek)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(reframe|re-?frame|four[- ]?forces|without\\s+(pre-?supposing|pre-?conclud|assuming))",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(refuse|cannot.+draft|will\\s+not|should\\s+not)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(PUSH|PULL|ANXIETY|HABIT)",
+          "flags": ""
+        },
+        {
+          "type": "regex",
+          "pattern": "(mobile|Salesforce|enterprise)",
+          "flags": "i"
+        }
+      ],
+      "timeout_seconds": 300
+    }
+  ],
+  "trigger_evals": {
+    "should_trigger": [
+      "Our PROJECT_CHARTER.md says the goal is to find PMF for the expense-tracking app, but we have no interview script committed yet. The team keeps asserting users switch from spreadsheets because they want automation, and that assumption is about to drive the roadmap.",
+      "DECISIONS.md has a draft entry claiming 'WHEN onboarding the system SHALL emphasize collaboration because that is why users leave Notion' but nobody has actually heard a user say that. We have a pool of 6 recent switchers we can reach on Slack with consent. Help us ground that motivation claim.",
+      "SOURCE_OF_TRUTH.md mentions customer interviews as a discovery input but there is no captured methodology. We think enterprise users moved off Salesforce to us, and we want to reconstruct what triggered each switch, what made them hesitate, and what almost kept them on the old tool.",
+      "We need to validate willingness to pay before we lock the pricing decision. The charter names WTP validation but no interview approach exists. We can recruit 8 people who recently bought a competing SaaS in this category.",
+      "Before we commit the migration-incentive copy, I want to know the real story of why our paid users abandoned their old invoicing tool, in their own words, walking back from the moment they signed up to the first frustration that started it all.",
+      "We have a few raw notes and two recordings from past chats with users who left our competitor. Ingest those, then script the remaining interviews so we surface the push, pull, anxiety, and habit forces with actual quotes instead of our internal guesses."
+    ],
+    "should_not_trigger": [
+      "How big is the total addressable market for AI coding tools in the Brazilian SaaS segment, and who are the top 5 competitors with their pricing tiers? Pull this from analyst reports and competitor sites.",
+      "We are blocked on the queue technology decision for the price-ingestion pipeline. Should we use SQS, Kafka, or a managed Pub/Sub? The choice changes our rollout safety and test strategy and there is no user-motivation angle here.",
+      "Found the Stripe Billing webhook idempotency docs and the EU data-residency regulation page. Please summarize each with freshness metadata and persist them to the project so future tasks can consume them.",
+      "Compare Clerk, Auth0, and Supabase Auth for our multi-tenant model and write up a sourced recommendation we can act on before planning. We already have the three vendor doc URLs.",
+      "We have to decide whether soft-delete or hard-delete is the policy for the accounts table because it affects data integrity and the migration. Different answers change runtime behavior. Lock the rule.",
+      "Grab the React Native New Architecture migration guide URL the user shared and save it as a project reference with a one-paragraph summary and accessed date."
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "multi-region-per-region-invariant",
+  "prompt": "You are authoring the per-slice post-deploy verification plan. The service is deployed across 4 regions (us-east, us-west, eu-west, ap-southeast). The dashboard panel aggregates across all regions. The AC is a per-region invariant. Per persona Step 4 (smallest-resolution correct signal): does the persona disaggregate the dashboard signal?\n\nSlice file:\n\n```markdown\n# Slice 31: Latency optimization for /search endpoint\n\nDeploy: production, sha=`9a8b7c6`, ts=2026-06-05T17:00:00Z\nFeature flag: none\nRegions deployed: us-east-1, us-west-2, eu-west-1, ap-southeast-1 (rolling deploy completes ~30 min)\n\n## Acceptance criteria\n- AC-1: p99 latency on /search drops below 200ms in EACH region post-deploy (the optimization is supposed to affect all regions uniformly).\n- AC-2: Total /search request volume does not drop (we have not broken routing).\n```\n\nObservability stack:\n- Datadog APM with per-region tags: panel `https://app.datadoghq.com/apm/services/search-api?env=prod` (DEFAULT view aggregates across all regions; per-region requires adding `region:<name>` filter).\n- Datadog SLO: defined as 'p99 < 200ms aggregate' (NOT per-region).\n\nDeploy window: 2026-06-05T17:00:00Z -> 2026-06-05T18:00:00Z. Named on-call: `@bruno`.\n\nConcrete hidden-failure scenario: us-east, us-west, eu-west all drop p99 to ~120ms (optimization works). ap-southeast-1 has a config issue: p99 STAYS at ~800ms. Aggregate p99 = ~250ms (looks like the SLO is barely breached) but the failure is CONCENTRATED in one region.\n\nProduce per persona contract: (1) per-AC signal mapping; (2) explicit per-region disaggregation for AC-1; (3) the negative check that would catch a hidden per-region failure; (4) rollback per region OR all-regions.",
+  "expected_output": "AC-1 signal: per persona Step 4 (smallest-resolution correct signal), the AC is per-region so the signal MUST be per-region. FOUR queries against Datadog APM (one per region) with explicit filter `region:us-east-1 service:search-api deploy_sha:9a8b7c6` (and the equivalent for us-west-2, eu-west-1, ap-southeast-1). Expected: p99 < 200ms in EACH region. The aggregate-only dashboard view is NOT sufficient because it can show 'aggregate 250ms / 'looks like ok / a single region at 80ms within tolerance' when ONE region is failing at 800ms while the others overcorrect to make the aggregate look acceptable. AC-2 signal: per-region request count + total request count; the per-region view catches a routing failure that drops one region's traffic to zero (aggregate stays steady because other regions absorb). NEGATIVE check: explicit per-region MAX p99 query (`region:* | groupby(region) | max(p99_latency)` -- expected max < 200ms in every group). If any group exceeds 200ms, AC-1 is failed for that region even if the aggregate looks fine. Rollback per persona Step 6: @bruno + region-scoped revert if possible. Most deploy pipelines support per-region rollback (e.g. `vercel rollback --region ap-southeast-1`); if not, full-fleet rollback. Persona must surface the per-region vs aggregate distinction at plan-author time. The discriminator: a baseline plan that authors the aggregate APM panel for AC-1 misses the hidden-per-region failure mode; persona Step 4 demands per-tenant / per-region resolution for per-tenant / per-region invariants.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(per[- ]region|each\\s+region|per-?region|disaggregat)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(us-east|us-west|eu-west|ap-southeast|region)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(aggregate.+(misleading|hides?|mask)|hidden.+failure|silently)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(9a8b7c6|deploy_sha|region:|filter)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(groupby|group\\s+by|max\\(p99|per-region\\s+(query|filter))",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

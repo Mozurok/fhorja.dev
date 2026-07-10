@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(per[- ]region|each\\\\s+region|per-?region|disaggregat)' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(us-east|us-west|eu-west|ap-southeast|region)' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(aggregate.+(misleading|hides?|mask)|hidden.+failure|silently)' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(9a8b7c6|deploy_sha|region:|filter)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(groupby|group\\\\s+by|max\\\\(p99|per-region\\\\s+(query|filter))' flags='i'"
+    }
+  ]
+}

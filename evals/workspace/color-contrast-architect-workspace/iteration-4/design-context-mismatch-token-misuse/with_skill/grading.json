@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(SC\\\\s+1\\\\.4\\\\.3|1\\\\.4\\\\.3|incidental|exception)'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex 'FAIL-AA'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(fork|split\\\\s+token|two\\\\s+tokens|new\\\\s+token|color\\\\.text\\\\.legal)'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(2\\\\.85|2\\\\.8|color\\\\.text\\\\.disabled|#999999)'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(per[- ]context|per[- ]usage|context\\\\s+dependency)'"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "id": "service-role-bypass-no-server-validation",
+  "prompt": "You are reviewing a Supabase setup for tenant isolation gaps. The migration itself is clean; the issue is in BACKEND CODE that uses the service_role key. Audit the service_role usage (per the persona's `## 7. service_role usage audit` rule) and produce: (1) per-callsite verdict (JUSTIFIED / UNJUSTIFIED), (2) the concrete failure mode, (3) migration-shaped OR code-shaped remediation closing the gap.\n\nMigration (clean):\n\n```sql\n-- migrations/20260606140003_documents.sql\nCREATE TABLE documents (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  org_id uuid NOT NULL,\n  user_id uuid NOT NULL,\n  title text NOT NULL,\n  body text\n);\n\nALTER TABLE documents ENABLE ROW LEVEL SECURITY;\nALTER TABLE documents FORCE ROW LEVEL SECURITY;\n\nCREATE POLICY docs_select ON documents\n  FOR SELECT USING (org_id IN (SELECT org_id FROM org_members WHERE user_id = auth.uid()));\n```\n\nBackend Edge Function code (the audit target):\n\n```typescript\n// supabase/functions/list-org-docs/index.ts\nimport { createClient } from '@supabase/supabase-js';\n\nconst supabaseAdmin = createClient(\n  Deno.env.get('SUPABASE_URL')!,\n  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!\n);\n\nexport default async (req: Request) => {\n  const { org_id } = await req.json();\n  const { data, error } = await supabaseAdmin\n    .from('documents')\n    .select('*')\n    .eq('org_id', org_id);\n  return new Response(JSON.stringify({ data, error }));\n};\n```\n\nConcrete attack scenario: U1 (member of org A only) calls this endpoint with `{ org_id: 'org_B' }`. What does U1 see?",
+  "expected_output": "service_role bypasses RLS entirely. U1 sees all documents for org_B even though U1 is not a member. UNJUSTIFIED service_role usage: there is no reason to need admin privileges to read documents (the user's own auth would work via the existing RLS policy). Remediation: (a) replace supabaseAdmin with a per-request client built from the user's JWT (so RLS applies and `auth.uid()` is set), OR (b) keep service_role BUT add server-side membership check: verify `auth.uid()` is a member of the requested org_id BEFORE the query. Both fixes close the gap. Persona's quality bar requires concrete code-shaped remediation.",
+  "assertions": [
+    {
+      "type": "contains",
+      "target": "service_role"
+    },
+    {
+      "type": "regex",
+      "pattern": "(UNJUSTIFIED|justification|bypass)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(JWT|auth\\.uid\\(\\)|user.{0,15}token|membership\\s+check|server.?side\\s+validat)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "createClient|supabaseAdmin|SUPABASE_SERVICE_ROLE_KEY",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(P1|P2|UNSAFE)",
+      "flags": ""
+    }
+  ],
+  "timeout_seconds": 300
+}

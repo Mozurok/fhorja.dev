@@ -1,0 +1,31 @@
+{
+  "passed": false,
+  "rationale": "4/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(paraphrase|verbatim|no\\\\s+(direct\\\\s+)?quotes|INSUFFICIENT)'"
+    },
+    {
+      "id": 1,
+      "passed": false,
+      "description": "regex '(not\\\\s+STRONG|NOT\\\\s+STRONG|cannot.+STRONG|below\\\\s+ANECDOTAL)'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(re-?interview|re-?run|audio.+record|verbatim\\\\s+capture)'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(We do not have evidence|do not have evidence for|evidence\\\\s+gap|UNVALIDATED)'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex \"(researcher[- ]bias|introduced\\\\s+framing|team's?\\\\s+(prior|hypothesis))\""
+    }
+  ]
+}

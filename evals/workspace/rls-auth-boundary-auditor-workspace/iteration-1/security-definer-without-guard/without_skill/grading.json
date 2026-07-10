@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "contains 'SECURITY DEFINER'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "contains 'search_path'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "contains 'auth.uid()'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex 'CREATE\\\\s+OR\\\\s+REPLACE\\\\s+FUNCTION\\\\s+(public\\\\.)?get_(all|user)_notes' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex 'P1' flags=''"
+    }
+  ]
+}

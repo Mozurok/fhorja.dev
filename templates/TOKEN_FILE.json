@@ -1,0 +1,152 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "_description": "W3C Design Token Community Group (DTCG) format. Use $value and $type per token. Reference other tokens via {category.group.name} syntax. Generate platform outputs with Style Dictionary.",
+
+  "color": {
+    "brand": {
+      "primary": {
+        "$value": "#0072CE",
+        "$type": "color",
+        "$description": "Primary brand color. Used for CTAs, links, active states."
+      },
+      "secondary": {
+        "$value": "#F5F9FD",
+        "$type": "color",
+        "$description": "Secondary brand surface. Used for subtle backgrounds."
+      }
+    },
+    "text": {
+      "primary": {
+        "$value": "{color.neutral.900}",
+        "$type": "color",
+        "$description": "Primary text. Body copy, headings, labels."
+      },
+      "secondary": {
+        "$value": "{color.neutral.600}",
+        "$type": "color",
+        "$description": "Secondary text. Captions, placeholders, hints."
+      },
+      "disabled": {
+        "$value": "{color.neutral.400}",
+        "$type": "color",
+        "$description": "Disabled text. Inactive labels, unavailable actions."
+      }
+    },
+    "surface": {
+      "default": {
+        "$value": "#FFFFFF",
+        "$type": "color",
+        "$description": "Default surface (light mode). Cards, sheets, page background."
+      },
+      "elevated": {
+        "$value": "#FFFFFF",
+        "$type": "color",
+        "$description": "Elevated surface. Dialogs, bottom sheets, popovers."
+      }
+    },
+    "neutral": {
+      "100": { "$value": "#F5F5F5", "$type": "color" },
+      "200": { "$value": "#E5E5E5", "$type": "color" },
+      "400": { "$value": "#A3A3A3", "$type": "color" },
+      "600": { "$value": "#525252", "$type": "color" },
+      "900": { "$value": "#171717", "$type": "color" }
+    },
+    "danger": {
+      "default": { "$value": "#DC2626", "$type": "color" },
+      "surface": { "$value": "#FEF2F2", "$type": "color" }
+    },
+    "success": {
+      "default": { "$value": "#16A34A", "$type": "color" },
+      "surface": { "$value": "#F0FDF4", "$type": "color" }
+    },
+    "focus": {
+      "ring": {
+        "$value": "{color.brand.primary}",
+        "$type": "color",
+        "$description": "Focus ring color for keyboard/screen-reader navigation."
+      }
+    }
+  },
+
+  "spacing": {
+    "_description": "4pt grid. All spacing values are multiples of 4.",
+    "2xs": { "$value": "2px", "$type": "dimension" },
+    "xs":  { "$value": "4px", "$type": "dimension" },
+    "sm":  { "$value": "8px", "$type": "dimension" },
+    "md":  { "$value": "16px", "$type": "dimension" },
+    "lg":  { "$value": "24px", "$type": "dimension" },
+    "xl":  { "$value": "32px", "$type": "dimension" },
+    "2xl": { "$value": "40px", "$type": "dimension" },
+    "3xl": { "$value": "48px", "$type": "dimension" },
+    "4xl": { "$value": "64px", "$type": "dimension" }
+  },
+
+  "typography": {
+    "_description": "Replace font family and sizes with your project's typeface.",
+    "heading": {
+      "lg": {
+        "$value": { "fontFamily": "Inter", "fontWeight": 700, "fontSize": "24px", "lineHeight": "32px" },
+        "$type": "typography"
+      },
+      "md": {
+        "$value": { "fontFamily": "Inter", "fontWeight": 700, "fontSize": "20px", "lineHeight": "28px" },
+        "$type": "typography"
+      }
+    },
+    "body": {
+      "md": {
+        "$value": { "fontFamily": "Inter", "fontWeight": 400, "fontSize": "16px", "lineHeight": "24px" },
+        "$type": "typography"
+      },
+      "sm": {
+        "$value": { "fontFamily": "Inter", "fontWeight": 400, "fontSize": "14px", "lineHeight": "20px" },
+        "$type": "typography"
+      }
+    },
+    "label": {
+      "md": {
+        "$value": { "fontFamily": "Inter", "fontWeight": 600, "fontSize": "16px", "lineHeight": "24px" },
+        "$type": "typography"
+      },
+      "sm": {
+        "$value": { "fontFamily": "Inter", "fontWeight": 600, "fontSize": "14px", "lineHeight": "20px" },
+        "$type": "typography"
+      }
+    }
+  },
+
+  "radius": {
+    "none": { "$value": "0px", "$type": "dimension" },
+    "sm":   { "$value": "4px", "$type": "dimension" },
+    "md":   { "$value": "8px", "$type": "dimension" },
+    "lg":   { "$value": "12px", "$type": "dimension" },
+    "xl":   { "$value": "16px", "$type": "dimension" },
+    "pill": { "$value": "9999px", "$type": "dimension" },
+    "full": { "$value": "50%", "$type": "dimension" }
+  },
+
+  "elevation": {
+    "_description": "Shadow ramp. Platform-specific transforms generate NSShadow (iOS), elevation (Android), box-shadow (web).",
+    "none":    { "$value": "0px 0px 0px 0px rgba(0,0,0,0)", "$type": "shadow" },
+    "sm":      { "$value": "0px 1px 2px 0px rgba(0,0,0,0.05)", "$type": "shadow" },
+    "md":      { "$value": "0px 4px 6px -1px rgba(0,0,0,0.1)", "$type": "shadow" },
+    "lg":      { "$value": "0px 10px 15px -3px rgba(0,0,0,0.1)", "$type": "shadow" },
+    "dialog":  { "$value": "0px 20px 25px -5px rgba(0,0,0,0.1)", "$type": "shadow" }
+  },
+
+  "motion": {
+    "_description": "Duration and easing tokens. Respect prefers-reduced-motion.",
+    "duration": {
+      "instant": { "$value": "0ms", "$type": "duration" },
+      "fast":    { "$value": "100ms", "$type": "duration" },
+      "normal":  { "$value": "200ms", "$type": "duration" },
+      "slow":    { "$value": "300ms", "$type": "duration" }
+    },
+    "easing": {
+      "default":  { "$value": "cubic-bezier(0.4, 0, 0.2, 1)", "$type": "cubicBezier" },
+      "in":       { "$value": "cubic-bezier(0.4, 0, 1, 1)", "$type": "cubicBezier" },
+      "out":      { "$value": "cubic-bezier(0, 0, 0.2, 1)", "$type": "cubicBezier" },
+      "spring":   { "$value": "cubic-bezier(0.175, 0.885, 0.32, 1.275)", "$type": "cubicBezier" }
+    }
+  }
+}

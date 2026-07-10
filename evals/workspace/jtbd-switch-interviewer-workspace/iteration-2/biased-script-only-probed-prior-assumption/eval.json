@@ -1,0 +1,33 @@
+{
+  "id": "biased-script-only-probed-prior-assumption",
+  "prompt": "You are reviewing a JTBD switch-interview script ALREADY RUN. The script only probed the team's prior assumption ('users want speed'); other forces were not asked. Persona must flag the interviews as COMPROMISED and NOT propose decisions based on them.\n\nTeam hypothesis: 'users switch from Notion to Obsidian because Notion is slow.'\n\nInterview script that was used (3 interviews captured against it):\n- Q1: 'Tell me about when you started using Obsidian.'\n- Q2: 'How does Obsidian compare to Notion in terms of speed?'\n- Q3: 'What's the slowest thing about Notion that bothered you?'\n- Q4: 'Are there other reasons besides speed?'  (note: this question is leading, asked AFTER speed primed)\n- Q5: 'Would you say speed is the main reason?'\n\nCaptured interview snippets (verbatim quotes from the 3 subjects, all answering the script above):\n- I1: 'Yeah, Notion was slow. Obsidian is faster. Speed is a big factor.'\n- I2: 'Speed definitely. I was tired of waiting for pages to load.'\n- I3: 'It was speed and also the local-first thing. But mostly speed when you ask.'\n\nProduce: (1) per-interview synthesis honoring persona Step 4 verbatim discipline + Step 5 cluster tagging; (2) explicit assessment of SCRIPT BIAS: were the four forces all probed, or only PUSH (intolerable-old) + PULL (attractive-new) FRAMED around speed?; (3) recommended next action.",
+  "expected_output": "Per-interview synthesis: PUSH (speed-framed: 'Notion was slow') = appears in all 3, BUT the framing is script-induced (Q2 + Q3 + Q5 ALL primed 'speed' before asking). PULL = unprobed except via Q4 which is also speed-anchored. ANXIETY = NOT probed at all (no question about what almost stopped them). HABIT = NOT probed at all (no question about what they missed about Notion). The interview captures DO NOT validate the team's hypothesis 'because Notion is slow' because: (a) the script never asked about other forces, so absence-of-evidence on PUSH/PULL/ANXIETY/HABIT beyond speed CANNOT be treated as evidence-of-absence; (b) the questions LED the subjects toward speed ('How does Obsidian compare to Notion in terms of SPEED?' is a primed question, not a discovery question). I3's quote 'It was speed and also the local-first thing. But mostly speed when you ask' is the most revealing -- the 'when you ask' qualifier is the subject signaling that the script primed the answer. Persona MUST flag: the round is COMPROMISED by script bias. The interviews CANNOT drive a PROPOSED decision confirming the team's hypothesis; they only confirm that subjects can plausibly endorse the team's prior framing when asked. Recommended next action: re-interview the same subjects with an UNPRIMED script (canonical JTBD: walk backward from the switch moment through the struggle to the trigger, with no force pre-named) before the team locks any decision based on this round. The 'We do not have evidence for X' gap subsection should be large: no evidence on actual switch trigger (no probe), on what almost stopped the switch (no ANXIETY probe), or on what was missed about Notion (no HABIT probe). The discriminator: a baseline plan that summarizes 'users say speed is the reason' validates the script-bias laundering instead of catching it.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(bias|biased|primed|priming|leading|script.+(only|primed|biased|narrow))",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(compromised|invalidate|cannot.+drive|cannot.+propose|inadequate|insufficient)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(ANXIETY|HABIT).+(not.+probed|absent|missing|never\\s+asked)",
+      "flags": "is"
+    },
+    {
+      "type": "regex",
+      "pattern": "(re-?interview|re-?run|unprimed|canonical\\s+JTBD|walk\\s+backward)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(We do not have evidence|do not have evidence for|evidence\\s+gap)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

@@ -1,0 +1,33 @@
+{
+  "id": "paraphrase-laundering-trap",
+  "prompt": "You are synthesizing a JTBD switch-interview round. The team's prior assumption is: 'users switch from competing tools to us because our product is faster.' You are given the following interview NOTES (NOT raw transcripts) captured by a junior researcher who summarized rather than transcribing. Produce a synthesis that respects the verbatim-quote rule.\n\nNotes:\n\n**Interview I1** (subject: PM at a startup, switched 2 months ago):\n- Researcher's summary: 'User mentioned speed multiple times. Said the product feels faster than the previous tool. Liked how snappy it was.'\n- No direct quotes captured.\n\n**Interview I2** (subject: freelance writer, switched 4 weeks ago):\n- Researcher's summary: 'Speed came up. User seemed to value performance. The previous tool was slow.'\n- No direct quotes captured.\n\n**Interview I3** (subject: marketing ops lead, switched last week):\n- Researcher's summary: 'Performance was a theme. They liked how fast it was.'\n- No direct quotes captured.\n\nProduce: (1) per-interview synthesis honoring the verbatim-quote rule; (2) cross-interview cluster tagging; (3) explicit handling of the prior assumption ('faster = the reason they switched'); (4) recommended next action for the round.",
+  "expected_output": "The persona MUST flag that no verbatim quotes were captured -- every speed-claim is paraphrase. PUSH/PULL forces around 'speed' cannot be scored STRONG because the evidence is paraphrase-only; the persona's verbatim discipline rule forbids treating paraphrase as load-bearing evidence. The team's prior assumption 'faster' lands in 'We do not have evidence for X' (paraphrase counts as absence of verbatim evidence). The recommended next action is re-interview (or follow-up calls) to capture verbatim quotes, NOT propose a decision based on the existing notes. Persona must NOT emit a PROPOSED D-N block locking 'speed is the switching driver' because the evidence is insufficient. This scenario tests whether the persona laundering-traps when the prior hypothesis is repeated back via paraphrase.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(paraphrase|no\\s+verbatim|no\\s+direct\\s+quote|summary\\s+only|insufficient\\s+evidence)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(We do not have evidence|do not have evidence for|evidence\\s+gap)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(re-?interview|follow-?up|capture\\s+verbatim|re-?run|re-?contact)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(PUSH|PULL|ANXIETY|HABIT)",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(I1|I2|I3)",
+      "flags": ""
+    }
+  ],
+  "timeout_seconds": 300
+}

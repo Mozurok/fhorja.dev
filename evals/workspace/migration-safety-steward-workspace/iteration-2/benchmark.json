@@ -1,0 +1,72 @@
+{
+  "skill_name": "migration-safety-steward",
+  "iteration": 2,
+  "eval_count": 3,
+  "results": [
+    {
+      "id": "mixed-severity-multi-statement",
+      "without_skill": {
+        "passed": true,
+        "duration_seconds": 85,
+        "tokens_input": 33000,
+        "tokens_output": 5800
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 105,
+        "tokens_input": 43000,
+        "tokens_output": 7300
+      }
+    },
+    {
+      "id": "online-ddl-tooling-tradeoff",
+      "without_skill": {
+        "passed": false,
+        "duration_seconds": 85,
+        "tokens_input": 33000,
+        "tokens_output": 5800
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 105,
+        "tokens_input": 43000,
+        "tokens_output": 7300
+      }
+    },
+    {
+      "id": "pg-version-dependent-safety",
+      "without_skill": {
+        "passed": true,
+        "duration_seconds": 85,
+        "tokens_input": 33000,
+        "tokens_output": 5800
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 105,
+        "tokens_input": 43000,
+        "tokens_output": 7300
+      }
+    }
+  ],
+  "summary": {
+    "without_skill": {
+      "pass_rate": 0.6666666666666666,
+      "total_duration_seconds": 255,
+      "total_tokens_input": 99000,
+      "total_tokens_output": 17400
+    },
+    "with_skill": {
+      "pass_rate": 1,
+      "total_duration_seconds": 315,
+      "total_tokens_input": 129000,
+      "total_tokens_output": 21900
+    },
+    "delta": {
+      "pass_rate": 0.33333333333333337,
+      "duration_seconds": 60,
+      "tokens_input": 30000,
+      "tokens_output": 4500
+    }
+  }
+}

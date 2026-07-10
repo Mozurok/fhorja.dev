@@ -1,0 +1,15 @@
+# lychee URL-exclusion patterns (regex, per DECISIONS.md D-4).
+# Keep these tight: only intentional placeholders and known-flaky citations.
+# Real internal broken links are fixed at the source, not hidden here.
+
+# Intentional template/example placeholders, not real links.
+# Sources: commands/stack-recommend.md output format (<URL>),
+# docs/adr/template.md (NNNN-...), evals/scenarios/template.md (XXXX-...).
+/URL$
+/NNNN-
+/XXXX
+
+# Flaky external citation kept in the docs (real URL; lychee reports an
+# HTTP/2 protocol error against this host). Excluded so a network quirk does
+# not fail the build; the citation stays in wos/insurance-compliance.md.
+fcc\.gov/document/fcc-closes-tcpa

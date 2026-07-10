@@ -1,0 +1,33 @@
+{
+  "id": "silent-noop-flag-and-rollback",
+  "prompt": "You are authoring the post-deploy verification plan for a slice that ships a new checkout flow BEHIND A FEATURE FLAG. The flag is the load-bearing detail: if the deploy lands but the flag is never enabled, the change is a silent no-op (PR merged, runtime unchanged) and casual error-rate monitoring will not surface it. Produce: (1) per-AC signal mapping; (2) the negative check that proves the change DID ship (i.e. the flag check); (3) the rollback trigger checklist with named human(s) + exact flag-flip command + the observation threshold that triggers it.\n\nSlice file (SLICES/31_checkout_v2_behind_flag.md):\n\n```markdown\n# Slice 31: Checkout v2 (behind flag)\n\nDeploy: production, sha=`5e4d3c2`, ts=2026-06-05T16:00:00Z\nFeature flag: `checkout_v2_enabled` (LaunchDarkly project `fhorja-prod`)\nFlag rollout: 10% of authenticated users in the `us-east` segment.\n\n## Acceptance criteria\n- AC-1: When `checkout_v2_enabled=true` for a user, `/checkout` renders the new 3-step form (was 1-step before).\n- AC-2: When the flag is false, `/checkout` renders the legacy 1-step form (no regression for the 90%).\n- AC-3: Conversion rate for the 10% flagged cohort is >= 95% of the baseline rate over the 24h window (i.e. no >5% drop).\n```\n\nObservability stack: Datadog Logs, Datadog APM, Sentry, PostHog (analytics), LaunchDarkly (flag system) `https://app.launchdarkly.com/projects/fhorja-prod`.\n\nNamed on-call human: `@bruno`.\n\nRollback strategy: flag-flip (set `checkout_v2_enabled` to 0% rollout via LaunchDarkly). Rollback observation threshold: if checkout conversion in the flagged cohort drops below 80% of baseline OR Sentry error rate on `/checkout` > 2% over 10 minutes, trigger the rollback.",
+  "expected_output": "Negative check: query LaunchDarkly (UI or CLI) to confirm the flag is actually enabled for 10% of `us-east` authenticated users; if the flag is at 0% rollout, the change shipped silently. THIS is the failure mode the persona uniquely catches -- baseline plans tend to write 'monitor error rate' which would not surface a flag that was never enabled. Rollback checklist: named human (`@bruno`), exact LaunchDarkly flag-flip command (e.g. `ld-cli flag rollout set checkout_v2_enabled --percent 0 --segment us-east` or the UI step), exact observation threshold (Sentry error rate > 2% over 10 min OR conversion < 80% of baseline). AC-1 and AC-2 signals: smoke-test with a test account in each flag bucket + Sentry filter. AC-3: PostHog funnel query with the flagged cohort + baseline cohort, time range bounded by the 24h post-deploy window.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "checkout_v2_enabled|LaunchDarkly|flag.+(enabled|rollout|10%|0%)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(negative\\s+check|did\\s+not\\s+ship|silent\\s+no-?op|prove.+(shipped|ship))",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "@bruno",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(ld-?cli|flagsmith|set\\s+(rollout|percent)|disable\\s+flag|flip\\s+flag|rollout\\s+set)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(2%|80%|threshold|over\\s+10\\s+min)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

@@ -1,0 +1,31 @@
+{
+  "passed": false,
+  "rationale": "4/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(alpha|transparency|composit|compositing|composed)' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(UNRESOLVED|runtime|image|background.+depend|depends?\\\\s+on)' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": false,
+      "description": "regex 'FAIL-?AA' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(scrim|overlay|shadow|two\\\\s+variants|per[- ]image|gate.+rendering)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(white|#FFFFFF|#1a1a1a|#808080|mid-?tone|dark.+photo)' flags='i'"
+    }
+  ]
+}

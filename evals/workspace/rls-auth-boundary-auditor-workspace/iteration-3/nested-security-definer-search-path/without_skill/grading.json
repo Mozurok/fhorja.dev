@@ -1,0 +1,31 @@
+{
+  "passed": false,
+  "rationale": "4/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex 'search_path' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(SECURITY\\\\s+DEFINER|definer)' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(record_user_event|log_action)' flags=''"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(hijack|spoof|poison|attack|evil)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": false,
+      "description": "regex '(P1|P0|UNSAFE)' flags=''"
+    }
+  ]
+}

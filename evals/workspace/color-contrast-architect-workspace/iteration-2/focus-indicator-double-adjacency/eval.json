@@ -1,0 +1,33 @@
+{
+  "id": "focus-indicator-double-adjacency",
+  "prompt": "You are auditing the focus-indicator design for a primary button. Per WCAG 2.2 SC 1.4.11 (non-text contrast for UI components): focus indicators must have at least 3:1 contrast against EACH adjacent color -- the focused element's interior AND the surrounding surface.\n\nDesign:\n- Button background: `color.button.primary.bg` = `#0066CC` (medium blue)\n- Button foreground (label): `color.button.primary.fg` = `#FFFFFF`\n- Focus ring: `color.focus.ring` = `#0099FF` (lighter blue)\n- Surrounding surface (where button sits): `color.surface.background` = `#FFFFFF`\n\nThe focus ring sits BETWEEN the button (interior `#0066CC`) and the surface (`#FFFFFF`). Per WCAG 2.2 SC 1.4.11 the ring must contrast >= 3:1 against BOTH adjacencies.\n\nProduce: (1) THREE ratios: ring vs button-interior (#0099FF on #0066CC), ring vs surface (#0099FF on #FFFFFF), and the button label vs button-bg pair as reference; (2) verdict per adjacency; (3) which adjacency fails (if any); (4) concrete remediation (token delta) that satisfies BOTH adjacencies.",
+  "expected_output": "Ring vs button-interior: #0099FF on #0066CC. Luminances: 0.0099FF ~ 0.30; 0.0066CC ~ 0.17. Ratio ~ (0.30+0.05)/(0.17+0.05) = 1.59:1. FAIL-AA on this adjacency (3:1 needed). Ring vs surface: #0099FF on #FFFFFF. Ratio ~ (1.0+0.05)/(0.30+0.05) = 3.0:1. EXACTLY meets 3:1 AA (no margin; precision discipline = treat as borderline). Button label vs button-bg (reference): #FFFFFF on #0066CC ~ 5.17:1 PASS-AA (ui-component context for the button's content). VERDICT: focus indicator FAILS WCAG 2.2 SC 1.4.11 on the button-interior adjacency. Remediation: pick a focus ring color that contrasts >= 3:1 against BOTH #0066CC AND #FFFFFF. Candidate: darker blue or a contrasting hue. Example: #002B6B (dark navy) -- ratio vs #0066CC ~ 3.5:1 PASS, ratio vs #FFFFFF ~ 14:1 PASS-AAA. OR use a contrasting hue: #FF6600 (orange) -- ratio vs #0066CC ~ 3.4:1 PASS, ratio vs #FFFFFF ~ 3.8:1 PASS-AA. OR use a 2-color stroke (e.g. dark outer ring + light inner ring) for visual robustness across all surface contexts. The discriminator: a baseline plan that only checks ring-vs-surface (the obvious external adjacency) and misses ring-vs-button-interior fails this scenario; persona Step 4 explicitly requires per-adjacency scoring.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(focus|focus[- ]ring|focus\\s+indicator)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(adjacency|each\\s+adjacent|both\\s+adjacent|SC\\s+1\\.4\\.11|1\\.4\\.11)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "FAIL-?AA",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(#0066CC|#0099FF|button[- ]interior|button.+bg)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(1\\.5|1\\.59|FAIL.+button|fails.+interior)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

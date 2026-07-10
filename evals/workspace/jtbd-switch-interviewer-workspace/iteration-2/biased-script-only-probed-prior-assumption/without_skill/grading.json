@@ -1,0 +1,31 @@
+{
+  "passed": false,
+  "rationale": "3/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(bias|biased|primed|priming|leading|script.+(only|primed|biased|narrow))' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(compromised|invalidate|cannot.+drive|cannot.+propose|inadequate|insufficient)' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(ANXIETY|HABIT).+(not.+probed|absent|missing|never\\\\s+asked)' flags='is'"
+    },
+    {
+      "id": 3,
+      "passed": false,
+      "description": "regex '(re-?interview|re-?run|unprimed|canonical\\\\s+JTBD|walk\\\\s+backward)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": false,
+      "description": "regex '(We do not have evidence|do not have evidence for|evidence\\\\s+gap)' flags='i'"
+    }
+  ]
+}

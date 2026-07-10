@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(VALIDATE|validate)\\\\s+(CONSTRAINT|constraint)' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(NEEDS-PHASING|UNSAFE)' flags=''"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(ShareUpdateExclusiveLock|full\\\\s+scan|table\\\\s+scan|scan.+80M|scan.+row)' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(separate\\\\s+migration|Phase\\\\s*1.+Phase\\\\s*2|two\\\\s+migrations|split.+migration|re-?slice)' flags='is'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(low[- ]traffic|maintenance\\\\s+window|off-?peak)' flags='i'"
+    }
+  ]
+}

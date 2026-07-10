@@ -1,0 +1,72 @@
+{
+  "skill_name": "post-deploy-verifier",
+  "iteration": 2,
+  "eval_count": 3,
+  "results": [
+    {
+      "id": "adversarial-signal-class-choice",
+      "without_skill": {
+        "passed": true,
+        "duration_seconds": 90,
+        "tokens_input": 35000,
+        "tokens_output": 6000
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 110,
+        "tokens_input": 45000,
+        "tokens_output": 7500
+      }
+    },
+    {
+      "id": "cross-repo-correlation-ordering",
+      "without_skill": {
+        "passed": true,
+        "duration_seconds": 90,
+        "tokens_input": 35000,
+        "tokens_output": 6000
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 110,
+        "tokens_input": 45000,
+        "tokens_output": 7500
+      }
+    },
+    {
+      "id": "shotgun-anti-pattern-trim",
+      "without_skill": {
+        "passed": true,
+        "duration_seconds": 90,
+        "tokens_input": 35000,
+        "tokens_output": 6000
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 110,
+        "tokens_input": 45000,
+        "tokens_output": 7500
+      }
+    }
+  ],
+  "summary": {
+    "without_skill": {
+      "pass_rate": 1,
+      "total_duration_seconds": 270,
+      "total_tokens_input": 105000,
+      "total_tokens_output": 18000
+    },
+    "with_skill": {
+      "pass_rate": 1,
+      "total_duration_seconds": 330,
+      "total_tokens_input": 135000,
+      "total_tokens_output": 22500
+    },
+    "delta": {
+      "pass_rate": 0,
+      "duration_seconds": 60,
+      "tokens_input": 30000,
+      "tokens_output": 4500
+    }
+  }
+}

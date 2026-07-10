@@ -1,0 +1,12 @@
+{
+  "_comment": "Trigger.dev MCP server. Copy into your repo .mcp.json under mcpServers, set the env, then approve the pending server in Claude Code. For background-job orchestration when a task ships scheduled or async work. Drop this stub if your stack does not use Trigger.dev.",
+  "mcpServers": {
+    "trigger": {
+      "command": "npx",
+      "args": ["-y", "@trigger.dev/mcp@latest"],
+      "env": {
+        "TRIGGER_ACCESS_TOKEN": "${TRIGGER_ACCESS_TOKEN}"
+      }
+    }
+  }
+}

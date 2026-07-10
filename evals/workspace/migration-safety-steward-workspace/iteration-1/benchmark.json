@@ -1,0 +1,72 @@
+{
+  "skill_name": "migration-safety-steward",
+  "iteration": 1,
+  "eval_count": 3,
+  "results": [
+    {
+      "id": "create-index-without-concurrently",
+      "without_skill": {
+        "passed": false,
+        "duration_seconds": 32,
+        "tokens_input": 700,
+        "tokens_output": 1000
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 45,
+        "tokens_input": 4500,
+        "tokens_output": 1400
+      }
+    },
+    {
+      "id": "drop-column-still-read-by-app",
+      "without_skill": {
+        "passed": true,
+        "duration_seconds": 31,
+        "tokens_input": 850,
+        "tokens_output": 1100
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 50,
+        "tokens_input": 4500,
+        "tokens_output": 1500
+      }
+    },
+    {
+      "id": "not-null-add-without-backfill",
+      "without_skill": {
+        "passed": true,
+        "duration_seconds": 30,
+        "tokens_input": 800,
+        "tokens_output": 1100
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 40,
+        "tokens_input": 4500,
+        "tokens_output": 1300
+      }
+    }
+  ],
+  "summary": {
+    "without_skill": {
+      "pass_rate": 0.6666666666666666,
+      "total_duration_seconds": 93,
+      "total_tokens_input": 2350,
+      "total_tokens_output": 3200
+    },
+    "with_skill": {
+      "pass_rate": 1,
+      "total_duration_seconds": 135,
+      "total_tokens_input": 13500,
+      "total_tokens_output": 4200
+    },
+    "delta": {
+      "pass_rate": 0.33333333333333337,
+      "duration_seconds": 42,
+      "tokens_input": 11150,
+      "tokens_output": 1000
+    }
+  }
+}

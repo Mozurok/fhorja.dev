@@ -1,0 +1,26 @@
+# .typecheck-baseline - Known type errors to suppress in typecheck-hook.sh
+#
+# Format: one error pattern per line, matched literally (grep -F).
+# Lines starting with # are comments. Blank lines are ignored.
+#
+# How to use:
+#   1. Copy this template to your project root as .typecheck-baseline
+#   2. Run: npx tsc --noEmit 2>&1 | grep -E '\.tsx?\(' >> .typecheck-baseline
+#   3. Review and keep only the errors you want to suppress
+#   4. Commit the file so the whole team shares the same baseline
+#
+# How it works:
+#   The typecheck-hook.sh PostToolUse hook runs tsc after every Edit/Write
+#   on .ts/.tsx files. It filters tsc output against this file and only
+#   surfaces errors whose text does NOT appear in any line here.
+#
+# Tips:
+#   - Use specific patterns (file + line + error code) for precision
+#   - Use broader patterns (just the error message) to suppress a class of errors
+#   - Periodically re-run tsc and prune fixed errors from this file
+#   - Goal: shrink this file to zero lines over time
+#
+# Example patterns:
+# src/middleware.ts(42,5): error TS2345: Argument of type 'string' is not assignable
+# error TS2688: Cannot find type definition file for 'node'
+# error TS7016: Could not find a declaration file for module

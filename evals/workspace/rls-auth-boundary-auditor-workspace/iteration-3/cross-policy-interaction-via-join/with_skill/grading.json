@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(view|v_team_project_summary)' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(JOIN|join.+semantics|follow.+data|cascade|propagat)' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(SECURITY\\\\s+INVOKER|invoker|drop.+grant|REVOKE)' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(P1|P0|UNSAFE|cross.?team|cross.?tenant)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(team_members|projects)' flags=''"
+    }
+  ]
+}

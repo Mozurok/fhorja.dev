@@ -1,0 +1,31 @@
+{
+  "passed": false,
+  "rationale": "4/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex 'multi[-\\\\s]?context' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": false,
+      "description": "regex 'FAIL-?AA' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(strictest|stricter|highest\\\\s+threshold|4\\\\.5)' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex 'color\\\\.text\\\\.muted' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '3\\\\.5[34]' flags=''"
+    }
+  ]
+}

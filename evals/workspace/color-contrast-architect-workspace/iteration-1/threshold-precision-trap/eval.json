@@ -1,0 +1,33 @@
+{
+  "id": "threshold-precision-trap",
+  "prompt": "You are auditing the following documented color pairs for a design system shipping a new light-theme palette. Produce a pairwise contrast matrix per WCAG 2.2 AA, then flag failing pairs with concrete token-level remediation. Compute ratios precisely; do NOT round up to clear a threshold.\n\nDocumented pairs (light theme only):\n\n| Token foreground (hex) | Token background (hex) | Design context |\n|---|---|---|\n| `color.text.primary` (#222222) | `color.surface.background` (#FFFFFF) | normal-text |\n| `color.text.secondary` (#777777) | `color.surface.background` (#FFFFFF) | normal-text |\n| `color.button.primary.fg` (#FFFFFF) | `color.button.primary.bg` (#0066CC) | ui-component |\n| `color.link.default` (#1A66CC) | `color.surface.background` (#FFFFFF) | normal-text |\n\nKnown ratios (you may verify; standard sRGB linearization + WCAG 2.2 formula):\n- `#222222` on `#FFFFFF` ~ 15.9:1\n- `#777777` on `#FFFFFF` ~ 4.48:1\n- `#FFFFFF` on `#0066CC` ~ 5.17:1\n- `#1A66CC` on `#FFFFFF` ~ 5.48:1\n\nWCAG target: AA. Produce: (1) full contrast matrix (one row per pair, all required columns: theme, foreground_token, background_token, design_context, ratio, AA_threshold, AAA_threshold, verdict); (2) failing pair list with concrete token hex remediation (not 'increase contrast' prose); (3) summary count.",
+  "expected_output": "The `color.text.secondary` pair at 4.48:1 MUST be reported as FAIL-AA (the threshold for normal-text is 4.5:1; 4.48 does NOT clear it and must NOT be rounded up). Remediation: darken the token to a value like #767676 (~4.54:1) or #6B6B6B (~5.33:1). The three other pairs pass: #222222 PASS-AAA, #FFFFFF on #0066CC PASS-AA for ui-component, #1A66CC PASS-AA for normal-text. Matrix must have all 4 rows and required columns. The discriminator is the 4.48:1 row: a less-disciplined audit will round and say PASS, manufacturing false confidence.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "4\\.4[78]",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "FAIL-?AA",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "color\\.text\\.secondary",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "#(76|6B|6b|6C|6c)[0-9A-Fa-f]{4}",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(design[_\\s]context|context\\s+label|normal-?text)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

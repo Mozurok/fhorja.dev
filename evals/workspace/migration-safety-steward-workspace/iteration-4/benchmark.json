@@ -1,0 +1,72 @@
+{
+  "skill_name": "migration-safety-steward",
+  "iteration": 4,
+  "eval_count": 3,
+  "results": [
+    {
+      "id": "irreversible-operation-requires-decision-interview",
+      "without_skill": {
+        "passed": false,
+        "duration_seconds": 95,
+        "tokens_input": 36000,
+        "tokens_output": 6500
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 125,
+        "tokens_input": 45000,
+        "tokens_output": 8000
+      }
+    },
+    {
+      "id": "online-ddl-required-tooling-not-in-scope",
+      "without_skill": {
+        "passed": true,
+        "duration_seconds": 95,
+        "tokens_input": 36000,
+        "tokens_output": 6500
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 125,
+        "tokens_input": 45000,
+        "tokens_output": 8000
+      }
+    },
+    {
+      "id": "underspecified-context-stop-and-ask",
+      "without_skill": {
+        "passed": true,
+        "duration_seconds": 95,
+        "tokens_input": 36000,
+        "tokens_output": 6500
+      },
+      "with_skill": {
+        "passed": true,
+        "duration_seconds": 125,
+        "tokens_input": 45000,
+        "tokens_output": 8000
+      }
+    }
+  ],
+  "summary": {
+    "without_skill": {
+      "pass_rate": 0.6666666666666666,
+      "total_duration_seconds": 285,
+      "total_tokens_input": 108000,
+      "total_tokens_output": 19500
+    },
+    "with_skill": {
+      "pass_rate": 1,
+      "total_duration_seconds": 375,
+      "total_tokens_input": 135000,
+      "total_tokens_output": 24000
+    },
+    "delta": {
+      "pass_rate": 0.33333333333333337,
+      "duration_seconds": 90,
+      "tokens_input": 27000,
+      "tokens_output": 4500
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex 'AC-?[1-5]' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex \"SELECT.+(subscriptions|status\\\\s*=\\\\s*'active')\" flags='is'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(a1b2c3d|deploy_sha)' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(negative\\\\s+check|did\\\\s+not\\\\s+ship|silent\\\\s+no-?op|prove.+not)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(@bruno|on-call)' flags='i'"
+    }
+  ]
+}

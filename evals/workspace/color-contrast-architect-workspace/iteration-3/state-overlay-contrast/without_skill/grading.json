@@ -1,0 +1,31 @@
+{
+  "passed": false,
+  "rationale": "4/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(hover|active|state|per-?state)'"
+    },
+    {
+      "id": 1,
+      "passed": false,
+      "description": "regex 'FAIL-?AA'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(overlay|composed|blend|compositing|tint)'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(4\\\\.21|4\\\\.2|reduce.+overlay|tint.+darker|reclassif)'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(#0066CC|#1F77D1|button\\\\s+bg)'"
+    }
+  ]
+}

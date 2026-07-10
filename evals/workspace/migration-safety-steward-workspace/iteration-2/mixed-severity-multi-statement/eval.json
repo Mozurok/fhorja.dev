@@ -1,0 +1,33 @@
+{
+  "id": "mixed-severity-multi-statement",
+  "prompt": "You are auditing the following Postgres migration before it ships to production. Per persona Step 1 (Parse): every statement gets its own row in the verdict table; no silent grouping. Per Step 6 (Assign verdict): each statement gets ONE verdict from SAFE / NEEDS-PHASING / UNSAFE.\n\nMigration file:\n\n```sql\n-- migrations/20260606140004_user_profile_overhaul.sql\nALTER TABLE users ADD COLUMN signup_referrer text;\nCREATE INDEX idx_users_signup_referrer ON users(signup_referrer);\nALTER TABLE users DROP COLUMN legacy_signup_source;\nALTER TABLE users ALTER COLUMN email TYPE varchar(254);\n```\n\nContext:\n- Postgres version: 15\n- `users` table row count: ~25,000,000 rows (25M)\n- Deployment strategy: rolling deploy, no maintenance window\n- `legacy_signup_source` is NO LONGER read by production code (the code change shipped 2 weeks ago + verified zero reads in metrics for 14 days)\n- Current `email` column is `text`; changing to `varchar(254)` means PG must validate every existing row's length <= 254 chars under AccessExclusiveLock\n- No online-DDL tooling in scope\n\nProduce per persona contract: (1) per-statement verdict table with ALL 4 statements (no silent grouping; statement_id, classification, lock_level, est_row_count_bucket, verdict, rollback, remediation); (2) risks grouped by severity (P0 / P1 / P2); (3) per NEEDS-PHASING or UNSAFE statement, the concrete safe variant as statement-shaped SQL; (4) IRREVERSIBLE flag on any statement without a safe rollback.",
+  "expected_output": "Statement 1 (ADD COLUMN nullable, no default): SAFE on PG15 (metadata-only); minimal lock. Statement 2 (CREATE INDEX without CONCURRENTLY on 25M-row table): NEEDS-PHASING (ShareLock blocks writes for index build duration; remediation: CREATE INDEX CONCURRENTLY in separate migration, outside transaction). Statement 3 (DROP COLUMN where code no longer reads): SAFE-but-IRREVERSIBLE; the code-no-longer-reads condition is verified, so the runtime risk is mitigated, but the COLUMN VALUES ARE DESTROYED permanently. Flag IRREVERSIBLE; recommend explicit user confirmation per Step 5 (route via decision-interview handoff). Statement 4 (ALTER COLUMN email text -> varchar(254)): UNSAFE on 25M-row table; AccessExclusiveLock + full table scan to validate length. Remediation: phased (add `email_v2 varchar(254)`, backfill in batches with validation + truncate-or-flag on >254, swap reads + writes, drop old email). The discriminator: a baseline plan that scores all 4 as a single 'medium risk' or that misses the IRREVERSIBLE flag on DROP COLUMN fails the per-statement discipline.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "(SAFE|NEEDS-PHASING|UNSAFE|IRREVERSIBLE)",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(CONCURRENTLY|CREATE\\s+INDEX\\s+CONCURRENTLY)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(legacy_signup_source|signup_referrer|email)",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(IRREVERSIBLE|irreversible|cannot.+rollback|data\\s+destroyed|values.+destroyed)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(AccessExclusiveLock|ShareLock|lock\\s+level|table\\s+rewrite|full\\s+scan)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

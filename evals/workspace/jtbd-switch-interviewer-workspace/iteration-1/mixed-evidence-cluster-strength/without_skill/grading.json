@@ -1,0 +1,31 @@
+{
+  "passed": false,
+  "rationale": "4/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex 'STRONG' flags=''"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex 'EMERGING' flags=''"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(I1|I2|I3)' flags=''"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(We do not have evidence|do not have evidence for|evidence\\\\s+gap|gap\\\\s+subsection)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": false,
+      "description": "regex 'PROPOSED\\\\s+by\\\\s+jtbd-switch-interviewer' flags='i'"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "_comment": "Allow-list of expected Claude Code hook command strings for this repo. scripts/hook-integrity-check.sh (an advisory SessionStart hook) warns on any .command value in .claude/settings.json that is not listed here. Seed it by copying the exact .command strings from your current .claude/settings.json, then update it whenever you intentionally add or change a hook. Copy this file to .claude/hooks-baseline.json (gitignore or commit per your preference). JSON has no comments, so this _comment key is the documentation; hook-integrity-check.sh ignores it and reads only .allowed.",
+  "allowed": [
+    "bash $CLAUDE_PROJECT_DIR/scripts/typecheck-hook.sh",
+    "bash $CLAUDE_PROJECT_DIR/scripts/session-continuity-hook.sh start",
+    "bash $CLAUDE_PROJECT_DIR/scripts/session-continuity-hook.sh stop"
+  ]
+}

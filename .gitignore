@@ -1,0 +1,38 @@
+.DS_Store
+**/.DS_Store
+
+# Cursor / VS Code workspace artifacts
+.vscode/
+*.code-workspace
+
+# JetBrains / IntelliJ artifacts
+.idea/
+*.iml
+
+# Vim / swap / backup files
+*.swp
+*.swo
+*~
+
+# Logs and local temp files
+*.log
+*.tmp
+*.temp
+
+# Local environment overrides (keep example files tracked)
+.env.local
+.env.*.local
+
+# Task memory (per clone; not part of the published workflow repo)
+projects/
+_internal/
+
+# User-level memory (per user; bootstrap from templates/USER_MEMORY.template.md; never commit)
+/USER_MEMORY.md
+
+# Python bytecode caches
+__pycache__/
+*.pyc
+.wos
+# Local maintainer memory, never public (ADR-0090)
+CLAUDE.md

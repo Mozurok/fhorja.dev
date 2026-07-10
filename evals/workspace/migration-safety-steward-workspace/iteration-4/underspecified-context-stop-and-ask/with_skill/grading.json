@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex 'targeted-questions'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(unknown|missing|under-?specified|not\\\\s+specified|undefined)'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex 'NEEDS-PHASING'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(STOP|cannot.+definitive|cannot\\\\s+produce|refuse|requires\\\\s+(input|context))'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(PG\\\\s+version|Postgres\\\\s+version|row\\\\s+count|deployment\\\\s+strategy)'"
+    }
+  ]
+}

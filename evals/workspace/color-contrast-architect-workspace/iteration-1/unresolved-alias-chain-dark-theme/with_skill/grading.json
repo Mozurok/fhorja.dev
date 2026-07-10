@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex 'UNRESOLVED' flags=''"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex 'alias\\\\s+(chain|resolution|path|broken)' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex 'color\\\\.semantic\\\\.warning\\\\.text' flags='i'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex 'dark' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(define|undefined|not\\\\s+defined|missing|do\\\\s+not\\\\s+guess|cannot\\\\s+resolve)' flags='i'"
+    }
+  ]
+}

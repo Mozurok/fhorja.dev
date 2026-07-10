@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex 'org_id|org_members' flags='i'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex 'EXISTS\\\\s*\\\\(\\\\s*SELECT.+org_members' flags='is'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(WITH\\\\s+CHECK|INSERT).+org' flags='is'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(P1|P0|UNSAFE|cross-org|cross.?tenant)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex 'CREATE\\\\s+POLICY' flags='i'"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(SAFE|NEEDS-PHASING|UNSAFE|IRREVERSIBLE)' flags=''"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(CONCURRENTLY|CREATE\\\\s+INDEX\\\\s+CONCURRENTLY)' flags='i'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(legacy_signup_source|signup_referrer|email)' flags=''"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(IRREVERSIBLE|irreversible|cannot.+rollback|data\\\\s+destroyed|values.+destroyed)' flags='i'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(AccessExclusiveLock|ShareLock|lock\\\\s+level|table\\\\s+rewrite|full\\\\s+scan)' flags='i'"
+    }
+  ]
+}

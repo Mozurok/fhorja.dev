@@ -1,0 +1,33 @@
+{
+  "id": "add-fk-validate-locks-referenced-table",
+  "prompt": "You are auditing the following Postgres migration. The FK uses the NOT VALID + VALIDATE pattern (canonical safe). But the REFERENCED table is auth.users (Supabase). Per persona Step 4: what's the lock surface on the REFERENCED table during VALIDATE, and does that block signups?\n\nMigration file:\n\n```sql\n-- migrations/20260607130003_add_org_member_fk.sql\nALTER TABLE org_members\n  ADD CONSTRAINT org_members_user_id_fk\n  FOREIGN KEY (user_id) REFERENCES auth.users(id)\n  NOT VALID;\n\nALTER TABLE org_members\n  VALIDATE CONSTRAINT org_members_user_id_fk;\n```\n\nContext:\n- Postgres version: Supabase managed (PG15)\n- `org_members` row count: ~200,000\n- `auth.users` row count: ~150,000 (managed by Supabase Auth)\n- Deployment strategy: cloud-push to qxuxxrhrptuhbvzjfqwg; rolling deploy; no maintenance window\n- Signup volume: ~50 signups/min sustained, peaks 200/min\n- No online-DDL tooling\n\nThe question to answer: when the VALIDATE statement runs, what lock does it take on auth.users? Does that block concurrent signups (which insert into auth.users)?\n\nProduce: (1) per-statement verdict; (2) lock-level analysis on BOTH org_members AND auth.users during VALIDATE; (3) signup impact + estimated VALIDATE duration; (4) remediation (split migrations, schedule VALIDATE during low-signup window, OR a different verification path).",
+  "expected_output": "Statement 1 (ADD CONSTRAINT ... NOT VALID): SAFE on both sides. Catalog-only on org_members; metadata catalog write on auth.users. Statement 2 (VALIDATE CONSTRAINT): NEEDS-PHASING. VALIDATE takes ShareUpdateExclusiveLock on org_members (blocks DDL on org_members but not DML). Critically: VALIDATE also takes RowShareLock on auth.users for the duration of the constraint scan. RowShareLock is COMPATIBLE with concurrent INSERT (which takes RowExclusiveLock) on auth.users, so signups are NOT blocked at the lock level. HOWEVER, auth.users is a managed table on Supabase, and the constraint validation scans 200K rows of org_members, each requiring a lookup against auth.users by id. At 200K lookups against ~150K rows, the I/O overhead during VALIDATE may slow auth flow latencies even if not block them. Two remediation options: (a) split: ship NOT VALID in slice N; ship VALIDATE in slice N+1 scheduled during low-signup window; (b) skip VALIDATE entirely if NOT VALID is acceptable (the constraint is enforced on FUTURE inserts; only existing rows aren't verified -- if pre-flight audit confirmed no orphan org_members rows, NOT VALID alone is OK). Note: on managed Supabase, ALTER TABLE on auth.users is RESTRICTED; the catalog write for the NOT VALID FK happens via Supabase's elevated context, so this migration may NEEDS-PHASING for compliance reasons too. Discriminator: baseline plan that doesn't analyze the lock on auth.users specifically misses the auth-managed-table interaction.",
+  "assertions": [
+    {
+      "type": "regex",
+      "pattern": "auth\\.users",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(RowShareLock|ShareUpdateExclusiveLock|lock\\s+level|RowExclusiveLock)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(signup|insert.+auth\\.users|RowShareLock.+compatible|concurrent)",
+      "flags": "i"
+    },
+    {
+      "type": "regex",
+      "pattern": "(NEEDS-PHASING|UNSAFE)",
+      "flags": ""
+    },
+    {
+      "type": "regex",
+      "pattern": "(low[- ]signup|low[- ]traffic|maintenance\\s+window|split.+migration|VALIDATE.+separate)",
+      "flags": "i"
+    }
+  ],
+  "timeout_seconds": 300
+}

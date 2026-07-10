@@ -1,0 +1,31 @@
+{
+  "passed": false,
+  "rationale": "4/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex 'IRREVERSIBLE'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex 'decision-interview'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(LGPD|compliance|audit|legacy_marketing_consent)'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(archive|backup|preserve|export.+data)'"
+    },
+    {
+      "id": 4,
+      "passed": false,
+      "description": "regex '(P0|UNSAFE|BLOCKER)'"
+    }
+  ]
+}

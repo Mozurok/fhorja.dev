@@ -1,0 +1,124 @@
+{
+  "skill_name": "rls-auth-boundary-auditor",
+  "version": "3.0",
+  "description": "K.7 iteration-3 evals for rls-auth-boundary-auditor. Iter 1 (v1.0) delta=0 (obvious scenarios), iter 2 (v2.0) delta=+0.667 (canonical severity enum discriminator on compound-auth + mat-view + service-role). Iter 3 (v3.0) ships scenarios that require COMBINATORIAL reasoning across multiple objects -- not single-policy or single-table failure modes -- where the gap surfaces only when the auditor follows the data across boundaries that look correct in isolation. (1) cross-policy interaction: two tables A and B each have correct-looking USING clauses, but a JOIN view or RPC that walks both effectively bypasses one of them; (2) conditional-policy split: a policy uses USING with auth.jwt() claim X but WITH CHECK uses claim Y; depending on the auth path (anon -> sign-up vs invited-user -> elevated session) one of X/Y is stale, opening cross-tenant INSERT; (3) nested SECURITY DEFINER + search_path: function f1 calls function f2 both SECURITY DEFINER, f2 has explicit search_path but f1 doesn't; the calling-role's search_path can hijack f2's resolution path via f1. Pass criteria: iter-2 canonical enum baseline + iter-3 cross-object reasoning expressed as concrete follow-the-data trace + remediation that closes the COMBINATORIAL gap, not just the surface gap. Trend target: iter 3 delta >= 0 (non-regressing) to satisfy L2->L3 quantitative criterion.",
+  "evals": [
+    {
+      "id": "cross-policy-interaction-via-join",
+      "prompt": "You are auditing the following Supabase migration. Each table's policy LOOKS CORRECT in isolation. The gap surfaces only when the data is followed across a VIEW that joins both. Per persona Step 5 (follow-the-data): trace EVERY relationship; flag the gap in the join object specifically.\n\nMigration file:\n\n```sql\n-- migrations/20260606150001_team_projects.sql\nCREATE TABLE team_members (\n  team_id uuid NOT NULL,\n  user_id uuid NOT NULL,\n  role text NOT NULL DEFAULT 'member',\n  PRIMARY KEY (team_id, user_id)\n);\nALTER TABLE team_members ENABLE ROW LEVEL SECURITY;\nALTER TABLE team_members FORCE ROW LEVEL SECURITY;\nCREATE POLICY team_members_select ON team_members\n  FOR SELECT USING (user_id = auth.uid());\n\nCREATE TABLE projects (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  team_id uuid NOT NULL,\n  name text NOT NULL,\n  budget_cents bigint NOT NULL,\n  created_at timestamptz DEFAULT now()\n);\nALTER TABLE projects ENABLE ROW LEVEL SECURITY;\nALTER TABLE projects FORCE ROW LEVEL SECURITY;\nCREATE POLICY projects_select ON projects\n  FOR SELECT USING (\n    team_id IN (SELECT team_id FROM team_members WHERE user_id = auth.uid())\n  );\n\nCREATE VIEW v_team_project_summary AS\nSELECT\n  tm.team_id,\n  tm.user_id AS team_member_user_id,\n  p.id AS project_id,\n  p.name AS project_name,\n  p.budget_cents\nFROM team_members tm\nJOIN projects p ON p.team_id = tm.team_id;\n\nGRANT SELECT ON v_team_project_summary TO authenticated;\n```\n\nAuth model: `auth.uid()`. Tenant scope: per-team.\n\nConcrete scenario: user U1 is a member of team T1 (`team_members(T1, U1)`). user U2 is a member of team T1 AND team T2 (`team_members(T1, U2)` and `team_members(T2, U2)`). Project P_T2 belongs to team T2.\n\nQuestion to drive audit: U1 issues `SELECT * FROM v_team_project_summary;` from a supabase-js client. What does U1 see? Specifically, can U1 observe any rows about (a) team T2's projects, OR (b) user U2's team memberships in teams U1 is NOT a member of?\n\nProduce: (1) per-object posture table including the VIEW; (2) gaps with severity citing the SPECIFIC combinatorial bypass; (3) follow-the-data trace showing how the row materializes through the join; (4) migration-shaped remediation.",
+      "expected_output": "The VIEW v_team_project_summary BYPASSES team_members's tighter SELECT policy through the JOIN. SQL views run with the privileges of the QUERYING role, so the row-level filter on team_members applies: U1 can only see team_members rows where user_id = U1. So U1 sees `team_members(T1, U1)` and NOT `team_members(T1, U2)` or `team_members(T2, U2)`. BUT the JOIN to projects uses team_id from the visible team_members row (T1), and projects' policy permits SELECT on projects where team_id IN (teams U1 is a member of), which includes T1. So U1 sees projects in T1 only, via U1's own membership row. The gap is more subtle: if U1 were also in T2, OR if the projects policy had a cross-team condition, the join would surface team T2's project budgets to U1 because the team_members FILTER does NOT cascade to the projects table's visibility decision through the JOIN. Concrete bypass scenario: a malicious U1 who knows team T2 exists CAN observe T2 project rows IF U1 manages to insert a team_members(T2, U1) row (via a different bypass), because the view-join would then expose T2 projects through U1's new T1+T2 union. Persona must follow-the-data and flag: (a) views inherit policies of underlying tables BUT (b) the join SEMANTICS allow a user to see a row IF EITHER end of the join is permitted, not BOTH. Remediation: rewrite the view as SECURITY INVOKER with explicit join predicate `WHERE tm.user_id = auth.uid()` filtering the team_members side AND `WHERE p.team_id IN (SELECT team_id FROM team_members WHERE user_id = auth.uid())` on projects side -- redundant by design so the policy interaction is explicit, not implicit. OR drop the GRANT and replace with a SECURITY INVOKER function.",
+      "assertions": [
+        {
+          "type": "regex",
+          "pattern": "(view|v_team_project_summary)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(JOIN|join.+semantics|follow.+data|cascade|propagat)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(SECURITY\\s+INVOKER|invoker|drop.+grant|REVOKE)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(P1|P0|UNSAFE|cross.?team|cross.?tenant)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(team_members|projects)",
+          "flags": ""
+        }
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "id": "conditional-policy-using-vs-with-check-split",
+      "prompt": "You are auditing the following Supabase migration. The policy splits USING and WITH CHECK on DIFFERENT JWT claims. Per persona Step 4 (verify tenant scope in USING and WITH CHECK): a split where the two sides reference different claims means the SELECT path and the INSERT/UPDATE path can disagree under specific auth flows.\n\nMigration file:\n\n```sql\n-- migrations/20260606150002_invited_member_invoices.sql\nCREATE TABLE invoices (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  org_id uuid NOT NULL,\n  created_by uuid NOT NULL,\n  amount_cents bigint NOT NULL,\n  status text NOT NULL DEFAULT 'draft',\n  created_at timestamptz DEFAULT now()\n);\nALTER TABLE invoices ENABLE ROW LEVEL SECURITY;\nALTER TABLE invoices FORCE ROW LEVEL SECURITY;\n\n-- The SELECT path uses org_id derived from the current JWT's 'active_org_id' claim,\n-- which is set when the user explicitly switches their active org in the UI.\nCREATE POLICY invoices_select_active_org ON invoices\n  FOR SELECT USING (org_id = (auth.jwt() ->> 'active_org_id')::uuid);\n\n-- The INSERT path uses created_by = auth.uid(), no org_id check at all.\nCREATE POLICY invoices_insert_self ON invoices\n  FOR INSERT WITH CHECK (created_by = auth.uid());\n\n-- The UPDATE path uses created_by = auth.uid() on USING and on WITH CHECK.\nCREATE POLICY invoices_update_self ON invoices\n  FOR UPDATE USING (created_by = auth.uid()) WITH CHECK (created_by = auth.uid());\n```\n\nAuth model: Supabase auth.uid() + a custom JWT claim 'active_org_id' set when a user switches orgs via a custom Edge Function that re-issues the session.\n\nConcrete scenario: user U1 is a member of org A (default) AND org B. U1's current JWT has `active_org_id = A`. U1 INSERTs an invoice with `(org_id = B, created_by = U1, amount_cents = 5000000, status = 'draft')`. What happens? Can U1 do this? After the INSERT, can U1 SELECT this invoice back?\n\nProduce: (1) per-policy posture; (2) gap citing the USING vs WITH CHECK claim split as the failure mode; (3) follow-the-data tracing both SELECT and INSERT paths; (4) migration-shaped remediation closing the split.",
+      "expected_output": "The INSERT policy `invoices_insert_self` checks ONLY `created_by = auth.uid()`. U1 CAN INSERT an invoice with `org_id = B` even though U1's active_org_id is A and even if U1 is NOT a member of org B (the policy does not verify membership). After INSERT, U1 CANNOT SELECT this invoice back because the SELECT policy requires `org_id = active_org_id (A)`. The row is orphaned: it exists, U1 created it, but U1 cannot read it. Worse: any OTHER user U2 whose active_org_id is B (and who is a member of org B) WILL see this invoice as if it were created by an unrelated U1 -- writer-vs-reader divergence that creates phantom records visible across tenants. Even worse: if U1 later switches active_org_id to B (re-issues JWT), U1 will see this invoice. This is a P1 cross-tenant write leak masked by a SELECT denial. Remediation: align USING and WITH CHECK -- add membership check to INSERT and UPDATE policies, AND verify active_org_id MATCHES org_id at write time (closes the case where U1 with active_org_id=A inserts org_id=B). Concrete SQL: `CREATE POLICY invoices_insert_member ON invoices FOR INSERT WITH CHECK (created_by = auth.uid() AND org_id = (auth.jwt() ->> 'active_org_id')::uuid AND org_id IN (SELECT org_id FROM org_members WHERE user_id = auth.uid()));` plus equivalent on UPDATE.",
+      "assertions": [
+        {
+          "type": "regex",
+          "pattern": "(USING|WITH\\s+CHECK)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "active_org_id",
+          "flags": ""
+        },
+        {
+          "type": "regex",
+          "pattern": "(P1|P0|UNSAFE|cross.?tenant|cross.?org|writer.+reader|orphan)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(org_members|EXISTS|membership\\s+check)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(insert|INSERT).+(membership|org_id)",
+          "flags": "is"
+        }
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "id": "nested-security-definer-search-path",
+      "prompt": "You are auditing the following Supabase migration. TWO SECURITY DEFINER functions chain: f1 calls f2. f2 has an explicit `SET search_path` but f1 does not. The CALLING role's search_path leaks through f1 into f2's resolution context, opening search_path-hijacking against tables f2 references unqualified.\n\nMigration file:\n\n```sql\n-- migrations/20260606150003_audit_log_chain.sql\nCREATE TABLE audit_log (\n  id bigserial PRIMARY KEY,\n  actor_id uuid NOT NULL,\n  action text NOT NULL,\n  payload jsonb,\n  created_at timestamptz DEFAULT now()\n);\nALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;\nALTER TABLE audit_log FORCE ROW LEVEL SECURITY;\nCREATE POLICY audit_log_select_own ON audit_log\n  FOR SELECT USING (actor_id = auth.uid());\n\n-- Inner function: writes to audit_log table referenced unqualified.\nCREATE OR REPLACE FUNCTION log_action(p_action text, p_payload jsonb)\nRETURNS void\nLANGUAGE plpgsql\nSECURITY DEFINER\nSET search_path = pg_catalog, public\nAS $$\nBEGIN\n  INSERT INTO audit_log (actor_id, action, payload) VALUES (auth.uid(), p_action, p_payload);\nEND;\n$$;\n\n-- Outer function: invokes log_action; calls auth.uid() unqualified; NO explicit search_path.\nCREATE OR REPLACE FUNCTION record_user_event(p_event text, p_details jsonb)\nRETURNS void\nLANGUAGE plpgsql\nSECURITY DEFINER\nAS $$\nBEGIN\n  PERFORM log_action(p_event, p_details);\nEND;\n$$;\n\nGRANT EXECUTE ON FUNCTION record_user_event TO authenticated;\n```\n\nAuth model: auth.uid(). The outer function is the one exposed via GRANT. record_user_event runs with the OWNER's privileges (postgres role) due to SECURITY DEFINER.\n\nConcrete attack scenario: a hostile authenticated user U_evil creates a schema `evil_schema` they OWN, inside which they create `CREATE FUNCTION evil_schema.uid() RETURNS uuid LANGUAGE sql AS 'SELECT '00000000-0000-0000-0000-000000000001'::uuid';`. Then U_evil sets their session `SET search_path = evil_schema, public;` and calls `SELECT record_user_event('test', '{}');`. What happens? Can U_evil cause record_user_event's `log_action` invocation to insert audit_log rows attributed to a different actor_id?\n\nProduce: (1) function-by-function audit including SET search_path declarations; (2) gap citing search_path hijacking via the nested SECURITY DEFINER chain; (3) follow-the-data trace showing how the calling role's search_path leaks; (4) migration-shaped remediation.",
+      "expected_output": "The GAP is in `record_user_event`: NO explicit `SET search_path`. When U_evil calls this function with their poisoned search_path (`evil_schema, public`), record_user_event runs as DEFINER (postgres role) but resolves unqualified names against U_evil's current search_path. The auth.uid() call inside record_user_event's body resolves to `evil_schema.uid` (not `auth.uid`) which returns the spoofed UUID. Then PERFORM log_action is called -- log_action HAS `SET search_path = pg_catalog, public` so INSIDE log_action's body, auth.uid() resolves correctly. BUT the spoofed UUID has already been computed before the inner SET takes effect, depending on argument evaluation order. More importantly: if record_user_event's body had used auth.uid() directly (rather than passing through), the spoof would land. The vulnerable surface is the entire body of record_user_event before any SET search_path inside it. Persona must flag: every SECURITY DEFINER function MUST have its own SET search_path = pg_catalog, public at the top of the body, regardless of whether inner functions also have one (defense in depth; the inner SET does NOT propagate up the call stack). Remediation: add `SET search_path = pg_catalog, public` to record_user_event's body. ALSO recommend qualifying all references inside SECURITY DEFINER bodies (e.g. `auth.uid()` not `uid()`, `public.audit_log` not `audit_log`).",
+      "assertions": [
+        {
+          "type": "regex",
+          "pattern": "search_path",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(SECURITY\\s+DEFINER|definer)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(record_user_event|log_action)",
+          "flags": ""
+        },
+        {
+          "type": "regex",
+          "pattern": "(hijack|spoof|poison|attack|evil)",
+          "flags": "i"
+        },
+        {
+          "type": "regex",
+          "pattern": "(P1|P0|UNSAFE)",
+          "flags": ""
+        }
+      ],
+      "timeout_seconds": 300
+    }
+  ],
+  "trigger_evals": {
+    "should_trigger": [
+      "We're adding a `documents` table to our Supabase project that's scoped per-org. Here's the new migration with the RLS policies. Can you check the tenant isolation before I deploy?",
+      "DECISIONS.md says the app is multi-tenant on Supabase but we never locked an RLS policy for the new workspaces table. Review the policy DDL for isolation gaps.",
+      "Before I open the PR: this migration in supabase/migrations/ adds a `team_invoices` table with a `CREATE POLICY ... USING (org_id = auth.jwt() ->> 'org_id')`. Does the INSERT path leak across tenants?",
+      "I added a SECURITY DEFINER function `record_event()` that writes to an audit_log table, plus a join table linking users to projects. Both are in the new sql/ migration. Are the policies airtight on the join and the function?",
+      "Our slice acceptance adds three Supabase tables (orders, order_items, order_audit) but I only wrote a SELECT policy on orders. Audit whether the child tables can leak rows to another tenant.",
+      "Something feels off about this policy: I enabled RLS on the `subscriptions` table but the table owner (the migration runner) still seems to see every row regardless of org. Can you look at the DDL before this ships?"
+    ],
+    "should_not_trigger": [
+      "This migration does `ALTER TABLE orders ADD COLUMN status text NOT NULL` on a 40M-row table. Will it hold a lock and take down checkout when it deploys?",
+      "We're renaming `customer_name` to `full_name` and dropping the old column in the same migration. Is this safe to apply against production or does it need a two-phase deploy?",
+      "I added a new public REST endpoint that takes a user-supplied ID and returns the record. Trace the auth flow and run the OWASP checklist on the handler code.",
+      "This diff decrypts SSN and bank account fields and returns them in the admin dashboard response. Check the PII handling and whether anything sensitive leaks to the client.",
+      "The migration adds a foreign key on a large table with a bare `ADD CONSTRAINT`. Should this be split into NOT VALID then VALIDATE so it doesn't lock the table?",
+      "Run a secret scan and dependency audit reminder on this branch before I merge, and confirm the new external webhook integration is using HTTPS."
+    ]
+  }
+}

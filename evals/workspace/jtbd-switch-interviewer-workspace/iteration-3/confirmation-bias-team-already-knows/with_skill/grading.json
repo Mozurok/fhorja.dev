@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "rationale": "5/5 assertions passed",
+  "assertion_results": [
+    {
+      "id": 0,
+      "passed": true,
+      "description": "regex '(confirmation[- ]bias|biased|pre-?suppos|leading|confirm[- ]seek)'"
+    },
+    {
+      "id": 1,
+      "passed": true,
+      "description": "regex '(reframe|re-?frame|four[- ]?forces|without\\\\s+(pre-?supposing|pre-?conclud|assuming))'"
+    },
+    {
+      "id": 2,
+      "passed": true,
+      "description": "regex '(refuse|cannot.+draft|will\\\\s+not|should\\\\s+not)'"
+    },
+    {
+      "id": 3,
+      "passed": true,
+      "description": "regex '(PUSH|PULL|ANXIETY|HABIT)'"
+    },
+    {
+      "id": 4,
+      "passed": true,
+      "description": "regex '(mobile|Salesforce|enterprise)'"
+    }
+  ]
+}
