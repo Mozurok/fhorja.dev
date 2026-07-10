@@ -16,6 +16,19 @@ While the project is in alpha (0.x.y), MINOR may include breaking changes; expec
 ## [Unreleased]
 
 ### Added
+- (none yet)
+
+### Changed
+- (none yet)
+
+### Fixed
+- (none yet)
+
+## [1.0.0] - 2026-07-10
+
+First public release: Fhorja goes open source under AGPL-3.0, published with a fresh public history per ADR-0090.
+
+### Added
 - Phase 3 public-release transition (ADR-0090, **Accepted** 2026-07-10): the v1.0 public repo is a fresh-history NEW repository (Mozurok/fhorja.dev) with the private repo archived unchanged; CLAUDE.md excluded from the public tree (local maintainer memory; public equivalents README/CONTRIBUTING/FAQ); the 2026-07-10 in-place codename redaction recorded as a one-time exception to ADR immutability; branch protection, PR-based contribution, and the GitHub noreply identity start at flip; flip-day checklist (Discussions, private vulnerability reporting, contact email, CLA Assistant wiring, community profile green, tag push after GO) executed by the maintainer by hand. Governance currency fixes in the same slice: CLA wording no longer claims a live bot, the commercial-license wording matches README and FAQ (planned, not yet available), the contributor checklist points at lint as normative and the generated README catalog script, the FAQ pointer is real, the shellcheck CI action is pinned, the SECURITY advisory URL targets the public repo, and README carries the project copyright notice. Count markers: ADRs 88 -> 89.
 - Godot E2E completeness wave (ADR-0089, **Accepted** 2026-07-10; commits d58ad64, 67bfe3a, 6553d55, bc368a3): the human feel-verdict gate required before first-playable and wired at the three closure homes, user-supplied-first media ingestion with a platform-URL refusal path, probe hardening (persistent harness plus mandatory adversarial probes), per-row measurement sources and a juice share in `performance-budget`, TEST_STRATEGY consumption gates and git preflights (game repos versioned from day one), the store-ship preflight with the Play track ladder, and substrate emission fixes. Eval scenarios 100-101; no new command. Count markers: ADRs 88, scenarios 101.
 - Debug-loop and mobile-runtime folds from an RN dogfood punch-list (ADR-0086, ADR-0087, ADR-0088, **Accepted** 2026-07-07; commit db00052): `capture-references` deep-reads GitHub/GitLab issue and PR comment threads and hunts workaround markers, with a read-comments-before-escalation gate on `incident-triage` and `decision-interview`; `app-runtime-verify` lands as the capability-routed, MCP-agnostic mobile runtime gate (React Native/Expo first adapter, companion topic `wos/rn-expo-runtime-evidence.md`; command catalog 93 -> 94); `incident-triage` gains the instrument-first locus gate and the ruled-out-hypotheses ledger; `review-hard` routes runtime-debug payloads to `incident-triage`. Eval scenarios 97-99.

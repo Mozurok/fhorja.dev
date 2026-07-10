@@ -3,7 +3,7 @@
 > A workflow operating system for AI-assisted engineering. Task state, decisions, and plans live on disk as files, not in chat history, so context survives across sessions, tools, and restarts.
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
-[![Status: Alpha](https://img.shields.io/badge/Status-Alpha-orange.svg)](#status-license-and-contributing)
+[![Status: v1.0.0](https://img.shields.io/badge/Status-v1.0.0-brightgreen.svg)](#status-license-and-contributing)
 
 You start an AI coding session on a real feature. Twenty minutes in, you've made three decisions in chat: which field owns the source of truth, how to handle the edge case, what to skip for now. None of that gets written anywhere. You close the laptop. Tomorrow, or in a new chat, the agent has no memory of any of it. You re-explain the feature, re-litigate a decision you already made, and it starts editing files before you agreed on the approach.
 
@@ -313,7 +313,7 @@ The workflow ships a manual regression net of <!-- count:scenarios -->101<!-- /c
 
 ## Status, license, and contributing
 
-**Status.** Alpha (v0.2.x), preparing the v1.0.0 public release. The contract for command outputs and `TASK_STATE.md` is stable enough for daily use, but minor versions may still break something until 1.0.0. See [`CHANGELOG.md`](./CHANGELOG.md) for what changed and [`ROADMAP.md`](./ROADMAP.md) for what's next.
+**Status.** v1.0.0, the first public release. The contract for command outputs and `TASK_STATE.md` is the defined public API: breaking changes to either mean a major version bump per [SemVer](https://semver.org/). See [`CHANGELOG.md`](./CHANGELOG.md) for what changed and [`ROADMAP.md`](./ROADMAP.md) for what's next.
 
 **Governance.** A personal open-source project under single-maintainer (BDFL) governance while it matures toward a community model; the contribution flow is documented in [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
