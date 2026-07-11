@@ -1023,6 +1023,8 @@ disk_count() {
   local n
   case "$1" in
     commands)           n=$(( $(ls "${COMMANDS_DIR}"/*.md 2>/dev/null | wc -l) + $(ls "${COMMANDS_DIR}"/*/SKILL.md 2>/dev/null | wc -l) )) ;;
+    commands-minimal)   n=$(grep -h '^  x-wos-profiles:' "${COMMANDS_DIR}"/*.md "${COMMANDS_DIR}"/*/SKILL.md 2>/dev/null | grep -cw minimal) ;;
+    commands-core)      n=$(grep -h '^  x-wos-profiles:' "${COMMANDS_DIR}"/*.md "${COMMANDS_DIR}"/*/SKILL.md 2>/dev/null | grep -cw core) ;;
     skills)             n=$(ls "${REPO_ROOT}"/.claude/skills/*/SKILL.md 2>/dev/null | wc -l) ;;
     command-categories) n=$(grep -h '^  category:' "${COMMANDS_DIR}"/*.md "${COMMANDS_DIR}"/*/SKILL.md 2>/dev/null | sed 's/.*category:[[:space:]]*//' | sort -u | wc -l) ;;
     adrs)               n=$(ls "${REPO_ROOT}"/docs/adr/[0-9]*.md 2>/dev/null | wc -l) ;;

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace" role="img" aria-label="The three install profiles nest: minimal inside core inside full">
+  <defs>
+    <radialGradient id="pglow" cx="50%" cy="0%" r="80%">
+      <stop offset="0%" stop-color="#3ddc97" stop-opacity="0.12"/>
+      <stop offset="55%" stop-color="#3ddc97" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="pgrid" width="26" height="26" patternUnits="userSpaceOnUse">
+      <path d="M26 0H0V26" fill="none" stroke="#262c2f" stroke-width="1" stroke-opacity="0.5"/>
+    </pattern>
+  </defs>
+  <rect x="0.5" y="0.5" width="1199" height="299" rx="16" fill="#0b0d0e" stroke="#262c2f"/>
+  <rect x="1" y="1" width="1198" height="298" rx="15" fill="url(#pgrid)"/>
+  <rect x="1" y="1" width="1198" height="160" rx="15" fill="url(#pglow)"/>
+
+  <text x="30" y="26" font-size="13" fill="#a3adb0" letter-spacing="1">install profiles</text>
+  <text x="185" y="26" font-size="12" fill="#e8eae8" opacity="0.55">start small, grow into it: each profile contains the one inside it</text>
+
+  <!-- full (outer) -->
+  <rect x="30" y="44" width="1140" height="228" rx="16" fill="none" stroke="#e8eae8" stroke-opacity="0.75"/>
+  <text x="54" y="74" font-size="17" fill="#e8eae8">full</text>
+  <text x="104" y="74" font-size="13" fill="#a3adb0">the whole catalog, the default</text>
+  <text x="1146" y="76" font-size="22" fill="#e8eae8" text-anchor="end">94</text>
+
+  <!-- core (middle) -->
+  <rect x="102" y="94" width="996" height="128" rx="14" fill="#a3adb0" fill-opacity="0.05" stroke="#a3adb0" stroke-opacity="0.7"/>
+  <text x="126" y="124" font-size="16" fill="#a3adb0">core</text>
+  <text x="178" y="124" font-size="13" fill="#a3adb0" opacity="0.85">everyday use, no fleets or personas</text>
+  <text x="1074" y="126" font-size="20" fill="#a3adb0" text-anchor="end">50</text>
+
+  <!-- minimal (inner) -->
+  <rect x="174" y="140" width="852" height="66" rx="12" fill="#3ddc97" fill-opacity="0.1" stroke="#3ddc97" stroke-opacity="0.85"/>
+  <text x="198" y="179" font-size="16" fill="#3ddc97">minimal</text>
+  <text x="272" y="179" font-size="13" fill="#a3adb0">the lifecycle spine, the everyday loop</text>
+  <text x="1002" y="181" font-size="20" fill="#3ddc97" text-anchor="end">12</text>
+</svg>

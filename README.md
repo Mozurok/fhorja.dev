@@ -14,6 +14,10 @@ You start an AI coding session on a real feature. Twenty minutes in, you've made
 
 Fhorja's answer: task state, decisions, and plans live in markdown files on disk, not in chat history. Open a new session, and `resume-from-state` reads `TASK_STATE.md` and tells you where you left off. A decision gets recorded once, in `DECISIONS.md`, with its reasoning, and every later step reads from it instead of guessing again. Before any code gets written, `implementation-plan` breaks the work into small slices and `approve-plan` is the explicit human gate, so the agent never runs ahead of what you agreed to.
 
+<p align="center">
+  <img src=".github/assets/persistence.svg" alt="Decisions made in chat are lost at session end; the same decisions written to disk survive" width="100%">
+</p>
+
 ## What it is
 
 Fhorja is a workflow operating system for AI-assisted engineering: a markdown-plus-bash specification, not an application or a hosted service. It gives solo developers and small teams a disciplined, resumable process for AI-assisted work by keeping task state, decisions, and plans as files on disk instead of in chat history. It ships as <!-- count:commands -->94<!-- /count --> command files that share one output contract and chain into each other (discovery, decisions, planning, slice-by-slice execution, review, delivery), distributed to any editor as Agent Skills or legacy slash commands.
@@ -38,12 +42,16 @@ In any editor that reads `.claude/skills/` (Cursor 2.4+, Claude Code), the comma
 All commands install by default. Pass `--profile` to start with a smaller surface and grow into it:
 
 ```bash
-./scripts/sync-workflow-slash-commands.sh --profile minimal  # 12 commands: the lifecycle spine
-./scripts/sync-workflow-slash-commands.sh --profile core     # 50 commands: everyday use, no fleets or personas
-./scripts/sync-workflow-slash-commands.sh --profile full     # all 94: the whole catalog (default)
+./scripts/sync-workflow-slash-commands.sh --profile minimal  # the lifecycle spine
+./scripts/sync-workflow-slash-commands.sh --profile core     # everyday use, no fleets or personas
+./scripts/sync-workflow-slash-commands.sh --profile full     # the whole catalog (default)
 ```
 
-The `minimal` spine covers the everyday loop: `task-init`, `impact-analysis`, `decision-interview`, `implementation-plan`, `approve-plan`, `implement-approved-slice`, `slice-closure`, `review-hard`, `pr-package`, `what-next`, `sync-task-state`, `task-close`. Profiles are declared in each command's `x-wos-profiles` frontmatter and enforced by lint.
+<p align="center">
+  <img src=".github/assets/profiles.svg" alt="The three install profiles nest: minimal inside core inside full" width="100%">
+</p>
+
+The three profiles nest: `minimal` (<!-- count:commands-minimal -->12<!-- /count --> commands) inside `core` (<!-- count:commands-core -->50<!-- /count --> commands) inside `full` (<!-- count:commands -->94<!-- /count --> commands, the default). The `minimal` spine covers the everyday loop: `task-init`, `impact-analysis`, `decision-interview`, `implementation-plan`, `approve-plan`, `implement-approved-slice`, `slice-closure`, `review-hard`, `pr-package`, `what-next`, `sync-task-state`, `task-close`. Profiles are declared in each command's `x-wos-profiles` frontmatter and enforced by lint.
 
 Two more flags worth knowing: `--with-skills` mirrors the Agent Skills to your user-level directories so they follow you across every project, and `--project /path/to/your/repo` additionally installs into a specific product repo, alongside your user directories.
 

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace" role="img" aria-label="Decisions made in chat are lost at session end; the same decisions written to disk survive">
+  <defs>
+    <radialGradient id="seamglow" cx="50%" cy="0%" r="70%">
+      <stop offset="0%" stop-color="#3ddc97" stop-opacity="0.12"/>
+      <stop offset="60%" stop-color="#3ddc97" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="seam" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#262c2f" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#262c2f" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#262c2f" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="sgrid" width="26" height="26" patternUnits="userSpaceOnUse">
+      <path d="M26 0H0V26" fill="none" stroke="#262c2f" stroke-width="1" stroke-opacity="0.5"/>
+    </pattern>
+  </defs>
+  <rect x="0.5" y="0.5" width="1199" height="299" rx="16" fill="#0b0d0e" stroke="#262c2f"/>
+  <rect x="1" y="1" width="1198" height="298" rx="15" fill="url(#sgrid)"/>
+  <rect x="1" y="1" width="1198" height="170" rx="15" fill="url(#seamglow)"/>
+  <!-- soft seam, not a hard divide -->
+  <rect x="598" y="40" width="4" height="220" fill="url(#seam)"/>
+
+  <!-- LEFT: in chat, dissolving -->
+  <text x="56" y="52" font-size="14" fill="#a3adb0" letter-spacing="1">in chat</text>
+  <g fill="none" stroke="#a3adb0">
+    <rect x="56" y="74" width="330" height="46" rx="13" stroke-opacity="0.5"/>
+    <rect x="120" y="132" width="320" height="46" rx="13" stroke-opacity="0.3"/>
+    <rect x="84" y="190" width="270" height="46" rx="13" stroke-opacity="0.15"/>
+  </g>
+  <g font-size="12" fill="#a3adb0">
+    <text x="76" y="102" fill-opacity="0.8">"which field owns the source of truth"</text>
+    <text x="140" y="160" fill-opacity="0.45">"how to handle the edge case"</text>
+    <text x="104" y="218" fill-opacity="0.2">"what to skip for now"</text>
+  </g>
+  <text x="56" y="270" font-size="13" fill="#f28ba8" fill-opacity="0.8">session ends &#8594; gone</text>
+
+  <!-- RIGHT: on disk, persistent -->
+  <text x="644" y="52" font-size="14" fill="#3ddc97" letter-spacing="1">on disk</text>
+  <rect x="644" y="70" width="500" height="170" rx="12" fill="#14181a" stroke="#262c2f"/>
+  <!-- title bar chrome -->
+  <circle cx="666" cy="94" r="5" fill="#f28ba8" fill-opacity="0.8"/>
+  <circle cx="684" cy="94" r="5" fill="#e8b84a" fill-opacity="0.8"/>
+  <circle cx="702" cy="94" r="5" fill="#3ddc97" fill-opacity="0.8"/>
+  <text x="726" y="98" font-size="12" fill="#a3adb0">task memory</text>
+  <line x1="644" y1="112" x2="1144" y2="112" stroke="#262c2f"/>
+  <!-- file rows with mint left-edge glow -->
+  <g font-size="15" fill="#e8eae8">
+    <rect x="644" y="128" width="3" height="22" fill="#3ddc97"/><text x="672" y="145">TASK_STATE.md</text>
+    <rect x="644" y="162" width="3" height="22" fill="#3ddc97"/><text x="672" y="179">DECISIONS.md</text>
+    <rect x="644" y="196" width="3" height="22" fill="#3ddc97"/><text x="672" y="213">IMPLEMENTATION_PLAN.md</text>
+  </g>
+  <text x="644" y="270" font-size="13" fill="#3ddc97">still there tomorrow, in a new chat, on any tool</text>
+</svg>
