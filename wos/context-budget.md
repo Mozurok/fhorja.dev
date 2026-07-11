@@ -132,6 +132,19 @@ The discriminating cases (`retrieved`, `history`, empty `produced`) are where th
 
 ---
 
+## The four context operations (write, select, compress, isolate)
+
+The 2026 context-engineering literature converged on four operations over the context window as a constrained resource (see `REFERENCES.md` 2026-07-11 scan: the tianpan compaction entry and Context Engineering 2.0). The WOS already implements all four; naming them makes the doctrine legible and tells each command which operation it is performing.
+
+- **write** (persist context outside the window): the WOS substrate. `TASK_STATE.md`, `DECISIONS.md`, `LEARNINGS.md`, and `REFERENCES.md` are durable writes; the `.wos/VERIFICATION_LOG.jsonl` is the append-only provenance of every write. Owned by the writer commands per `wos/substrate-peers.md`.
+- **select** (retrieve only what is relevant now): the WOS retrieval path. `task-init` runs `rank-learnings.sh` (ADR-0071) to surface only the relevant prior lessons; contextual retrieval in `REFERENCES.md` (ADR-0018); `code-locate` and `code-context-map` narrow to the files that matter. The point is to load a relevant subset, not the whole store.
+- **compress** (summarize to save tokens): `compact-task-memory`. Per ADR-0093 the WOS compress is provenance-preserving: it drops routine prose from `TASK_STATE.md` but never rewrites the append-only VERIFICATION_LOG, so a dropped fact still traces to its origin write. Provenance-preserving compression is the 2026 technique that makes mid-flight compaction safe.
+- **isolate** (give sub-tasks a clean context): the WOS fleet contract (ADR-0038). Each worker runs in an isolated context and returns a typed `StructuredOutput` payload, not its full working context, so the orchestrator's window stays bounded (mirrors the 2026 subagent-isolation pattern of returning a small condensed summary from deep work).
+
+These four operations are the vocabulary; the per-layer strategy below is how each operation applies to each of the six layers.
+
+---
+
 ## When to compact each layer
 
 The Chroma `Context-Rot` report (2024-2025) showed that all models degrade as context grows, regardless of the stated context window. The compaction strategy varies per layer.

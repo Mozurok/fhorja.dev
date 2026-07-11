@@ -1,6 +1,6 @@
 ---
 name: slice-closure
-description: Decide whether the current slice is ready to close, distinguishing slice completion from full task completion, then persist the result in slice notes and TASK_STATE.md as explicit reviewable closure notes. For single-slice tasks may route directly to delivery. Returns no-op when slice memory would not materially change. Use when a slice was just implemented, slice-level validation was completed or reviewed, or the next decision is whether this slice can be closed cleanly. Do not use when no concrete slice implementation happened yet, the task is still in broad planning or contract work, or the goal is to understand overall task progress (use where-we-at).
+description: Decide whether the current slice is ready to close, distinguishing slice completion from full task completion, then persist the result in slice notes and TASK_STATE.md as explicit reviewable closure notes. For single-slice tasks may route directly to delivery. Returns no-op when slice memory would not materially change. Use when a slice was just implemented, slice-level validation was completed or reviewed, or the next decision is whether this slice can be closed cleanly. Do not use when no concrete slice implementation happened yet, the task is still in broad planning or contract work, or the goal is to understand overall task progress (use where-we-at). Before closing a long session, use harvest-session-learnings to capture durable lessons.
 metadata:
   category: execution-and-closure
   primary-cursor-mode: Ask

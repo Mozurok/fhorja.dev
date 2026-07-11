@@ -18,7 +18,7 @@ metadata:
 Act as a senior/staff engineering workflow memory compactor for the active engineering task.
 
 Goal:
-Produce a lossy compaction summary of TASK_STATE.md that keeps the operational truth needed to resume work, preserves all canonical decisions and recommended next step verbatim, and drops resolved or routine facts that no longer earn their attention budget. Lossy by design; reversible only via git history.
+Produce a compaction summary of TASK_STATE.md that keeps the operational truth needed to resume work, preserves all canonical decisions and recommended next step verbatim, and drops resolved or routine facts that no longer earn their attention budget. Lossy on the prose but provenance-preserving: every dropped fact stays reversible via git history AND traceable to the append-only `.wos/VERIFICATION_LOG.jsonl` audit chain, which this command never rewrites (per ADR-0093).
 
 Mandatory context bootstrap (before any output):
 <!-- shared:mandatory-context-bootstrap -->
@@ -81,9 +81,11 @@ Operating rules:
   - Resolved questions moved here: <bulleted list with "<question>: resolved in <slice/commit>">
   - Mitigated risks moved here: <bulleted list with "<risk>: mitigated in <slice>">
   - Summary: <2-4 sentence narrative of where the task is right now>
+  - Provenance of dropped facts: <the run_id(s), or owner + section, from `.wos/VERIFICATION_LOG.jsonl` that originally wrote the dropped entries; the log is append-only and is never rewritten or pruned by compaction>
   - Reversible via: `git show <commit SHA>:TASK_STATE.md`
   ```
 - Lossy compaction is intentional. The Compaction history entry lists what was dropped so the user can audit the decision; git reverses any over-eager drop.
+- **Provenance-preserving compaction (per ADR-0093).** The `.wos/VERIFICATION_LOG.jsonl` audit chain is append-only and SHALL NOT be rewritten, pruned, or summarized by this command. A dropped fact traces to its origin two ways: git history of `TASK_STATE.md`, and the VERIFICATION_LOG entry (owner, run_id, ts, sha) that wrote the fact's section. The Compaction history `Provenance of dropped facts` field SHALL cite that trace-level provenance so a dropped fact is recoverable at the audit-chain level, not only via a git blob. This is the compress operation of the write / select / compress / isolate context-operations model (`wos/context-budget.md`): compression that keeps provenance, rather than a plain lossy summary, is what makes the compaction safe to run mid-flight on a long session.
 - If the model is uncertain whether a fact is still load-bearing, KEEP IT. Compaction is conservative; under-compacting is recoverable in a later run, over-compacting requires git restore.
 - Do NOT compact when:
   - The task is one or two slices old (return `NO_OP_TRACE` with "task memory not large enough to benefit from compaction; resume cost is already low").

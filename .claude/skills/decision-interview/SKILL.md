@@ -1,7 +1,7 @@
 ---
 name: decision-interview
 description: |-
-  Ask the minimum set of high-value decision questions needed before turning the task into canonical implementation rules. Decisions that would change runtime behavior, data integrity, rollout safety, or test strategy. Use when the missing information is decision-driven (not factual), different answers would change behavior or data integrity or rollout safety or test strategy, or the task cannot safely move into planning because policy or behavior is undecided. Do not use when missing information is factual (use targeted-questions), decisions are already locked in code or docs or approved task artifacts, or the task is already in implementation with no correctness-critical ambiguity.
+  Ask the minimum set of high-value decision questions needed before turning the task into canonical implementation rules. Decisions that would change runtime behavior, data integrity, rollout safety, or test strategy. Use when the missing information is decision-driven (not factual), different answers would change behavior or data integrity or rollout safety or test strategy, or the task cannot safely move into planning because policy or behavior is undecided. Do not use when missing information is factual (use targeted-questions), decisions are already locked in code or docs or approved task artifacts, or the task is already in implementation with no correctness-critical ambiguity. To harden wording before planning, use contract-signoff; to reconcile contradictory rules, use resolve-contract-gaps.
 metadata:
   category: discovery-and-scoping
   primary-cursor-mode: Ask

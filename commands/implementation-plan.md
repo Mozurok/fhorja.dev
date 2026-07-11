@@ -135,7 +135,7 @@ TASK_STATE.md update must reflect:
 Required output:
 1. Exact content for IMPLEMENTATION_PLAN.md (full document if create/update; otherwise a short NO_OP note)
 2. Exact TASK_STATE.md update block, or explicit `TASK_STATE: NO_CHANGE`
-3. Recommended next command. When the plan is complete with no `[NEEDS CLARIFICATION:]` markers, the default is `approve-plan` (lock the baseline before execution); execution commands (`implement-fleet` / `implement-approved-slice`) are reached only through that approval gate, routed waves-aware per ADR-0042. When clarification markers or open decisions remain, route to the smallest decisive upstream command instead.
+3. Recommended next command. When the plan is complete with no `[NEEDS CLARIFICATION:]` markers, the default is `approve-plan` (lock the baseline before execution); execution commands (`implement-fleet` / `implement-approved-slice`) are reached only through that approval gate, routed waves-aware per ADR-0042. For a single critique-and-revise pass on the freshly-written plan before approval, use `self-critique-and-revise` (cheaper than re-running this command). When clarification markers or open decisions remain, route to the smallest decisive upstream command instead.
 4. Recommended editor mode
 5. Why this is the correct next step
 6. What should explicitly not be done yet

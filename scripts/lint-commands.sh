@@ -1217,6 +1217,25 @@ if [[ -x "$ST_SCRIPT" ]]; then
   [[ -n "$ST_LINE" ]] && echo "$ST_LINE"
 fi
 
+# --- Flow-orphans advisory (command-graph interconnection) ------------------
+# Delegates to scripts/flow-audit.py --orphans-brief. INFORMATIONAL: warn-only,
+# never flips the exit code (mirrors the skill-triggers advisory tier). Reports
+# commands with zero inbound references in the command graph (only reachable if
+# you already know they exist). A missing python3 degrades to a skipped advisory,
+# never a lint failure. See scripts/flow-audit.py and the 2026-07-11 flow audit.
+FA_SCRIPT="${SCRIPT_DIR}/flow-audit.py"
+if command -v python3 >/dev/null 2>&1 && [[ -f "$FA_SCRIPT" ]]; then
+  FA_OUT="$(python3 "$FA_SCRIPT" --orphans-brief 2>/dev/null || true)"
+  FA_HEAD="$(printf '%s\n' "$FA_OUT" | grep -iE '^orphan-edge advisory:' | tail -n1 || true)"
+  if [[ -n "$FA_HEAD" ]]; then
+    FA_ZERO="$(printf '%s' "$FA_HEAD" | grep -oE '[0-9]+ command\(s\) with 0 inbound' | grep -oE '^[0-9]+' || echo '?')"
+    echo "Flow-orphans: ${FA_ZERO} command(s) with 0 inbound reference(s) in the command graph (informational; per scripts/flow-audit.py)"
+    if [[ $VERBOSE -eq 1 ]] || [[ $STRICT -eq 1 ]]; then
+      printf '%s\n' "$FA_OUT" | sed -n '2,$p' | sed 's/^/  /'
+    fi
+  fi
+fi
+
 # --- NEEDS CLARIFICATION marker count (informational; non-blocking) --------
 # Per wos/cross-cutting-workflow-guardrails.md NEEDS CLARIFICATION inline marker.
 # Greps every .md file under projects/*/active/*/ for the literal marker prefix.
