@@ -135,7 +135,7 @@ Paths above are relative to wherever you cloned the repo; the folder name itself
 - **One source of truth per command.** `commands/<name>.md` is canonical. `scripts/build-agent-skills.sh` generates `.claude/skills/<name>/SKILL.md` from it, so any Agent-Skills-compatible tool gets the same command with no extra step. Editing a generated skill by hand is prohibited; lint fails CI on drift.
 - **Registry membership.** Per [ADR-0029](./docs/adr/0029-drift-guards-registry-and-count-markers.md), every command must appear in four discoverability surfaces: the cluster list above, the Command roles index in `WORKFLOW_OPERATING_SYSTEM.md`, [`wos/command-roles.md`](./wos/command-roles.md), and [`COMMAND_PROMPT_STUBS.md`](./COMMAND_PROMPT_STUBS.md). Lint fails on a gap in either direction.
 - **Count markers.** Prose claims about on-disk quantities, like the <!-- count:commands -->94<!-- /count --> commands above, use `<!-- count:KIND -->N<!-- /count -->` markers that lint checks against the live count, which is why the numbers in this README are trustworthy.
-- **Index rows and regression net.** Every ADR has a row in [`docs/adr/README.md`](./docs/adr/README.md); every eval scenario has a row in [`evals/README.md`](./evals/README.md). The decision history is <!-- count:adrs -->89<!-- /count --> Architecture Decision Records, each immutable once accepted, and the regression net is <!-- count:scenarios -->101<!-- /count --> scenarios, run with `evals/scripts/run-evals.sh`.
+- **Index rows and regression net.** Every ADR has a row in [`docs/adr/README.md`](./docs/adr/README.md); every eval scenario has a row in [`evals/README.md`](./evals/README.md). The decision history is <!-- count:adrs -->90<!-- /count --> Architecture Decision Records, each immutable once accepted, and the regression net is <!-- count:scenarios -->103<!-- /count --> scenarios, run with `evals/scripts/run-evals.sh`.
 
 ## Command catalog
 
@@ -289,7 +289,7 @@ MCP-dependent commands (`db-context-supabase`, `db-context-postgres`, the Figma 
 
 ## Eval harness and quality
 
-The workflow ships a manual regression net of <!-- count:scenarios -->101<!-- /count --> scenarios under `evals/scenarios/`, indexed in [`evals/README.md`](./evals/README.md). Each scenario is self-contained: a full input prompt, the expected response shape, and numbered pass criteria a reviewer checks by reading the model output. Run them with `evals/scripts/run-evals.sh`; `evals/scripts/judge.py` is an optional LLM-as-judge second pass that never replaces manual review.
+The workflow ships a manual regression net of <!-- count:scenarios -->103<!-- /count --> scenarios under `evals/scenarios/`, indexed in [`evals/README.md`](./evals/README.md). Each scenario is self-contained: a full input prompt, the expected response shape, and numbered pass criteria a reviewer checks by reading the model output. Run them with `evals/scripts/run-evals.sh`; `evals/scripts/judge.py` is an optional LLM-as-judge second pass that never replaces manual review.
 
 `repo-consistency-sweep` draws on the curated bug-class library in `wos/bug-classes/`, auto-discovered at sweep time; project-local templates can override a global one on name collision.
 

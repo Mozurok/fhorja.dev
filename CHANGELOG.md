@@ -16,7 +16,7 @@ While the project is in alpha (0.x.y), MINOR may include breaking changes; expec
 ## [Unreleased]
 
 ### Added
-- (none yet)
+- Experience gates generalized off Godot (ADR-0091, **Accepted** 2026-07-10; connector-dogfood punch-list; commits 733bb84, 0a264e9, 738abde, 989a05b): D-1 deliverable tags (`user-facing-content`, `new-user-facing-surface`) with the tagging duty in `implementation-plan` and `task-init`; the experience-verdict floor (a recorded human `## Experience verdict` PASS before tagged content closes; machine-green evidence does not substitute) and the entry-path probe floor (one exercised run through the user's real entry path before a new surface scales) at the three closure homes with Godot stand-down; `review-hard`'s ADR-0088 runtime-debug-payload triage forced to the first operating rule; the manual-step handoff contract and the known-gotchas dispatch preflight in the spec guardrails plus an `implement-fleet` Step 5 preflight line. Eval scenarios 102-103; no new command. Count markers: ADRs 90, scenarios 103.
 
 ### Changed
 - (none yet)
@@ -172,7 +172,7 @@ First public release: Fhorja goes open source under AGPL-3.0, published with a f
 
 ### Notes
 - `## [0.1.0]` was cut on 2026-04-30; the "Initial public release under AGPL-3.0" entries below it remain as the pre-launch baseline.
-- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->89<!-- /count --> (0001-0089, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->90<!-- /count --> (0001-0089, with 0037 as the reserved gap).
 
 ---
 

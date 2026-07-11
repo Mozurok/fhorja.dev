@@ -76,6 +76,7 @@ Operating rules:
   - exact scope
   - `Scope:` the explicit file paths or globs this slice creates or modifies (machine-readable, one path per entry). Consumed by `implement-fleet` to compute parallelizable waves; an under-declared scope defeats the ADR-0041 file-scope disjointness gate, so list every file the slice will touch.
   - `Depends-on:` the slice IDs this slice requires, or `none` (machine-readable). With `Scope`, this defines the slice DAG.
+  - `Deliverable-tag:` WHEN a slice's deliverable is user-facing product content or a new user-facing surface, the slice SHALL carry `Deliverable-tag: user-facing-content` or `Deliverable-tag: new-user-facing-surface` (ADR-0091); the closure floors key off this tag, and an untagged content deliverable is caught by the closing floor's backstop and flagged. Omit for slices with no user-facing deliverable.
   - why this order is safe
   - key risks
   - validation approach
