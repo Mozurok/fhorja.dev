@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 132" width="1200" height="132" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace" role="img" aria-label="A real task, from task-init to task-close">
+  <defs>
+    <linearGradient id="rail" gradientUnits="userSpaceOnUse" x1="90" y1="70" x2="1110" y2="70">
+      <stop offset="0%" stop-color="#3ddc97"/>
+      <stop offset="20%" stop-color="#6db3f2"/>
+      <stop offset="72%" stop-color="#f28ba8"/>
+      <stop offset="100%" stop-color="#3ddc97"/>
+    </linearGradient>
+  </defs>
+  <rect x="0.5" y="0.5" width="1199" height="131" rx="16" fill="#0b0d0e" stroke="#262c2f"/>
+
+  <text x="56" y="34" font-size="13" fill="#3ddc97">$ a real task</text>
+  <text x="170" y="34" font-size="13" fill="#a3adb0">from task-init to task-close, one approved slice at a time</text>
+
+  <!-- rail: solid base for guaranteed visibility, gradient on top -->
+  <line x1="90" y1="70" x2="1110" y2="70" stroke="#39454a" stroke-width="3"/>
+  <line x1="90" y1="70" x2="1110" y2="70" stroke="url(#rail)" stroke-width="3" stroke-opacity="0.85"/>
+
+  <!-- nodes (drawn over the rail) -->
+  <g font-size="12" text-anchor="middle">
+    <g><circle cx="90" cy="70" r="7" fill="#3ddc97" stroke="#0b0d0e" stroke-width="3"/><circle cx="90" cy="70" r="11" fill="none" stroke="#3ddc97" stroke-opacity="0.35"/><text x="90" y="104" fill="#3ddc97">task-init</text></g>
+    <g><circle cx="294" cy="70" r="7" fill="#6db3f2" stroke="#0b0d0e" stroke-width="3"/><circle cx="294" cy="70" r="11" fill="none" stroke="#6db3f2" stroke-opacity="0.35"/><text x="294" y="104" fill="#6db3f2">impact-analysis</text></g>
+    <g><circle cx="498" cy="70" r="7" fill="#3ddc97" stroke="#0b0d0e" stroke-width="3"/><circle cx="498" cy="70" r="11" fill="none" stroke="#3ddc97" stroke-opacity="0.35"/><text x="498" y="104" fill="#3ddc97">implementation-plan</text></g>
+    <g><circle cx="702" cy="70" r="7" fill="#3ddc97" stroke="#0b0d0e" stroke-width="3"/><circle cx="702" cy="70" r="11" fill="none" stroke="#3ddc97" stroke-opacity="0.35"/><text x="702" y="104" fill="#3ddc97">implement-approved-slice</text></g>
+    <g><circle cx="906" cy="70" r="7" fill="#f28ba8" stroke="#0b0d0e" stroke-width="3"/><circle cx="906" cy="70" r="11" fill="none" stroke="#f28ba8" stroke-opacity="0.35"/><text x="906" y="104" fill="#f28ba8">review-hard</text></g>
+    <g><circle cx="1110" cy="70" r="7" fill="#3ddc97" stroke="#0b0d0e" stroke-width="3"/><circle cx="1110" cy="70" r="11" fill="none" stroke="#3ddc97" stroke-opacity="0.35"/><text x="1110" y="104" fill="#3ddc97">task-close</text></g>
+  </g>
+</svg>

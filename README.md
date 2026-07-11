@@ -1,9 +1,14 @@
-# Fhorja
+<p align="center">
+  <img src=".github/assets/hero.svg" alt="Fhorja, the workflow operating system for AI-assisted engineering" width="100%">
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg" alt="License: AGPL v3"></a>
+  &nbsp;
+  <a href="#status-license-and-contributing"><img src="https://img.shields.io/badge/Status-v1.0.0-brightgreen.svg" alt="Status: v1.0.0"></a>
+</p>
 
 > A workflow operating system for AI-assisted engineering. Task state, decisions, and plans live on disk as files, not in chat history, so context survives across sessions, tools, and restarts.
-
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
-[![Status: v1.0.0](https://img.shields.io/badge/Status-v1.0.0-brightgreen.svg)](#status-license-and-contributing)
 
 You start an AI coding session on a real feature. Twenty minutes in, you've made three decisions in chat: which field owns the source of truth, how to handle the edge case, what to skip for now. None of that gets written anywhere. You close the laptop. Tomorrow, or in a new chat, the agent has no memory of any of it. You re-explain the feature, re-litigate a decision you already made, and it starts editing files before you agreed on the approach.
 
@@ -46,6 +51,10 @@ Two more flags worth knowing: `--with-skills` mirrors the Agent Skills to your u
 
 A task moves through a short, explicit chain. Each command persists its result to task memory and hands off to the next:
 
+<p align="center">
+  <img src=".github/assets/lifecycle.svg" alt="A task from task-init to task-close, one approved slice at a time" width="100%">
+</p>
+
 ```
 [problem-framing] -> task-init -> impact-analysis -> implementation-plan -> approve-plan
                   -> implement-approved-slice -> slice-closure -> review-hard -> pr-package -> task-close
@@ -66,6 +75,10 @@ A task moves through a short, explicit chain. Each command persists its result t
 ## Command clusters
 
 <!-- count:commands -->94<!-- /count --> commands, grouped here into 14 clusters for orientation (this grouping is editorial, not the formal <!-- count:command-categories -->9<!-- /count -->-category boundary used inside the spec):
+
+<p align="center">
+  <img src=".github/assets/clusters.svg" alt="The command families, one color per group, the same color key the fhorja.dev page uses" width="100%">
+</p>
 
 | Cluster | A few commands | What it does |
 |---|---|---|

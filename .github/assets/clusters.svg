@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 168" width="1200" height="168" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace" role="img" aria-label="The eight command clusters, one color per family">
+  <rect x="0.5" y="0.5" width="1199" height="167" rx="16" fill="#0b0d0e" stroke="#262c2f"/>
+
+  <text x="30" y="40" font-size="15" fill="#a3adb0" letter-spacing="1">command families</text>
+  <text x="210" y="40" font-size="13" fill="#e8eae8" opacity="0.6">one color per family, so the workflow reads at a glance</text>
+
+  <g>
+    <g transform="translate(30 62)">
+      <rect width="130" height="80" rx="10" fill="#3ddc97" fill-opacity="0.12" stroke="#3ddc97" stroke-opacity="0.55"/>
+      <circle cx="18" cy="26" r="5" fill="#3ddc97"/><text x="32" y="31" font-size="14" fill="#3ddc97">lifecycle</text>
+      <text x="16" y="56" font-size="11" fill="#a3adb0">init &#8594; close</text>
+    </g>
+    <g transform="translate(174 62)">
+      <rect width="130" height="80" rx="10" fill="#6db3f2" fill-opacity="0.12" stroke="#6db3f2" stroke-opacity="0.55"/>
+      <circle cx="18" cy="26" r="5" fill="#6db3f2"/><text x="32" y="31" font-size="14" fill="#6db3f2">discovery</text>
+      <text x="16" y="56" font-size="11" fill="#a3adb0">analysis</text>
+    </g>
+    <g transform="translate(318 62)">
+      <rect width="130" height="80" rx="10" fill="#f28ba8" fill-opacity="0.12" stroke="#f28ba8" stroke-opacity="0.55"/>
+      <circle cx="18" cy="26" r="5" fill="#f28ba8"/><text x="32" y="31" font-size="14" fill="#f28ba8">review</text>
+      <text x="16" y="56" font-size="11" fill="#a3adb0">risk, security</text>
+    </g>
+    <g transform="translate(462 62)">
+      <rect width="130" height="80" rx="10" fill="#b79df5" fill-opacity="0.12" stroke="#b79df5" stroke-opacity="0.55"/>
+      <circle cx="18" cy="26" r="5" fill="#b79df5"/><text x="32" y="31" font-size="14" fill="#b79df5">fleet</text>
+      <text x="16" y="56" font-size="11" fill="#a3adb0">parallel waves</text>
+    </g>
+    <g transform="translate(606 62)">
+      <rect width="130" height="80" rx="10" fill="#e8b84a" fill-opacity="0.12" stroke="#e8b84a" stroke-opacity="0.55"/>
+      <circle cx="18" cy="26" r="5" fill="#e8b84a"/><text x="32" y="31" font-size="14" fill="#e8b84a">state</text>
+      <text x="16" y="56" font-size="11" fill="#a3adb0">task memory</text>
+    </g>
+    <g transform="translate(750 62)">
+      <rect width="130" height="80" rx="10" fill="#59d6db" fill-opacity="0.12" stroke="#59d6db" stroke-opacity="0.55"/>
+      <circle cx="18" cy="26" r="5" fill="#59d6db"/><text x="32" y="31" font-size="14" fill="#59d6db">design</text>
+      <text x="16" y="56" font-size="11" fill="#a3adb0">figma, specs</text>
+    </g>
+    <g transform="translate(894 62)">
+      <rect width="130" height="80" rx="10" fill="#f0a568" fill-opacity="0.12" stroke="#f0a568" stroke-opacity="0.55"/>
+      <circle cx="18" cy="26" r="5" fill="#f0a568"/><text x="32" y="31" font-size="14" fill="#f0a568">delivery</text>
+      <text x="16" y="56" font-size="11" fill="#a3adb0">PR, release</text>
+    </g>
+    <g transform="translate(1038 62)">
+      <rect width="130" height="80" rx="10" fill="#ef8e7d" fill-opacity="0.12" stroke="#ef8e7d" stroke-opacity="0.55"/>
+      <circle cx="18" cy="26" r="5" fill="#ef8e7d"/><text x="32" y="31" font-size="14" fill="#ef8e7d">gamedev</text>
+      <text x="16" y="56" font-size="11" fill="#a3adb0">godot 2D</text>
+    </g>
+  </g>
+</svg>

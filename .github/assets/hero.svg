@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 340" width="1200" height="340" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace" role="img" aria-label="Fhorja, the workflow operating system for AI-assisted engineering">
+  <defs>
+    <linearGradient id="wordmark" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3ddc97"/>
+      <stop offset="48%" stop-color="#6db3f2"/>
+      <stop offset="100%" stop-color="#b79df5"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="0%" r="75%">
+      <stop offset="0%" stop-color="#3ddc97" stop-opacity="0.16"/>
+      <stop offset="55%" stop-color="#3ddc97" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="26" height="26" patternUnits="userSpaceOnUse">
+      <path d="M26 0H0V26" fill="none" stroke="#262c2f" stroke-width="1" stroke-opacity="0.55"/>
+    </pattern>
+    <linearGradient id="rule" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3ddc97"/>
+      <stop offset="100%" stop-color="#b79df5" stop-opacity="0.15"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0.5" y="0.5" width="1199" height="339" rx="16" fill="#0b0d0e" stroke="#262c2f"/>
+  <rect x="1" y="1" width="1198" height="338" rx="15" fill="url(#grid)"/>
+  <rect x="1" y="1" width="1198" height="200" rx="15" fill="url(#glow)"/>
+
+  <!-- wordmark -->
+  <text x="56" y="104" font-size="64" font-weight="700" fill="url(#wordmark)" letter-spacing="-1">fhorja</text>
+  <text x="300" y="104" font-size="16" fill="#a3adb0" letter-spacing="2">// workflow OS</text>
+  <rect x="56" y="126" width="360" height="2" fill="url(#rule)"/>
+
+  <!-- tagline -->
+  <text x="56" y="176" font-size="23" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" fill="#e8eae8">The workflow operating system for AI-assisted engineering.</text>
+
+  <!-- one task, start to close (real command names, no shell binary implied) -->
+  <rect x="56" y="210" width="1088" height="48" rx="10" fill="#14181a" stroke="#262c2f"/>
+  <text x="76" y="240" font-size="16"><tspan fill="#3ddc97">&#9656;</tspan><tspan fill="#e8eae8" xml:space="preserve"> task-init</tspan><tspan fill="#a3adb0" xml:space="preserve"> &#8250; impact-analysis &#8250; implement-approved-slice &#8250; </tspan><tspan fill="#e8eae8">task-close</tspan><tspan fill="#3ddc97" font-weight="700" xml:space="preserve"> &#9608;<animate attributeName="fill-opacity" values="1;1;0;0" dur="1.1s" repeatCount="indefinite"/></tspan></text>
+
+  <!-- chips -->
+  <g font-size="14" fill="#a3adb0">
+    <circle cx="64" cy="296" r="4" fill="#3ddc97"/><text x="76" y="301">AGPL-3.0, open source</text>
+    <circle cx="288" cy="296" r="4" fill="#6db3f2"/><text x="300" y="301">no telemetry, no tracking</text>
+    <circle cx="540" cy="296" r="4" fill="#b79df5"/><text x="552" y="301">94 commands, one output contract</text>
+  </g>
+</svg>
