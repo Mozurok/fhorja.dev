@@ -28,7 +28,7 @@ Append exactly one JSON line per section write to `active/<task>/.wos/VERIFICATI
 {"ts":"2026-06-04T14:22:11.482Z","run_id":"01HX5KPQ8R-...","owner":"<command-name>","owner_type":"command","invoked_by":null,"file":"TASK_STATE.md","section":"## Current phase","event":"write","mode":"applied","sha_before":"<sha256-or-null>","sha_after":"<sha256>","reason":"<same-as-header>","partials":null,"strategy":null}
 ```
 
-Event taxonomy (canonical, 19 enum values): `write` | `overwrite` | `propose` | `approve` | `refuse` | `fleet-merge` | `legacy-promote` | `partial_merge` | `merge_include` | `merge_with_gap` | `worker_failed` | `worker_interrupted` | `worker_missing` | `worker_timeout` | `retry_needs_revision` | `max_iterations_promoted` | `retry_failed_recoverable` | `quorum_discard`.
+Event taxonomy (canonical, 19 enum values): `write` | `overwrite` | `propose` | `approve` | `refuse` | `delete` | `fleet-merge` | `legacy-promote` | `partial_merge` | `merge_include` | `merge_with_gap` | `worker_failed` | `worker_interrupted` | `worker_missing` | `worker_timeout` | `retry_needs_revision` | `max_iterations_promoted` | `retry_failed_recoverable` | `quorum_discard`.
 
 Owner-type taxonomy: `command` | `persona` | `fleet-merger`.
 
@@ -44,6 +44,8 @@ Owner-type taxonomy: `command` | `persona` | `fleet-merger`.
 - NEVER when reading, or when the write is a no-op-if-identical match, because logging a read or an unchanged write inflates the trail with events that moved nothing and dilutes the signal the validator and the activity timeline depend on.
 - For PROPOSED blocks (mode=proposed), emit `event=propose`; the subsequent `approve-proposed` run emits `event=approve` per applied file.
 - For REFUSE conflicts (writer is not the owner per `wos/substrate-peers.md`), emit `event=refuse` with the conflicting owner and reason; do NOT write the section.
+- For section removals: emit `event=delete` for each H2 section that existed before a write and no longer exists after it, including replace-in-full rewrites. Convention: `sha_before` = the removed section's last hash, `sha_after` = null (the delete event is the ONLY event where `sha_after` may be null). A rename is a `delete` of the old section name plus a `write` of the new one. Without this, a superseded section's last write event sits orphaned in the log and the log-derived section set overstates the file.
+- H3-scoped co-writes (per `wos/substrate-peers.md`, e.g. implement-approved-slice's status-only update inside `### Slice N`): log at the owning H2 (`section='## Slices'`) with `reason` naming the slice and the transition (e.g. `reason=slice-3-status-implemented`); the sha fields hash the H2 block. The H2-only section grammar is intact; do not put `### ` text in the `section` field (the validator rejects it).
 
 ## Legacy files without headers
 
@@ -51,7 +53,9 @@ VALID per `wos/substrate-peers.md ## Legacy file without headers`. The first mut
 
 ## Concrete computation (bash helpers)
 
-The K.2 protocol is half-compliant if you emit the JSONL line but skip the inline header, or if you set `sha_*` fields to `null` when the section already existed. The K.8 first-lived-test (2026-06-04) found 125 of 126 substrate writes shipped the JSONL line without the inline header. Use these helpers verbatim to avoid that failure mode.
+The K.2 protocol is half-compliant if you emit the JSONL line but skip the inline header, or if you set `sha_*` fields to `null` when the section already existed. The K.8 first-lived-test (2026-06-04) found 125 of 126 substrate writes shipped the JSONL line without the inline header. Preferred path: run `bash scripts/emit-substrate-write.sh` (wraps RUN_ID/TS generation, sha_of_section, and emit_audit; its `--batch <file>` mode emits one JSONL line per owner-headed section of a file, so a task-init-scale ~25-30-section run is one invocation per file). The helpers below are the same logic inline, for hosts without script access; use them verbatim to avoid the half-compliance failure mode.
+
+A section's bytes end at the next transaction header or the next H2 heading, whichever comes first (matching the sha definition in `wos/substrate-peers.md`); the next section's `<!-- wos:write -->` header line is never part of the previous section's hash.
 
 Run from the task folder root (`active/<task>/`):
 
@@ -71,7 +75,7 @@ sha_of_section() {
   local body
   body=$(awk -v h="$header" '
     $0 == h            { f=1; next }
-    /^## / && f        { exit }
+    f && (/^## / || /^<!-- wos:write /) { exit }
     f                  { print }
   ' "$file")
   if [[ -z "$body" ]]; then printf 'null'; return; fi

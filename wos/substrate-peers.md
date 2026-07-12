@@ -30,24 +30,32 @@ Legend: O = owner (writes via Edit/Write); P = propose-only (PROPOSED block); R 
 
 ### TASK_STATE.md
 
-**Correction (F-3, dogfood-wave 2026-07-11):** the five rows below were reconciled against the real Operating-rules/Required-output text of each named command (and, for `## Canonical decisions`/`## Open questions / blockers`/`## Current status`, independently corroborated by the real archived `2026-07-09_godot-2d-e2e-completeness-audit` task's own TASK_STATE.md write headers). Scope was kept tight to these five confirmed mismatches; this is not a full line-by-line audit of the table below.
+**Correction (F-3, dogfood-wave 2026-07-11):** the five rows below were reconciled against the real Operating-rules/Required-output text of each named command (and, for `## Canonical decisions`/`## Open questions / blockers`/`## Current status`, independently corroborated by the real archived `2026-07-09_godot-2d-e2e-completeness-audit` task's own TASK_STATE.md write headers). Scope was kept tight to these five confirmed mismatches.
+
+**Reconciliation (ADR-0101, theme dogfood wave 2026-07-11):** the full table pass F-3 deferred, forced by 7 of 10 independent unattended dogfood paths hitting matrix-vs-command drift. Treating `commands/*.md` as canonical (per CLAUDE.md): six template-mandated sections gained rows (`## Requested deliverables`, `## Recommended pipeline`, `## Current closure target`, `## Resume notes`, `## Work complexity (for next execution step)`, `## Task scope level`), the genesis exception (rule 2a) and the pattern-writer rule (rule 2b) were added to the read/write contract, and the rows below carry the corrected co-writers.
 
 | Section (H2) | Owner | Co-writers (propose) | Readers |
 |---|---|---|---|
 | `## Task summary` | task-init | direction-adjust (P) | all |
-| `## Current phase` | slice-closure | sync-task-state, where-we-at | all |
+| `## Current phase` | slice-closure | sync-task-state, where-we-at, plus the pattern writers (rule 2b) | all |
 | `## Objective` | task-init | post-review-pivot (P) | all |
+| `## Requested deliverables` | task-init (seed, ADR-0056) | implementation-plan (--spec ledger extension); slice-closure, task-close, review-hard, where-we-at (re-tagging via `commands/_shared/deliverable-reconcile.md`) | all |
+| `## Recommended pipeline` | task-init (ADR-0025, ADR-0101) | what-next, sync-task-state | all |
 | `## Source of truth` | task-init | code-locate (P), capture-references (P) | all |
 | `## Current known facts` | sync-task-state | impact-analysis, code-locate, code-context-map, db-context-supabase | all |
 | `## Canonical decisions` | sync-task-state | decision-interview (direct write in persist mode, authorized by the user's explicit LOCK signal; propose-only in interview mode), contract-signoff (P), direction-adjust (P) | all |
 | `## Open questions / blockers` | targeted-questions | capture-observation, im-stuck, pr-feedback-ingest, decision-interview | all |
 | `## Observations` | capture-observation | any-command via append-only | all |
-| `## Last completed step` | sync-task-state | implement-approved-slice, slice-closure | all |
-| `## Current status` | sync-task-state | slice-closure, where-we-at, decision-interview | all |
-| `## Active files in scope` | impact-analysis | code-locate, sync-task-state | all |
+| `## Last completed step` | sync-task-state | implement-approved-slice, slice-closure, plus the pattern writers (rule 2b) | all |
+| `## Current status` | sync-task-state | slice-closure, where-we-at, decision-interview, plus the pattern writers (rule 2b: `### In progress`) | all |
+| `## Active files in scope` | impact-analysis | code-locate, sync-task-state, implementation-plan | all |
 | `## Constraints / things that must not change` | invariants-and-non-goals | sync-task-state | all |
-| `## Risks to watch` | rls-auth-boundary-auditor (L3+ exclusive owner per K.6 maturity ladder, 2026-06-05) | sync-task-state, impact-analysis, review-hard, security-review (P), test-strategy; other CUSTOM personas re-route to IMPLEMENTATION_PLAN.md ## Risks and mitigations | all |
-| `## Recommended next step` | what-next | sync-task-state, slice-closure, im-stuck, decision-interview, godot-scene-plan, where-we-at, approve-plan, implement-approved-slice | all |
+| `## Risks to watch` | rls-auth-boundary-auditor (L3+ exclusive owner per K.6 maturity ladder, 2026-06-05) | sync-task-state, impact-analysis, review-hard, security-review (P), test-strategy, post-deploy-verifier (P) | all |
+| `## Recommended next step` | what-next | sync-task-state, slice-closure, im-stuck, decision-interview, godot-scene-plan, where-we-at, approve-plan, implement-approved-slice, plus the pattern writers (rule 2b) | all |
+| `## Current closure target` | sync-task-state | slice-closure, plus the pattern writers (rule 2b) | all |
+| `## Work complexity (for next execution step)` | implementation-plan | sync-task-state, what-next | all |
+| `## Resume notes` | sync-task-state | compact-task-memory, resume-from-state (P) | all |
+| `## Task scope level` | task-init | sync-task-state | all |
 | `## Compaction history` | compact-task-memory | (sole owner) | all |
 | `## Latest sweep` | repo-consistency-sweep | (sole owner) | all |
 | `## Ruled-out hypotheses` | incident-triage | (sole owner) | all |
@@ -57,10 +65,11 @@ Legend: O = owner (writes via Edit/Write); P = propose-only (PROPOSED block); R 
 | Section | Owner | Co-writers | Readers |
 |---|---|---|---|
 | `## Locked decisions` (D-N) | decision-interview | contract-signoff, direction-adjust, post-review-pivot | all |
+| `## Decision history` | decision-interview | contract-signoff, direction-adjust, post-review-pivot | all |
 | `## Open questions` | targeted-questions | resolve-contract-gaps | all |
 | `## Discarded alternatives` | NONE (forbidden per `wos/task-file-contracts.md`) | n/a | n/a |
 
-**Write rule:** D-N entries are **APPEND-ONLY**. Editing a locked D-N requires a new `D-(N+M)` with `Supersedes: D-N` line + entry in `## Decision history`. Never mutate silently.
+**Write rule:** D-N entries are **APPEND-ONLY**. Editing a locked D-N requires a new `D-(N+M)` with `Supersedes: D-N` line + entry in `## Decision history`. Never mutate silently. **Placement (ADR-0101):** `## Decision history` is a separate H2 placed immediately after `## Locked decisions`; new D-N entries are appended at the END of the `## Locked decisions` block, before the next H2, so the block stays contiguous (the `sha_of_section` computation assumes one contiguous block per H2).
 
 ### IMPLEMENTATION_PLAN.md
 
@@ -68,12 +77,17 @@ Legend: O = owner (writes via Edit/Write); P = propose-only (PROPOSED block); R 
 |---|---|---|---|
 | `## Target behavior` | implementation-plan | post-review-pivot (P) | all |
 | `## Current gaps` | implementation-plan | impact-analysis (P) | all |
-| `## Constraints` | invariants-and-non-goals | implementation-plan | all |
+| `## Constraints` | invariants-and-non-goals | implementation-plan (direct write while no `INVARIANTS_AND_NON_GOALS.md` exists for the task; propose-only after the owner runs, ADR-0101) | all |
+| `## Infrastructure prerequisites` | implementation-plan | NONE | all |
 | `## Slices` | implementation-plan | implement-slice-complement (micro-delta only) | all |
 | `## Execution waves` | implementation-plan | NONE | all (implement-fleet reads to compute waves, per ADR-0041/0042) |
-| `### Slice N` (per-slice body) | implementation-plan | implement-approved-slice (status only), implement-fleet (status only, via its workers), slice-closure (status only) | all |
-| `## Validation expectations` | test-strategy | implementation-plan | all |
+| `### Slice N` (per-slice body) | implementation-plan | implement-approved-slice (status only), implement-fleet (status only, via its workers), slice-closure (status only); these H3-scoped co-writes are LOGGED at the owning `## Slices` H2 per `commands/_shared/substrate-write-protocol.md` (ADR-0101) | all |
+| `## Validation expectations` | test-strategy | implementation-plan (direct write while no `TEST_STRATEGY.md` exists for the task; propose-only after the owner runs, ADR-0101) | all |
+| `## Rollout and rollback notes` | implementation-plan | release-plan (P) | all |
 | `## Risks and mitigations` | implementation-plan | review-hard (P) | all |
+| `## Open questions or approvals still needed` | implementation-plan | targeted-questions (P) | all |
+| `## Spec coverage` (--spec mode, ADR-0061) | implementation-plan | NONE | all |
+| `## Approval log` | approve-plan (append-only) | NONE | all |
 
 ### SOURCE_OF_TRUTH.md
 
@@ -209,6 +223,8 @@ The orchestrator command (e.g. `atom-audit-fleet`, `screen-spec-fleet`) is the S
    <!-- wos:write owner=<id> section='## X' run_id=<uuid> ts=<iso8601> reason=<<=80chars> mode=<applied|proposed> -->
    ```
 2. A writer that is neither OWNER nor CO-WRITER **REFUSES** and emits a Handoff routing to the owner. Never silent partial write.
+2a. **Genesis exception (ADR-0101):** `task-init` (and `task-init-fleet`, per ADR-0040) is the initial writer of EVERY section it creates at task genesis, across all four task-memory files, emitting `owner=task-init` headers with `sha_before=null`; the per-section ownership matrix governs all subsequent mutations. This documents what `commands/task-init.md` already mandates; a first-ever write at genesis never REFUSES.
+2b. **Pattern-writer rule (ADR-0101):** every consumer of the canonical 5-section write pattern (`commands/_shared/task-state-slice-closure-pattern.md`: slice-closure, approve-plan, implement-fleet, release-plan, ai-feature-eval-harness, verify-against-rubric and its fleet, and peers that cite the pattern) is a sanctioned DIRECT co-writer of exactly the five sections that pattern names (`## Current phase`, `## Last completed step`, `### In progress` under `## Current status`, `## Recommended next step`, `## Current closure target`), without a per-row listing in the matrix. The matrix lists additional co-writers beyond the pattern set.
 3. CO-WRITERS (P) write `<!-- PROPOSED by <id>: -->` blocks INSIDE the section. `approve-proposed` promotes.
 4. `## Observations` is the only section that is true append-only freeform.
 5. `## Compaction history` is sole-owned by `compact-task-memory`.
@@ -312,7 +328,7 @@ Reuses Epic J J.5 fleet-run provenance log; does not create a parallel log.
 - `invoked_by` (string | null): when the owner was invoked as a worker or via Handoff routing, the parent invoker; null when user-initiated. Added per Epic K v2.1 REFINE to support traceability across persona-invokes-command and orchestrator-invokes-worker chains.
 - `file` (string): substrate file path -- either one of the four task-memory files (`TASK_STATE.md`, `DECISIONS.md`, `IMPLEMENTATION_PLAN.md`, `SOURCE_OF_TRUTH.md`) OR a fleet-substrate file owned by an Epic J orchestrator (`ATOM_AUDIT.md`, `SCREEN_MAP.md`, `routes.md`, `INITIATIVE_INDEX.md`, `EXTERNAL_RESEARCH.md`, `VERIFICATION_LOG.md`) OR project-level `REFERENCES.md`.
 - `section` (string): H2 section header text including the `## ` prefix.
-- `event` (enum): `write` | `overwrite` | `propose` | `approve` | `refuse` | `fleet-merge` | `legacy-promote` | `partial_merge` | `merge_include` | `merge_with_gap` | `worker_failed` | `worker_interrupted` | `worker_missing` | `worker_timeout` | `retry_needs_revision` | `max_iterations_promoted` | `retry_failed_recoverable` | `quorum_discard`.
+- `event` (enum): `write` | `overwrite` | `propose` | `approve` | `refuse` | `delete` | `fleet-merge` | `legacy-promote` | `partial_merge` | `merge_include` | `merge_with_gap` | `worker_failed` | `worker_interrupted` | `worker_missing` | `worker_timeout` | `retry_needs_revision` | `max_iterations_promoted` | `retry_failed_recoverable` | `quorum_discard`. The `delete` event (ADR-0101) is emitted for each H2 that existed before a write and no longer exists after it (including replace-in-full rewrites; a rename is delete + write); its convention is `sha_before` = the removed section's last hash and `sha_after` = null, the only event where `sha_after` may be null.
 - `mode` (enum): `applied` | `proposed`.
 - `sha_before`, `sha_after` (string, SHA-256 hex): hash of section bytes excluding the transaction header line itself; `sha_before` is null on first write to a fresh section.
 - `reason` (string, <=80 chars): human-readable rationale matching the transaction header `reason` field.

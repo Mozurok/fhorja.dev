@@ -26,7 +26,7 @@ REQUIRED_FIELDS = {
 OWNER_TYPES = {"command", "persona", "fleet-merger"}
 
 EVENTS = {
-    "write", "overwrite", "propose", "approve", "refuse",
+    "write", "overwrite", "propose", "approve", "refuse", "delete",
     "fleet-merge", "legacy-promote", "partial_merge",
     "merge_include", "merge_with_gap",
     "worker_failed", "worker_interrupted", "worker_missing", "worker_timeout",
@@ -115,6 +115,18 @@ def validate_line(idx: int, raw: str) -> list[str]:
         errors.append(
             f"line {idx}: event={event!r} with mode='applied' requires non-null sha_after (the write produced bytes; compute SHA-256 of the new section bytes)"
         )
+
+    # delete convention (ADR-0101): the section existed before (non-null
+    # sha_before) and no longer exists after (sha_after null).
+    if event == "delete":
+        if obj.get("sha_before") is None:
+            errors.append(
+                f"line {idx}: event='delete' requires non-null sha_before (a delete removes a section that existed)"
+            )
+        if obj.get("sha_after") is not None:
+            errors.append(
+                f"line {idx}: event='delete' requires null sha_after (the section no longer exists)"
+            )
 
     reason = obj.get("reason")
     if not isinstance(reason, str):

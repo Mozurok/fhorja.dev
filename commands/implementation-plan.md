@@ -49,13 +49,13 @@ Required inputs:
 Operating rules:
 - Do not write code.
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full).
-- **Substrate write protocol (per ADR-0034, K.2 2026-06-04 -- dogfood).** MANDATORY for every write to a substrate section this command owns (per `wos/substrate-peers.md`: IMPLEMENTATION_PLAN.md `## Target behavior`, `## Current gaps`, `## Slices`, `## Risks and mitigations`). Per `commands/_shared/substrate-write-protocol.md ## Concrete computation`:
+- **Substrate write protocol (per ADR-0034, K.2; emission duty per ADR-0101).** MANDATORY for EVERY H2 section this run writes to IMPLEMENTATION_PLAN.md (per `commands/_shared/substrate-write-protocol.md ## When to emit`), not only the owned subset. Ownership per `wos/substrate-peers.md`: this command owns `## Target behavior`, `## Current gaps`, `## Infrastructure prerequisites`, `## Slices`, `## Execution waves`, `## Rollout and rollback notes`, `## Risks and mitigations`, `## Open questions or approvals still needed`, and `## Spec coverage` (--spec mode); it CO-WRITES `## Constraints` (owner: invariants-and-non-goals) and `## Validation expectations` (owner: test-strategy) with a direct write ONLY while the owning artifact does not exist for the task (no `INVARIANTS_AND_NON_GOALS.md`, no `TEST_STRATEGY.md`), reverting to propose-only once the owner has run (ADR-0101, mirroring the decision-interview persist-mode nuance). Per `commands/_shared/substrate-write-protocol.md ## Concrete computation` (`bash scripts/emit-substrate-write.sh` is the invokable path):
   1. Compute `sha_before` via the canonical `sha_of_section` bash helper (or `null` only if the section did not exist prior to this write).
   2. Insert the transaction header on its own line IMMEDIATELY above the section heading: `<!-- wos:write owner=implementation-plan section='## X' run_id=<ULID-or-uuid> ts=<ISO-8601-ms-with-Z> reason=<<=80chars> mode=applied -->`.
   3. Write or update the section content.
   4. Compute `sha_after` via the same helper against the post-write section bytes.
   5. Append exactly one JSON line to `active/<task>/.wos/VERIFICATION_LOG.jsonl` per the 12-field schema in `wos/substrate-peers.md ## Audit trail`. `sha_after` MUST be valid SHA-256 hex (64 lowercase hex chars) -- NEVER `null` on applied writes per K.5 validator. `sha_before` is `null` ONLY on first write to a fresh section.
-  6. implementation-plan typically writes ALL 4 owned sections in one run (re-plan = full IMPLEMENTATION_PLAN rewrite). Repeat steps 1-5 PER section: 4 transaction headers + 4 JSONL lines. Reuse the same `run_id` + `ts` across all 4 section writes. Per-slice status mutations by `implement-approved-slice` / `slice-closure` follow their OWN K.2 protocol (status-only line edits inside `### Slice N` are CO-WRITER writes; ownership stays with implementation-plan for the parent `## Slices` section).
+  6. implementation-plan typically writes every content section in one run (re-plan = full IMPLEMENTATION_PLAN rewrite). Repeat steps 1-5 PER H2 section written: one transaction header + one JSONL line each (a full plan is typically 9-11 of each; `scripts/emit-substrate-write.sh batch` emits the JSONL side in one invocation). Reuse the same `run_id` + `ts` across all section writes. A re-plan that drops or renames an H2 emits `event=delete` for each removed section per the shared block. Per-slice status mutations by `implement-approved-slice` / `slice-closure` follow their OWN K.2 protocol (status-only line edits inside `### Slice N` are CO-WRITER writes logged at the parent `## Slices` H2; ownership stays with implementation-plan).
 
   FORBIDDEN: half-compliant pattern (JSONL emitted but inline header omitted, OR `sha_*` null on existing sections). K.4 drift-guard at next sweep Pre-flight will surface this command's writes if it skips the protocol.
 - **Never truncate before Handoff:** even after a long `IMPLEMENTATION_PLAN.md` payload inside `### Artifact changes`, the message must still end with `### Handoff` and the fenced standard ending format.
@@ -77,7 +77,8 @@ Operating rules:
   - exact scope
   - `Scope:` the explicit file paths or globs this slice creates or modifies (machine-readable, one path per entry). Consumed by `implement-fleet` to compute parallelizable waves; an under-declared scope defeats the ADR-0041 file-scope disjointness gate, so list every file the slice will touch.
   - `Depends-on:` the slice IDs this slice requires, or `none` (machine-readable). With `Scope`, this defines the slice DAG.
-  - `Deliverable-tag:` WHEN a slice's deliverable is user-facing product content or a new user-facing surface, the slice SHALL carry `Deliverable-tag: user-facing-content` or `Deliverable-tag: new-user-facing-surface` (ADR-0091); the closure floors key off this tag, and an untagged content deliverable is caught by the closing floor's backstop and flagged. Omit for slices with no user-facing deliverable.
+  - `Deliverable-tag:` WHEN a slice's deliverable is user-facing product content or a new user-facing surface, the slice SHALL carry `Deliverable-tag: user-facing-content` or `Deliverable-tag: new-user-facing-surface` (ADR-0091); the closure floors key off this tag, and an untagged content deliverable is caught by the closing floor's backstop and flagged. Omit for slices with no user-facing deliverable. Derive the tag by reading the `## Requested deliverables` ledger in TASK_STATE.md first: every ledger row tagged `user-facing-content` or `new-user-facing-surface` SHALL have its covering slice(s) carry the matching tag; dropping a ledger-carried tag is flagged in `### Command transcript` and blocks at `approve-plan`'s consistency gate (ADR-0103). Tagging test (ADR-0103, extending ADR-0091): the tag applies when a human end user experiences the content or reaches the surface through ANY client, visual or not (an MCP prompt surface reached via chat tags); machine-to-machine APIs and developer-facing CLIs do not tag.
+  - `Decision-ref:` the `DECISIONS.md` D-N entry (or entries) this slice implements, or `none` with a one-line reason. Optional but preferred: `approve-plan`'s consistency gate reads it when present and falls back to content-level tracing otherwise (ADR-0103); a task with no locked decisions passes that gate without this field.
   - why this order is safe
   - key risks
   - validation approach
@@ -109,19 +110,19 @@ Operating rules:
   - This mode composes with the normal slicing rules: `Scope`, `Depends-on`, the Execution waves subsection, and EARS exit criteria are all still required. It changes the SOURCE of the slices (a spec, not a free-form description), not the slice format.
   - NO_OP when `--spec` points to a missing or empty file (route back to the caller to supply a valid path), or when the spec is already fully covered by the current plan's `## Spec coverage` table with no new items.
 
-IMPLEMENTATION_PLAN.md must include:
-1. Target behavior
-2. Current gaps
-3. Constraints and invariants
-4. **Infrastructure prerequisites** (when applicable): external services, env vars, docker configs, CLI tools, or credentials that must exist before Slice 1 begins. Omit this section when the task has no external dependencies. When present, list each prerequisite with: what it is, how to verify it exists, and what fails without it.
-5. Slice-by-slice plan (preferred). Phase-only output is allowed only for genuinely single-step work (one file or one contract, no integration seam), and the justification must appear in `### Command transcript`. Each slice includes **work complexity** `LOW` | `MEDIUM` | `HIGH` plus one-line rationale, a machine-readable `Scope:` (files the slice touches), and `Depends-on:` (slice IDs or `none`). Immediately after the slices, include an **Execution waves** subsection that layers the slice DAG: list each wave as `Wave k: [slice ids]`, grouping into one wave only slices whose dependencies are already satisfied and whose `Scope` sets are pairwise disjoint (no shared file, migration, lockfile, codegen, or barrel export). A pure chain is N waves of one slice; a wide graph has waves of two or more. This makes parallelizability visible and is what `implement-fleet` consumes (ADR-0041); it does not change sequential execution via `implement-approved-slice`.
-6. Validation and test strategy by phase
-7. Rollout and rollback notes
-8. Risks and mitigations
-9. Open questions or approvals still needed
-10. Recommended next command
-11. Recommended editor mode
-12. Why that is the correct next step
+IMPLEMENTATION_PLAN.md must include (items 1-9 are literal file sections; the backticked name is the exact canonical H2, matching the `wos/substrate-peers.md` ownership matrix; items 10-12 are response-only output fields, never file sections):
+1. `## Target behavior`
+2. `## Current gaps`
+3. `## Constraints` (constraints and invariants)
+4. `## Infrastructure prerequisites` (when applicable): external services, env vars, docker configs, CLI tools, or credentials that must exist before Slice 1 begins. Omit this section when the task has no external dependencies. When present, list each prerequisite with: what it is, how to verify it exists, and what fails without it.
+5. `## Slices` (the slice-by-slice plan, preferred). Phase-only output is allowed only for genuinely single-step work (one file or one contract, no integration seam), and the justification must appear in `### Command transcript`. Each slice includes **work complexity** `LOW` | `MEDIUM` | `HIGH` plus one-line rationale, a machine-readable `Scope:` (files the slice touches), and `Depends-on:` (slice IDs or `none`). Immediately after `## Slices`, include a top-level `## Execution waves` section (its own H2 with its own transaction header, per the ownership matrix and the K.4 drift scanner; NOT a nested subsection) that layers the slice DAG: list each wave as `Wave k: [slice ids]`, grouping into one wave only slices whose dependencies are already satisfied and whose `Scope` sets are pairwise disjoint (no shared file, migration, lockfile, codegen, or barrel export). A pure chain is N waves of one slice; a wide graph has waves of two or more. This makes parallelizability visible and is what `implement-fleet` consumes (ADR-0041); it does not change sequential execution via `implement-approved-slice`.
+6. `## Validation expectations` (validation and test strategy by phase)
+7. `## Rollout and rollback notes`
+8. `## Risks and mitigations`
+9. `## Open questions or approvals still needed`
+10. Recommended next command (response only)
+11. Recommended editor mode (response only)
+12. Why that is the correct next step (response only)
 
 TASK_STATE.md update must reflect:
 - current phase
@@ -136,7 +137,7 @@ TASK_STATE.md update must reflect:
 Required output:
 1. Exact content for IMPLEMENTATION_PLAN.md (full document if create/update; otherwise a short NO_OP note)
 2. Exact TASK_STATE.md update block, or explicit `TASK_STATE: NO_CHANGE`
-3. Recommended next command. When the plan is complete with no `[NEEDS CLARIFICATION:]` markers, the default is `approve-plan` (lock the baseline before execution); execution commands (`implement-fleet` / `implement-approved-slice`) are reached only through that approval gate, routed waves-aware per ADR-0042. For a single critique-and-revise pass on the freshly-written plan before approval, use `self-critique-and-revise` (cheaper than re-running this command). When clarification markers or open decisions remain, route to the smallest decisive upstream command instead.
+3. Recommended next command. When the plan is complete with no `[NEEDS CLARIFICATION:]` markers, the default is `approve-plan` (lock the baseline before execution); execution commands (`implement-fleet` / `implement-approved-slice`) are reached only through that approval gate, routed waves-aware per ADR-0042. WHEN the change affects important behavior, contracts, data flow, or regression risk and no `TEST_STRATEGY.md` exists yet, say so and name `test-strategy` as the step right after approval (approve-plan's test-strategy gate routes there). For a single critique-and-revise pass on the freshly-written plan before approval, use `self-critique-and-revise` (cheaper than re-running this command). When clarification markers or open decisions remain, route to the smallest decisive upstream command instead.
 4. Recommended editor mode
 5. Why this is the correct next step
 6. What should explicitly not be done yet

@@ -99,7 +99,7 @@ Operating rules:
 - **Substrate write protocol (per ADR-0034, K.2 2026-06-04 -- dogfood).** MANDATORY for every write to a substrate section this command creates (task-init is the INITIAL writer for TASK_STATE.md, DECISIONS.md, IMPLEMENTATION_PLAN.md, SOURCE_OF_TRUTH.md per `wos/substrate-peers.md`). Per `commands/_shared/substrate-write-protocol.md ## Concrete computation`:
   1. Compute `sha_before` via the canonical `sha_of_section` bash helper. task-init writes FRESH sections into files that did not exist before this run, so `sha_before` is `null` for every section in this command's first invocation on a task.
   2. Insert the transaction header on its own line IMMEDIATELY above each section heading: `<!-- wos:write owner=task-init section='## X' run_id=<ULID-or-uuid> ts=<ISO-8601-ms-with-Z> reason=task-init-<task-slug> mode=applied -->`.
-  3. Write the section content per the canonical template in this command's "Files to generate" + the 18-section TASK_STATE.md structure (the added `## Requested deliverables` section sits right after `## Objective`, the ledger seeded per ADR-0056).
+  3. Write the section content per the canonical template in this command's "Files to generate" + the 19-section TASK_STATE.md structure (the `## Requested deliverables` section sits right after `## Objective` with the ledger seeded per ADR-0056, and `## Recommended pipeline` sits right after it per ADR-0025/ADR-0101).
   4. Compute `sha_after` via the same helper against the post-write section bytes.
   5. Append exactly one JSON line to `active/<task>/.wos/VERIFICATION_LOG.jsonl` per the 12-field schema in `wos/substrate-peers.md ## Audit trail`. `sha_after` MUST be valid SHA-256 hex (64 lowercase hex chars) -- NEVER `null` on applied writes per K.5 validator. `sha_before` is `null` for every initial-creation section (the file did not exist before this run).
   6. task-init writes ~25-30 sections across 4 task-memory files in one run. Repeat steps 1-5 PER section: one transaction header above each section heading + one JSONL line per section. Reuse the same `run_id` + `ts` across ALL sections written in this single invocation (the run_id ties together all task-init's initial substrate creation events). Create `active/<task>/.wos/VERIFICATION_LOG.jsonl` if it does not exist yet (this command creates the `.wos/` directory as part of task initialization).
@@ -130,7 +130,7 @@ Operating rules:
   - When `projects/<client>__<project>/` itself does not exist, recommend running `project-bootstrap` before proceeding; if the user insists on starting the task immediately, create the project folder ad-hoc with only the task subtree and emit the same warning.
   - When `projects/<client>__<project>/BRIEF.md` exists (a transient intake brief written by `problem-framing`, ADR-0058), consume it: seed the task description, `SOURCE_OF_TRUTH.md`, and the `## Requested deliverables` ledger from its five fields (problem statement, success criteria, non-goals, recommended approach, named deliverables), then MOVE `BRIEF.md` into the new task folder (so a stale brief never lingers at the project root). The brief is task-scoped, not durable project memory; do not leave it at the root after consuming it.
   - **MCP-sourced seed (gated, opt-in; per `commands/_shared/mcp-capability-routing.md`, the "### MCP-sourced seed (gated, opt-in)" section below):** WHEN the user references an issue-tracker item AND a vetted issue-tracker MCP is connected (per that shared block's trust gate), pull the item and map it per the four-field contract: title and body seed the task description and the `## Requested deliverables` ledger (ADR-0056); identifier and URL become a provenance pointer recorded in `SOURCE_OF_TRUTH.md` (`source: mcp`, the server as locally named, the item URL). WHEN the pull fails (unreachable, timed out, or malformed), state the failure explicitly and ask the user to paste the item instead (the shared block's failure policy); never fabricate the item and never hard-fail. With no MCP connected, this bullet does not apply and the rest of this chain behaves exactly as before.
-- Deliverable-ledger seeding (per ADR-0056): seed the `## Requested deliverables` section in `TASK_STATE.md` from the user's brief (or from the `Named deliverables` field of a consumed `BRIEF.md` when present). List one row per concrete deliverable the user named (an artifact to produce or an input to analyze), tagged `in-scope`, not every implied sub-task. Bound it deliberately: a deliverable is a thing the user asked for by name, so the ledger stays a coverage check, not a task breakdown. When the brief names no concrete deliverable, write the section with a single `- none named` row rather than omitting it. This ledger is the substrate the closure reconcile gate (`commands/_shared/deliverable-reconcile.md`) checks at task end. WHEN a ledger row is user-facing product content or a new user-facing surface, the row SHALL carry the tag `user-facing-content` or `new-user-facing-surface` (ADR-0091) next to its in-scope tag. The closure floors read these tags; a missed tag is caught by the closing floor's backstop and flagged.
+- Deliverable-ledger seeding (per ADR-0056): seed the `## Requested deliverables` section in `TASK_STATE.md` from the user's brief (or from the `Named deliverables` field of a consumed `BRIEF.md` when present). List one row per concrete deliverable the user named (an artifact to produce or an input to analyze), tagged `in-scope`, not every implied sub-task. Bound it deliberately: a deliverable is a thing the user asked for by name, so the ledger stays a coverage check, not a task breakdown. When the brief names no concrete deliverable, write the section with a single `- none named` row rather than omitting it. This ledger is the substrate the closure reconcile gate (`commands/_shared/deliverable-reconcile.md`) checks at task end. WHEN a ledger row is user-facing product content or a new user-facing surface, the row SHALL carry the tag `user-facing-content` or `new-user-facing-surface` (ADR-0091) next to its in-scope tag. Tagging test (ADR-0103, extending ADR-0091): the tag applies when a human end user experiences the content or reaches the surface through ANY client, visual or not (an MCP prompt surface reached via chat tags); machine-to-machine APIs and developer-facing CLIs do not tag. The closure floors read these tags, `implementation-plan` derives per-slice tags from this ledger, and `approve-plan` blocks a plan that drops a ledger-carried tag (ADR-0103); a missed tag is caught by the closing floor's backstop and flagged.
 - Multi-repo handling: if the user provided 2 or more repositories (directly or inherited from `PROJECT_CHARTER.md`), generate a `## Repositories` section in `SOURCE_OF_TRUTH.md` per the schema in the spec `## Multi-repo support (v1)`. Validate that identifiers are lowercase, hyphenated, and unique within the task. If only 1 repo (or no repo) is provided, omit the `## Repositories` section entirely; single-repo tasks continue using the existing `active codebase / repo` field unchanged.
 
 Files to generate:
@@ -158,9 +158,14 @@ Must use this exact structure:
 [What success looks like for this task]
 
 ## Requested deliverables
-(One row per concrete deliverable the user named in the brief: an artifact to produce or an input to analyze, not every implied sub-task. Tag each: in-scope | de-scoped:<reason> | done; when the deliverable is user-facing product content or a new user-facing surface, also tag it user-facing-content or new-user-facing-surface (ADR-0091), for example `- session pack v2 [in-scope] [user-facing-content]`. Seeded here at task-init; reconciled at closure per ADR-0056. When the brief names no concrete deliverable, the single row is `- none named`.)
+(One row per concrete deliverable the user named in the brief: an artifact to produce or an input to analyze, not every implied sub-task. Tag each: in-scope | de-scoped:<reason> | done; when the deliverable is user-facing product content or a new user-facing surface, also tag it user-facing-content or new-user-facing-surface (ADR-0091; tagging test per ADR-0103: the tag applies when a human end user experiences the content or reaches the surface through any client, visual or not, so an MCP prompt surface reached via chat tags while a machine-to-machine API or developer-facing CLI does not), for example `- session pack v2 [in-scope] [user-facing-content]`. Seeded here at task-init; reconciled at closure per ADR-0056. When the brief names no concrete deliverable, the single row is `- none named`.)
 - [deliverable 1] [in-scope]
 - [deliverable 2] [in-scope]
+
+## Recommended pipeline
+(Tier + ordered command sequence per the complexity assessment, ADR-0025. Owner: task-init; updated by what-next or sync-task-state as routing evolves.)
+- Tier: [Express | Standard | Disciplined | Strict]
+- [ordered next commands]
 
 ## Source of truth
 - [main plan markdown]
@@ -243,12 +248,12 @@ Must include:
 Must include only approved decisions, under the exact header `## Locked decisions` (the canonical section name `decision-interview.md` and `wos/substrate-peers.md` both target). If no decisions are approved yet, state that explicitly under that same header, e.g. "None locked in this task."
 
 5. IMPLEMENTATION_PLAN.md
-Must include:
-- target behavior
-- current gaps
-- known constraints
-- initial expected phases or slices
-- unknowns that block safe planning
+Must include (seed content under the same canonical H2 names `implementation-plan` later owns, so the sections task-init creates and the sections the planner rewrites carry one name):
+- `## Target behavior`
+- `## Current gaps`
+- `## Constraints` (known constraints)
+- `## Slices` (initial expected phases or slices)
+- `## Open questions or approvals still needed` (unknowns that block safe planning)
 
 Required output:
 1. Resolved project folder name

@@ -1,4 +1,4 @@
-When updating `TASK_STATE.md` at slice closure, edit exactly these 5 sections in this order. Empirically validated (pilot-repo session 2026-06-04, 21 slice closures, ~6 section updates per closure stably converged on this set):
+Canonical TASK_STATE.md 5-section write pattern. It was defined at slice closure (its origin and empirical validation: pilot-repo session 2026-06-04, 21 slice closures, ~6 section updates per closure stably converged on this set) and is followed by EVERY command that stamps TASK_STATE.md after a meaningful step (slice-closure, approve-plan, implement-fleet, release-plan, ai-feature-eval-harness, the verify fleets, and peers). Read "closure" below as "the step this command just completed", then edit exactly these 5 sections in this order:
 
 1. `## Current phase` -- if the phase shifted (e.g., discovery -> implementation), update the phase label and any inline progress notes.
 2. `## Last completed step` -- replace with `Command: <cmd>`, `Mode: <mode>`, `Summary: <1-2 line outcome>`. This becomes the recovery anchor for `resume-from-state`.

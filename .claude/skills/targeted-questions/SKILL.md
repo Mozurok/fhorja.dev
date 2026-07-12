@@ -61,6 +61,7 @@ Operating rules:
 - Do not implement anything.
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full).
 - Do not ask broad or redundant questions.
+- **No human respondent (unattended, background, or fleet-dispatched run, per ADR-0044 doctrine):** this command SHALL NOT self-answer. Record each open factual question with its candidate assumption as an inline `[NEEDS CLARIFICATION: <question>]` marker (or a PROPOSED block when an artifact must carry the assumption), note in `### Command transcript` that the run was unattended, and stall or escalate to the next human session. An agent-invented "fact" recorded as confirmed is a contract violation.
 - Before producing output, check whether factual gaps still exist and whether this command is still necessary based on latest artifacts and last completed step.
 - If factual uncertainty is already low enough to proceed safely, do not generate filler questions; return a no-op and route to the best next command.
 - No-op rule for artifacts:

@@ -33,6 +33,7 @@ Each entry is 5 required bullets plus an optional 6th `Tags:` bullet. Empty requ
 - `post-review-pivot` (pivot is a learning by definition)
 - `incident-triage HOTFIX` (HOTFIX postmortem)
 - `incident-triage ESCALATE` (escalated incident with identified root cause)
+- `harvest-session-learnings` (session-wide harvest, ADR-0064; covers lessons whose origin is not a single slice or incident)
 
 Adopted from Cursor Composer 2.5 RL evidence (2026): failure-point-anchored feedback materially outperforms retrospective summary at slice end (concrete reuse rate of anchored entries on subsequent slices ~3-5x higher than unanchored).
 

@@ -77,8 +77,8 @@ Operating rules:
   - unit
   - integration
   - end-to-end
-- Explicitly call out when idempotency, retries, migrations, concurrency, partial failure, or backward compatibility should be tested.
-- Route QA tooling by detected stack. Read the consuming repo's stack from `IMPACT_ANALYSIS.md`, or detect it from manifests (pyproject.toml or a pytest dev-dep -> pytest, plus Hypothesis where invariants exist; package.json with react/react-dom -> React Testing Library at the component layer; a `@playwright/test` config -> Playwright for web E2E; a react-native dependency or metro config -> Detox for mobile E2E; a `project.godot` file or `.gd` scripts -> GUT (GDScript-default) or gdUnit4 (GDScript or C#) run headless from the Godot CLI with a deterministic exit-code gate, plus a scene runner for touch integration tests, per `wos/godot-testing-and-ci.md`), and name the canonical runner, assertion library, and coverage tool per detected ecosystem instead of leaving them to context. Stay stack-agnostic in mechanism (detect-and-route, never a frozen hardcoded matrix); when the stack is unknown, say so and ask rather than guessing. The named gate commands feed the consuming repo's ADR-0048 deterministic gate.
+- Explicitly call out when idempotency, retries, migrations, concurrency, conflict resolution and convergence (multi-writer or local-first sync: two replicas edit offline then sync and MUST converge with no data loss; prefer property-based tests for merge invariants), partial failure, or backward compatibility should be tested.
+- Route QA tooling by detected stack. Read the consuming repo's stack from `IMPACT_ANALYSIS.md`, or detect it from manifests (pyproject.toml or a pytest dev-dep -> pytest, plus Hypothesis where invariants exist; package.json with react/react-dom -> React Testing Library at the component layer; a `@playwright/test` config -> Playwright for web E2E; a react-native dependency or metro config -> Detox for mobile E2E; a `project.godot` file or `.gd` scripts -> GUT (GDScript-default) or gdUnit4 (GDScript or C#) run headless from the Godot CLI with a deterministic exit-code gate, plus a scene runner for touch integration tests, per `wos/godot-testing-and-ci.md`; a plain Node.js or TypeScript project with no framework -> the built-in `node --test` runner (or vitest when already a dev-dep), tsc --noEmit as the type gate; a data pipeline -> the data-quality layer composes with the code layer: a `dbt_project.yml` -> dbt schema and data tests, a `great_expectations/` or `gx/` config -> Great Expectations checkpoints, `pandera` in dependencies -> pandera schema tests, all alongside pytest for the Python glue), and name the canonical runner, assertion library, and coverage tool per detected ecosystem instead of leaving them to context. Stay stack-agnostic in mechanism (detect-and-route, never a frozen hardcoded matrix); when the stack is unknown, say so and ask rather than guessing. The named gate commands feed the consuming repo's ADR-0048 deterministic gate.
 - For a Godot 2D-mobile target, treat headless automated tests (GUT or gdUnit4) and the interactive `godot-runtime-verify` press-play gate as complementary, not substitutes: a headless runner has no GPU and cannot judge feel, rendering, or on-device touch. Route scripted assertions to the headless suite and subjective, GPU-real, on-device checks to `godot-runtime-verify`. See `wos/godot-testing-and-ci.md`.
 - For a React Native / Expo target, treat the JS-level suite (Jest plus React Native Testing Library at the component layer, Detox for E2E) and the `app-runtime-verify` runtime gate as complementary, not substitutes: a native crash class (a Fabric mounting crash, a navigation-teardown crash) fires only on a real device or emulator run and is judged from the native log, which the JS-level runner never sees. Route scripted assertions to the JS suite and on-device runtime behavior to `app-runtime-verify` (ADR-0087). See `wos/rn-expo-runtime-evidence.md`.
 - Say when a test would only validate implementation details instead of behavior.
@@ -101,10 +101,10 @@ TEST_STRATEGY.md must include:
 11. Why that is the correct next step
 
 TASK_STATE.md update must reflect:
-- risks to watch
-- validation approach
-- recommended next step
-- blockers, if test strategy exposed any
+- risks to watch (`## Risks to watch`, co-writer per `wos/substrate-peers.md`)
+- validation approach (recorded inside `## Current status` or the `## Recommended next step` rationale; TASK_STATE.md has no dedicated validation-approach heading, the strategy detail lives in TEST_STRATEGY.md itself)
+- recommended next step (`## Recommended next step`)
+- blockers, if test strategy exposed any (`## Open questions / blockers`)
 
 The named test files are typically authored via `implement-slice-complement` when they are a mechanical translation of already-locked behavior with no new design work, or via another `implement-approved-slice` round when the test scenarios require new design decisions; this command stops at the strategy document itself ("Do not write tests yet" above).
 

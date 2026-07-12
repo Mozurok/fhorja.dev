@@ -55,6 +55,7 @@ Adaptive question flow (loop control):
   6. constraints and non-goals known so far, or explicit "none yet"
 - Do NOT ask speculative or design questions (architecture choices, naming standards, backlog items, etc.). The command is for context capture, not for solving.
 - Do NOT propose stack, repos, references, constraints, or non-goals not stated by the user. Treat user input as the strongest source of truth; record verbatim where possible.
+- **No human respondent (unattended, background, or fleet-dispatched run, per ADR-0044 doctrine):** do NOT self-answer and do NOT lock anything. Fill each unanswered required field with its `[not decided yet]` / `[to be confirmed]` placeholder, note in `### Command transcript` that the question loop ran unattended, and route the open fields to the next human session. Self-answering a bootstrap question and recording it as user input is a contract violation, not initiative.
 
 Project repository structure to use:
 - projects/<client>__<project>/
@@ -103,13 +104,15 @@ Must use this exact structure:
 ## Stack
 [Languages, frameworks, runtime, hosting; or `[not decided yet]`]
 
+(Emit the `## Repositories` section below ONLY when 2 or more repositories are known. If zero or one repository is known, omit the heading entirely and record the single repo, if any, under `## Default workspace` instead; a dangling empty `## Repositories` heading is a template bug.)
+
 ## Repositories
 - identifier: [lowercase, hyphenated, unique within the project]
   path: [local path or `[unknown yet]`]
   base branch: [`origin/main` or `[unknown yet]`]
   role: [backend | frontend | shared | infra | mobile | other]
 
-(Repeat one block per repository. If zero or one repository is known, omit this `## Repositories` section entirely and record the single repo, if any, under `## Default workspace` instead.)
+(Repeat one block per repository.)
 
 ## Default workspace
 [Local path of the primary product workspace, or `[not decided yet]`. Used only when the project does not have 2 or more repositories.]
@@ -149,8 +152,10 @@ This file is appended to by `capture-references`. New entries are grouped under 
 - URL: <url>
 - Accessed: YYYY-MM-DD
 - Summary: <one paragraph; what this source says, never beyond what is on the page>
+- Context within project: <1-3 sentences situating this source in the project; "first reference in this project" when first (ADR-0018)>
 - Key points:
   - "<verbatim quote from the source>"
+- Consumes-by: <consuming command, task slug, or `[not consumed yet]` (ADR-0056)>
 - Tags: <tag1>, <tag2>
 ```
 
