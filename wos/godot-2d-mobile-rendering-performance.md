@@ -31,6 +31,10 @@ Stop paying CPU cost for entities the camera cannot see.
 - Use `VisibleOnScreenNotifier2D` when you only need the screen-enter and screen-exit signals (for despawn, wake, or LOD swaps) without the automatic enable/disable behavior. https://docs.godotengine.org/en/stable/classes/class_visibleonscreennotifier2d.html
 - Culling scales best when off-screen actors are cheap to keep dormant; combine it with pooling so leaving and re-entering the view does not thrash allocation.
 
+### Gameplay-object pooling
+
+A general pattern for any high-spawn-volume genre (twin-stick, bullet-hell, tower defense), generalizing `wos/godot-2d-audio.md`'s SFX-voice pool rather than duplicating it: pre-allocate a fixed-size pool of instances at scene load, give each an activation/deactivation reset contract (a single method that clears transient state and toggles `visible`/`process_mode` rather than reinstantiating), and apply a steal-oldest-when-saturated policy when a spawn request exceeds the pool size instead of growing it unbounded or dropping the spawn silently.
+
 ## Renderer and particles
 
 Pick the renderer for hardware reach, then respect what that renderer does not support.

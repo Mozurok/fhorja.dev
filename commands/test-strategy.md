@@ -50,6 +50,7 @@ Task repository files to create or update (only if materially changed):
 
 Operating rules:
 - Do not write tests yet.
+- **K.2 scope note (P2-8, dogfood-wave-2 2026-07-12):** this command's own artifact (`TEST_STRATEGY.md`) is outside the K.2 11-file substrate scope (`commands/_shared/substrate-write-protocol.md`) and needs no transaction header. Update `TASK_STATE.md`'s `## Last completed step` afterward as ordinary operator hygiene.
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full).
 - Before producing output, verify `test-strategy` is still justified: if risk is low and validation is already clear enough in `IMPLEMENTATION_PLAN.md`, prefer skipping this artifact.
 - If `TEST_STRATEGY.md` already matches the plan and risk profile with no material gap, do not rewrite it for style; return a no-op and route forward.

@@ -13,6 +13,8 @@ Audio is a decision, not a default. By plan approval a Godot game task has a rec
 
 A wiring-only placeholder (real `AudioStreamPlayer` nodes, correct bus assignment, `stream` deliberately left unassigned) satisfies this rule and is distinct from a content placeholder (actual authored audio bytes). When no safe binary-authoring path exists in the session (no engine, no audio tool, an LLM-only text-writing session), prefer the wiring-only form over hand-authoring binary audio: an unverifiable hand-authored `.wav` risks silently shipping a corrupt file, which is a worse outcome than an honestly-unassigned stream. The rule requires the audio system to be real, not that placeholder content exists.
 
+Exception: when audio timing, not just presence, is itself the mechanic under test (a rhythm game, a timing-critical feedback loop), a wiring-only placeholder is insufficient, `AudioStreamPlayer.get_playback_position()` has no meaningful value with no stream assigned, so the mechanic cannot be exercised at all. In that case, real, verifiable audio content is required even under the no-safe-binary-authoring-path condition; a minimal verifiable-generation technique (a stdlib-generated tone or click track, read back and import-validated) is the fallback when no external audio tool exists.
+
 ## Bus layout
 
 Route every sound through the audio bus layout, never player-by-player volume math. Create a `Master` bus with `Music` and `SFX` child buses so a settings screen can set two group volumes and mute independently. https://docs.godotengine.org/en/stable/tutorials/audio/audio_buses.html

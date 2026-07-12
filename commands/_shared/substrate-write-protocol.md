@@ -127,6 +127,20 @@ emit_audit \
 
 `sha_before` is `null` ONLY when the section did not exist prior to this write. `sha_after` MUST be a 64-char lowercase hex string (never null). Multi-section writes in one run reuse the same `RUN_ID` and `TS`; emit one header + one JSONL line per section.
 
+**Edit-tool timing (P1-7, dogfood-wave-2 2026-07-12):** `SHA_BEFORE` MUST be computed in the same turn, immediately before the write, not from memory of an earlier turn's content: by the time a later turn runs the JSONL-append step, the pre-edit bytes are gone from disk and cannot be recovered without a forbidden `null` fallback or reading from version control. When authoring via the Edit tool rather than bash/sed, run the `sha_of_section` computation (via `scripts/emit-substrate-write.sh sha` or the inline helper) as the step immediately preceding the Edit call in the same turn, and hold the value in scope until the JSONL append. If the pre-edit content is genuinely unavailable (a compacted session, a cross-turn gap), re-read the current file state with the Read tool first rather than guessing or defaulting to `null`.
+
+**Header placement relative to a mandatory H1 (P2-7, dogfood-wave-2 2026-07-12):** when the file has a mandatory H1 title (e.g. `# TASK_STATE` per `task-init.md`'s canonical template), the transaction header for the FIRST section goes after the H1 and its blank line, immediately above the first `## ` heading, never above the H1 itself:
+
+```
+# TASK_STATE
+
+<!-- wos:write owner=task-init section='## Task summary' run_id=<RUN_ID> ts=<TS> reason=<<=80chars> mode=applied -->
+## Task summary
+<content>
+```
+
+A header placed above the H1 line, or an H1 dropped entirely to sidestep the question, are both non-compliant; two independent dogfood waves each produced one session doing one of these two wrong things.
+
 ## Skill-cache invalidation gap (Claude Code property)
 
 When `scripts/sync-workflow-slash-commands.sh --with-skills` propagates an updated skill file to `~/.claude/skills/<name>/SKILL.md`, the current Claude Code (or Cursor, Codex, etc.) session does NOT automatically reload the skill body. The session reuses the cached body that was loaded at session start (or at the skill's first invocation in that session). Workflow:

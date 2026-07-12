@@ -46,7 +46,7 @@ Legend: O = owner (writes via Edit/Write); P = propose-only (PROPOSED block); R 
 | `## Canonical decisions` | sync-task-state | decision-interview (direct write in persist mode, authorized by the user's explicit LOCK signal; propose-only in interview mode), contract-signoff (P), direction-adjust (P) | all |
 | `## Open questions / blockers` | targeted-questions | capture-observation, im-stuck, pr-feedback-ingest, decision-interview | all |
 | `## Observations` | capture-observation | any-command via append-only | all |
-| `## Last completed step` | sync-task-state | implement-approved-slice, slice-closure, plus the pattern writers (rule 2b) | all |
+| `## Last completed step` | sync-task-state | implement-approved-slice, slice-closure, decision-interview, godot-scene-plan, implementation-plan, godot-runtime-verify, test-strategy, plus the pattern writers (rule 2b) | all |
 | `## Current status` | sync-task-state | slice-closure, where-we-at, decision-interview, plus the pattern writers (rule 2b: `### In progress`) | all |
 | `## Active files in scope` | impact-analysis | code-locate, sync-task-state, implementation-plan | all |
 | `## Constraints / things that must not change` | invariants-and-non-goals | sync-task-state | all |
@@ -59,6 +59,10 @@ Legend: O = owner (writes via Edit/Write); P = propose-only (PROPOSED block); R 
 | `## Compaction history` | compact-task-memory | (sole owner) | all |
 | `## Latest sweep` | repo-consistency-sweep | (sole owner) | all |
 | `## Ruled-out hypotheses` | incident-triage | (sole owner) | all |
+
+**Known-incomplete, self-heal note (P1-3, dogfood-wave-2 2026-07-12):** this matrix is hand-maintained and has recurred as incomplete across three independent dogfood waves (godot-wave F-3, ADR-0101's ten-session reconciliation, this wave's P1-3). A command that writes a TASK_STATE.md section not listed as its own row or co-writer entry above should self-add its row (owner or co-writer, per its actual write behavior) rather than silently writing unauthorized. A deferred follow-up (not built this wave, net-new scope): a small grep-based lint cross-checking each command's declared TASK_STATE writes (its own Required-output / Operating-rules text) against this matrix, retiring this recurring class the way the ADR-0029 registry and count-marker drift guards do.
+
+**Header-currency limitation (P2-6, dogfood-wave-2 2026-07-12):** `scripts/scan-substrate-headers.sh` checks header presence and syntax only, never header currency: a stacked pair of headers above one section (an old header never removed under a new one), or a header whose `owner`/`run_id` no longer reflects who last wrote the content beneath it after a later same-section write, both pass the script's check undetected (0 drift reported). A fuller check would need to diff header claims against actual last-writer provenance, which the script does not currently track. Documented as a known limitation, parallel to the REFERENCES.md drift-scan-noise note above; revisit building the fuller check if this recurs a third time.
 
 ### DECISIONS.md
 

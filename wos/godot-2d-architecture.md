@@ -57,6 +57,10 @@ Auto-save on `NOTIFICATION_APPLICATION_PAUSED`. Once the app is backgrounded, th
 - Desktop analog: intercept the window close with `NOTIFICATION_WM_CLOSE_REQUEST` after `get_tree().set_auto_accept_quit(false)`. The mobile pause path and the desktop close path are separate; wire both if you ship both. The Android back button arrives as `NOTIFICATION_WM_GO_BACK_REQUEST`. https://docs.godotengine.org/en/stable/tutorials/inputs/handling_quit_requests.html
 - Scope note: this topic owns save-on-pause only. The `max_fps` and vsync battery caps live in the performance topic; haptic amplitude and audio latency live in the interaction-and-feel topic. Do not duplicate those here.
 
+## Hand-authored input bindings without a live editor
+
+The exact `physical_keycode` (or `keycode`) magic number for a `project.godot` `InputEventKey` object-literal binding cannot be verified without editor or live docs access, and a wrong value silently binds the wrong key with no load-time error (the analogous risk to hand-authored binary audio in `wos/godot-2d-audio.md`). Prefer binding the action programmatically instead: register it via a named `KEY_*` constant (e.g. `KEY_SPACE`) in an autoload's or scene's `_ready()` using `InputMap.action_add_event()`, which is verifiable from the constant name rather than a magic number.
+
 ## When this grounds a command
 
 - `godot-scene-plan`: load this before laying out the node tree so the plan cites real Godot 4 API for autoloads, signals, and the exported-dependency and group patterns. Its save-state fold should take the `user://` path rule, the serialization choice, the untrusted-resource boundary, and the save-on-pause trigger straight from the Save and Mobile lifecycle sections rather than inventing a save schema.

@@ -22,6 +22,8 @@ Do not mix two test runners in one CI job; the exit-code and report contracts di
 
 The CI job runs the editor with the Godot 4 `--headless` flag (no window, no GPU), runs the suite, and the merge gate reads the process exit code. https://docs.godotengine.org/en/4.4/tutorials/editor/command_line_tutorial.html
 
+Probes and persistent test scripts live under `probes/` in the game directory (normatively owned by `commands/godot-runtime-verify.md`'s persistent-probe-harness rule); write them there from the start rather than under a generic `tests/` path, since this topic is typically consulted earlier in the pipeline (`test-strategy`, `implement-slice-complement`) than the runtime-verify command that names the convention.
+
 - Deterministic exit: run GUT with `-gexit` (or `-gexit_on_success`) and it returns 0 when every test passes and 1 when any test fails, so the gate is a plain exit-code check. Write reports with `-gjunit_xml_file`. https://gut.readthedocs.io/en/latest/Command-Line.html
 - Warm-up import first: the first headless invocation imports assets. Run a separate warm-up import pass before the test run so asset import is not mixed into the test step and is not misread as test noise. https://medium.com/@kpicaza/ci-tested-gut-for-godot-4-fast-green-and-reliable-c56f16cde73d
 - `class_name` does not resolve in a fresh headless project: `global_script_class_cache` is only populated when the editor opens the project, so a headless run on a never-opened project fails every `class_name` reference with a parse error (`Could not find type ...`). In code exercised headless, identify peers by group membership (`is_in_group`) plus duck-typing, and load Resources by path, never by `class_name`.
