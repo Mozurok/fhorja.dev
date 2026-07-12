@@ -11,6 +11,8 @@ How a Godot 4.x 2D mobile game plays sound and how the audio layer is wired so i
 
 Audio is a decision, not a default. By plan approval a Godot game task has a recorded ship-with-or-without-audio ruling in `DECISIONS.md`: either audio is a real slice (buses, players, wired settings) or shipping silent is an explicit, owned non-goal. "Polish later" prose in a scene plan or slice note does not satisfy this. The failure mode this prevents: a settings screen that advertises Sound and Music to the player while the toggles wire to nothing. If the game exposes an audio control, that control changes audio, or the control is not shipped.
 
+A wiring-only placeholder (real `AudioStreamPlayer` nodes, correct bus assignment, `stream` deliberately left unassigned) satisfies this rule and is distinct from a content placeholder (actual authored audio bytes). When no safe binary-authoring path exists in the session (no engine, no audio tool, an LLM-only text-writing session), prefer the wiring-only form over hand-authoring binary audio: an unverifiable hand-authored `.wav` risks silently shipping a corrupt file, which is a worse outcome than an honestly-unassigned stream. The rule requires the audio system to be real, not that placeholder content exists.
+
 ## Bus layout
 
 Route every sound through the audio bus layout, never player-by-player volume math. Create a `Master` bus with `Music` and `SFX` child buses so a settings screen can set two group volumes and mute independently. https://docs.godotengine.org/en/stable/tutorials/audio/audio_buses.html

@@ -30,6 +30,8 @@ Act as a senior engineer applying a **small, explicit follow-up** to work that a
 Goal:
 Execute a bounded **micro-delta** (adjustments, fixes, polish, missed checklist items) that stays inside the **same slice intent** and `DECISIONS.md`, then record evidence in slice notes and/or `TASK_STATE.md` routing without churning unrelated artifacts.
 
+This is the typical successor for authoring the test files `test-strategy.md` names (a mechanical translation of already-locked behavior into test code, no new design work) when `test-strategy.md` itself stops short of writing them. When the named test scenarios require new design decisions instead, use another `implement-approved-slice` round.
+
 Mandatory context bootstrap (before any output):
 <!-- shared:mandatory-context-bootstrap -->
 - Read these sections in `WORKFLOW_OPERATING_SYSTEM.md` first:

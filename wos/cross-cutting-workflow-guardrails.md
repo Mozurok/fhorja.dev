@@ -1,6 +1,6 @@
 ---
 activation: model_decision
-description: Heuristics + external-web motivation + NEEDS CLARIFICATION marker. Load on phase-by-phase sequencing ambiguity.
+description: Heuristics + external-web motivation + NEEDS CLARIFICATION marker + environment-claim verification. Load on phase-by-phase sequencing ambiguity.
 ---
 
 # wos/cross-cutting-workflow-guardrails.md
@@ -10,8 +10,15 @@ Lazy reference for selected supplements to `## Cross-cutting workflow guardrails
 Load this file when:
 - phase-by-phase command sequencing is unclear and the `## Command roles` index plus `## Default workflow` are not enough to choose the next command
 - the motivation behind the centralized external web access rule is being challenged or being explained to a contributor (the rule itself, with its enforcement bullets, lives in the spec and is always read)
+- a task brief or an upstream summary states an environment constraint (no engine, no runtime, no tool, no network) and a command with its own documented preflight is about to run
 
 The normative rules of `## Cross-cutting workflow guardrails` (Routing memory, Official command names, Material change, No-op execution rule, Proposal vs approved persistence, External web access Rules) remain in `WORKFLOW_OPERATING_SYSTEM.md` and apply to every command run regardless of whether this file is loaded.
+
+---
+
+### Environment-claim verification (F-2, dogfood-wave 2026-07-11)
+
+A stated environment constraint is a claim, not verified ground truth. Three independent, unattended Godot dogfood sessions on 2026-07-11 each inherited a brief stating "no Godot engine available," verified only by a PATH-only lookup (`which godot`); all three ran `godot-runtime-verify`'s own mandatory Environment preflight literally anyway and found a real, working engine at the documented macOS app-bundle fallback, changing each session's entire trajectory (real runtime evidence instead of an assumed BLOCKED gate). Run the relevant command's own documented preflight literally before accepting an upstream summary of a narrower check, especially when that summary says something does not exist. This generalizes past Godot: the same shape of mistake, trusting a summary instead of running the real check, applies to any command with an environment preflight.
 
 ---
 

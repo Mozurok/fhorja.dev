@@ -33,7 +33,7 @@ Godot imports every source file into its own `.import` sidecar; the source plus 
 
 ## Placeholder-to-final swap (make it a clean slice)
 
-- Keep placeholders behind the same node and scene structure the final asset will use: a `Sprite2D` (or `AnimatedSprite2D`) whose texture is a flat `PlaceholderTexture2D` or a colored rect swaps to the real texture by changing one resource, not by restructuring the scene. Godot ships `PlaceholderTexture2D` for exactly this. https://docs.godotengine.org/en/stable/classes/class_placeholdertexture2d.html
+- Keep placeholders behind the same node and scene structure the final asset will use: a `Sprite2D` (or `AnimatedSprite2D`) whose texture is a `ColorRect`, or a flat-fill `GradientTexture2D`/`ImageTexture`, swaps to the real texture by changing one resource, not by restructuring the scene. `PlaceholderTexture2D` is not this: in the real Godot 4 API it is a non-rendering, lazy/deferred-load stand-in (it reserves a declared size and draws nothing), not a visible flat-fill placeholder, so a sprite textured with it renders invisible. Confirm the class's actual rendering behavior against the project's real Godot version before relying on it for anything meant to be seen.
 - Address art through named resources or an exported `Texture2D` on the scene, not hard-coded `load()` paths scattered through logic, so the swap is one edit per asset.
 - The swap is a planned slice (the policy's trigger fired), tracked like any other, not an ad-hoc find-and-replace.
 

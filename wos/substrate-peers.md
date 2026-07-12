@@ -30,6 +30,8 @@ Legend: O = owner (writes via Edit/Write); P = propose-only (PROPOSED block); R 
 
 ### TASK_STATE.md
 
+**Correction (F-3, dogfood-wave 2026-07-11):** the five rows below were reconciled against the real Operating-rules/Required-output text of each named command (and, for `## Canonical decisions`/`## Open questions / blockers`/`## Current status`, independently corroborated by the real archived `2026-07-09_godot-2d-e2e-completeness-audit` task's own TASK_STATE.md write headers). Scope was kept tight to these five confirmed mismatches; this is not a full line-by-line audit of the table below.
+
 | Section (H2) | Owner | Co-writers (propose) | Readers |
 |---|---|---|---|
 | `## Task summary` | task-init | direction-adjust (P) | all |
@@ -37,15 +39,15 @@ Legend: O = owner (writes via Edit/Write); P = propose-only (PROPOSED block); R 
 | `## Objective` | task-init | post-review-pivot (P) | all |
 | `## Source of truth` | task-init | code-locate (P), capture-references (P) | all |
 | `## Current known facts` | sync-task-state | impact-analysis, code-locate, code-context-map, db-context-supabase | all |
-| `## Canonical decisions` | sync-task-state | decision-interview (P), contract-signoff (P), direction-adjust (P) | all |
-| `## Open questions / blockers` | targeted-questions | capture-observation, im-stuck, pr-feedback-ingest | all |
+| `## Canonical decisions` | sync-task-state | decision-interview (direct write in persist mode, authorized by the user's explicit LOCK signal; propose-only in interview mode), contract-signoff (P), direction-adjust (P) | all |
+| `## Open questions / blockers` | targeted-questions | capture-observation, im-stuck, pr-feedback-ingest, decision-interview | all |
 | `## Observations` | capture-observation | any-command via append-only | all |
 | `## Last completed step` | sync-task-state | implement-approved-slice, slice-closure | all |
-| `## Current status` | sync-task-state | slice-closure, where-we-at | all |
+| `## Current status` | sync-task-state | slice-closure, where-we-at, decision-interview | all |
 | `## Active files in scope` | impact-analysis | code-locate, sync-task-state | all |
 | `## Constraints / things that must not change` | invariants-and-non-goals | sync-task-state | all |
-| `## Risks to watch` | rls-auth-boundary-auditor (L3+ exclusive owner per K.6 maturity ladder, 2026-06-05) | sync-task-state, impact-analysis, review-hard, security-review (P); other CUSTOM personas re-route to IMPLEMENTATION_PLAN.md ## Risks and mitigations | all |
-| `## Recommended next step` | what-next | sync-task-state, slice-closure, im-stuck | all |
+| `## Risks to watch` | rls-auth-boundary-auditor (L3+ exclusive owner per K.6 maturity ladder, 2026-06-05) | sync-task-state, impact-analysis, review-hard, security-review (P), test-strategy; other CUSTOM personas re-route to IMPLEMENTATION_PLAN.md ## Risks and mitigations | all |
+| `## Recommended next step` | what-next | sync-task-state, slice-closure, im-stuck, decision-interview, godot-scene-plan, where-we-at, approve-plan, implement-approved-slice | all |
 | `## Compaction history` | compact-task-memory | (sole owner) | all |
 | `## Latest sweep` | repo-consistency-sweep | (sole owner) | all |
 | `## Ruled-out hypotheses` | incident-triage | (sole owner) | all |
@@ -153,6 +155,8 @@ Distinct from `.wos/VERIFICATION_LOG.jsonl` (machine-readable provenance log; se
 Write rule: entries are append-only; deduplication by URL is enforced at write time. Both `external-research` and `external-research-fleet` may write newly-captured entries per the canonical `capture-references` format. The `Context within project` field (per ADR-0018) is required for entries captured after 2026-05-15.
 
 **K.2 protocol applicability (v2.1 deferral):** REFERENCES.md is PROJECT-level memory. The canonical `commands/_shared/substrate-write-protocol.md` targets `active/<task>/.wos/VERIFICATION_LOG.jsonl`, which is TASK-scoped and does not exist at the project layer. Writes to REFERENCES.md that occur before any active task (e.g. `capture-references` from `project-bootstrap`) currently emit NEITHER the inline `<!-- wos:write -->` header NOR a JSONL line; this is a known v2.1 gap. Writes to REFERENCES.md that occur DURING an active task SHOULD emit the inline header + a JSONL line under that task's `.wos/` (treating the cross-task write as a co-writer event of the active task's audit chain). A project-level audit log location is post-v2.1 work.
+
+**Drift-scan noise (F-11, dogfood-wave 2026-07-11):** `scripts/scan-substrate-headers.sh` exempts REFERENCES.md's 3 fixed template sections (`## Format reminder`, `## <Topic / Tag>`, `## Entries`) from its drift count, since three independent sessions each reconfirmed them as unfixable false-positive noise under the gap above. This suppresses the scan artifact only; the deferred gap itself is unchanged.
 
 ### REVIEW_PREFERENCES.md (project-level, single-owner)
 

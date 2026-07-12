@@ -2,7 +2,7 @@ When updating `TASK_STATE.md` at slice closure, edit exactly these 5 sections in
 
 1. `## Current phase` -- if the phase shifted (e.g., discovery -> implementation), update the phase label and any inline progress notes.
 2. `## Last completed step` -- replace with `Command: <cmd>`, `Mode: <mode>`, `Summary: <1-2 line outcome>`. This becomes the recovery anchor for `resume-from-state`.
-3. `## In progress` -- if a slice closed cleanly with no follow-up, set to `(nenhum)` / `(none)`. If a follow-up surfaced inside the slice, list it here as the immediate next item.
+3. `### In progress` (nested under `## Current status`, not a standalone H2, per `task-init.md`'s canonical TASK_STATE.md template) -- if a slice closed cleanly with no follow-up, set to `(nenhum)` / `(none)`. If a follow-up surfaced inside the slice, list it here as the immediate next item.
 4. `## Recommended next step` -- replace with `Command: <next>`, `Mode: <mode>`, `Why: <one line>`. Aligns with the Handoff `Run now` line.
 5. `## Current closure target` -- if a slice or epic just closed, advance this to the next closure target (next slice or next epic). If the same target still applies, keep it (no-edit OK).
 

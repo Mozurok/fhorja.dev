@@ -106,6 +106,8 @@ TASK_STATE.md update must reflect:
 - recommended next step
 - blockers, if test strategy exposed any
 
+The named test files are typically authored via `implement-slice-complement` when they are a mechanical translation of already-locked behavior with no new design work, or via another `implement-approved-slice` round when the test scenarios require new design decisions; this command stops at the strategy document itself ("Do not write tests yet" above).
+
 Required output:
 1. Whether TEST_STRATEGY.md should be created, updated, or skipped
 2. Exact content for TEST_STRATEGY.md if applicable (full document if create/update; otherwise a short NO_OP note or explicit SKIP rationale)
@@ -139,6 +141,7 @@ Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global ou
 - `Gaps in current test coverage` is addressed even when the verdict is `SKIP`: when skipping, gaps are recorded in the `TASK_STATE.md` update block instead of the artifact.
 - If skipping `TEST_STRATEGY.md`, the skip rationale is explicit and `TASK_STATE` validation notes are `PROPOSED` as needed.
 - Consumption contract (F-6, ADR-0089): the strategy names the expected test-file path per `critical` and `regression` row, so the `task-close` consumption floor has something concrete to check; rows a POC defers carry their waiver line in the artifact itself.
+- Godot/GDScript stderr check (F-6, dogfood-wave 2026-07-11): for a Godot target, a probe or test run authored against this strategy is not `CLEAN` unless stderr was checked separately from the pass/fail count; a passing count with a pushed `SCRIPT_ERROR` in the same run is not a pass (see `wos/godot-testing-and-ci.md` "Common test defects"). Name this check explicitly wherever the strategy names a Godot test file's expected run command.
 - Output ends with a complete `### Handoff` block per the adaptive format in `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract`. A response that ends after the strategy content (or after the SKIP rationale) without a complete Handoff is invalid output.
 - Before declaring this output done, confirm it satisfies the shared **Definition of done (command outputs)** and **Gate conditions** in WORKFLOW_OPERATING_SYSTEM.md.
 

@@ -246,6 +246,20 @@ for file in "${SUBSTRATE_FILES[@]}"; do
     if [[ "$prev_line" =~ $HEADER_REGEX ]]; then
       continue  # has canonical header
     fi
+    # Known-gap exemption (F-11, dogfood-wave 2026-07-11): REFERENCES.md's
+    # fixed template sections are created by project-bootstrap.md, which has
+    # no substrate-write-protocol section (a known, deferred v2.1 gap per
+    # wos/substrate-peers.md). Exempt these 3 fixed sections from the drift
+    # count so recurring false-positive noise stops eroding the signal; the
+    # underlying deferred gap is unchanged.
+    if [[ "$(basename "$file")" == "REFERENCES.md" ]]; then
+      case "$section" in
+        "## Format reminder"|"## <Topic / Tag>"|"## Entries")
+          [[ $VERBOSE -eq 1 ]] && echo "exempt (REFERENCES.md fixed template section, known v2.1 gap): $file:${line_no} ${section}" >&2
+          continue
+          ;;
+      esac
+    fi
     DRIFT_COUNT=$((DRIFT_COUNT + 1))
     DRIFT_LOG+=("$(realpath --relative-to="$owning_root" "$file" 2>/dev/null || echo "$file"):${line_no} ${section}")
   done < <(grep -n "^## " "$file" | cut -d: -f1)

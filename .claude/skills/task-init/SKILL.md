@@ -251,8 +251,7 @@ Must include:
   Omit this section entirely when the project was not bootstrapped (no `PROJECT_CHARTER.md` at the project root).
 
 4. DECISIONS.md
-Must include only approved decisions.
-If no decisions are approved yet, state that explicitly.
+Must include only approved decisions, under the exact header `## Locked decisions` (the canonical section name `decision-interview.md` and `wos/substrate-peers.md` both target). If no decisions are approved yet, state that explicitly under that same header, e.g. "None locked in this task."
 
 5. IMPLEMENTATION_PLAN.md
 Must include:
@@ -315,6 +314,7 @@ Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global ou
 - The basename in the `Run now:` line corresponds to a real file in `commands/<name>.md`; invented names such as `task-plan` or `plan` are invalid output.
 - When the user provided 2 or more repositories, `SOURCE_OF_TRUTH.md` includes a `## Repositories` section with N entries (each: identifier, path, base branch, role) per the schema in the spec `## Multi-repo support (v1)`; identifiers are lowercase, hyphenated, and unique. When the user provided 1 or zero repositories, the `## Repositories` section is omitted entirely (single-repo backwards-compat preserved).
 - Output ends with a complete `### Handoff` block per the adaptive format in `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract`. A response that ends after the mandatory file contents without a complete Handoff is invalid output.
+- Optionally self-check K.2 substrate-write compliance via `scripts/scan-substrate-headers.sh <task-folder>` before finishing; not a gate, a cheap nudge given the volume of sections this command writes in one run.
 - Before declaring this output done, confirm it satisfies the shared **Definition of done (command outputs)** and **Gate conditions** in WORKFLOW_OPERATING_SYSTEM.md.
 
 Quality bar:

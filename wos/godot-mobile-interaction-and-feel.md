@@ -73,6 +73,8 @@ Recorded verdict format (what the closure gates read), written as a `## Feel ver
 
 A FAIL verdict routes its per-line observations to `pr-feedback-ingest --playtest` as the playtest payload; the corrective backlog and the D-5 juice budget own the fixes. A PASS verdict is cited by the closing slice as its feel evidence.
 
+**Bounded-vs-permanent skip (ADR-0098):** the closure floors' one-line skip-reason escape exists for a genuine bounded deferral (a real human will review shortly) or a throwaway/no-runtime-surface slice, not for a session where no human is available, ever. A skip reason of that second kind does not satisfy the floor; the slice stays not-ready-to-close pending an actual human session. The 2026-07-11 genre dogfood wave found this loophole in an unattended run before it shipped a false-clean closure.
+
 ## How this cross-references
 
 - godot-scene-plan already plans a dedicated CanvasLayer and autoloads wired by signals; a CameraShake autoload, a haptics service, and a pooled audio-feedback player are that same structure, so this topic grounds the feedback-layer and mobile-touch folds rather than adding new node kinds.
