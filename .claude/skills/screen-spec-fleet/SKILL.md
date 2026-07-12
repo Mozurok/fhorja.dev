@@ -138,7 +138,7 @@ Operating rules:
 - **Step 9: Merge routes.** Collect every non-null `new_route` from typed partials. Deduplicate by `path` key. If a route exists in routes.md with a different persona/screen, REFUSE that route and log conflict. Append surviving new routes to routes.md per its table convention.
 - **Step 10: Write SCREEN_MAP.md.** Emit transaction header above the rows section; replace the section content per the canonical SCREEN_MAP table shape (Route | Persona | Screen name | Spec doc | Status | Figma frame | Notes). Preserve rows from outside this fleet's persona scope unchanged. Anchor every appended row to an existing parent heading or list per ADR-0038 Rule 3; refuse any row whose anchor is not located.
 - **Step 10.5: Scan substrate orphans.** Run `python3 scripts/scan-substrate-orphans.py docs/app/SCREEN_MAP.md docs/app/routes.md` against the just-written files (ADR-0038 Rule 3: the apply step MUST detect and prevent the substrate-bullet-orphan failure mode per `wos/bug-classes/substrate-bullet-orphan.md`). On non-zero exit (one or more orphans detected): REFUSE the merge transaction, log `event=fleet-merge-orphan-refused` with the orphan list to `VERIFICATION_LOG.jsonl`, REVERT both SCREEN_MAP.md and routes.md to their pre-merge state, and surface the orphan list in `### Command transcript`. On exit 0: proceed to Step 11.
-- **Step 11: Emit VERIFICATION_LOG.jsonl.** One line per per-worker classification event (`event=merge_include`, `event=worker_failed`, `event=worker_timeout`, `event=schema_skip`, etc.) plus one line for the merged SCREEN_MAP section AND one for routes.md (`event=fleet-merge`, `partials=[worker_id, ...]`, `strategy=union`).
+- **Step 11: Emit VERIFICATION_LOG.jsonl.** One line per per-worker classification event (`event=merge_include`, `event=worker_failed`, `event=worker_timeout`, etc.; a worker that skipped for a missing Figma frame or schema is `event=worker_missing` with the skip cause in `reason`, NOT a bespoke `schema_skip` event, which is not in the canonical taxonomy) plus one line for the merged SCREEN_MAP section AND one for routes.md (`event=fleet-merge`, `partials=[worker_id, ...]`, `strategy=union`).
 - **Step 12: Update TASK_STATE.md.** Per the canonical 5-section write pattern. Include the fleet summary: total screens specced, persona, new routes appended, components referenced, components candidate (not yet in DS), top open questions.
 - Workers NEVER write SCREEN_MAP.md or routes.md. Workers DO write their own spec file directly (no overlap by construction).
 - Mixing personas in one fleet run is FORBIDDEN. Re-run per persona to keep merge keys unambiguous.
@@ -146,7 +146,7 @@ Operating rules:
 
 Required output:
 1. Screen count + persona + journey scope
-2. Dispatch summary: N dispatched, M satisfied, K needs_revision, L failed, P interrupted, T timed out, S schema_skip
+2. Dispatch summary: N dispatched, M satisfied, K needs_revision, L failed, P interrupted, T timed out, S skipped (no frame; logged `worker_missing`)
 3. Merge summary: SCREEN_MAP rows merged + dedup count + conflict count; routes appended + conflict count; orphan-scan result (exit code + orphan list if any)
 4. Components inventory: unique components referenced across all specs; candidates not yet in DS
 5. Copy roll-up: total copy strings ready for i18n (count only; full list lives in spec files)
@@ -176,7 +176,7 @@ Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global ou
 - routes.md has new routes appended (one per `new_route` returned); conflicts REFUSED and logged.
 - All 12 sections of the SCREEN_SPEC template are filled per spec file.
 - Per-worker partials persisted as typed JSON in `.wos/fleet-inbox/<run_id>/<worker_id>.partial.json` (never `.partial.md`).
-- Every worker invoked the StructuredOutput tool exactly once with the declared schema; schema-skip workers logged as `event=schema_skip` and excluded from merge (ADR-0038 Rule 1).
+- Every worker invoked the StructuredOutput tool exactly once with the declared schema; schema-skip workers (no Figma frame) logged as `event=worker_missing` with the skip cause in `reason` and excluded from merge (ADR-0038 Rule 1).
 - `scripts/scan-substrate-orphans.py` returned exit 0 against SCREEN_MAP.md and routes.md after the merge (ADR-0038 Rule 3). Non-zero exit triggers REVERT and `event=fleet-merge-orphan-refused`.
 - VERIFICATION_LOG.jsonl has one line per classification event + one per merged section + one for the orphan-scan result.
 - Worker contract violations (mid-flight writes to SCREEN_MAP / routes) explicitly listed in `### Command transcript`.

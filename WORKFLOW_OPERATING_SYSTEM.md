@@ -53,6 +53,7 @@ Minimum read map for execution:
   - editor mode translation to non-Claude-Code tools (Cursor, Copilot, Codex, Gemini CLI equivalents): load `wos/editor-mode-mappings.md` (only when working in a tool other than Claude Code)
   - designing, building, or running the autonomous delivery track (the autonomy cluster: two human gates, runtime governor, mid-run escalation, run protocol): load `wos/autonomous-track.md` (built per ADR-0044; not loaded by default)
   - Godot 2D-mobile game development (scene architecture, save/state and the mobile lifecycle, 2D rendering performance, touch input and game-feel, audio, the asset pipeline, headless testing and CI): load `wos/godot-2d-architecture.md`, `wos/godot-2d-mobile-rendering-performance.md`, `wos/godot-mobile-interaction-and-feel.md`, `wos/godot-2d-audio.md`, `wos/godot-2d-asset-pipeline.md`, `wos/godot-testing-and-ci.md` (the Godot cluster reference layer per ADR-0078 and ADR-0084; capability-scoped, not loaded by default)
+  - previewing a built frontend so a human can see it and record an experience verdict (serving the production build, the Vite/`astro preview` `allowedHosts` host-check gotcha and the static-server fallback, remote tunnel, recording the verdict): load `wos/frontend-preview-and-experience-verdict.md` (per ADR-0099; feeds the ADR-0091 experience-verdict floor and the release-plan pre-deploy gate; capability-scoped, not loaded by default)
 
 ---
 
@@ -111,7 +112,7 @@ The workflow operates on a separate task-memory repository. Compact path index (
 - `commands/<name>.md`: command files (source of truth for which commands exist; carry Agent Skills frontmatter validated by `lint-commands.sh`).
 - `commands/_shared/<name>.md`: canonical shared blocks propagated by `sync-shared-blocks.sh` into commands that declare the marker.
 - `.claude/skills/<name>/SKILL.md`: **generated** Agent Skills artifacts produced by `scripts/build-agent-skills.sh` from each canonical `commands/<name>.md`. Drop-in for the 35+ tools that read `.claude/skills/` natively (Cursor 2.4+, Claude Code, Copilot, Codex, Gemini CLI, etc.). Never edit by hand; lint fails on drift.
-- `wos/<topic>.md`: lazy-loaded reference files (<!-- count:wos-topics -->35<!-- /count --> topics; e.g. `command-roles.md`, `cross-cutting-workflow-guardrails.md`, `global-output-contract.md`; see the Minimum read map for the full set). Loaded only when explicitly needed.
+- `wos/<topic>.md`: lazy-loaded reference files (<!-- count:wos-topics -->36<!-- /count --> topics; e.g. `command-roles.md`, `cross-cutting-workflow-guardrails.md`, `global-output-contract.md`; see the Minimum read map for the full set). Loaded only when explicitly needed.
 - `templates/`: starting points for task artifacts (`PR_PACKAGE.md`, `review-hard-checklist.md`).
 - `scripts/`: automation (`lint-commands.sh`, `sync-shared-blocks.sh`, `sync-workflow-slash-commands.sh`, `build-agent-skills.sh`, `check-doc-sync.sh`, `check-natural-voice.sh`, `monitor-fleet-progress.sh`, `scan-substrate-orphans.py`, `measure-tokens.py`, `measure-task-cost.py`).
 - `evals/scenarios/<NN>-*.md`: manual eval harness exercising load-bearing workflow contracts (project-bootstrap to task-init wiring, multi-repo schema, slice execution and closure scope discipline, pr-package diff grounding, state-reconcile minimum patch). `evals/scripts/run-evals.sh` walks through them.

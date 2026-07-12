@@ -168,6 +168,14 @@ The heuristic is non-binding. Orchestrator authors override per-role with a one-
 
 Together these prevent the documented cost-runaway class (e.g., the $8-15K incident from a 49-subagent run reported in 2026).
 
+### Model inheritance and API-load guard (site dogfood F-5)
+
+A Workflow-tool `agent()` call that omits `model` inherits the session model, not the role default. On the 2026-07-11 fhorja.dev site dogfood the user asked for a "Sonnet workflow" but the `agent()` calls omitted `model: 'sonnet'`, so six review workers inherited Opus 4.8; each fired several image-heavy Mobbin `search_sections` calls, the batch hit ~21 HTTP 429s, and because the Bash tool's own safety pre-check also calls the model, three Bash calls were blocked ("cannot determine the safety of Bash right now") and a macOS notification alarmed the user. The fleet recovered (16/16, 0 errors) but degraded and confused the operator. Discipline:
+
+- **Pin the tier explicitly on review/analysis fleets.** When the role default is Sonnet (per the tier-mapping table) and the fleet is read-only analysis, set `model: 'sonnet'` on each `agent()` call rather than relying on inheritance; an omitted `model` silently promotes the whole fleet to the (heavier, capacity-contended) session model.
+- **Throttle concurrency when each worker makes several heavy MCP or image calls.** Lower the effective fan-out (or split into sub-batches) so N heavy workers do not each fire a burst of image-bearing tool calls at once; heavy-MCP fleets saturate the API faster than their agent count implies.
+- **Read a 429 as rate limiting, not a machine fault.** When a fleet degrades under load, surface it to the operator as API rate limiting (and, if applicable, that the Bash safety pre-check shares that capacity), not as a code or environment problem.
+
 ### Override-up vs override-down
 
 - **Override-up** (worker tier > role default): always valid. When in doubt, pick stronger. The orchestrator pays the cost; correctness wins.

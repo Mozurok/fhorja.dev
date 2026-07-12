@@ -49,9 +49,9 @@ git -C "$WORKTREE" diff --name-only "$BASE_REF" \
   && echo "SCOPE VIOLATION: slice touched files not in its declared Scope"
 ```
 
-Orchestrator-side (catch a skipped gate): assert that a build + typecheck + test command ran on the merged tree between waves and recorded a pass before the next wave dispatched. A wave that closes with `build_status: not_run` or no `event=integration-gate` line in `VERIFICATION_LOG.jsonl` is the smell.
+Orchestrator-side (catch a skipped gate): assert that a build + typecheck + test command ran on the merged tree between waves and recorded a pass before the next wave dispatched. A wave that closes with `build_status: not_run`, or whose per-wave `event=fleet-merge` line in `VERIFICATION_LOG.jsonl` does not record a gate pass in its `reason` (there is no `event=integration-gate` in the canonical taxonomy; the gate result is folded into the `fleet-merge` reason), is the smell.
 
-Review-side: in the fleet output, look for a wave that reports `satisfied` workers but no integration-gate result, or a `Scope` line in the plan that is narrower than the files the slice's own notes say it touched.
+Review-side: in the fleet output, look for a wave that reports `satisfied` workers but no recorded integration-gate result, or a `Scope` line in the plan that is narrower than the files the slice's own notes say it touched.
 
 ## How to fix
 
