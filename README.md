@@ -12,7 +12,7 @@
 
 You start an AI coding session on a real feature. Twenty minutes in, you've made three decisions in chat: which field owns the source of truth, how to handle the edge case, what to skip for now. None of that gets written anywhere. You close the laptop. Tomorrow, or in a new chat, the agent has no memory of any of it. You re-explain the feature, re-litigate a decision you already made, and it starts editing files before you agreed on the approach.
 
-Fhorja's answer: task state, decisions, and plans live in markdown files on disk, not in chat history. Open a new session, and `resume-from-state` reads `TASK_STATE.md` and tells you where you left off. A decision gets recorded once, in `DECISIONS.md`, with its reasoning, and every later step reads from it instead of guessing again. Before any code gets written, `implementation-plan` breaks the work into small slices and `approve-plan` is the explicit human gate, so the agent never runs ahead of what you agreed to.
+Fhorja's answer: task state, decisions, and plans live in markdown files on disk, not in chat history. Open a new session, and `resume-from-state` reads `TASK_STATE.md` and tells you where you left off. A decision gets recorded once, in `DECISIONS.md`, with its reasoning, and every later step reads from it instead of guessing again. Before any code gets written, `implementation-plan` breaks the work into small slices (the smallest reviewable unit of change, each with its own scope and exit criteria) and `approve-plan` is the explicit human gate, so the agent never runs ahead of what you agreed to.
 
 <p align="center">
   <img src=".github/assets/persistence.svg" alt="Decisions made in chat are lost at session end; the same decisions written to disk survive" width="100%">
@@ -24,18 +24,20 @@ Fhorja is a workflow operating system for AI-assisted engineering: a markdown-pl
 
 It targets engineers who already use an AI coding tool (Cursor, Claude Code, and 35+ others that read the open Agent Skills standard, per [`CONTRIBUTING.md`](./CONTRIBUTING.md)) and want plan-before-code discipline with an explicit human approval gate before implementation.
 
-New here? [`WORKFLOW_DEMO.md`](./WORKFLOW_DEMO.md) is a full walkthrough with example prompts and outputs. [`docs/FAQ.md`](./docs/FAQ.md) answers what it is, which tools work, and how licensing works.
+New here? [`WORKFLOW_DEMO.md`](./WORKFLOW_DEMO.md) is a full walkthrough with example prompts and outputs. [`docs/FAQ.md`](./docs/FAQ.md) answers what it is, which tools work, and how licensing works. You do not need to read [`WORKFLOW_OPERATING_SYSTEM.md`](./WORKFLOW_OPERATING_SYSTEM.md) first: it is the normative spec commands load sections from on demand, not a manual you read cover to cover. Run `task-init` (or `workflow-guide` if you want the explanation as you go) and let the handoffs carry you.
 
 ## Quickstart
 
+Fhorja lives in its own repository, separate from any product codebase you work on. You clone it once, centrally, the same way you'd install a CLI tool, not once per project. The commands then reach whichever product repo you're working in, either automatically (open that repo in an editor that reads Agent Skills, once you've mirrored them with `--with-skills` below) or by installing straight into it with `--project`.
+
 ```bash
-git clone <this-repo-url>
-cd <the-directory-you-just-cloned>
+git clone https://github.com/Mozurok/fhorja.dev.git
+cd fhorja.dev
 ./scripts/bootstrap-user-setup.sh          # once: seeds USER_MEMORY.md, runs a lint sanity check
 ./scripts/sync-workflow-slash-commands.sh  # installs the commands into Cursor and Claude Code
 ```
 
-In any editor that reads `.claude/skills/` (Cursor 2.4+, Claude Code), the commands are available as Agent Skills with no install step at all. Start your first task by running `task-init` and following the handoff printed at the end of each command.
+In any editor that reads `.claude/skills/` (Cursor 2.4+, Claude Code), the commands are available as Agent Skills with no install step at all. Start your first task by running `task-init` and following the handoff printed at the end of each command. New to the workflow itself, not just this repo? Run `workflow-guide` instead of `task-init` first: it explains which command and editor mode to use right now, why, and the next two or three steps, so you are not guessing your way through the first task. Already fluent in the phases and just want the fast answer? Run `what-next` at any point; it gives the same routing decision with none of the explanation. Feeling stuck or looping? Run `im-stuck` instead. All three are safe to run anytime and never change your task's state. If you only have a few minutes before your first task, skim ahead to [Task memory on disk](#task-memory-on-disk) and [Repository layout](#repository-layout) below; they answer where things live, which is usually the first real question, before the full command catalog.
 
 ### Install profiles
 
@@ -75,7 +77,7 @@ A task moves through a short, explicit chain. Each command persists its result t
 - **Task memory on disk, not chat.** Each task is a folder of markdown files, kept out of version control. See [Task memory on disk](#task-memory-on-disk) below for the file list.
 - **Commands are the interface.** One markdown file per workflow action, grouped into <!-- count:command-categories -->9<!-- /count --> lifecycle categories. [`commands/*.md`](./commands/) is the canonical source; the `.claude/skills/` Agent Skills are generated from it and never hand-edited.
 - **Plan before code, in small slices.** Work is broken into the smallest reviewable slices, each planned, approved, then implemented with a minimal diff.
-- **One output contract.** Every command ends the same way: an artifact-changes block, a short transcript, and a handoff naming the next command, editor mode, and work complexity, so steps chain without going silent.
+- **One output contract.** Every command ends the same way: an artifact-changes block, a short transcript, and a handoff naming the next command, editor mode (Ask, Plan, Agent, or Debug, whatever your tool calls its interaction modes), and work complexity, so steps chain without going silent.
 - **Proposed by default.** Artifacts are proposed for your review before they are written, unless you are explicitly in an apply mode. A wrong plan is discarded by ignoring the response, not by reverting commits.
 - **Operating modes and task shapes.** A minimal, strict, or teaching posture ([ADR-0008](./docs/adr/0008-operating-modes.md)) and a small set of recognized task shapes ([ADR-0009](./docs/adr/0009-task-shape-system.md)) let the same commands flex from a quick hotfix to a fully governed multi-slice build.
 - **Capability routing, not model names.** Commands declare work complexity (LOW, MEDIUM, HIGH); they never hard-code a model.
@@ -117,11 +119,13 @@ Each task lives in a folder, and `projects/` is gitignored by design ([ADR-0007]
 projects/<client>__<project>/active/YYYY-MM-DD_<task-slug>/
   README.md               # human summary
   TASK_STATE.md           # authoritative operational memory; read this to resume
-  SOURCE_OF_TRUTH.md      # canonical facts and references
+  SOURCE_OF_TRUTH.md      # canonical facts, including the path to the actual codebase this task changes
   DECISIONS.md            # locked decisions with reasoning
   IMPLEMENTATION_PLAN.md  # approved slices with scope, ordering, and exit criteria
   BRIEF.md                # optional; written by problem-framing, consumed by task-init
 ```
+
+None of this is your code. Fhorja never stores or edits your product source inside its own repo; SOURCE_OF_TRUTH.md's active codebase / repo field (or, for multi-repo tasks, its `## Repositories` section) is a pointer to wherever your actual codebase already lives, in its own separate git history. `task-init` asks for that path directly; everything under `projects/` only tracks the plan and decisions about the change, never the change itself.
 
 If `TASK_STATE.md` and `IMPLEMENTATION_PLAN.md` disagree, `state-reconcile` resolves the conflict before work continues.
 

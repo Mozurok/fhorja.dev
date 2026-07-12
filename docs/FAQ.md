@@ -18,6 +18,10 @@ Three reasons:
 
 A future hosted SaaS layer (exploratory, not committed) might wrap the workflow with server-side execution, sandboxing, and persistence. That is a separate product, not a replacement for the markdown layer.
 
+## Does this work offline?
+
+Cloning the repo and reading task memory needs no network access at all; the markdown files and scripts are entirely local. Running a command does need whatever your AI coding tool needs (most require a live connection to their model provider), so Fhorja is only as offline-capable as the underlying tool. A few individual commands additionally reach out on their own: `capture-references` and `external-research` fetch URLs, and any MCP-backed command (Figma, Supabase, database context) needs its server reachable. Every other command works against local files only.
+
 ## Which AI tools work with this?
 
 Any tool that reads `.claude/skills/<name>/SKILL.md` natively works as a drop-in. As of mid-2026 that includes (but is not limited to) Cursor 2.4+, Claude Code, GitHub Copilot, OpenAI Codex, Gemini CLI, OpenHands, Goose, Junie, Roo Code, Mistral Vibe, Snowflake Cortex, Databricks Genie. The skills are generated from `commands/*.md` by `scripts/build-agent-skills.sh` and committed to the repo, so cloning is sufficient.
@@ -33,13 +37,18 @@ git clone https://github.com/Mozurok/fhorja.dev.git
 cd fhorja.dev
 ```
 
-That is the install. To use it:
+That is the install, and you do it once, in its own directory, not once per product project. This repo never becomes your working directory while you code; your product repo stays separate and keeps its own git history. To use it:
 
-- **In an editor that reads `.claude/skills/`** (Cursor 2.4+, Claude Code, etc.): open this repo as the working directory; commands are available as skills automatically.
+- **In an editor that reads `.claude/skills/`** (Cursor 2.4+, Claude Code, etc.), the fastest path is `--with-skills` below: it mirrors the commands to your user-level directories once, so any product repo you open in that editor picks them up automatically, no per-project step.
 - **For user-level slash commands in Cursor and Claude Code**: run `./scripts/sync-workflow-slash-commands.sh`. Defaults: `~/.cursor/commands/`, `~/.claude/commands/`. Override paths with `--cursor-dir=` and `--claude-dir=` or via env vars.
-- **For user-level skills mirroring** (so skills are available outside this repo's checkout): run `./scripts/sync-workflow-slash-commands.sh --with-skills`. Defaults: `~/.claude/skills/`, `~/.cursor/skills/`, `~/.codex/skills/`.
+- **For user-level skills mirroring** (so skills are available in every project you open, not just this one): run `./scripts/sync-workflow-slash-commands.sh --with-skills`. Defaults: `~/.claude/skills/`, `~/.cursor/skills/`, `~/.codex/skills/`.
+- **To install into one specific product repo instead (or in addition)**: run `./scripts/sync-workflow-slash-commands.sh --project /path/to/your/repo`.
 
 See [`README.md`](../README.md) -> `## Quickstart` and `## Tool support` for the full distribution story.
+
+## Does it create a git worktree per task, or does it use one working tree at a time?
+
+One working tree at a time, by default. `task-init` never creates a git worktree unless you ask for it. If you want a task to run on its own worktree and branch, so a second task on the same repo does not collide with it, request isolation when you run `task-init`, or run `task-workspace` standalone on a task already in progress. That command creates one durable worktree at `../<repo-basename>-worktrees/<task-dir>` and a `task/<task-dir>` branch off your base branch, records the path in `SOURCE_OF_TRUTH.md`, and `task-close` tears it down when the task closes. Skipping it is never wrong: working one task at a time on the single default working tree is the common case. See `commands/task-workspace.md` and ADR-0074 for the full contract. (This is a different mechanism from `implement-fleet`'s per-slice worktrees, which exist only inside one task's parallel execution wave and are merged back automatically; see `WORKFLOW_DEMO.md`.)
 
 ## How do I give the AI a map of an unfamiliar codebase?
 
@@ -50,6 +59,14 @@ Run `code-context-map` against the target repo. By default (`digest`) it writes 
 The workflow is a **deliberate, phase-aware** discipline. Commands like `task-init`, `implementation-plan`, `pr-package` are meant to be invoked when the user has decided that phase is the right next step. Auto-invoking them based on description matching could short-circuit the user's review of whether the phase is actually right.
 
 The Agent Skills standard supports a `disable-model-invocation` flag for exactly this case, but it is a Claude-Code-specific extension and not part of the open spec. The repo does not declare that flag (so the skills pass open-spec validation), but the per-command friction (each command requires explicit inputs and emits a copy-paste Handoff) means accidental auto-invocation has limited blast radius. ADR-0002 documents the Handoff contract that absorbs the risk.
+
+## What happens if the AI gets something wrong, and how do I undo it?
+
+Two different safety nets, depending on when it happens. Before code is written: everything is `PROPOSED` by default (ADR-0001). You see the full content of a plan, a decision, or a file inline before anything is written to disk; a wrong proposal is discarded by not approving it. After code is written: Fhorja never commits or pushes on your behalf. `implement-approved-slice` edits files in your working tree the same way you would by hand, so normal git is your undo button: `git diff` to see what changed, `git checkout -- <file>` or `git restore <file>` to discard one file, `git reset` for the whole working tree. Nothing in the default task loop force-pushes, merges, or deletes branches for you. `autonomous-run`, the one command that runs with less supervision, still never auto-merges and stops at a STOP file or the runtime governor's limits; a human always performs the merge.
+
+## Does it send my code anywhere?
+
+Fhorja itself does not. It is markdown files and local shell scripts: no server, no telemetry, no analytics call, nothing phoned home. Whatever your AI coding tool already sends to its model provider when you chat with it is unchanged by installing Fhorja; the commands are prompts that tool reads, not a new data path. The one place data leaves your machine through Fhorja's own doing is a command you explicitly ran that fetches something (`capture-references` and `external-research` fetch URLs you gave them; a connected MCP server, like Figma or Supabase, can read what you scoped it to). `mcp-server-vet` exists specifically so you can inspect a third-party MCP server's declared access before you trust it.
 
 ## Why so many commands? What is the difference between them?
 
@@ -88,6 +105,10 @@ If you are evaluating against another workflow tool, the differentiators are: di
 `projects/<client>__<project>/` is gitignored. Anything you store there (`PROJECT_CHARTER.md`, `REFERENCES.md`, task folders, `DB_CONTEXT.md`, etc.) stays local. Forking this repo and running tasks against your own clients does not leak project context upstream.
 
 If you want to share project context across machines, copy `projects/<client>__<project>/` separately (a private repo, dotfile sync, rsync). The workflow does not currently provide a sync path for project memory; it is intentionally local.
+
+## What if two people use it on the same repo?
+
+`projects/<client>__<project>/` is gitignored, so it is local to each person's machine, not shared through the product repo. Two teammates working on the same codebase each keep their own task folders, their own `TASK_STATE.md`, their own decisions; Fhorja does not sync or merge task memory between them. What is shared is the product repo itself and ordinary git: two people implementing different tasks still need the usual coordination (separate branches, normal PR review) that any team already does without Fhorja. If you want isolation while both of you are mid-task, `task-workspace` gives each task its own git worktree and branch so your working trees do not collide. There is currently no shared or synced view of two people's task memory; keep that in mind before relying on `projects/` as a team-visible record.
 
 ## Where do I report issues / contribute?
 
@@ -144,7 +165,7 @@ When you close a task, `task-close` writes the safe links itself (to the task, t
 
 ## When should I use parallel workflow dispatch vs sequential commands?
 
-Use parallel dispatch only when the units of work are genuinely independent: they read disjoint inputs, write to disjoint substrate paths, and do not depend on each other's outputs. The default batch size is 15-25 workers per dispatch wave per ADR-0039 (`docs/adr/0039-workflow-batch-dispatch-empirical.md`); above that, scheduler contention and substrate-write interleaving start to dominate. Parallel dispatch currently requires Claude Code as the host, because the harness must support multiple concurrent subagent threads with isolated tool budgets -- single-thread tools (Cursor, Codex CLI) fall back to sequential. If you cannot prove independence in under a minute of inspection, run sequentially: the cost of one wasted serial pass is far smaller than one corrupted substrate write.
+Use parallel dispatch only when the units of work are genuinely independent: they read disjoint inputs, write to disjoint substrate paths (substrate here means the task-memory files each command reads and writes, like TASK_STATE.md or IMPLEMENTATION_PLAN.md), and do not depend on each other's outputs. The default batch size is 15-25 workers per dispatch wave per ADR-0039 (`docs/adr/0039-workflow-batch-dispatch-empirical.md`); above that, scheduler contention and substrate-write interleaving start to dominate. Parallel dispatch currently requires Claude Code as the host, because the harness must support multiple concurrent subagent threads with isolated tool budgets -- single-thread tools (Cursor, Codex CLI) fall back to sequential. If you cannot prove independence in under a minute of inspection, run sequentially: the cost of one wasted serial pass is far smaller than one corrupted substrate write.
 
 ## What is the schema-skip failure mode and how do I avoid it?
 
@@ -153,6 +174,10 @@ Schema-skip is when a dispatched subagent finishes its work but returns prose in
 ## How do I verify that my parallel batch didn't drop or corrupt substrate writes?
 
 ADR-0040 (`docs/adr/0040-single-writer-per-folder-exception.md`) requires every parallel batch to honor single-writer-per-folder discipline; run `python3 scripts/scan-substrate-orphans.py --since <batch-start-timestamp>` after the batch settles to catch substrate-bullet-orphan instances (`wos/bug-classes/substrate-bullet-orphan.md`). The failure mode it catches is the `substrate-bullet-orphan` bug-class, where two workers race on the same parent and one bullet ends up dangling. If the scan reports any orphans, do not advance phases: re-dispatch the affected workers individually with the orphan IDs passed as input, and re-run the scan until it returns clean.
+
+## Does using Fhorja cost more than prompting the AI directly?
+
+Fhorja has no cost of its own (no subscription, no API key, no hosted service); you pay only for the AI coding tool and model you already use. Running the workflow does use more of that tool's usage than a single freeform prompt, because each command reads its own context bootstrap and a multi-slice task runs several commands instead of one. In exchange you get plan review before code is written and resumable state across sessions, which tends to save the tokens a freeform chat burns re-explaining context after a compaction or a new session. If you are on a metered budget, start with the `minimal` install profile (the twelve-command everyday spine) and skip specialist personas and fleet commands until a task actually needs them.
 
 ## How many MCP servers should I connect, and what does each cost?
 

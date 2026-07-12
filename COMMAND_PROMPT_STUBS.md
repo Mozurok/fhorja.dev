@@ -8,6 +8,27 @@ Minimal copy-paste starters for each official command. Replace `TASK_FOLDER` wit
 
 **Long-form narrative** (multi-turn story, mock outputs): [`WORKFLOW_DEMO.md`](./WORKFLOW_DEMO.md).
 
+## Optional flags at a glance
+
+Every command works with no flag at all using the minimal prompt above. Some commands accept an additional gated flag that turns on an opt-in mode; pass it as plain text after the command name, for example `Run @commands/review-hard.md for TASK_FOLDER. --consistency 3.`
+
+| Command | Flag | What it does |
+|---------|------|---------------|
+| `implementation-plan` | `--spec` | Derives slices from a spec or PRD file, checking every spec item is covered (ADR-0061), instead of deriving them from task memory alone. |
+| `implement-approved-slice` | `--tdd` | Writes the failing test before the code for this slice (ADR-0063). |
+| `review-hard`, `security-review` | `--consistency N` | Runs N independent review passes and merges them by consensus instead of one pass (ADR-0073). |
+| `frontend-system-design` | `--interview` | Reframes the design doc as a system-design interview round (RADIO-aligned) instead of a real-work RFC. |
+| `image-to-spec` | `--component`, `--screen` | Forces component-spec-shaped or screen-spec-shaped output instead of auto-detecting from the image. |
+| `image-to-spec` | `--gameplay` | Derives a MECHANICS_SPEC.md behavior contract for a 2D game instead of a design spec (ADR-0084, off by default). |
+| `problem-framing`, `godot-scene-plan` | `--game-design` | Frames a 2D-game intake instead of a general brief (ADR-0069, off by default). |
+| `release-plan` | `--godot-mobile` | Plans an Android and iOS Godot 2D-mobile store ship instead of a general rollout (ADR-0069, off by default). |
+| `pr-feedback-ingest`, `godot-runtime-verify`, `review-hard`, `implement-approved-slice`, `slice-closure`, `task-close` | `--playtest` | Routes through a Godot playtest runbook instead of the default path (ADR-0069/0084, off by default). |
+| `task-init`, `pr-feedback-ingest`, `team-update`, `delivery-asset` | `--mcp-pull` | Seeds from, or sends to, a connected and vetted MCP server instead of a manual paste, with a per-use confirmation (ADR-0082, off by default). |
+| `portfolio-review` | `--project <slug>`, `--stale-days N`, `--initiative`, `--outcomes`, `--json` | Scopes the board, changes the staleness threshold, switches to the dependency-aware initiative view (ADR-0062), reports closed-task outcomes instead of the live board (ADR-0079), or emits machine-readable output. |
+| `code-context-map` | `--explain-ranking`, `--skip-secret-scan` | Shows per-symbol ranking transparency (fan-in rank, keyword rank, fused score), or overrides the pre-emit secret-scan gate after a confirmed false positive (ADR-0060); read `commands/code-context-map.md` before using the skip flag. |
+
+A command not listed here has no optional dash-prefixed flags. This table is hand-maintained: if you add a gated flag to a command, add its row here in the same edit, the same discipline ADR-0029 already applies to command-name registries.
+
 ---
 
 ## Project initialization
