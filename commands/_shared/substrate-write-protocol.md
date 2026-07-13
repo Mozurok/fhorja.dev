@@ -55,7 +55,7 @@ VALID per `wos/substrate-peers.md ## Legacy file without headers`. The first mut
 
 The K.2 protocol is half-compliant if you emit the JSONL line but skip the inline header, or if you set `sha_*` fields to `null` when the section already existed. The K.8 first-lived-test (2026-06-04) found 125 of 126 substrate writes shipped the JSONL line without the inline header. Preferred path: run `bash scripts/emit-substrate-write.sh` (wraps RUN_ID/TS generation, sha_of_section, and emit_audit; its `--batch <file>` mode emits one JSONL line per owner-headed section of a file, so a task-init-scale ~25-30-section run is one invocation per file). The helpers below are the same logic inline, for hosts without script access; use them verbatim to avoid the half-compliance failure mode.
 
-A section's bytes end at the next transaction header or the next H2 heading, whichever comes first (matching the sha definition in `wos/substrate-peers.md`); the next section's `<!-- wos:write -->` header line is never part of the previous section's hash.
+A section's bytes run from its H2 to the next H2 heading; any transaction-header lines inside that range, including the next section's header immediately above the next H2, are excluded from the hash (matching the sha definition in `wos/substrate-peers.md`).
 
 Run from the task folder root (`active/<task>/`):
 
@@ -74,9 +74,10 @@ sha_of_section() {
   if [[ ! -f "$file" ]]; then printf 'null'; return; fi
   local body
   body=$(awk -v h="$header" '
-    $0 == h            { f=1; next }
-    f && (/^## / || /^<!-- wos:write /) { exit }
-    f                  { print }
+    $0 == h                 { f=1; next }
+    f && /^## /             { exit }
+    f && /^<!-- wos:write / { next }
+    f                       { print }
   ' "$file")
   if [[ -z "$body" ]]; then printf 'null'; return; fi
   printf '%s' "$body" | shasum -a 256 | awk '{print $1}'
@@ -140,6 +141,10 @@ emit_audit \
 ```
 
 A header placed above the H1 line, or an H1 dropped entirely to sidestep the question, are both non-compliant; two independent dogfood waves each produced one session doing one of these two wrong things.
+
+## Full-document rewrite
+
+BEFORE a full-file rewrite, snapshot `sha_of_section` for EVERY existing H2 in one invocation (`bash scripts/emit-substrate-write.sh sha --file <f>` now prints all sections) and hold the section-to-sha map. Then rewrite. Then emit one line per surviving section using the captured map as `sha_before`, plus `event=delete` per dropped H2. If the pre-image was lost (compaction, a cross-turn gap after the rewrite), the section's last `sha_after` in VERIFICATION_LOG.jsonl is the authoritative `sha_before`; never `null`, never from memory.
 
 ## Skill-cache invalidation gap (Claude Code property)
 

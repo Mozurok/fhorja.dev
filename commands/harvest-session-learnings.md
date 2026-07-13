@@ -50,7 +50,7 @@ Operating rules:
 - **A learning is reusable, not a task log.** Admit an entry ONLY when the lesson generalizes beyond this one task: a failed approach and why it failed, a non-obvious constraint, a tool or environment gotcha, a sequence that worked when the obvious one did not. Reject one-off task status, decisions already recorded in `DECISIONS.md`, and restatements of the plan. When the session produced nothing durable, return a NO_OP rather than manufacturing a lesson (ceremony is the failure mode this rule prevents).
 - **Anchor every entry.** Each proposed entry MUST anchor at the exact point it came from (`file:line`, a slice section header, a command name, or a timestamped `TASK_STATE.md` row) and follow `templates/LEARNINGS.md` `## Entry shape`. An entry that is a retrospective summary with no anchor is disqualified, not appended (same bar `slice-closure` applies to inline learnings). Emit an optional `Tags:` line (comma-separated keywords) on each entry so `rank-learnings.sh` can surface it for a future task (ADR-0071).
 - **De-duplicate against existing entries.** Before proposing, read the current `LEARNINGS.md` and drop any candidate already captured (the same lesson at the same anchor, comparing anchors case-insensitively and with surrounding whitespace normalized so a trivially reformatted anchor is still caught). Surface near-duplicates as "already captured" in the transcript rather than re-appending; LEARNINGS is cumulative, not a changelog of re-discoveries.
-- **Stay inside one task.** Write only to the active task's `LEARNINGS.md`. A lesson that is genuinely cross-project belongs in `USER_MEMORY.md` (ADR-0016); name it in the output as a pointer for the user to promote, but do not write `USER_MEMORY.md` yourself.
+- **Stay inside one task.** Write only to the active task's `LEARNINGS.md`. A lesson that is genuinely cross-project belongs in `USER_MEMORY.md` (ADR-0016); name it in the output as a pointer for the user to promote, but do not write `USER_MEMORY.md` yourself. Likewise, a lesson whose subject is the workflow system's own contract is flagged as a candidate workflow-repo dogfood finding for the user to file in the workflow repository (`problem-framing` or `task-init` there, or `capture-observation` in an already-active workflow task); this command never writes outside the active task.
 - Treat task-memory write policy per `WORKFLOW_OPERATING_SYSTEM.md`: `PROPOSED` in Ask mode, `APPLIED` only in Agent mode.
 - **Distinctness.** `capture-observation` captures a single in-flight note verbatim without judgment; `slice-closure` captures the learnings of one slice as it closes; `task-close` is the terminal lifecycle move. This command is an on-demand, session-wide harvest that can run mid-task or at the end, and it judges what is durable before writing.
 
@@ -59,7 +59,7 @@ Required output:
 2. The candidate lessons found, each with its anchor and a one-line reason it generalizes
 3. Which candidates were dropped as duplicates or one-off trivia, and why
 4. Exact `LEARNINGS.md` append block (the new entries only, in `templates/LEARNINGS.md` shape), marked PROPOSED or APPLIED per editor mode
-5. Any cross-project lesson flagged as a pointer to `USER_MEMORY.md` (not written here)
+5. Any cross-project lesson flagged as a pointer to `USER_MEMORY.md`, and any workflow-contract lesson flagged as a candidate workflow-repo dogfood finding for the user to file in the workflow repository (neither written here)
 6. Recommended next command
 7. Recommended editor mode
 8. Why that is the correct next step

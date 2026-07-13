@@ -57,6 +57,11 @@ Required inputs:
 - optional: `--playtest` to ingest playtest notes (a tester's observations of a Godot build) instead of PR feedback (DECISIONS D-2, ADR-0069; off by default, corrective scope only)
 - optional: `--mcp-pull` to pull PR review threads through a vetted, connected code-review or issue-tracker MCP instead of a pasted payload (DECISIONS D-1..D-4 of the 2026-07-03 mcp-integrations task; off by default, corrective scope only)
 
+Task repository files to update:
+- `<task>/PR_FEEDBACK_INGEST.md` at the task root: the canonical landing spot where the feedback matrix persists
+- TASK_STATE.md and IMPLEMENTATION_PLAN.md: per-item dispositions fold into these per the existing mapping rules
+- other locations are non-canonical; no other files modified by this command
+
 Operating rules:
 - Do not implement production code in this command.
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full).

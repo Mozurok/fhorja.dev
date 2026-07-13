@@ -47,12 +47,12 @@ Required inputs:
 Operating rules:
 - Do not implement production code.
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full).
-- Do not silently change semantic intent in `DECISIONS.md`. If decision-level drift exists, list it as a **blocker** and route to `decision-interview`, `resolve-contract-gaps`, or `contract-signoff` instead of rewriting `DECISIONS.md` here.
+- Do not silently change semantic intent in `DECISIONS.md`. Apply the decision-drift direction test: WHEN `TASK_STATE.md` misreports a decision that `DECISIONS.md` records unambiguously, that is stale memory; fix `TASK_STATE.md` here as a factual patch. Route to `decision-interview`, `resolve-contract-gaps`, or `contract-signoff` ONLY when `DECISIONS.md` itself is contradictory, contested, or contradicted by ground truth; list that drift as a **blocker** instead of rewriting `DECISIONS.md` here.
 - Before producing output, verify reconciliation would materially change at least one artifact or expose a **blocking** drift that must be resolved before safe routing.
 - If no material drift exists after cross-check, return **no-op** and route forward (often `what-next`); still emit `NO_OP_TRACE` in `### Command transcript`.
 - Classify each drift line as one of: `BLOCKING` | `IMPORTANT` | `MINOR`.
 - **Execution-versus-plan conformance (per ADR-0094).** For the specific question "did the executed slice set and the command sequence match the approved `IMPLEMENTATION_PLAN`", run `scripts/plan-adherence.py <task-dir>` and fold its verdict into the drift report: a slice-set FAIL (a planned slice never executed, or an executed slice never planned) is at least `IMPORTANT` drift; a command-sequence FAIL (implementation before an approval gate, a write after `task-close`) is `BLOCKING`. The script is read-only and trace-based (it reads the append-only `.wos/VERIFICATION_LOG.jsonl`); it is a closure or checkpoint tool, not a mid-slice check, and it needs slice-anchored completion evidence in `TASK_STATE.md` to compare against.
-- Prefer fixing `TASK_STATE.md` first; touch `IMPLEMENTATION_PLAN.md` / slices only when the mismatch is factual, not a new scope request.
+- Tie-breaker when it is unclear which artifact is wrong: prefer fixing `TASK_STATE.md` first, per the direction test above; touch `IMPLEMENTATION_PLAN.md` / slices only when the mismatch is factual, not a new scope request.
 - **Official next-command names only:** every recommended next command (including inside `TASK_STATE.md` and the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names.
 - Set **work complexity** for the **next** real step from reconciled truth (definitions in `WORKFLOW_OPERATING_SYSTEM.md`). Never name model SKUs.
 

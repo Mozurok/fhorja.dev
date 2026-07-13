@@ -37,28 +37,29 @@ Legend: O = owner (writes via Edit/Write); P = propose-only (PROPOSED block); R 
 | Section (H2) | Owner | Co-writers (propose) | Readers |
 |---|---|---|---|
 | `## Task summary` | task-init | direction-adjust (P) | all |
-| `## Current phase` | slice-closure | sync-task-state, where-we-at, plus the pattern writers (rule 2b) | all |
+| `## Current phase` | slice-closure | sync-task-state, where-we-at, implementation-plan, plus the pattern writers (rule 2b) | all |
 | `## Objective` | task-init | post-review-pivot (P) | all |
 | `## Requested deliverables` | task-init (seed, ADR-0056) | implementation-plan (--spec ledger extension); slice-closure, task-close, review-hard, where-we-at (re-tagging via `commands/_shared/deliverable-reconcile.md`) | all |
 | `## Recommended pipeline` | task-init (ADR-0025, ADR-0101) | what-next, sync-task-state | all |
 | `## Source of truth` | task-init | code-locate (P), capture-references (P) | all |
 | `## Current known facts` | sync-task-state | impact-analysis, code-locate, code-context-map, db-context-supabase | all |
-| `## Canonical decisions` | sync-task-state | decision-interview (direct write in persist mode, authorized by the user's explicit LOCK signal; propose-only in interview mode), contract-signoff (P), direction-adjust (P) | all |
-| `## Open questions / blockers` | targeted-questions | capture-observation, im-stuck, pr-feedback-ingest, decision-interview | all |
+| `## Canonical decisions` | sync-task-state | decision-interview (direct write in persist mode, authorized by the user's explicit LOCK signal; propose-only in interview mode), contract-signoff (P), direction-adjust (P), implementation-plan | all |
+| `## Open questions / blockers` | targeted-questions | capture-observation, im-stuck, pr-feedback-ingest, decision-interview (direct write in persist mode to retire rows resolved by this turn's LOCK; propose-only in interview mode), sync-task-state, test-strategy | all |
 | `## Observations` | capture-observation | any-command via append-only | all |
 | `## Last completed step` | sync-task-state | implement-approved-slice, slice-closure, decision-interview, godot-scene-plan, implementation-plan, godot-runtime-verify, test-strategy, plus the pattern writers (rule 2b) | all |
-| `## Current status` | sync-task-state | slice-closure, where-we-at, decision-interview, plus the pattern writers (rule 2b: `### In progress`) | all |
+| `## Current status` | sync-task-state | slice-closure, where-we-at, decision-interview, implementation-plan, plus the pattern writers (rule 2b: `### In progress`) | all |
 | `## Active files in scope` | impact-analysis | code-locate, sync-task-state, implementation-plan | all |
 | `## Constraints / things that must not change` | invariants-and-non-goals | sync-task-state | all |
 | `## Risks to watch` | rls-auth-boundary-auditor (L3+ exclusive owner per K.6 maturity ladder, 2026-06-05) | sync-task-state, impact-analysis, review-hard, security-review (P), test-strategy, post-deploy-verifier (P) | all |
-| `## Recommended next step` | what-next | sync-task-state, slice-closure, im-stuck, decision-interview, godot-scene-plan, where-we-at, approve-plan, implement-approved-slice, plus the pattern writers (rule 2b) | all |
-| `## Current closure target` | sync-task-state | slice-closure, plus the pattern writers (rule 2b) | all |
+| `## Recommended next step` | what-next | sync-task-state, slice-closure, im-stuck, decision-interview, godot-scene-plan, where-we-at, approve-plan, implement-approved-slice, implementation-plan, test-strategy, plus the pattern writers (rule 2b) | all |
+| `## Current closure target` | sync-task-state | slice-closure, implementation-plan, plus the pattern writers (rule 2b) | all |
 | `## Work complexity (for next execution step)` | implementation-plan | sync-task-state, what-next | all |
 | `## Resume notes` | sync-task-state | compact-task-memory, resume-from-state (P) | all |
 | `## Task scope level` | task-init | sync-task-state | all |
 | `## Compaction history` | compact-task-memory | (sole owner) | all |
 | `## Latest sweep` | repo-consistency-sweep | (sole owner) | all |
 | `## Ruled-out hypotheses` | incident-triage | (sole owner) | all |
+| `## Closure record` | task-close (terminal, ADR-0105) | (sole owner) | all |
 
 **Known-incomplete, self-heal note (P1-3, dogfood-wave-2 2026-07-12):** this matrix is hand-maintained and has recurred as incomplete across three independent dogfood waves (godot-wave F-3, ADR-0101's ten-session reconciliation, this wave's P1-3). A command that writes a TASK_STATE.md section not listed as its own row or co-writer entry above should self-add its row (owner or co-writer, per its actual write behavior) rather than silently writing unauthorized. A deferred follow-up (not built this wave, net-new scope): a small grep-based lint cross-checking each command's declared TASK_STATE writes (its own Required-output / Operating-rules text) against this matrix, retiring this recurring class the way the ADR-0029 registry and count-marker drift guards do.
 
@@ -104,6 +105,7 @@ Legend: O = owner (writes via Edit/Write); P = propose-only (PROPOSED block); R 
 | `## Official external docs` | capture-references | external-research (P) | all |
 | `## Repositories` (multi-repo) | task-init | project-bootstrap | all |
 | `## External research` (cross-link) | external-research | external-research-fleet | all |
+| `## Project-level memory` | task-init | project-bootstrap (seed) | all |
 
 ## Fleet-substrate files (K.1 retrofit, 2026-06-04)
 

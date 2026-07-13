@@ -8,9 +8,12 @@
 # performs the actual section write with its editing tool.
 #
 # Subcommands:
-#   sha   --file F --section '## X'
-#         Print the SHA-256 of the section's current bytes (or 'null' if the
-#         section is absent). Use BEFORE a write to capture sha_before.
+#   sha   --file F [--section '## X']
+#         With --section: print the SHA-256 of the section's current bytes (or
+#         'null' if the section is absent). Use BEFORE a write to capture
+#         sha_before. Without --section: print one "<sha>\t<H2 section>" line
+#         per H2 heading in the file (the full-rewrite pre-snapshot in one
+#         invocation).
 #   emit  --owner O --file F --section '## X' --event E --mode M --reason R
 #         [--sha-before H|null] [--task-root DIR] [--run-id ID] [--invoked-by P]
 #         [--print-header]
@@ -38,9 +41,10 @@ sha_of_section() {
   [[ -f "$file" ]] || { printf 'null'; return; }
   local body
   body=$(awk -v h="$header" '
-    $0 == h            { f=1; next }
-    f && (/^## / || /^<!-- wos:write /) { exit }
-    f                  { print }
+    $0 == h                 { f=1; next }
+    f && /^## /             { exit }
+    f && /^<!-- wos:write / { next }
+    f                       { print }
   ' "$file")
   if [[ -z "$body" ]]; then printf 'null'; else printf '%s' "$body" | shasum -a 256 | awk '{print $1}'; fi
 }
@@ -86,6 +90,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Resolve a relative --file that is absent in cwd against --task-root.
+if [[ -n "$FILE" && "$FILE" != /* && ! -f "$FILE" && -f "$TASK_ROOT/$FILE" ]]; then
+  FILE="$TASK_ROOT/$FILE"
+fi
+
 [[ -n "$SUB" ]] || die "subcommand required: sha | emit | batch"
 [[ ${#REASON} -le 80 ]] || die "reason exceeds 80 chars (${#REASON})"
 TS=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
@@ -93,10 +102,19 @@ TS=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
 
 case "$SUB" in
   sha)
-    [[ -n "$FILE" && -n "$SECTION" ]] || die "sha needs --file and --section"
-    sha_of_section "$FILE" "$SECTION"; echo ;;
+    [[ -n "$FILE" ]] || die "sha needs --file"
+    if [[ -n "$SECTION" ]]; then
+      sha_of_section "$FILE" "$SECTION"; echo
+    elif [[ ! -f "$FILE" ]]; then
+      echo 'null'
+    else
+      while IFS= read -r sec; do
+        printf '%s\t%s\n' "$(sha_of_section "$FILE" "$sec")" "$sec"
+      done < <(grep '^## ' "$FILE")
+    fi ;;
   emit)
     [[ -n "$OWNER" && -n "$FILE" && -n "$SECTION" && -n "$REASON" ]] || die "emit needs --owner --file --section --reason"
+    [[ -f "$FILE" ]] || die "file not found (cwd and task-root checked): $FILE"
     SA=$(sha_of_section "$FILE" "$SECTION")
     if [[ "$EVENT" == "delete" ]]; then
       [[ "$SHA_BEFORE" != "null" ]] || die "delete requires --sha-before (the removed section's last hash)"
@@ -109,16 +127,28 @@ case "$SUB" in
     fi ;;
   batch)
     [[ -n "$OWNER" && -n "$FILE" && -n "$REASON" ]] || die "batch needs --owner --file --reason"
-    COUNT=0
-    while IFS= read -r sec; do
-      SA=$(sha_of_section "$FILE" "$sec")
-      append_line "$TASK_ROOT" "$OWNER" "$(basename "$FILE")" "$sec" "$EVENT" "$MODE" "$REASON" "null" "$SA" "$RUN_ID" "$TS" "$INVOKED_BY"
-      COUNT=$((COUNT + 1))
-    done < <(awk -v o="owner=$OWNER" '
-      /^<!-- wos:write / && index($0, o) { hdr=1; next }
-      hdr && /^## /                      { print; hdr=0; next }
-      { hdr=0 }
+    [[ -f "$FILE" ]] || die "file not found (cwd and task-root checked): $FILE"
+    COUNT=0; SKIP_OWNER=0; SKIP_HEADERLESS=0
+    while IFS=$'\t' read -r kind sec; do
+      case "$kind" in
+        S)
+          SA=$(sha_of_section "$FILE" "$sec")
+          append_line "$TASK_ROOT" "$OWNER" "$(basename "$FILE")" "$sec" "$EVENT" "$MODE" "$REASON" "null" "$SA" "$RUN_ID" "$TS" "$INVOKED_BY"
+          COUNT=$((COUNT + 1));;
+        O) SKIP_OWNER=$((SKIP_OWNER + 1));;
+        H) SKIP_HEADERLESS=$((SKIP_HEADERLESS + 1));;
+      esac
+    done < <(awk -v o="owner=$OWNER " '
+      /^<!-- wos:write / { hdr = index($0, o) ? 1 : 2; next }
+      /^## / {
+        if (hdr == 1)      print "S\t" $0
+        else if (hdr == 2) print "O\t" $0
+        else               print "H\t" $0
+        hdr = 0; next
+      }
+      { hdr = 0 }
     ' "$FILE")
-    echo "emitted $COUNT JSONL lines for $FILE (run_id=$RUN_ID)" ;;
+    echo "emitted $COUNT, skipped $SKIP_OWNER other-owner, $SKIP_HEADERLESS headerless ($FILE, run_id=$RUN_ID)"
+    [[ "$COUNT" -gt 0 ]] || die "batch emitted 0 lines (no owner=$OWNER headers in $FILE)" ;;
   *) die "unknown subcommand: $SUB" ;;
 esac

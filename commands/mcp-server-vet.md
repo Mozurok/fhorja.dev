@@ -45,6 +45,11 @@ Required inputs:
 - optional: the active task folder path, when the vet is part of a task
 - optional: the intended host (Claude Code, Cursor, Codex), the env vars or secrets the server expects, and whether it ships a bundled binary or a postinstall hook
 
+Task repository files to update:
+- `<task>/MCP_VET_<server-name>.md`: the canonical vetting report, one per candidate (the multi-candidate roll-up table appends to the last one); `PROPOSED` in Ask mode
+- cross-reference the report from the `.mcp-vet-pins.json` pins record (Step 5b) so a re-vet can find the prior verdict
+- no other files modified by this command
+
 Operating rules:
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full).
 - READ-ONLY. Do not install, add to a config, enable, register, start, or modify the candidate server, and do not run it or any script or binary it ships. Do not connect to, query, or call the candidate server or any of its tools, and do not fetch from the network. Inspect ONLY the declared surface the user supplies on disk: the config entry, and when the user provides it, a tool list they already captured from the server. The command never starts the server and never connects to it itself; if the only available source is a live server, the user captures its tool list out of band (or via `capture-references`) and points this command at that captured copy.

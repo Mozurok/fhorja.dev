@@ -62,7 +62,7 @@ Operating rules:
   ```bash
   bash    scripts/scan-substrate-headers.sh <active-task-folder>
   python3 scripts/scan-substrate-orphans.py <active-task-folder>
-  python3 scripts/verify-log-validator.py   <active-task-folder>/.wos/VERIFICATION_LOG.jsonl
+  python3 scripts/verify-log-validator.py   <active-task-folder>/.wos/VERIFICATION_LOG.jsonl --check-deletes  # delete-orphan class promoted to errors per ADR-0101/0105
   ```
   Capture three integers from stdout: `substrate_header_drift_count: <N>` (first script), `substrate_bullet_orphan_count: <N>` (second), and `invalid: <N>` (third, recorded as `verification_log_invalid_count`). Persist the orphan paths list (first 10) for the snapshot; write the full list to `REVIEW_SWEEPS/SWEEP_<ts>.orphans.txt` for diffability. These three integers are the audit deliverables for THIS run.
   - **WARN semantics for orphans (not FAIL).** `substrate_bullet_orphan_count > 0` surfaces a WARN line in sweep output, mirroring `header_drift` per ADR-0029's drift-guard pattern. It does NOT add a bug-class finding and does NOT affect Step 11 routing. The gate lives in `evals/e2e/assertions/09-repo-consistency-sweep.sh` (orphan-cap block, default `EXPECTED_MAX_SUBSTRATE_ORPHANS=0`).

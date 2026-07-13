@@ -59,6 +59,7 @@ Operating rules:
   4. `Skipped (path outside scope): <list>` (omit if empty)
   5. `Skipped (no PROPOSED marker): <list>` (omit if empty)
 - **Conflict-check rule**: before persisting any file, compare the proposed content's references to locked decisions in `TASK_STATE.md ## Canonical decisions`. If the proposal contradicts a locked decision, FAIL with a clear error naming the contradiction; do NOT persist anything in this turn (atomic rollback).
+- **Substrate write protocol (per ADR-0034, K.2, ADR-0101).** WHEN a persisted file is a K.2 substrate file per `commands/_shared/substrate-write-protocol.md`, replace the proposer's mode=proposed transaction header with this run's `owner=approve-proposed ... mode=applied` header and append one `event=approve` JSONL line per applied file to `active/<task>/.wos/VERIFICATION_LOG.jsonl` with valid sha_before/sha_after (`bash scripts/emit-substrate-write.sh` is the invokable path); non-substrate files are unaffected.
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full).
 
 Required output:

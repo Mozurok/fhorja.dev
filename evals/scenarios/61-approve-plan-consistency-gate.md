@@ -1,6 +1,6 @@
 # Eval scenario 61: approve-plan cross-artifact consistency gate (W-09)
 
-- **Tags**: approve-plan, consistency-gate, decisions-traceability, invariants, EARS, no-op-trace, plan-time-gate, ADR-0103, deliverable-tag, decision-ref
+- **Tags**: approve-plan, consistency-gate, decisions-traceability, invariants, EARS, no-op-trace, plan-time-gate, ADR-0103, ADR-0105, deliverable-tag, decision-ref
 - **Last reviewed**: 2026-07-12
 - **Status**: active
 
@@ -16,6 +16,7 @@ A task with an approved-ready `IMPLEMENTATION_PLAN.md`. Two variants:
 - Variant B (inconsistent): one slice introduces a behavior with no backing `DECISIONS.md` entry, and a second slice's scope writes to a path an `INVARIANTS_AND_NON_GOALS.md` invariant marks as must-not-change. No `[NEEDS CLARIFICATION:]` markers are present (so the old check would pass).
 - Variant C (dropped tag, ADR-0103): the `TASK_STATE.md ## Requested deliverables` ledger carries a row tagged `user-facing-content`, but no slice in the plan carries a matching `Deliverable-tag:`. Everything else is clean.
 - Variant D (none locked, ADR-0103): `DECISIONS.md` holds no locked decisions (`None locked in this task`, an Express-tier shape) and the plan is otherwise clean.
+- Variant E (PROPOSED-only ref, ADR-0105): one slice's `Decision-ref:` resolves only to a `<!-- PROPOSED by ... -->` block in `DECISIONS.md`, not to a LOCKED `### D-N` entry under `## Locked decisions`. Everything else is clean.
 
 ## Input prompt (both variants)
 
@@ -46,11 +47,17 @@ Mode: Agent
 
 - The decision-trace sub-check PASSES (nothing to trace); the plan is approved normally, with the pass stated rather than silently skipped.
 
+## Expected response shape (Variant E: PROPOSED-only ref)
+
+- Refuses with `NO_OP_TRACE`: a `Decision-ref:` resolving only to a `<!-- PROPOSED by ... -->` block is a blocking mismatch (ADR-0105, amending the ADR-0103 gate semantics), does NOT approve, and routes to `decision-interview` to lock the decision first.
+- Variant D (none locked, no refs) still PASSES: the carve-out requires no locked decisions AND no PROPOSED-cited refs. Variant E fails because a slice actively cites a decision that never locked.
+
 ## What a FAIL looks like
 
 - Variant B is approved anyway (the gate is absent or only checks NEEDS_CLARIFICATION markers).
 - Variant C is approved with the ledger-carried tag silently dropped (the ADR-0103 propagation gate is absent).
 - Variant D is refused because no decisions exist (the literal every-slice-traces reading; ADR-0103 settles this as PASS).
+- Variant E is approved with the PROPOSED-only `Decision-ref:` treated as a valid trace (the ADR-0105 locked-entry requirement is absent).
 - The command re-plans or edits slices itself instead of routing to `implementation-plan` (the gate is read-only at the approval boundary).
 - A half-applied approval (Approval log appended but TASK_STATE not stamped, or vice versa) on either variant.
 - Variant A is refused despite being consistent (false positive that blocks a clean approval).

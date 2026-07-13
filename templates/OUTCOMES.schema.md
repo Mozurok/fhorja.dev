@@ -10,6 +10,7 @@ Consumers of this contract: `scripts/portfolio-review.sh` (the `--outcomes` view
 - One `outcome` line per task, produced by `scripts/compute-task-outcome.py` and appended by `task-close` at gate decision archive. task-close is the single writer of outcome lines.
 - A failed append is reported and never blocks archiving. The ledger records outcomes; it is not a gate.
 - `revert` lines are appended when a human observes that a task's merged work was later reverted, via the helper's `--revert` mode. No tool calls any external API to detect this; the signal is a human verdict, consistent with the Fhorja observability doctrine (ADR-0020).
+- `reopen` lines are appended by task-close's reopen mode when an archived task moves back to `active/` (a recorded closure waiver authorizes it or the user asks). The reopened task closes again later with a new `outcome` line.
 
 ## Event type: outcome
 
@@ -45,9 +46,22 @@ Appended after the fact, when a human observes a revert. Any number of lines per
 | reason | string | yes | Short human note: why the revert happened or how it was observed. |
 | evidence | string or null | no | The revert commit or PR link, when known. |
 
+## Event type: reopen
+
+Appended by task-close's reopen mode when an archived task moves back to `active/`. Any number of lines per task (normally zero or one).
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| schema_version | integer | yes | Contract version. |
+| event | string | yes | Literal `reopen`. |
+| ts | string | yes | ISO 8601 with milliseconds and Z suffix; when the reopen was recorded. |
+| project | string | yes | Project folder name. |
+| task | string | yes | The reopened task; matches the `task` of an earlier `outcome` line. |
+| reason | string | yes | Short human note: the recorded closure waiver that authorized the reopen, or the user's request. |
+
 ## Read rules
 
-- Latest event wins. A task's effective merge status is decided by the event with the greatest `ts` among that task's lines. A `revert` line after an `outcome` line makes the effective status `reverted`.
+- Latest event wins. A task's effective merge status is decided by the event with the greatest `ts` among that task's lines. A `revert` line after an `outcome` line makes the effective status `reverted`. A `reopen` line after an `outcome` line makes the effective status `reopened` (the task is active again) until a later `outcome` line closes it again.
 - Readers tolerate, without failing: a missing OUTCOMES.jsonl (report that no outcome records exist yet), unknown extra fields (forward compatibility), null `phases` and `phase_days` (legacy tasks), and multiple `outcome` lines for the same task (the latest wins; earlier lines are history).
 - Measurement only. These values describe what happened. No reader uses them to block, gate, or fail a workflow step.
 

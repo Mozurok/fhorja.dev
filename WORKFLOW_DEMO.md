@@ -440,7 +440,7 @@ Run @commands/slice-closure.md for the same task folder.
 
 ### Command transcript
 - Exit criteria for Slice 01 verified against the recorded test run; all met.
-- Commit-evidence floor (ADR-0084): work is committed on `task/csv-export-for-invoices` (commit a1b2c3d); classified ready to close.
+- Commit-evidence floor (ADR-0084, ADR-0100): work is committed on `task/csv-export-for-invoices` (commit a1b2c3d); classified ready to close.
 
 ### Deliverable status (per ADR-0056)
 - "Export respects tenant row-level security": done (Slice 01 evidence above).
@@ -545,7 +545,7 @@ Run @commands/slice-closure.md for the same task folder.
 
 ### Command transcript
 - Both slices verified against recorded exit-criteria evidence.
-- Commit-evidence floor (ADR-0084): committed on task/csv-export-for-invoices (commit e4f5a6b).
+- Commit-evidence floor (ADR-0084, ADR-0100): committed on task/csv-export-for-invoices (commit e4f5a6b).
 
 ### Deliverable status (per ADR-0056)
 - "Export respects tenant row-level security": done.
@@ -730,7 +730,7 @@ Merge evidence: PR #128 merged into main, commit 9f1c2ab.
 
 ### Command transcript
 - Done-conditions: implementation complete (met), review complete (met, review-hard + sweep), team approval (met, PR review), merge (met, commit 9f1c2ab).
-- Commit-evidence floor (ADR-0084): satisfied by the merge commit.
+- Commit-evidence floor (ADR-0084, ADR-0100): satisfied by the merge commit.
 
 ### Deliverable reconcile (per ADR-0056)
 - Both requested deliverables are done; nothing unreconciled.

@@ -65,7 +65,7 @@ Adaptive question flow (loop control):
   6. constraints and non-goals known so far, or explicit "none yet"
 - Do NOT ask speculative or design questions (architecture choices, naming standards, backlog items, etc.). The command is for context capture, not for solving.
 - Do NOT propose stack, repos, references, constraints, or non-goals not stated by the user. Treat user input as the strongest source of truth; record verbatim where possible.
-- **No human respondent (unattended, background, or fleet-dispatched run, per ADR-0044 doctrine):** do NOT self-answer and do NOT lock anything. Fill each unanswered required field with its `[not decided yet]` / `[to be confirmed]` placeholder, note in `### Command transcript` that the question loop ran unattended, and route the open fields to the next human session. Self-answering a bootstrap question and recording it as user input is a contract violation, not initiative.
+- **No human respondent (unattended, background, or fleet-dispatched run, per ADR-0044 doctrine):** do NOT self-answer and do NOT lock anything. Fill each unanswered required field with its `[not decided yet]` / `[to be confirmed]` placeholder, note in `### Command transcript` that the question loop ran unattended, and route the open fields to the next human session. Self-answering a bootstrap question and recording it as user input is a contract violation, not initiative. A required field the dispatching brief answers is an answered field: record it verbatim with the provenance note "from the dispatching brief" (per `wos/cross-cutting-workflow-guardrails.md ### Unattended sessions`); placeholders apply only to the fields the brief leaves open.
 
 Project repository structure to use:
 - projects/<client>__<project>/

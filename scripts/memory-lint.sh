@@ -5,7 +5,9 @@
 # writes. It surfaces three classes of issue and leaves "stale fact" judgment to the
 # model-driven layer in state-reconcile:
 #   1. Dead relative links  - markdown links and backticked paths that point at a
-#      ./ or ../ target which does not exist on disk.
+#      ./ or ../ target which does not exist on disk, plus bare task-artifact
+#      references on bullet lines (TASK_STATE.md, SLICES/<file>.md) that do not
+#      resolve against the containing file's directory.
 #   2. Orphaned SLICES/ files - slice files not referenced by IMPLEMENTATION_PLAN.md
 #      or TASK_STATE.md in the same task folder.
 #   3. LEARNINGS entry quality - reflexion entries in LEARNINGS.md with a missing or
@@ -99,6 +101,30 @@ for f in ${scan_files[@]+"${scan_files[@]}"}; do
       dead_links=$((dead_links + 1))
     fi
   done < <(grep -oE '`\.\.?/[^`]+`' "$f" 2>/dev/null | tr -d '`')
+
+  # Bare task-artifact references on bullet lines outside code fences:
+  # tokens like TASK_STATE.md or SLICES/01-foo.md mentioned without a markdown
+  # link or path prefix. Resolve against the containing file's directory.
+  in_fence=0
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    case "$line" in
+      '```'*) in_fence=$((1 - in_fence)); continue ;;
+    esac
+    [[ "$in_fence" -eq 0 ]] || continue
+    [[ "$line" =~ ^[[:space:]]*-[[:space:]] ]] || continue
+    # Drop markdown links (text plus target) and URLs so their contents are
+    # not re-reported here; detector 1 already checks link targets.
+    stripped="$(printf '%s' "$line" | sed -E 's/\[[^]]*\]\([^)]*\)//g; s#https?://[^[:space:])]*##g')"
+    while IFS= read -r token; do
+      [[ -n "$token" ]] || continue
+      # Trim the single non-token lead character kept by the boundary match.
+      token="$(printf '%s' "$token" | sed -E 's/^[^A-Z]//')"
+      if [[ ! -e "$base/$token" ]]; then
+        report "$f -> $token (bare relative reference missing)"
+        dead_links=$((dead_links + 1))
+      fi
+    done < <(printf '%s\n' "$stripped" | grep -oE '(^|[^A-Za-z0-9_./-])(SLICES/[A-Za-z0-9_.-]+\.md|[A-Z][A-Z0-9_]*\.md)' 2>/dev/null)
+  done < "$f"
 done
 [[ "$dead_links" -eq 0 ]] && echo "  (none)"
 

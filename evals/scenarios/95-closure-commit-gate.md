@@ -1,6 +1,6 @@
 # Eval scenario 95: closure requires a commit reference or an explicit recorded waiver, all projects
 
-- **Tags**: ADR-0084, ADR-0100, task-close, slice-closure, closure-commit-gate, done-conditions, branch-commit, bounded-deferral, all-projects
+- **Tags**: ADR-0084, ADR-0100, ADR-0105, task-close, slice-closure, closure-commit-gate, done-conditions, branch-commit, bounded-deferral, all-projects
 - **Last reviewed**: 2026-07-12
 - **Status**: active
 
@@ -15,6 +15,7 @@ This exercises:
 - Bounded-deferral path (ADR-0100): real work awaiting a human commit (including an unattended session where git is unavailable or forbidden) is recorded as `deferred: pending human commit (<context>)` and keeps the slice or task OPEN; a bare waiver line on real work does not close it. At `task-close`, a user-authorized archive-with-waiver that names the preserved uncommitted work remains a legal explicit escape.
 - Commit path: a cited commit reference satisfies the floor even when merge (condition 4) is separately waived in a solo or Phase-1 context.
 - slice-closure floor: a slice whose work is neither committed nor waived is classified `not ready to close` and routed to `branch-commit`, not marked ready.
+- inline-close floor (ADR-0105): the implement-approved-slice inline-close path enforces the same three-way floor; a LOW/MEDIUM slice with uncommitted, unwaived work does not close inline.
 - Backward compatibility: the spec `## When a task moves to done` list still has exactly five conditions; a prior closure flow that cites a commit is unchanged.
 
 ## Setup
@@ -61,3 +62,4 @@ Every slice is done and verified. Close the task.
 
 - 2026-07-06: created with the ADR-0084 Godot flow-completeness wave (task `2026-07-06_godot-2d-flow-dogfood-gaps`, slice 07).
 - 2026-07-12: ADR-0100 bounded-deferral criterion added (theme dogfood wave: 5 of 10 unattended paths hit the waiver-on-real-work gap); the waiver path is narrowed to genuinely discardable work.
+- 2026-07-12: ADR-0105 inline-close third home pinned (round-3 dogfood found the majority closure route bypassed the floor).
