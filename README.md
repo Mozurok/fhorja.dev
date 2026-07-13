@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg" alt="License: AGPL v3"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   &nbsp;
   <a href="#status-license-and-contributing"><img src="https://img.shields.io/badge/Status-v1.0.0-brightgreen.svg" alt="Status: v1.0.0"></a>
 </p>
@@ -18,9 +18,15 @@ Fhorja's answer: task state, decisions, and plans live in markdown files on disk
   <img src=".github/assets/persistence.svg" alt="Decisions made in chat are lost at session end; the same decisions written to disk survive" width="100%">
 </p>
 
+> **See a real session, unedited.** [`docs/EXAMPLE_TRANSCRIPT.md`](./docs/EXAMPLE_TRANSCRIPT.md) walks the actual Fhorja task that built [fhorja.dev](https://fhorja.dev), from `task-init` to `task-close`, quoting its real decisions, slice outputs, and the tamper-evident verification log. It exists to answer one question: is this real work, or a scripted illusion of it?
+
 ## What it is
 
-Fhorja is a workflow operating system for AI-assisted engineering: a markdown-plus-bash specification, not an application or a hosted service. It gives solo developers and small teams a disciplined, resumable process for AI-assisted work by keeping task state, decisions, and plans as files on disk instead of in chat history. It ships as <!-- count:commands -->94<!-- /count --> command files that share one output contract and chain into each other (discovery, decisions, planning, slice-by-slice execution, review, delivery), distributed to any editor as Agent Skills or legacy slash commands.
+Fhorja is a workflow operating system for AI-assisted engineering: a markdown-plus-bash specification, not an application or a hosted service. It gives solo developers and small teams a disciplined, resumable process for AI-assisted work by keeping task state, decisions, and plans as files on disk instead of in chat history.
+
+The everyday product is a loop of twelve commands: `task-init`, `impact-analysis`, `decision-interview`, `implementation-plan`, `approve-plan`, `implement-approved-slice`, `review-hard`, `slice-closure`, `sync-task-state`, `pr-package`, `task-close`, and `what-next`. They share one output contract and chain into each other across discovery, decisions, planning, slice-by-slice execution, review, and delivery, distributed to any editor as Agent Skills or legacy slash commands. Most tasks touch four to six of them.
+
+Behind that loop sits an optional catalog of <!-- count:commands -->94<!-- /count --> commands in total (parallel fleets, design-system personas, reliability and security specialists) that you install only when a task needs them. The `minimal` install profile is the default and gives you exactly the twelve.
 
 It targets engineers who already use an AI coding tool (Cursor, Claude Code, and 35+ others that read the open Agent Skills standard, per [`CONTRIBUTING.md`](./CONTRIBUTING.md)) and want plan-before-code discipline with an explicit human approval gate before implementation.
 
@@ -34,19 +40,19 @@ Fhorja lives in its own repository, separate from any product codebase you work 
 git clone https://github.com/Mozurok/fhorja.dev.git
 cd fhorja.dev
 ./scripts/bootstrap-user-setup.sh          # once: seeds USER_MEMORY.md, runs a lint sanity check
-./scripts/sync-workflow-slash-commands.sh  # installs the commands into Cursor and Claude Code
+./scripts/sync-workflow-slash-commands.sh  # installs the 12-command loop into Cursor and Claude Code
 ```
 
 In any editor that reads `.claude/skills/` (Cursor 2.4+, Claude Code), the commands are available as Agent Skills with no install step at all. Start your first task by running `task-init` and following the handoff printed at the end of each command. New to the workflow itself, not just this repo? Run `workflow-guide` instead of `task-init` first: it explains which command and editor mode to use right now, why, and the next two or three steps, so you are not guessing your way through the first task. Already fluent in the phases and just want the fast answer? Run `what-next` at any point; it gives the same routing decision with none of the explanation. Feeling stuck or looping? Run `im-stuck` instead. All three are safe to run anytime and never change your task's state. If you only have a few minutes before your first task, skim ahead to [Task memory on disk](#task-memory-on-disk) and [Repository layout](#repository-layout) below; they answer where things live, which is usually the first real question, before the full command catalog.
 
 ### Install profiles
 
-All commands install by default. Pass `--profile` to start with a smaller surface and grow into it:
+The `minimal` profile (the twelve-command loop) installs by default. Pass `--profile` to grow into a larger surface when a task needs it:
 
 ```bash
-./scripts/sync-workflow-slash-commands.sh --profile minimal  # the lifecycle spine
+./scripts/sync-workflow-slash-commands.sh                    # minimal: the 12-command loop (default)
 ./scripts/sync-workflow-slash-commands.sh --profile core     # everyday use, no fleets or personas
-./scripts/sync-workflow-slash-commands.sh --profile full     # the whole catalog (default)
+./scripts/sync-workflow-slash-commands.sh --profile full     # the whole catalog
 ```
 
 <p align="center">
@@ -314,7 +320,7 @@ MCP-dependent commands (`db-context-supabase`, `db-context-postgres`, the Figma 
 
 ## Eval harness and quality
 
-The workflow ships a manual regression net of <!-- count:scenarios -->106<!-- /count --> scenarios under `evals/scenarios/`, indexed in [`evals/README.md`](./evals/README.md). Each scenario is self-contained: a full input prompt, the expected response shape, and numbered pass criteria a reviewer checks by reading the model output. Run them with `evals/scripts/run-evals.sh`; `evals/scripts/judge.py` is an optional LLM-as-judge second pass that never replaces manual review.
+The workflow ships a regression net of <!-- count:scenarios -->106<!-- /count --> scenarios under `evals/scenarios/`, indexed in [`evals/README.md`](./evals/README.md). Each scenario is self-contained: a full input prompt, the expected response shape, and numbered pass criteria a reviewer checks by reading the model output. Most are behavioral and reviewed by hand with `evals/scripts/run-evals.sh` (or the optional `evals/scripts/judge.py` LLM-as-judge second pass, which never replaces manual review). The subset that reduces to a static repo invariant runs in CI on every push via `evals/scripts/structural-evals.py`, so a broken handoff basename, a stale count marker, or a malformed scenario fails the build rather than waiting for a manual pass. That harness does not run a model and makes no claim of full automated coverage.
 
 `repo-consistency-sweep` draws on the curated bug-class library in `wos/bug-classes/`, auto-discovered at sweep time; project-local templates can override a global one on name collision.
 
@@ -336,15 +342,19 @@ The workflow ships a manual regression net of <!-- count:scenarios -->106<!-- /c
 - [`docs/adr/README.md`](./docs/adr/README.md): the decision records, the why behind every load-bearing choice.
 - [`wos/`](./wos/): lazy-loaded reference topics, including [`wos/repository-structure.md`](./wos/repository-structure.md), [`wos/context-budget.md`](./wos/context-budget.md), [`wos/command-roles.md`](./wos/command-roles.md), and [`wos/workflow-patterns.md`](./wos/workflow-patterns.md).
 
+## Who built this
+
+Fhorja is built and maintained by Bruno Mazurok, a fullstack engineer with about fourteen years in the field, close to five of them at Coinbase. He built it to fix a problem he kept hitting in his own AI-assisted work: the decisions and context of a task lived in the chat and vanished the moment the session closed. The name comes from *forja*, Portuguese for forge, the place where raw material is worked into something durable.
+
 ## Status, license, and contributing
 
 **Status.** v1.0.0, the first public release. The contract for command outputs and `TASK_STATE.md` is the defined public API: breaking changes to either mean a major version bump per [SemVer](https://semver.org/). See [`CHANGELOG.md`](./CHANGELOG.md) for what changed and [`ROADMAP.md`](./ROADMAP.md) for what's next.
 
 **Governance.** A personal open-source project under single-maintainer (BDFL) governance while it matures toward a community model; the contribution flow is documented in [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
-**License.** [AGPL-3.0](LICENSE). Copyright (C) 2026 Bruno Mazurok. Using it personally or inside your company has no practical restriction. Forking and redistributing means releasing your changes under AGPL-3.0. Offering it as a network service means publishing your modified source. A commercial license for organizations that cannot use AGPL is planned but not yet available; contact the maintainer by email (see [`CONTRIBUTING.md`](./CONTRIBUTING.md)) to register interest.
+**License.** [MIT](LICENSE). Copyright (c) 2026 Bruno Mazurok. Use it, fork it, adapt it, and build on it, in personal, company, or commercial work, with no share-alike obligation. The only requirement is keeping the copyright and license notice. Contributions are accepted under the same MIT terms with a DCO sign-off (see [`CONTRIBUTING.md`](./CONTRIBUTING.md)).
 
-**Contributing.** Welcome. Read [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the flow, code style, and CLA. Edit `commands/*.md` (canonical), never the generated skills, and run `./scripts/lint-commands.sh` before a PR.
+**Contributing.** Welcome. Read [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the flow, code style, and the DCO sign-off. Edit `commands/*.md` (canonical), never the generated skills, and run `./scripts/lint-commands.sh` before a PR.
 
 **Security.** Report concerns via [`SECURITY.md`](./SECURITY.md). Community conduct follows the [Contributor Covenant 2.1](./CODE_OF_CONDUCT.md).
 

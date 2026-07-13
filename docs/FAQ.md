@@ -13,7 +13,7 @@ The workflow's job is to make AI-assisted engineering **resumable, auditable, an
 Three reasons:
 
 1. **Tool portability**. Markdown and bash run anywhere. The workflow targets Cursor, Claude Code, GitHub Copilot, OpenAI Codex, Gemini CLI, OpenHands, Goose, Junie, and 35+ others without per-tool integration. A runtime would need plugins per tool.
-2. **AGPL-friendly distribution**. Static markdown is trivially open-source-compatible. The repo can be cloned, forked, and adapted with no installation step.
+2. **Open-source-friendly distribution**. Static markdown is trivially open-source-compatible. The repo can be cloned, forked, and adapted with no installation step.
 3. **Explicit over magical**. The workflow's value is its discipline (mandatory phases, review gates, copy-paste handoffs). Wrapping that discipline in code would hide it; markdown surfaces it where contributors can audit and refine it.
 
 A future hosted SaaS layer (exploratory, not committed) might wrap the workflow with server-side execution, sandboxing, and persistence. That is a separate product, not a replacement for the markdown layer.
@@ -82,7 +82,7 @@ The `## Command roles` index gives a one-line role for each command and a `Next:
 
 ## Can I use this in commercial work?
 
-The workflow is licensed under **AGPL-3.0**. Commercial use is allowed under AGPL terms (the share-alike requirement applies if you redistribute or run a modified version as a network service). For organizations that need a closed deployment without AGPL obligations, a commercial license is planned but not yet available (target: 6-12 months after the v1.0.0 public release). Until it ships, AGPL-3.0 is the only option; contact the maintainer by email to register interest.
+Yes, without restriction. The workflow is licensed under **MIT**. You can use it in commercial work, integrate it into a closed-source product or a proprietary SaaS, fork it, and adapt it, with no share-alike obligation and no separate commercial license to buy. The only requirement is keeping the copyright and license notice in copies. There is nothing to register and no one to email for permission.
 
 Project-level memory (`PROJECT_CHARTER.md`, `REFERENCES.md`) is gitignored by design (see ADR-0007), so commercial or sensitive project context never enters the open-source repo even when you fork.
 
@@ -97,6 +97,14 @@ This workflow is opinionated about:
 - **Multi-tool distribution** (canonical commands generate per-tool skills; ADR-0005).
 
 It is **not** a replacement for: external code review systems (use Greptile, GitHub PR review, etc.); a generic agent framework (the workflow is opinionated about phases); a model orchestrator (capability routing is intentional, but the user picks the model). It is also not a CI/CD or build tool; the only "build" it does is `scripts/build-agent-skills.sh`, which generates Agent Skills from canonical commands.
+
+### Compared to spec-kit
+
+[spec-kit](https://github.com/github/spec-kit) is GitHub's spec-driven development toolkit, and it is strong at the start of a feature: you write a specification, and it drives the agent from that spec to a plan and then to code. Fhorja overlaps there, but its center of gravity is different. spec-kit answers "how do I get from a clean spec to working code in one focused pass." Fhorja answers "how does a task that spans several sessions and many small decisions stay coherent over days." The decisions, the task state, and the plan live in files a new session reads back, so the work survives a closed laptop, a context compaction, or a switch of editor. If your pain is getting a good spec into code, spec-kit is a fine fit. If your pain is that context and decisions evaporate between sessions, that is the gap Fhorja fills. The two are compatible: spec a feature however you like and still track it through Fhorja's task memory.
+
+### Compared to BMAD
+
+[BMAD-METHOD](https://github.com/bmad-code-org/BMAD-METHOD) models an agile team as a set of agent personas (analyst, PM, architect, scrum master, developer, QA) that hand work to each other. It is a rich planning-and-simulation approach, and if you want an AI "team" to role-play the software lifecycle, it does that well. Fhorja does not simulate roles. It keeps one disciplined lifecycle with explicit human gates and leans hard on evidence: a step counts as done only when the real command output proves it, and every decision is written once with its reasoning and read back later. Where BMAD invests in richer up-front planning personas, Fhorja invests in persistent state and proof of execution. Neither is a knock on the other; they optimize for different things.
 
 If you are evaluating against another workflow tool, the differentiators are: discipline over freedom, audit trail in conversation transcripts, multi-tool drop-in via the open Agent Skills standard, and the ADR-driven design so tradeoffs are visible.
 
@@ -177,7 +185,13 @@ ADR-0040 (`docs/adr/0040-single-writer-per-folder-exception.md`) requires every 
 
 ## Does using Fhorja cost more than prompting the AI directly?
 
-Fhorja has no cost of its own (no subscription, no API key, no hosted service); you pay only for the AI coding tool and model you already use. Running the workflow does use more of that tool's usage than a single freeform prompt, because each command reads its own context bootstrap and a multi-slice task runs several commands instead of one. In exchange you get plan review before code is written and resumable state across sessions, which tends to save the tokens a freeform chat burns re-explaining context after a compaction or a new session. If you are on a metered budget, start with the `minimal` install profile (the twelve-command everyday spine) and skip specialist personas and fleet commands until a task actually needs them.
+Fhorja has no cost of its own (no subscription, no API key, no hosted service); you pay only for the AI coding tool and model you already use. It does use more of that tool's usage than a single freeform prompt, and here are measured numbers so you can judge for yourself (approximate, from `scripts/measure-tokens.py`, roughly 10% precision against the real tokenizer):
+
+- **Per command**, the static context a command loads (the spec sections it needs plus its shared blocks) is about 41,000 tokens. With prompt caching, which Claude Code turns on by default, that block is written once and then read at about a tenth of the cost on every command after, so you pay the full amount roughly once per session, not once per command. The command file itself adds 2,000 to 7,400 tokens.
+- **A real multi-command task** (the five-command flow from `task-init` through `pr-package`) costs about 102,000 token-equivalents with caching on, against about 238,000 if you open a fresh chat per command and lose the cache. Caching is worth roughly 57% here. An Express task is lighter still, because it skips the discovery commands.
+- **The task's memory on disk** (`TASK_STATE.md`) averages about 11 KB, roughly 2,700 tokens, measured across 314 real task files (range 0.5 KB to 43 KB). That one file is the entire resumable state of a task: what is done, every decision, and the next step.
+
+In exchange you get plan review before code is written and resumable state across sessions, which saves the tokens a freeform chat burns re-explaining context after a compaction or a new session. If you are on a metered budget, the `minimal` install profile (the twelve-command everyday loop) is now the default, so you skip specialist personas and fleet commands until a task actually needs them.
 
 ## How many MCP servers should I connect, and what does each cost?
 

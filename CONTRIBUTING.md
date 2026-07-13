@@ -10,21 +10,21 @@ This project is maintained by Bruno Mazurok as a personal open-source effort und
 - There is no SLA for issue or PR response. Best effort, no guarantees.
 - PRs are welcome but may be redirected, declined, or merged at maintainer discretion.
 - For larger changes, please open a discussion or issue first to align on direction before investing time.
-- If this model does not work for you, you are encouraged to fork under AGPL-3.0 terms.
+- If this model does not work for you, you are encouraged to fork under the MIT license.
 
-## License and contributor agreement
+## License and sign-off (DCO)
 
-This project is licensed under [AGPL-3.0](LICENSE).
+This project is licensed under the [MIT license](LICENSE). Contributions are accepted under the same MIT terms.
 
-By submitting a contribution, you agree that:
+Instead of a CLA, this project uses the [Developer Certificate of Origin](https://developercertificate.org/) (DCO). The DCO is a lightweight, one-line statement that you wrote the contribution or otherwise have the right to submit it under MIT. You certify it by adding a `Signed-off-by` line to each commit:
 
-1. Your contribution is your original work or you have authority to submit it.
-2. Your contribution is licensed under AGPL-3.0.
-3. The maintainer may relicense your contribution under different open-source or commercial terms in the future, including dual licensing for commercial customers, without further notice or compensation.
+```
+git commit -s -m "your message"
+```
 
-A CLA bot ([CLA Assistant](https://cla-assistant.io/)) will be enabled at public launch to record your agreement once on your first PR; until it is wired, the maintainer confirms your agreement in the PR thread. Subsequent PRs are covered by the same agreement.
+That appends `Signed-off-by: Your Name <your@email>` using your `git config` name and email. There is no bot to click through and no separate agreement to sign; the sign-off in your commit history is the record.
 
-If you cannot agree to these terms, please do not submit a PR; you are welcome to fork instead.
+If you cannot certify the DCO, please do not submit a PR; you are welcome to fork instead.
 
 ## Reporting bugs
 
@@ -155,12 +155,8 @@ clean repo produces no diff.
 3. Make your changes; commit with conventional commit messages (`feat:`, `fix:`, `docs:`, `chore:`, etc.).
 4. Run `./scripts/lint-commands.sh` and ensure it passes.
 5. Open a PR using the [PR template](.github/pull_request_template.md).
-6. Sign the CLA when prompted (one-time per contributor).
+6. Sign off your commits with `git commit -s` to certify the DCO.
 7. Wait for review. Best-effort response time.
-
-## Commercial licensing
-
-If your organization needs to use this workflow under terms different from AGPL-3.0 (for example, integrating into a closed-source product or proprietary SaaS), a commercial license is planned but not yet available. Contact the maintainer by email to register interest.
 
 ## Questions
 

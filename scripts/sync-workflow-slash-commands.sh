@@ -51,6 +51,10 @@ directories so the same bodies are available as slash commands where supported.
 
 Options:
   --dry-run              Print actions only; do not write files.
+  --profile=TIER         Which command set to install: minimal (the 12-command
+                         everyday loop; the default), core (~50 commands), or full
+                         (all 85 flat commands). Start with minimal and add the
+                         rest with --profile=full when a task actually needs them.
   --cursor-only          Update only the Cursor destination.
   --claude-only          Update only the Claude Code destination.
   --codex-only           Update only the Codex prompts destination.
@@ -92,7 +96,7 @@ of skills, so use --with-skills for the recommended Codex workflow surface.
 EOF
 }
 
-PROFILE="${PROFILE:-}"
+PROFILE="${PROFILE:-minimal}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -122,10 +126,11 @@ if [[ ! -d "$SRC" ]]; then
   exit 1
 fi
 
-# Profile filter (ADR-0059): include a command file when no --profile is set
-# (backwards-compatible: copy all) or when its metadata.x-wos-profiles inline
-# list contains the requested tier. minimal/core/full are distinct tokens, so a
-# substring match against the inline list is sufficient.
+# Profile filter (ADR-0059): the default profile is `minimal` (the 12-command
+# everyday loop). Include a command file when its metadata.x-wos-profiles inline
+# list contains the requested tier, or when the profile is explicitly empty
+# (PROFILE= copies all, the pre-default behavior). minimal/core/full are distinct
+# tokens, so a substring match against the inline list is sufficient.
 file_in_profile() {
   local f="$1" p="$2" line
   [[ -z "$p" ]] && return 0

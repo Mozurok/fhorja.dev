@@ -150,6 +150,22 @@ For a guided walkthrough that prints each scenario in turn (so you can paste fro
 
 The script prints each scenario file to stdout and waits for you to press enter before continuing. It does not call any model API; the manual loop is intentional.
 
+## The automatable subset (runs in CI)
+
+Most scenarios are behavioral: they check a model's output against numbered criteria, which needs a human (or the optional judge) reading the response. A subset, though, depends on a **static property of this repo**, and those parts run in CI on every push via [`evals/scripts/structural-evals.py`](./scripts/structural-evals.py).
+
+The harness does not run a model. It asserts the repo invariants a subset of scenarios depend on, so if one breaks, the corresponding scenario cannot pass. It currently runs 11 checks, each named with the scenario(s) it enforces:
+
+- **scenario corpus** integrity: every scenario is well-formed (goal, criteria, and a FAIL section), linked from this README, and uniquely numbered.
+- **scenario 85** (handoff routing integrity): every `Run now:` line in a command names a real command basename.
+- **required-section, frontmatter, registry, count-marker, ADR-index, forbidden-byte, and shared-block** invariants that the corresponding scenarios assume.
+
+This is a subset by design, and the harness prints exactly that: the behavioral scenarios stay manual, and no claim of full automated coverage is made. Run it locally with:
+
+```bash
+python3 ./evals/scripts/structural-evals.py
+```
+
 ## What to do when a scenario fails
 
 A failure usually means one of three things:

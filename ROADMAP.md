@@ -16,15 +16,15 @@ The project follows a phased release strategy to balance refinement quality with
 
 - **Phase 1 (private refinement, current)**: internal use, testing, and polishing. Repository is private. License, contributor guides, examples, lint script, and CI are being prepared but not yet exposed.
 - **Phase 2 (private beta, planned)**: 1-2 months of beta testing with 5-10 invited developers. Feedback collected, structural gaps fixed.
-- **Phase 3 (public AGPL-3.0, planned)**: repository made public, v0.1.0 tagged, announced to relevant communities.
-- **Phase 4 (stabilization + dual licensing, planned)**: continued open-source releases plus pilot of commercial licensing for organizations that need closed deployment.
+- **Phase 3 (public MIT, done)**: repository made public, first version tagged, announced to relevant communities.
+- **Phase 4 (stabilization, planned)**: continued open-source releases, community growth, and API stability toward a mature v1 contract.
 - **Phase 5 (Layer 2 SaaS, exploratory)**: separate hosted service that builds on top of the open-source workflow. No commitment yet.
 
 ## Wave 1: Foundation (v0.1.x, current release window)
 
 **Goal**: ship a usable, public, properly licensed workflow with all open-source hygiene in place.
 
-- [x] AGPL-3.0 license
+- [x] MIT license
 - [x] Contributor and security policies
 - [x] Issue and PR templates
 - [x] Command lint script and CI
@@ -113,12 +113,11 @@ Current catalog totals are tracked in CHANGELOG.md and the EOD snapshot under _i
 - [x] Refactor-specific flow with mandatory `TEST_STRATEGY.md` at the spec `## Recommended workflows by task shape` :: `### Refactor task (behavior preservation under structural change)`: 8-step flow that upgrades `test-strategy` from "if needed" to **mandatory** and `review-hard` from "if useful" to **expected**. Includes the explicit stop-rule: if existing coverage cannot anchor the refactor safely, the refactor is preceded by a separate task that adds the missing test infrastructure (refactoring without behavior coverage is a known anti-pattern, not a permitted shortcut).
 - [x] Test-only task short flow at the spec `## Recommended workflows by task shape` :: `### Test-only task (test additions or improvements; no behavior change)`: 4-step flow (task-init :: mandatory test-strategy :: implement-approved-slice in Agent :: pr-package). Includes the explicit re-classification rule: if a test discovers a real bug while being written, the task is no longer test-only and is re-routed to small-disciplined or incident-triage.
 
-## Phase 4: Dual licensing pilot (target: 6-12 months after v0.1.0)
+## Phase 4: Stabilization (target: ongoing after the public release)
 
-- [ ] Commercial license terms drafted and published
-- [ ] First commercial customer onboarded
-- [ ] Process for evaluating commercial use cases documented
-- [ ] CLA Assistant fully integrated and validated against contributor flow
+- [ ] API stability toward a mature v1 contract (command output shape and `TASK_STATE.md` schema)
+- [ ] Community growth: issues, discussions, and outside contributions under MIT + DCO
+- [ ] Broader editor coverage validated against the open Agent Skills standard
 
 ## Phase 5: SaaS layer 2 (exploratory, no commitment)
 
@@ -130,7 +129,7 @@ A separate hosted service that builds on top of the open-source workflow. Concep
 - Run tests and validation in sandboxed environment
 - Generate downloadable result + integrate with the user's GitHub for the final commit
 
-If pursued, the SaaS would run AGPL-3.0 Layer 1 internally, comply with AGPL terms by publishing modifications, and offer functionality that the markdown workflow alone cannot provide (server-side execution, sandboxing, persistence).
+If pursued, the SaaS would build on the MIT-licensed workflow as its Layer 1 and offer functionality the markdown workflow alone cannot provide (server-side execution, sandboxing, persistence).
 
 This is exploratory and depends on adoption signals from Phases 3-4.
 
@@ -145,8 +144,7 @@ The first lived test on the client driver-app validated the parallel-dispatch mo
 ## How to influence the roadmap
 
 - For specific feature requests, open an issue using the [feature request template](.github/ISSUE_TEMPLATE/feature_request.md).
-- For broader direction discussions, open a GitHub Discussion (planned to be enabled in Phase 3).
-- For commercial licensing inquiries that depend on roadmap items, contact the maintainer directly.
+- For broader direction discussions, open a GitHub Discussion.
 
 The maintainer makes final decisions on roadmap priorities. There is no SLA on changes or fulfillment of requested features.
 

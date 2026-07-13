@@ -15,7 +15,7 @@ The maintainer takes seriously, however:
 
 - Security of the user's product code that the workflow is applied to. The workflow does not validate or improve product security; that is the user's responsibility.
 - Security of the LLM provider (Cursor, Claude Code, Anthropic API, etc.). Report those to the respective vendor.
-- Security of derivative SaaS or hosted versions of this workflow built by third parties. Such derivatives must comply with AGPL-3.0 and publish their source; security of those services is the operator's responsibility.
+- Security of derivative SaaS or hosted versions of this workflow built by third parties. Security of those services is the operator's responsibility.
 
 ## Reporting a vulnerability
 

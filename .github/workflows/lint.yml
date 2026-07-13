@@ -64,6 +64,25 @@ jobs:
             exit 1
           fi
 
+  structural-evals:
+    name: Structural evals (automatable scenario subset)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run structural evals
+        # Asserts the repo invariants a subset of the eval scenarios depend on
+        # (handoff basenames, count markers, registry membership, corpus
+        # integrity, etc.). Does NOT run a model; the behavioral scenarios stay
+        # manual (evals/scripts/run-evals.sh). Exit 1 on any broken invariant.
+        run: python3 ./evals/scripts/structural-evals.py
+
   lint-shellcheck:
     name: Shellcheck on bash scripts
     runs-on: ubuntu-latest
