@@ -1,7 +1,7 @@
 ---
 name: security-review
 description: |-
-  Dedicated security review of the current task changes covering threat modeling, OWASP ASVS L1 checklist pass, auth/authz flow tracing, and dependency/secret scanning reminders. Distinct from review-hard (general risk) and repo-consistency-sweep (pattern matching). Use when the task touches authentication, authorization, public endpoints, PII handling, crypto, or external integrations. Do not use when no implementation has happened yet or the task has no security surface (pure documentation, internal tooling with no user data). Supports an opt-in `--consistency N` consensus mode (off by default) that runs N independent review passes over the same diff and merges them by consensus, per ADR-0073.
+  Dedicated security review of the current task changes covering threat modeling, OWASP ASVS L1 checklist pass, auth/authz flow tracing, and dependency/secret scanning reminders. Distinct from review-hard (general risk) and repo-consistency-sweep (pattern matching). Activates when DECISIONS.md, IMPLEMENTATION_PLAN.md, or TASK_STATE.md's Active files in scope names an auth or biometric-scoped change without a completed security-review for that scope. Use when the task touches authentication, authorization, public endpoints, PII handling, crypto, or external integrations. Do not use when no implementation has happened yet or the task has no security surface (pure documentation, internal tooling with no user data). Supports an opt-in `--consistency N` consensus mode (off by default) that runs N independent review passes over the same diff and merges them by consensus, per ADR-0073.
 metadata:
   category: execution-and-closure
   primary-cursor-mode: Ask
@@ -58,6 +58,7 @@ Required inputs:
 - optional: `--consistency N` to run N independent review passes over the same diff and merge them by consensus (off by default; `N=3` recommended), per ADR-0073
 
 Operating rules:
+- **Activation trigger.** Treat security-review as the recommended next command when DECISIONS.md, IMPLEMENTATION_PLAN.md, or TASK_STATE.md's `## Active files in scope` names an auth or biometric-scoped change (login, session, token, password reset, MFA, biometric enrollment or match, permission or role check) without a completed security-review for that scope.
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full).
 - **Step 1: Identify security surface.** Read the diff. List which security domains are touched: authentication, authorization, session management, input validation, output encoding, cryptography, PII handling, external integrations, public endpoints, file upload, email/SMS dispatch, and agent, tool, or MCP surfaces (an LLM agent, a tool or function it can call, or a third-party MCP server).
 - **Step 2: Threat model (mini).** For each security domain touched, enumerate: (a) assets at risk, (b) plausible attackers (unauthenticated user, authenticated user of another tenant, insider, bot/scanner, MITM), (c) top 3 attack vectors for this specific change. Keep this concise (not a full formal threat model; just enough to ground the review).

@@ -77,6 +77,7 @@ Operating rules:
   4. what is noise or repeated discussion
   5. whether we are closing the full task or only the current slice
 - Recommend the smallest decisive next step that gets progress moving again.
+- **Cheap check before expensive research.** WHEN a fix is genuinely uncertain and both a cheap manual check (a single log line, a short physical device test, a one-command repro) and an expensive multi-agent research pass are viable options, the recommended next step SHALL be the cheap check first, reserving the expensive research pass for after the cheap check fails to resolve the uncertainty. Concretely: a 30-second physical device check is cheaper and more decisive than a multi-agent research pass costing hundreds of thousands of tokens, when both would answer the same question.
 - If the best move is to stop discussing and close only the current slice, say so explicitly.
 - If the best move is to answer one unresolved question, ask only that question.
 - If the best move is to correct task memory, include the exact TASK_STATE.md update block.

@@ -346,7 +346,7 @@
     },
     {
       "category": "execution-and-closure",
-      "description": "Review a component or screen implementation against its spec doc for alignment on variants, states, accessibility, tokens, and visual fidelity. Distinct from review-hard (general risk) and repo-consistency-sweep (pattern matching). Use when a design system component or screen has been implemented and you want to verify it matches the documented spec. Do not use when no spec exists (write one first with component-spec or screen-spec).",
+      "description": "Review a component or screen implementation against its spec doc for alignment on variants, states, accessibility, tokens, and visual fidelity. Distinct from review-hard (general risk) and repo-consistency-sweep (pattern matching). Activates when a slice's declared Scope touches a design-system button, icon, or component convention file (a shared atom/component under a design-system package) with no cited design-spec-review pass for that change. Use when a design system component or screen has been implemented and you want to verify it matches the documented spec. Do not use when no spec exists (write one first with component-spec or screen-spec).",
       "mode": "Ask",
       "model": "claude-sonnet-4-6",
       "multi_repo_aware": "false",
@@ -993,7 +993,7 @@
     },
     {
       "category": "execution-and-closure",
-      "description": "Dedicated security review of the current task changes covering threat modeling, OWASP ASVS L1 checklist pass, auth/authz flow tracing, and dependency/secret scanning reminders. Distinct from review-hard (general risk) and repo-consistency-sweep (pattern matching). Use when the task touches authentication, authorization, public endpoints, PII handling, crypto, or external integrations. Do not use when no implementation has happened yet or the task has no security surface (pure documentation, internal tooling with no user data). Supports an opt-in `--consistency N` consensus mode (off by default) that runs N independent review passes over the same diff and merges them by consensus, per ADR-0073.",
+      "description": "Dedicated security review of the current task changes covering threat modeling, OWASP ASVS L1 checklist pass, auth/authz flow tracing, and dependency/secret scanning reminders. Distinct from review-hard (general risk) and repo-consistency-sweep (pattern matching). Activates when DECISIONS.md, IMPLEMENTATION_PLAN.md, or TASK_STATE.md's Active files in scope names an auth or biometric-scoped change without a completed security-review for that scope. Use when the task touches authentication, authorization, public endpoints, PII handling, crypto, or external integrations. Do not use when no implementation has happened yet or the task has no security surface (pure documentation, internal tooling with no user data). Supports an opt-in `--consistency N` consensus mode (off by default) that runs N independent review passes over the same diff and merges them by consensus, per ADR-0073.",
       "mode": "Ask",
       "model": "claude-opus-4-7",
       "multi_repo_aware": "false",
@@ -1186,7 +1186,7 @@
     },
     {
       "category": "planning-and-validation",
-      "description": "Define the smallest set of meaningful tests that protects behavior and reduces regression risk for the active task, then persist as TEST_STRATEGY.md plus a TASK_STATE.md update. Avoids forcing a strategy artifact when it adds no material signal. Detects a Godot 2D-mobile target and routes to GUT or gdUnit4 headless, treating the godot-runtime-verify press-play gate as complementary to the headless suite. Use when the task has a valid implementation plan or a clearly understood behavior under change, the change affects important behavior or contracts or data flow or runtime risk or regression risk, or test choices should be decided before or alongside implementation. Do not use when the task is still too unclear to know what behavior is changing, the current need is broad discovery or contract resolution, or the task is too small to justify a dedicated test strategy artifact.",
+      "description": "Define the smallest set of meaningful tests that protects behavior and reduces regression risk for the active task, then persist as TEST_STRATEGY.md plus a TASK_STATE.md update. Avoids forcing a strategy artifact when it adds no material signal. Detects a Godot 2D-mobile target and routes to GUT or gdUnit4 headless, treating the godot-runtime-verify press-play gate as complementary to the headless suite. Use when the task has a valid implementation plan or a clearly understood behavior under change, the change affects important behavior or contracts or data flow or runtime risk or regression risk, or test choices should be decided before or alongside implementation. Use when scope is tagged or reads as auth, biometric, or runtime-risk with no TEST_STRATEGY.md, even if small. Do not use when the task is still too unclear to know what behavior is changing, the current need is broad discovery or contract resolution, or the task is too small to justify a dedicated test strategy artifact.",
       "mode": "Plan",
       "model": "claude-sonnet-4-6",
       "multi_repo_aware": "false",

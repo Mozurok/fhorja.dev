@@ -31,6 +31,11 @@
 #         sha_before). One RUN_ID/TS pair is shared across the whole batch.
 #
 # Reason strings are capped at 80 chars (validator rule). Requires jq.
+#
+# Quick combined flow (capture sha_before, then emit after the write):
+#   SHA_BEFORE=$(scripts/emit-substrate-write.sh sha --file F --section '## X')
+#   scripts/emit-substrate-write.sh emit --owner O --file F --section '## X' \
+#     --event write --mode applied --reason R --sha-before "$SHA_BEFORE"
 set -euo pipefail
 
 die() { echo "emit-substrate-write: $*" >&2; exit 1; }
@@ -101,6 +106,30 @@ TS=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
 [[ -n "$RUN_ID" ]] || RUN_ID=$(new_run_id)
 
 case "$SUB" in
+  help|--help)
+    cat <<'USAGE'
+emit-substrate-write.sh -- emit side of the K.2 substrate write protocol.
+
+Subcommands:
+  sha   --file F [--section '## X']
+        With --section: print the SHA-256 of the section's current bytes (or
+        'null' if the section is absent). Without --section: print one
+        "<sha>\t<H2 section>" line per H2 heading in the file.
+  emit  --owner O --file F --section '## X' --event E --mode M --reason R
+        [--sha-before H|null] [--task-root DIR] [--run-id ID] [--invoked-by P]
+        [--print-header]
+        Append one JSONL line to <task-root>/.wos/VERIFICATION_LOG.jsonl.
+  batch --owner O --file F --reason R [--mode applied] [--event write]
+        [--task-root DIR] [--run-id ID]
+        Emit one JSONL line for every H2 section preceded by a wos:write
+        header with owner=O.
+
+Combined flow example:
+  SHA_BEFORE=$(scripts/emit-substrate-write.sh sha --file F --section '## X')
+  scripts/emit-substrate-write.sh emit --owner O --file F --section '## X' \
+    --event write --mode applied --reason R --sha-before "$SHA_BEFORE"
+USAGE
+    exit 0 ;;
   sha)
     [[ -n "$FILE" ]] || die "sha needs --file"
     if [[ -n "$SECTION" ]]; then
@@ -128,6 +157,12 @@ case "$SUB" in
   batch)
     [[ -n "$OWNER" && -n "$FILE" && -n "$REASON" ]] || die "batch needs --owner --file --reason"
     [[ -f "$FILE" ]] || die "file not found (cwd and task-root checked): $FILE"
+    FOUND=$(awk -v o="owner=$OWNER " '
+      /^<!-- wos:write / { hdr = index($0, o) ? 1 : 0; next }
+      /^## /             { if (hdr == 1) n++; hdr = 0; next }
+      { hdr = 0 }
+      END { print n + 0 }
+    ' "$FILE")
     COUNT=0; SKIP_OWNER=0; SKIP_HEADERLESS=0
     while IFS=$'\t' read -r kind sec; do
       case "$kind" in
@@ -149,6 +184,7 @@ case "$SUB" in
       { hdr = 0 }
     ' "$FILE")
     echo "emitted $COUNT, skipped $SKIP_OWNER other-owner, $SKIP_HEADERLESS headerless ($FILE, run_id=$RUN_ID)"
-    [[ "$COUNT" -gt 0 ]] || die "batch emitted 0 lines (no owner=$OWNER headers in $FILE)" ;;
+    [[ "$COUNT" -gt 0 ]] || die "batch emitted 0 lines (no owner=$OWNER headers in $FILE)"
+    [[ "$COUNT" -eq "$FOUND" ]] || die "batch count mismatch: found $FOUND owner=$OWNER section(s) but emitted $COUNT ($FILE, run_id=$RUN_ID)" ;;
   *) die "unknown subcommand: $SUB" ;;
 esac

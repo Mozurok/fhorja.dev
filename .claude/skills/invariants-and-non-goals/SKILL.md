@@ -77,6 +77,7 @@ Operating rules:
 - Prefer precise guardrails over broad commentary.
 - Update `TASK_STATE.md` only when constraints/risks/next step materially change.
 - If no material state change exists, state that `TASK_STATE.md` should remain unchanged and explain why.
+- WHEN a locked security invariant (auth, biometric, session, or permission-boundary) is in scope, cross-check it against this document's own adjacent-flow list here (logout, backgrounding, force-quit/kill) when one exists, so decision-interview's per-decision enumeration and this file's boundary list do not silently diverge; this is a light pointer, not a duplicated mechanism.
 
 INVARIANTS_AND_NON_GOALS.md must include:
 1. Invariants

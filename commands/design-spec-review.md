@@ -1,6 +1,6 @@
 ---
 name: design-spec-review
-description: Review a component or screen implementation against its spec doc for alignment on variants, states, accessibility, tokens, and visual fidelity. Distinct from review-hard (general risk) and repo-consistency-sweep (pattern matching). Use when a design system component or screen has been implemented and you want to verify it matches the documented spec. Do not use when no spec exists (write one first with component-spec or screen-spec).
+description: Review a component or screen implementation against its spec doc for alignment on variants, states, accessibility, tokens, and visual fidelity. Distinct from review-hard (general risk) and repo-consistency-sweep (pattern matching). Activates when a slice's declared Scope touches a design-system button, icon, or component convention file (a shared atom/component under a design-system package) with no cited design-spec-review pass for that change. Use when a design system component or screen has been implemented and you want to verify it matches the documented spec. Do not use when no spec exists (write one first with component-spec or screen-spec).
 metadata:
   category: execution-and-closure
   primary-cursor-mode: Ask

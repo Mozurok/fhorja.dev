@@ -40,6 +40,8 @@ Distinct from `verify-against-rubric` (which spawns a stateless sub-agent to ren
 
 This persona is folder-shaped (K.3 dual layout): SKILL.md is canonical; additional assets (rubrics, examples, MCP references) MAY live alongside in `commands/post-deploy-verifier/` and are NOT propagated by `sync-shared-blocks.sh`.
 
+Use when a login, auth, or biometric surface just merged to main, so the post-deploy verification plan covers the exact auth-critical behavior that changed.
+
 Mandatory context bootstrap (before any output):
 <!-- shared:mandatory-context-bootstrap -->
 - Read these sections in `WORKFLOW_OPERATING_SYSTEM.md` first:

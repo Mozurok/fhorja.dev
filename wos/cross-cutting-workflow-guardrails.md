@@ -74,6 +74,7 @@ Delivery/communication:
 - Run `workflow-guide` when pedagogy helps; avoid it when `what-next` is sufficient.
 - Run `prompt-shape` when prompt precision materially improves the next step; avoid rewriting prompts for style.
 - Run `im-stuck` when recovery is needed; avoid it when routing is already obvious.
+- WHEN a task's `TASK_STATE.md` phase reads delivered or done and the current session is ending, the session SHALL prompt `task-close` before ending, rather than leaving the task open in `active/`. This is a session-end reminder, not a new mechanism: `portfolio-review`'s existing done-unclosed classification already exists as the safety-net sweep for anything missed.
 
 ---
 

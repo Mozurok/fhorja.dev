@@ -59,6 +59,7 @@ Operating rules:
 - Set **work complexity** for this run realistically (often `LOW`, sometimes `MEDIUM`); never name model SKUs. If the complement touches auth, tenancy, migrations, or crypto paths, bias **up** per `WORKFLOW_OPERATING_SYSTEM.md`.
 - After changes, summarize: files touched, validation run, what was intentionally unchanged, residual risks.
 - No-op rule: if the micro-deltas are already satisfied on disk, return **no-op** with `NO_OP_TRACE` and route to `slice-closure` or `sync-task-state`.
+- **Verification divergence check (cross-reference).** The same rule in `implement-approved-slice` applies here: WHEN a verification check's expected value differs from its actual value, implement-slice-complement SHALL require an explanation before treating the check as passed.
 
 Required output:
 1. Restated anchor slice + micro-delta list + path list

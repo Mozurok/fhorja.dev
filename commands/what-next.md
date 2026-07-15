@@ -55,6 +55,7 @@ Operating rules:
 
   FORBIDDEN: half-compliant pattern (JSONL emitted but inline header omitted, OR `sha_after` null on applied write). K.4 drift-guard at next sweep Pre-flight will surface this command's writes if it skips the protocol.
 - Do not reopen broad discovery unless clearly necessary.
+- **Proactively offer the Express tier when its criteria are met (ADR-0025):** even when `## Recommended pipeline` in TASK_STATE.md already names a heavier tier, re-check the Express bar against the current known scope (describable in one sentence, all decisions already provided, fewer than 5 files affected). If the task now qualifies, name Express as the recommended next command sequence (`implementation-plan` -> `implement-approved-slice` -> `branch-commit`, skipping `impact-analysis` and `decision-interview`) rather than only applying it when the user separately asks for a faster path.
 - Infer the current workflow stage from the latest task artifacts and unresolved gaps.
 - Decide whether the task is currently in:
   - discovery

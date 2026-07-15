@@ -765,6 +765,10 @@ Rules:
 
 Motivation behind centralizing external web access (audit trail; no silent re-fetching; no research-fishing; codebase plus task memory plus project memory drive decisions; external findings become reusable project memory) is documented in `wos/cross-cutting-workflow-guardrails.md` → `### Why external web access is centralized`. The Rules above remain authoritative.
 
+### Task-close-before-session-end guardrail
+
+WHEN a task's `TASK_STATE.md` phase reads delivered or done and the current session is ending, the session SHALL prompt `task-close` before ending, rather than leaving the task open in `active/`. This is a session-end reminder, not a new mechanism: `portfolio-review`'s existing done-unclosed classification already exists as the safety-net sweep for anything missed.
+
 ### Sequencing heuristics (by phase)
 
 Phase-grouped routing heuristics (Discovery → Contract → Planning → Execution → Delivery → Debug) live in `wos/cross-cutting-workflow-guardrails.md` → `### Sequencing heuristics (by phase)`. Most routing decisions are resolved by the `## Command roles` index plus `## Default workflow`; consult the lazy file when phase ordering across multiple commands is unclear.
