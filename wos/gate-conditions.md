@@ -47,6 +47,7 @@ Only prepare a PR if:
 - the relevant task scope is complete enough
 - major blockers are resolved
 - the task is actually near delivery
+- no external-vendor contract point on a security-critical or fully-gating path (auth, payment, PII, delivery mechanism) is riding into the PR body as an ordinary accepted-trade-off note while still unconfirmed against the vendor's real behavior (ADR-0108). Such a point is either already live-verified, or it is a structurally distinct, named blocker (not folded into a flat notes list), not silently packaged alongside genuine judgment calls.
 
 ## After PR review feedback (corrective)
 Only drive narrow follow-up implementation if:

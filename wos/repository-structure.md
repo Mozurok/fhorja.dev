@@ -119,11 +119,11 @@ my_work_tasks/
     maturity-ladder.md                # lazy: maturity ladder definitions
     substrate-peers.md                # lazy: substrate peer relationships
     workflow-patterns.md              # lazy: workflow patterns catalog
-    bug-classes/                      # lazy: <!-- count:bug-templates -->77<!-- /count --> bug-class files across <!-- count:bug-categories -->22<!-- /count --> categories
+    bug-classes/                      # lazy: <!-- count:bug-templates -->78<!-- /count --> bug-class files across <!-- count:bug-categories -->22<!-- /count --> categories
   docs/
     FAQ.md                            # user-facing entry point for common questions
     MIGRATION.md                      # adoption + forking + tool migration guide
-    adr/                              # Architecture Decision Records (<!-- count:adrs -->106<!-- /count --> ADR files; 0037 is an intentional gap; highest is 0086)
+    adr/                              # Architecture Decision Records (<!-- count:adrs -->107<!-- /count --> ADR files; 0037 is an intentional gap; highest is 0086)
       README.md                       # index + format + when to write
       template.md                     # ADR template
       0001-proposed-by-default.md     # example; full list under docs/adr/

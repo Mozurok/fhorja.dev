@@ -402,7 +402,7 @@ Typical next commands:
 
 ### repo-consistency-sweep
 Role:
-- proactive defect-class detection against the curated `wos/bug-classes/` library (<!-- count:bug-templates -->77<!-- /count --> templates across <!-- count:bug-categories -->22<!-- /count --> categories, CWE-grounded)
+- proactive defect-class detection against the curated `wos/bug-classes/` library (<!-- count:bug-templates -->78<!-- /count --> templates across <!-- count:bug-categories -->22<!-- /count --> categories, CWE-grounded)
 - handles convention drift, ordering bugs, type-safety gaps, security and multi-tenant invariants, and operability issues
 - scoped to defect detection (the lower-value half of code review per Bacchelli and Bird 2013); does not replace human design discussion, knowledge transfer, or `review-hard` (which does correctness/safety risk)
 - meta-learning loop via `pr-feedback-ingest` candidate templates output

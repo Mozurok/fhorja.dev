@@ -76,10 +76,12 @@ Operating rules:
   - weak or misleading tests
   - overengineering
   - maintainability
+  - an external vendor contract point (auth format, delivery mechanism, payload shape) that is captured but self-acknowledged as unconfirmed, especially when evidenced only by a vendor demo/example payload rather than a live capture
 - Distinguish clearly between:
   - must fix
   - should fix
   - optional improvements
+- **Severity floor for unresolved external contracts (ADR-0108).** An external-vendor contract point that is captured but explicitly flagged as unconfirmed (in `REFERENCES.md`, a PR note, or task memory) is ALWAYS at minimum a must-fix when it sits on a security-critical or fully-gating path (auth, payment, PII, or any point where a wrong assumption blocks 100% of a code path, not an edge case). This holds even when a workaround exists, even when the code "degrades gracefully" on failure, and even when the point is already written down as a known risk: being on the record is not the same as being gated, and a flat PR-notes bullet reads as an ordinary accepted trade-off to both human and automated reviewers. Do not downgrade this class of finding to should-fix or optional on the grounds that "it's already flagged" -- flag it as must-fix and require either a live verification of the real vendor behavior or an explicit `decision-interview` record of the accepted risk before the finding can be closed.
 - Tag each finding with an impact band (LOW, MEDIUM, HIGH) and a rough effort band, then order findings by impact relative to effort, with impact as the primary key, so the highest value per unit of effort surfaces first. Effort is a tiebreak, never a reason to drop a cheap critical fix.
 - Call out what should not have changed if relevant.
 - If the implementation is solid, say so clearly rather than inventing feedback.
