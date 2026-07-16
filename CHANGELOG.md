@@ -32,7 +32,7 @@ While the project is in alpha (0.x.y), MINOR may include breaking changes; expec
 - Command-graph interconnection edges from the flow audit (ADR-0092 D-3 follow-up, 2026-07-11): additive routing so 7 of the 15 zero-inbound orphan commands are now reachable from a natural predecessor. Single-command descriptions point to their fleet variant at the documented threshold (`task-init` -> `task-init-fleet`, `screen-spec` -> `screen-spec-fleet`, `external-research` -> `external-research-fleet`, `verify-against-rubric` -> `verify-against-rubric-fleet`, `atom-audit` -> `atom-audit-fleet`); `autonomous-run` points to `autonomous-board`; `slice-closure` and `task-close` point to `harvest-session-learnings`; `implementation-plan` and `pr-package` offer `self-critique-and-revise` after a draft. `scripts/flow-audit.py` orphan count drops 15 -> 8. No command contract change; routing prose only. The remaining 8 orphans (portfolio-review, code-context-map, backend-system-design, and other MEDIUM or work-pattern-cold commands) are a later batch.
 
 ### Fixed
-- (none yet)
+- Codex skill sync now removes matching Fhorja skills from the legacy `~/.codex/skills/` root after mirroring them to the canonical `~/.agents/skills/` root. This prevents duplicate skill names after upgrading while preserving unrelated legacy skills and respecting `CODEX_SKILLS_DIR` overrides.
 
 ## [1.0.0] - 2026-07-10
 

@@ -40,7 +40,7 @@ my_work_tasks/
     LEARNINGS.md                      # task-scoped reflexion log; locked 4-bullet entry shape (ADR-0017)
     USER_MEMORY.template.md           # bootstrap for /USER_MEMORY.md (ADR-0016)
   scripts/
-    sync-workflow-slash-commands.sh   # optional; copies commands/ to Cursor + Claude Code; --with-docs mirrors the spec/README/DEMO/stubs/templates to ~/.cursor/workflow-docs and ~/.claude/workflow-docs; --with-skills mirrors .claude/skills/ to ~/.claude/skills, ~/.cursor/skills, ~/.codex/skills
+    sync-workflow-slash-commands.sh   # optional; copies commands/ to Cursor + Claude Code + Codex; --with-docs mirrors the spec/README/DEMO/stubs/templates to ~/.cursor/workflow-docs and ~/.claude/workflow-docs; --with-skills mirrors .claude/skills/ to ~/.claude/skills, ~/.cursor/skills, ~/.agents/skills
     lint-commands.sh                  # validates command file contract, shared-block drift, frontmatter, token-budget overrun, and skills drift (via build-agent-skills.sh --check)
     reconcile-counts.sh               # FIX side of the lint count-marker guard: sets every count:KIND marker across the lint scan-set to the live on-disk count in one pass; --check reports drift without writing; narrow scan-set (never touches _internal/ snapshots)
     sync-shared-blocks.sh             # propagates commands/_shared/<name>.md content into commands that declare the marker

@@ -167,7 +167,7 @@ When you want Fhorja skills available **outside** this repo's checkout (for exam
 ./scripts/sync-workflow-slash-commands.sh --with-skills
 ```
 
-Default destinations: `~/.claude/skills/`, `~/.cursor/skills/`, `~/.codex/skills/`. Override with `CLAUDE_SKILLS_DIR`, `CURSOR_SKILLS_DIR`, `CODEX_SKILLS_DIR`, or `--cursor-only` / `--claude-only` flags.
+Default destinations: `~/.claude/skills/`, `~/.cursor/skills/`, `~/.agents/skills/`. Override with `CLAUDE_SKILLS_DIR`, `CURSOR_SKILLS_DIR`, `CODEX_SKILLS_DIR`, or `--cursor-only`, `--claude-only`, and `--codex-only` flags. With the default Codex destination, the sync also removes matching Fhorja skills left in the legacy `~/.codex/skills/` root so Codex does not discover duplicate names.
 
 Re-run the script after pulling upstream changes to refresh the user-level mirrors. The script is idempotent: re-running with no upstream changes does nothing.
 
@@ -309,5 +309,4 @@ Sequential workflows remain the default. Reach for parallel dispatch when the wo
 - [`docs/adr/`](./adr/): Architecture Decision Records explaining the why behind load-bearing decisions.
 - [`CHANGELOG.md`](../CHANGELOG.md): full release history.
 - [`ROADMAP.md`](../ROADMAP.md): forward-looking direction.
-
 

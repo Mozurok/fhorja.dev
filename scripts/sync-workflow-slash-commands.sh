@@ -30,6 +30,8 @@ CODEX_DEST="${CODEX_PROMPTS_DIR:-${HOME}/.codex/prompts}"
 CLAUDE_SKILLS_DEST="${CLAUDE_SKILLS_DIR:-${HOME}/.claude/skills}"
 CURSOR_SKILLS_DEST="${CURSOR_SKILLS_DIR:-${HOME}/.cursor/skills}"
 CODEX_SKILLS_DEST="${CODEX_SKILLS_DIR:-${HOME}/.agents/skills}"
+DEFAULT_CODEX_SKILLS_DEST="${HOME}/.agents/skills"
+LEGACY_CODEX_SKILLS_DEST="${HOME}/.codex/skills"
 
 DRY_RUN=0
 DO_CURSOR=1
@@ -75,6 +77,8 @@ Options:
                          --project is set) targets PATH/.claude/skills/, PATH/.cursor/skills/,
                          and PATH/.agents/skills/. Source files must already exist; run
                          scripts/build-agent-skills.sh first if you suspect drift.
+                         When using the default Codex destination, also removes this
+                         workflow's duplicate skills from the legacy ~/.codex/skills/ root.
 
 Environment:
   CURSOR_COMMANDS_DIR    Same as --cursor-dir.
@@ -257,6 +261,40 @@ sync_skills_dest() {
   echo "    wrote ${n} skill(s)"
 }
 
+cleanup_legacy_codex_skills() {
+  local legacy_dest="$1"
+
+  # Codex moved user-level skills from ~/.codex/skills to ~/.agents/skills.
+  # Only clean the legacy root when the canonical destination was not overridden,
+  # and only remove names owned by this workflow. Leave unrelated skills intact.
+  if [[ "$CODEX_SKILLS_DEST" != "$DEFAULT_CODEX_SKILLS_DEST" || ! -d "$legacy_dest" ]]; then
+    return 0
+  fi
+
+  echo "==> OpenAI Codex legacy skill cleanup: ${legacy_dest}"
+  shopt -s nullglob
+  local n=0
+  local d name
+  for d in "${SKILLS_SRC}"/*/; do
+    name="$(basename "$d")"
+    if [[ ! -e "${legacy_dest}/${name}" ]]; then
+      continue
+    fi
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      echo "    rm -rf $(printf '%q' "${legacy_dest}/${name}")"
+    else
+      rm -rf -- "${legacy_dest}/${name}"
+    fi
+    n=$((n + 1))
+  done
+  shopt -u nullglob
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "    would remove ${n} duplicate legacy skill(s)"
+  else
+    echo "    removed ${n} duplicate legacy skill(s)"
+  fi
+}
+
 if [[ "$WITH_SKILLS" -eq 1 ]]; then
   if [[ "$DO_CLAUDE" -eq 1 ]]; then
     sync_skills_dest "Claude Code skills" "$CLAUDE_SKILLS_DEST"
@@ -266,6 +304,7 @@ if [[ "$WITH_SKILLS" -eq 1 ]]; then
   fi
   if [[ "$DO_CODEX" -eq 1 ]]; then
     sync_skills_dest "OpenAI Codex skills" "$CODEX_SKILLS_DEST"
+    cleanup_legacy_codex_skills "$LEGACY_CODEX_SKILLS_DEST"
   fi
   if [[ -n "$PROJECT" ]]; then
     if [[ "$DO_CLAUDE" -eq 1 ]]; then

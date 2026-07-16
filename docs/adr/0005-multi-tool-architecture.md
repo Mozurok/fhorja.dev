@@ -36,7 +36,7 @@ Specifically:
 - CI runs both the canonical-vs-generated drift check and `skills-ref validate` (the open Agent Skills spec validator, pinned to a known-good upstream SHA).
 - README and WOS document the rule explicitly: **never edit `.claude/skills/*/SKILL.md` by hand; lint will fail on drift**.
 
-Tool-specific user-level mirroring (for users who want skills available outside this repo's checkout) is handled by `scripts/sync-workflow-slash-commands.sh --with-skills`, which copies `.claude/skills/` to `~/.claude/skills/`, `~/.cursor/skills/`, and `~/.codex/skills/`.
+Tool-specific user-level mirroring (for users who want skills available outside this repo's checkout) is handled by `scripts/sync-workflow-slash-commands.sh --with-skills`, which copies `.claude/skills/` to `~/.claude/skills/`, `~/.cursor/skills/`, and the Codex user root `~/.agents/skills/`. The Codex sync removes matching workflow skills from the legacy `~/.codex/skills/` root to avoid duplicate discovery during migration.
 
 ## Consequences
 
