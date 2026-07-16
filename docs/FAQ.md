@@ -41,7 +41,7 @@ That is the install, and you do it once, in its own directory, not once per prod
 
 - **In an editor that reads `.claude/skills/`** (Cursor 2.4+, Claude Code, etc.), the fastest path is `--with-skills` below: it mirrors the commands to your user-level directories once, so any product repo you open in that editor picks them up automatically, no per-project step.
 - **For user-level slash commands in Cursor and Claude Code**: run `./scripts/sync-workflow-slash-commands.sh`. Defaults: `~/.cursor/commands/`, `~/.claude/commands/`. Override paths with `--cursor-dir=` and `--claude-dir=` or via env vars.
-- **For user-level skills mirroring** (so skills are available in every project you open, not just this one): run `./scripts/sync-workflow-slash-commands.sh --with-skills`. Defaults: `~/.claude/skills/`, `~/.cursor/skills/`, `~/.codex/skills/`.
+- **For user-level skills mirroring** (so skills are available in every project you open, not just this one): run `./scripts/sync-workflow-slash-commands.sh --with-skills`. Defaults: `~/.claude/skills/`, `~/.cursor/skills/`, `~/.agents/skills/`. The default Codex sync removes matching Fhorja skills from the legacy `~/.codex/skills/` root to prevent duplicate names.
 - **To install into one specific product repo instead (or in addition)**: run `./scripts/sync-workflow-slash-commands.sh --project /path/to/your/repo`.
 
 See [`README.md`](../README.md) -> `## Quickstart` and `## Tool support` for the full distribution story.

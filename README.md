@@ -301,7 +301,7 @@ The same `commands/*.md` files are published as Agent Skills, an open standard, 
 |---|---|---|
 | Cursor | Slash commands + Agent Skills | Primary environment. Commands go to `~/.cursor/commands`; skills to `~/.cursor/skills` with `--with-skills`. |
 | Claude Code | Slash commands + Agent Skills | Commands go to `~/.claude/commands`; `.claude/skills/` is read automatically. |
-| Codex | Custom prompts | Go to `~/.codex/prompts` (a deprecated path; prefer Agent Skills via `--with-skills`). |
+| Codex | Custom prompts + Agent Skills | Prompts go to `~/.codex/prompts` (deprecated); `--with-skills` installs the preferred skills in `~/.agents/skills`. |
 | Other tools | Agent Skills | Any Agent-Skills-aware tool reads `.claude/skills/` or the mirrored user-level paths. See [`docs/FAQ.md`](./docs/FAQ.md) for the full list. |
 
 MCP-dependent commands (`db-context-supabase`, `db-context-postgres`, the Figma design-system commands) need a configured MCP server; without one, they stop at a precondition check with an actionable note. Every other command works with no MCP. Example configs live in [`recommended-mcp-configs/`](./recommended-mcp-configs/).
