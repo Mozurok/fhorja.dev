@@ -68,6 +68,10 @@ Operating rules:
   6. slice-closure writes 5 sections in one run per the canonical closure pattern. Repeat steps 1-5 PER section: one transaction header + one JSONL line per section. Reuse the same `run_id` + `ts` across all 5 section writes in this single invocation.
 
   FORBIDDEN: the half-compliant pattern (JSONL line emitted but inline header omitted, OR `sha_*` fields set to `null` when the section already existed). K.4 drift-guard at the next `repo-consistency-sweep` Pre-flight will surface this command's own writes if it skips the protocol.
+- **Bounded slice-status propagation (opt-in, Slice-08 P2).** DEFAULT = OFF: with no propagation scope declared, this command writes ONLY the canonical 5-section TASK_STATE.md pattern (above) and nothing else changes. Propagation fires ONLY when the run declares the bounded scope `propagate-slice-status=<subset of {IMPLEMENTATION_PLAN, SOURCE_OF_TRUTH, README, TEST_STRATEGY}>` (via an invocation arg or a per-slice `Propagate-status:` marker inside `### Slice N`); it is a bounded set of named siblings, never a global flag. For each named target write the bounded slice-status field (closed enum: `in-progress | implemented-pending-closure | closed | closed-with-followups | not-ready`; verdict "ready to close"->closed, "ready with follow-ups"->closed-with-followups, "not ready"->not-ready) honoring its write regime:
+  - Regime 1 (SUBSTRATE -- inline `<!-- wos:write owner=slice-closure ... -->` header + one `.wos/VERIFICATION_LOG.jsonl` line reusing THIS run's run_id/ts): `IMPLEMENTATION_PLAN.md` sets the field on the `### Slice N` `Status:` line and LOGS the H3-scoped co-write at the owning `## Slices` H2 (`section='## Slices'`, `reason=slice-N-status-<value>`); `SOURCE_OF_TRUTH.md` writes/extends the `## Slice status` H2 pointer with a header above that H2 and one JSONL line naming `section='## Slice status'` (`sha_before=null` only on the first-ever write, `sha_after` a real 64-hex on the applied write, never null).
+  - Regime 2 (PLAIN -- direct Edit only, NO wos:write header, NO JSONL line): `README.md` and `TEST_STRATEGY.md` are outside the 11-file substrate set and outside `scan-substrate-headers.sh`; a header there would be pointless drift.
+  G5 state-reconcile drift detection stays intact: every Regime-1 write still emits its header + JSONL line (so section ownership stays reconstructable), and the Regime-2 files stay out of the substrate scan entirely.
 - Do not reopen broad discovery, broad review, or signed-off contract issues.
 - Before producing output, verify closure assessment would materially change slice artifacts or operational memory.
 - If closure status and evidence are already recorded with no material gap, do not rewrite artifacts; return a no-op and route forward (often `/sync-task-state` if memory alignment helps).
@@ -121,7 +125,7 @@ Optional 6th section:
 Rules:
 
 - Use Edit (not Write) per section. Avoid full file rewrites; they invalidate prompt cache and lose audit trail.
-- If a section would not materially change, skip it (per `## Material change (definition)` in `WORKFLOW_OPERATING_SYSTEM.md`).
+- If a section would not materially change, skip it (per `WORKFLOW_OPERATING_SYSTEM.md` `## Cross-cutting workflow guardrails` -> `### Material change (definition)`).
 - All 5 mandatory sections must be present in the file. If any is missing, propose adding the missing section first as a separate edit before continuing the closure update.
 - Total edits per closure typically range 4-6. More than 8 indicates either drift recovery (mark in transcript) or that `slice-closure` is being misused for closure of multiple slices at once (split into separate runs).
 ### Standard output layout (required)
@@ -155,6 +159,21 @@ Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global ou
    - WHILE at a checkpoint: report each not-yet-done `in-scope` row as remaining work and do NOT invalidate output on that basis. A silent omission (step 3) is NOT normal progress: name the missing deliverable, record it in the `TASK_STATE.md` checkpoint output as a must-address finding, and route it to `decision-interview` (to record a de-scope) or `implementation-plan` (to seed and plan the missing deliverable), the same repair routing as the finalization branch. At a checkpoint neither case invalidates the whole output: an in-scope-not-yet-done row is reported as remaining work, and a silent omission is named and routed as a must-address finding (never a bare one-line mention). Output invalidation for an unreconciled row happens only in the finalization branch.
 
 A de-scope is allowed; silence is not. This generalizes the repo-level "reject silent omission of any repo in `## Repositories`" completeness check from repositories to user-named deliverables. The ledger is seeded at `task-init` and pointer-linked from `SOURCE_OF_TRUTH.md`.
+### References status (report, X2)
+<!-- shared:references-reconcile -->
+**References reconcile (X2, 2026-07-18).** Reconcile the references a task cited (its `REFERENCES.md` deliverable, an `EXTERNAL_RESEARCH.md`, or the project-level references it grounded in) against what the task actually shipped, enforcing "cite only what you used." Lifecycle-aware: it reports at a mid-task checkpoint and hard-fails only when finalizing the whole task.
+
+1. Gate on presence. This sub-check fires only WHEN the task produced or cited references: a `REFERENCES.md` or `EXTERNAL_RESEARCH.md` in the task folder, or a `Grounded in:` citation in the shipped work. WHEN none is present, it is a no-op: skip and proceed.
+
+2. Classify the context. A finalization run is `task-close` (or `review-hard` as the pre-PR final pass). A checkpoint run is `slice-closure` or `where-we-at`. At a checkpoint a cited reference not yet reflected is normal in-progress work, not a defect.
+
+3. Reconcile cited vs reflected. For each reference the task cited, confirm the shipped work materially reflects it (a real layout, behavior, or decision traceable to that reference), not merely a name-drop. A reference cited with no material trace in the shipped work is a cited-but-unused reference: this is the failure the brief names ("if the final result does not reflect the references you cited, the REFERENCES.md is wrong").
+
+4. Apply the gate by context.
+   - WHEN finalizing: IF any cited reference is unused (no material trace) THEN name it and require either removing the citation or pointing to where it is reflected, and route to `implement-slice-complement` (fix the citation) before closing.
+   - WHILE at a checkpoint: report each cited-but-unused reference as a must-address finding (name it, route to `implement-slice-complement`), and do NOT invalidate the whole output on that basis.
+
+"Cite only what you used" is the invariant. This is the produce-side gate for the `capture-references` and `external-research` artifacts, the design-and-research analog of the deliverable-reconcile completeness check.
 ### Definition of done (command output)
 - Closure status is exactly one of: ready / ready-with-followups / not-ready, with evidence.
 - Commit-evidence floor (ADR-0084, ADR-0100): a ready-to-close slice cites its commit reference or records an explicit committing-waiver covering only genuinely discardable work; real work pending a human commit is a bounded deferral that keeps the slice open (not a waiver), and a slice with none of the three is classified not-ready and routed to `branch-commit`.

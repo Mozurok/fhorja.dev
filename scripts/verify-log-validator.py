@@ -20,7 +20,9 @@ Usage:
 """
 from __future__ import annotations
 import argparse
+import hashlib
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -190,22 +192,80 @@ def sha_chain_advisories(applied_entries: list[tuple[int, dict]]) -> list[str]:
     return advisories
 
 
-def delete_orphan_findings(applied_entries: list[tuple[int, dict]], task_dir: Path) -> list[str]:
-    """Delete-orphan cross-check (ADR-0101): a (file, section) whose last
-    applied event is write/overwrite, whose file exists at task_dir, but whose
-    '## ' heading line is gone from the file on disk. Files that do not
-    resolve at task_dir are skipped."""
-    last_event: dict[tuple[str, str], tuple[int, object]] = {}
+def _sha_of_section_port(path: Path, header: str) -> str:
+    """Byte-exact port of emit-substrate-write.sh sha_of_section (S1, 2026-07-18).
+    Operates on BYTES (not str) so Python universal-newline translation cannot
+    diverge from awk's RS='\\n'. Must stay byte-identical to the emitter's awk."""
+    try:
+        data = path.read_bytes()
+    except OSError:
+        return "null"
+    recs = data.split(b"\n")
+    if recs and recs[-1] == b"":       # awk: a trailing '\n' yields no empty final record
+        recs.pop()
+    hb = header.encode("utf-8")
+    body: list[bytes] = []
+    cap = False
+    for ln in recs:
+        if not cap:
+            if ln == hb:               # awk: $0 == h { f=1; next }
+                cap = True
+            continue
+        if ln.startswith(b"## "):      # awk: f && /^## / { exit }
+            break
+        if ln.startswith(b"<!-- wos:write "):  # awk: f && /^<!-- wos:write / { next }
+            continue
+        body.append(ln)
+    while body and body[-1] == b"":    # $(...) strips all trailing newlines from awk output
+        body.pop()
+    joined = b"\n".join(body)
+    if joined == b"":                  # bash: [[ -z "$body" ]] -> 'null'
+        return "null"
+    return hashlib.sha256(joined).hexdigest()
+
+
+def sha_chain_breaks(applied_entries: list[tuple[int, dict]], cutover_ts: str) -> list[str]:
+    """Post-cutover sha-chain break (S1, opt-in): same chain walk as
+    sha_chain_advisories, but a break is REPORTED (not just advised) when the
+    current applied write/overwrite is at or after cutover_ts. The chain is
+    built over ALL applied entries so 'previous sha_after' stays correct."""
+    breaks: list[str] = []
+    last_sha_after: dict[tuple[str, str], object] = {}
     for idx, obj in applied_entries:
         file_ = obj.get("file")
         section = obj.get("section")
         if not isinstance(file_, str) or not isinstance(section, str):
             continue
-        last_event[(file_, section)] = (idx, obj.get("event"))
+        key = (file_, section)
+        if obj.get("event") in ("write", "overwrite") and key in last_sha_after:
+            prev = last_sha_after[key]
+            ts = obj.get("ts")
+            if obj.get("sha_before") != prev and isinstance(ts, str) and ts >= cutover_ts:
+                breaks.append(
+                    f"line {idx}: sha_before {obj.get('sha_before')!r} != previous sha_after {prev!r} for {file_} {section!r} (post-cutover sha-chain break)"
+                )
+        last_sha_after[key] = obj.get("sha_after")
+    return breaks
+
+
+def delete_orphan_findings(applied_entries: list[tuple[int, dict]], task_dir: Path, cutover_ts: str | None = None) -> list[str]:
+    """Delete-orphan cross-check (ADR-0101): a (file, section) whose last
+    applied event is write/overwrite, whose file exists at task_dir, but whose
+    '## ' heading line is gone from the file on disk. Files that do not
+    resolve at task_dir are skipped."""
+    last_event: dict[tuple[str, str], tuple[int, object, object]] = {}
+    for idx, obj in applied_entries:
+        file_ = obj.get("file")
+        section = obj.get("section")
+        if not isinstance(file_, str) or not isinstance(section, str):
+            continue
+        last_event[(file_, section)] = (idx, obj.get("event"), obj.get("ts"))
 
     findings: list[str] = []
-    for (file_, section), (idx, event) in last_event.items():
+    for (file_, section), (idx, event, ts) in last_event.items():
         if event not in ("write", "overwrite"):
+            continue
+        if cutover_ts is not None and (not isinstance(ts, str) or ts < cutover_ts):
             continue
         path = task_dir / file_
         if not path.is_file():
@@ -217,6 +277,40 @@ def delete_orphan_findings(applied_entries: list[tuple[int, dict]], task_dir: Pa
         if section.strip() not in headings:
             findings.append(
                 f"{file_} {section!r} (last event: line {idx}): section removed without event=delete (delete-orphan, ADR-0101)"
+            )
+    return findings
+
+
+def content_sha_findings(applied_entries: list[tuple[int, dict]], task_dir: Path, cutover_ts: str | None = None) -> list[str]:
+    """Content-vs-log SHA drift (S1, opt-in): for the last applied write/overwrite
+    per (file, section) whose recorded sha_after is a real hash, recompute the
+    section's current bytes on disk and flag when they disagree. Catches a stub
+    that keeps a header but gutted the body. Post-cutover only when cutover_ts set."""
+    last_write: dict[tuple[str, str], tuple[int, object, dict]] = {}
+    for idx, obj in applied_entries:
+        file_ = obj.get("file")
+        section = obj.get("section")
+        if not isinstance(file_, str) or not isinstance(section, str):
+            continue
+        last_write[(file_, section)] = (idx, obj.get("event"), obj)
+
+    findings: list[str] = []
+    for (file_, section), (idx, event, obj) in last_write.items():
+        if event not in ("write", "overwrite"):
+            continue
+        recorded = obj.get("sha_after")
+        if not isinstance(recorded, str):
+            continue
+        ts = obj.get("ts")
+        if cutover_ts is not None and (not isinstance(ts, str) or ts < cutover_ts):
+            continue
+        path = task_dir / file_
+        if not path.is_file():
+            continue
+        actual = _sha_of_section_port(path, section)
+        if actual != recorded:
+            findings.append(
+                f"{file_} {section!r} (last applied: line {idx}): recorded sha_after {recorded} != recomputed {actual} (content-vs-log drift)"
             )
     return findings
 
@@ -251,7 +345,13 @@ def main() -> int:
         action="store_true",
         help="promote delete-orphan findings (ADR-0101) from warnings to errors",
     )
+    p.add_argument(
+        "--cutover-ts",
+        default=os.environ.get("WOS_CUTOVER_TS"),
+        help="ISO-8601 cutover ts (S1, opt-in): grandfathers pre-cutover delete-orphans and activates the post-cutover sha-chain + content-vs-log checks. --check-deletes promotes all three to errors.",
+    )
     args = p.parse_args()
+    cutover = args.cutover_ts
 
     target = resolve_target(args)
     if not target.exists():
@@ -285,8 +385,15 @@ def main() -> int:
     advisories = sha_chain_advisories(applied_entries)
 
     delete_orphans: list[str] = []
+    content_findings: list[str] = []
+    chain_breaks: list[str] = []
     if target.name == "VERIFICATION_LOG.jsonl" and target.parent.name == ".wos":
-        delete_orphans = delete_orphan_findings(applied_entries, target.parent.parent)
+        task_dir = target.parent.parent
+        delete_orphans = delete_orphan_findings(applied_entries, task_dir, cutover)
+        if cutover:
+            content_findings = content_sha_findings(applied_entries, task_dir, cutover)
+    if cutover:
+        chain_breaks = sha_chain_breaks(applied_entries, cutover)
 
     print(f"file: {target}")
     print(f"lines: {total}")
@@ -307,6 +414,18 @@ def main() -> int:
         for d in delete_orphans:
             print(f"  {d}")
 
+    if chain_breaks:
+        print()
+        print("POST-CUTOVER SHA-CHAIN BREAKS (--check-deletes promotes to errors):")
+        for b in chain_breaks:
+            print(f"  {b}")
+
+    if content_findings:
+        print()
+        print("CONTENT-VS-LOG SHA DRIFT (--check-deletes promotes to errors):")
+        for c in content_findings:
+            print(f"  {c}")
+
     if all_errors:
         print()
         print("ERRORS:")
@@ -315,7 +434,7 @@ def main() -> int:
         if len(all_errors) > args.max_errors:
             print(f"  ... and {len(all_errors) - args.max_errors} more")
         return 1
-    if args.check_deletes and delete_orphans:
+    if args.check_deletes and (delete_orphans or content_findings or chain_breaks):
         return 1
     print("OK")
     return 0

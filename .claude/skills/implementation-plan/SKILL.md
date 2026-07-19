@@ -79,6 +79,7 @@ Operating rules:
   - If `IMPLEMENTATION_PLAN.md` would not materially change, do not rewrite it.
   - If `TASK_STATE.md` would not materially change, do not rewrite it.
   - Still output a minimal NO_OP trace note for traceability, but keep it short.
+- **Enumerate all unmet prerequisites in one NO_OP (P3, D-2, 2026-07-18).** WHEN the command produces a NO_OP because one or more upstream prerequisites are unmet (missing reference grounding, references still PROPOSED and not persisted, no design-cluster consultation for a user-facing visual surface, and so on), it SHALL enumerate EVERY unmet prerequisite in the single `NO_OP_TRACE`, not stop at the first one encountered, and name the one command that resolves the most of them at once. This collapses a one-prerequisite-at-a-time NO_OP chain (three dry runs to reach one plan) into a single informative NO_OP. The `NO_OP_TRACE` stays mandatory (guard-rail G1): cheap means fast, not silent.
 - Break the work into the smallest safe slices. A single-phase plan covering the whole task is invalid when the work touches more than one file, contract, or behavioral seam; produce explicit numbered slices instead (use `SLICES/01_<slug>.md`, `02_<slug>.md`, ... when slice-level traceability helps). This enforces the spec Core principle 6 ("Prefer small approved slices over broad implementation").
 - Optimize for correctness, low blast radius, and ease of review.
 - Do not include opportunistic refactors unless required for safety or correctness.

@@ -86,7 +86,7 @@ Legend: O = owner (writes via Edit/Write); P = propose-only (PROPOSED block); R 
 | `## Infrastructure prerequisites` | implementation-plan | NONE | all |
 | `## Slices` | implementation-plan | implement-slice-complement (micro-delta only) | all |
 | `## Execution waves` | implementation-plan | NONE | all (implement-fleet reads to compute waves, per ADR-0041/0042) |
-| `### Slice N` (per-slice body) | implementation-plan | implement-approved-slice (status only), implement-fleet (status only, via its workers), slice-closure (status only); these H3-scoped co-writes are LOGGED at the owning `## Slices` H2 per `commands/_shared/substrate-write-protocol.md` (ADR-0101) | all |
+| `### Slice N` (per-slice body) | implementation-plan | implement-approved-slice (status only), implement-fleet (status only, via its workers), slice-closure (status only), sync-task-state (status only, Slice-08 P2 slice-status field); these H3-scoped co-writes are LOGGED at the owning `## Slices` H2 per `commands/_shared/substrate-write-protocol.md` (ADR-0101) | all |
 | `## Validation expectations` | test-strategy | implementation-plan (direct write while no `TEST_STRATEGY.md` exists for the task; propose-only after the owner runs, ADR-0101) | all |
 | `## Rollout and rollback notes` | implementation-plan | release-plan (P) | all |
 | `## Risks and mitigations` | implementation-plan | review-hard (P) | all |
@@ -106,6 +106,9 @@ Legend: O = owner (writes via Edit/Write); P = propose-only (PROPOSED block); R 
 | `## Repositories` (multi-repo) | task-init | project-bootstrap | all |
 | `## External research` (cross-link) | external-research | external-research-fleet | all |
 | `## Project-level memory` | task-init | project-bootstrap (seed) | all |
+| `## Slice status` (Slice-08 P2 pointer) | slice-closure | sync-task-state | all |
+
+**Slice-status propagation (Slice-08 P2)** is opt-in via a per-run bounded `propagate-slice-status` scope; `README.md` and `TEST_STRATEGY.md` are intentionally ABSENT from every table above (plain regime: no wos:write header, no audit line, outside `scan-substrate-headers.sh`). Adding rows for them would wrongly pull them under the substrate-write protocol.
 
 ## Fleet-substrate files (K.1 retrofit, 2026-06-04)
 

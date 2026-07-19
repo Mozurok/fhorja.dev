@@ -13,6 +13,6 @@ Optional 6th section:
 Rules:
 
 - Use Edit (not Write) per section. Avoid full file rewrites; they invalidate prompt cache and lose audit trail.
-- If a section would not materially change, skip it (per `## Material change (definition)` in `WORKFLOW_OPERATING_SYSTEM.md`).
+- If a section would not materially change, skip it (per `WORKFLOW_OPERATING_SYSTEM.md` `## Cross-cutting workflow guardrails` -> `### Material change (definition)`).
 - All 5 mandatory sections must be present in the file. If any is missing, propose adding the missing section first as a separate edit before continuing the closure update.
 - Total edits per closure typically range 4-6. More than 8 indicates either drift recovery (mark in transcript) or that `slice-closure` is being misused for closure of multiple slices at once (split into separate runs).

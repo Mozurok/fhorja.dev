@@ -41,6 +41,13 @@ set -euo pipefail
 die() { echo "emit-substrate-write: $*" >&2; exit 1; }
 command -v jq >/dev/null 2>&1 || die "jq is required"
 
+# P5 (opt-in): resolve a timeout(1) binary. if/elif, NOT `command -v X && VAR=X`
+# (that returns non-zero and aborts under set -e when the binary is absent).
+TIMEOUT_BIN=""
+if command -v timeout >/dev/null 2>&1; then TIMEOUT_BIN=timeout
+elif command -v gtimeout >/dev/null 2>&1; then TIMEOUT_BIN=gtimeout
+fi
+
 sha_of_section() {
   local file="$1" header="$2"
   [[ -f "$file" ]] || { printf 'null'; return; }
@@ -52,6 +59,24 @@ sha_of_section() {
     f                       { print }
   ' "$file")
   if [[ -z "$body" ]]; then printf 'null'; else printf '%s' "$body" | shasum -a 256 | awk '{print $1}'; fi
+}
+
+sha_of_section_guarded() {
+  # P5 (opt-in): with WOS_TIMEOUT set and a timeout binary present, bound ONLY
+  # the sha compute in a child re-exec (reusing the byte-identical sha_of_section);
+  # on timeout/kill, fall back to a valid 'null' record rather than hang or abort.
+  local file="$1" header="$2"
+  if [[ -z "$WOS_TIMEOUT" || -z "$TIMEOUT_BIN" ]]; then
+    sha_of_section "$file" "$header"
+    return
+  fi
+  local out rc=0
+  out=$("$TIMEOUT_BIN" "$WOS_TIMEOUT" bash "$0" __sha-of-section "$file" "$header") || rc=$?
+  if [[ "$rc" -ne 0 ]]; then
+    printf 'null'
+  else
+    printf '%s' "$out"
+  fi
 }
 
 new_run_id() {
@@ -75,9 +100,30 @@ append_line() {
     >> "$task_root/.wos/VERIFICATION_LOG.jsonl"
 }
 
+last_sha_after() {
+  # S2: sha_after of the most recent log record for (basename(FILE), SECTION);
+  # empty when there is no prior record. -R + fromjson? tolerates malformed lines
+  # under set -e; 2>/dev/null and || true neutralize a non-zero pipeline.
+  local log="$TASK_ROOT/.wos/VERIFICATION_LOG.jsonl" bn
+  bn=$(basename "$FILE")
+  [[ -f "$log" ]] || { printf ''; return; }
+  jq -rR --arg f "$bn" --arg s "$SECTION" \
+    'fromjson? | select(.file==$f and .section==$s) | .sha_after' \
+    "$log" 2>/dev/null | tail -n1 || true
+}
+
+# P5 (opt-in): internal re-entry so `timeout` can bound only the sha compute in a
+# child, reusing the exact sha_of_section. Sentinel first arg no emitter passes.
+if [[ "${1:-}" == "__sha-of-section" ]]; then
+  sha_of_section "$2" "$3"
+  exit 0
+fi
+
 SUB="${1:-}"; shift || true
 OWNER="" FILE="" SECTION="" EVENT="write" MODE="applied" REASON="" SHA_BEFORE="null"
 TASK_ROOT="." RUN_ID="" INVOKED_BY="" PRINT_HEADER=0
+DERIVE_SB=0 ALLOW_SB_MISMATCH=0 SB_EXPLICIT=0  # S2 (opt-in): off by default; default path unchanged
+WOS_TIMEOUT="${WOS_TIMEOUT:-}"  # P5 (opt-in): wall-time cap (timeout(1) duration); empty=off
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --owner) OWNER="$2"; shift 2;;
@@ -86,14 +132,24 @@ while [[ $# -gt 0 ]]; do
     --event) EVENT="$2"; shift 2;;
     --mode) MODE="$2"; shift 2;;
     --reason) REASON="$2"; shift 2;;
-    --sha-before) SHA_BEFORE="$2"; shift 2;;
+    --sha-before) SHA_BEFORE="$2"; SB_EXPLICIT=1; shift 2;;
     --task-root) TASK_ROOT="$2"; shift 2;;
     --run-id) RUN_ID="$2"; shift 2;;
     --invoked-by) INVOKED_BY="$2"; shift 2;;
     --print-header) PRINT_HEADER=1; shift;;
+    --derive-sha-before) DERIVE_SB=1; shift;;                 # S2 (opt-in)
+    --allow-sha-before-mismatch) ALLOW_SB_MISMATCH=1; shift;; # S2 (opt-in)
+    --timeout) WOS_TIMEOUT="$2"; shift 2;;                    # P5 (opt-in)
     *) die "unknown flag: $1";;
   esac
 done
+
+# S2 (opt-in): env fallback so CI can enable without a flag; if-form is set -e safe.
+if [[ "${WOS_DERIVE_SHA_BEFORE:-}" == 1 ]]; then DERIVE_SB=1; fi
+if [[ "${WOS_ALLOW_SHA_BEFORE_MISMATCH:-}" == 1 ]]; then ALLOW_SB_MISMATCH=1; fi
+if [[ -n "$WOS_TIMEOUT" && -z "$TIMEOUT_BIN" ]]; then
+  echo "emit-substrate-write: --timeout set but no timeout(1)/gtimeout(1) found; running unguarded" >&2
+fi
 
 # Resolve a relative --file that is absent in cwd against --task-root.
 if [[ -n "$FILE" && "$FILE" != /* && ! -f "$FILE" && -f "$TASK_ROOT/$FILE" ]]; then
@@ -133,18 +189,33 @@ USAGE
   sha)
     [[ -n "$FILE" ]] || die "sha needs --file"
     if [[ -n "$SECTION" ]]; then
-      sha_of_section "$FILE" "$SECTION"; echo
+      sha_of_section_guarded "$FILE" "$SECTION"; echo
     elif [[ ! -f "$FILE" ]]; then
       echo 'null'
     else
       while IFS= read -r sec; do
-        printf '%s\t%s\n' "$(sha_of_section "$FILE" "$sec")" "$sec"
+        printf '%s\t%s\n' "$(sha_of_section_guarded "$FILE" "$sec")" "$sec"
       done < <(grep '^## ' "$FILE")
     fi ;;
   emit)
     [[ -n "$OWNER" && -n "$FILE" && -n "$SECTION" && -n "$REASON" ]] || die "emit needs --owner --file --section --reason"
     [[ -f "$FILE" ]] || die "file not found (cwd and task-root checked): $FILE"
-    SA=$(sha_of_section "$FILE" "$SECTION")
+    if [[ "$DERIVE_SB" == 1 ]]; then
+      # S2 (opt-in): derive sha_before from the log instead of trusting the flag.
+      DERIVED=$(last_sha_after)
+      if [[ -z "$DERIVED" ]]; then
+        if [[ "$SB_EXPLICIT" == 1 && "$SHA_BEFORE" != "null" && "$ALLOW_SB_MISMATCH" != 1 ]]; then
+          die "sha_before for a section with no prior log record must be null (got '$SHA_BEFORE'); pass --allow-sha-before-mismatch to override"
+        fi
+        SHA_BEFORE="null"
+      else
+        if [[ "$SB_EXPLICIT" == 1 && "$SHA_BEFORE" != "$DERIVED" && "$ALLOW_SB_MISMATCH" != 1 ]]; then
+          die "sha_before mismatch for $(basename "$FILE") '$SECTION': caller='$SHA_BEFORE' derived='$DERIVED' (pass --allow-sha-before-mismatch to override)"
+        fi
+        SHA_BEFORE="$DERIVED"
+      fi
+    fi
+    SA=$(sha_of_section_guarded "$FILE" "$SECTION")
     if [[ "$EVENT" == "delete" ]]; then
       [[ "$SHA_BEFORE" != "null" ]] || die "delete requires --sha-before (the removed section's last hash)"
       SA="null"
@@ -167,7 +238,7 @@ USAGE
     while IFS=$'\t' read -r kind sec; do
       case "$kind" in
         S)
-          SA=$(sha_of_section "$FILE" "$sec")
+          SA=$(sha_of_section_guarded "$FILE" "$sec")
           append_line "$TASK_ROOT" "$OWNER" "$(basename "$FILE")" "$sec" "$EVENT" "$MODE" "$REASON" "null" "$SA" "$RUN_ID" "$TS" "$INVOKED_BY"
           COUNT=$((COUNT + 1));;
         O) SKIP_OWNER=$((SKIP_OWNER + 1));;

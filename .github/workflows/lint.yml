@@ -98,3 +98,20 @@ jobs:
           # Gate on errors only; warning-level findings (SC2034 unused vars, style)
           # are advisory per DECISIONS.md D-3. SC2088/SC2115 tracked as follow-ups.
           severity: error
+
+  check-doc-sync:
+    name: Doc-sync and WOS reference integrity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Make script executable
+        run: chmod +x ./scripts/check-doc-sync.sh
+
+      - name: Run doc-sync + WOS section/anchor reference integrity
+        # Verifies command / ADR / wos-topic refs resolve, plus (N3, 2026-07-18)
+        # that every cited WORKFLOW_OPERATING_SYSTEM.md `## section` / `### anchor`
+        # in the active-contract surfaces resolves to a real heading. Catches the
+        # silent-failure mode of a spec refactor that lint-commands cannot.
+        run: ./scripts/check-doc-sync.sh

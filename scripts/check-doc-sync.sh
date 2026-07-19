@@ -50,6 +50,13 @@ ROADMAP.md
 WORKFLOW_OPERATING_SYSTEM.md
 "
 
+# WOS section/anchor reference integrity (N3, 2026-07-18). Catches the silent
+# failure mode of a WORKFLOW_OPERATING_SYSTEM.md refactor: a citation that names
+# a '## ' section or '### ' sub-anchor which no longer resolves to a real heading.
+BT=$(printf '\140')  # literal backtick, kept out of awk/grep source
+WOS_SPEC="WORKFLOW_OPERATING_SYSTEM.md"
+WOS_HEADINGS="$(grep -E '^#{2,3} ' "$WOS_SPEC" 2>/dev/null || true)"
+
 VERIFIED=0
 BROKEN=0
 WARNINGS=0
@@ -98,6 +105,11 @@ adr_exists() {
 wos_topic_exists() {
   topic="$1"
   [ -f "$WOS_DIR/$topic.md" ]
+}
+
+wos_heading_exists() {
+  # $1 = a heading token like "## Global output contract" or "### Adaptive handoff"
+  printf '%s\n' "$WOS_HEADINGS" | grep -Fxq -- "$1"
 }
 
 scan_file() {
@@ -215,8 +227,55 @@ $(awk '
 EOF
 }
 
+scan_wos_headings() {
+  file="$1"
+  [ -f "$file" ] || return 0
+  # Only lines that name the spec file carry a WOS section/anchor citation.
+  # Extract backtick-wrapped `## X` / `### Y` tokens from those lines and verify
+  # each resolves to a real heading in WORKFLOW_OPERATING_SYSTEM.md.
+  while IFS=$(printf '\t') read -r lineno tok; do
+    [ -z "$tok" ] && continue
+    # Skip non-WOS-heading tokens that recur on WOS-mentioning lines:
+    # placeholders, and the command-OUTPUT block names (which are produced by a
+    # command, not headings in the spec) even though they sit next to a WOS cite.
+    case "$tok" in
+      *"<"*|*">"*) continue ;;
+      "### Handoff"|"### Artifact changes"|"### Command transcript"|"### Definition of done"|"### Definition of done (command output)"|"### Command transcript (standard)"|"### Standard output layout (required)") continue ;;
+    esac
+    if wos_heading_exists "$tok"; then
+      VERIFIED=$((VERIFIED + 1))
+      log_verbose "$file:$lineno WOS heading '$tok'"
+    else
+      record_broken "$file" "$lineno" "$tok" "wos-heading"
+    fi
+  done <<EOF
+$(awk -v bt="$BT" '
+    index($0, "WORKFLOW_OPERATING_SYSTEM") > 0 {
+      line = $0
+      lineno = NR
+      re = bt "##+ [^" bt "]+" bt
+      while (match(line, re)) {
+        tok = substr(line, RSTART + 1, RLENGTH - 2)
+        print lineno "\t" tok
+        line = substr(line, RSTART + RLENGTH)
+      }
+    }
+  ' "$file" | sort -u)
+EOF
+}
+
 for surface in $SURFACES; do
   scan_file "$surface"
+done
+
+# WOS heading-resolution scan over the ACTIVE-contract surfaces where a dangling
+# WOS ref actually breaks runtime behavior. Historical records (ROADMAP.md,
+# CHANGELOG.md, docs/adr/*.md) are deliberately excluded: they cite the spec as
+# it stood when written, and a since-renamed anchor there is expected drift, not
+# a bug. Limitation: this check verifies a cited heading EXISTS, not that it
+# still contains what the citation implies (semantic staleness is out of scope).
+for f in CLAUDE.md README.md docs/FAQ.md docs/MIGRATION.md "$WOS_SPEC" commands/*.md commands/_shared/*.md wos/*.md templates/*.md; do
+  scan_wos_headings "$f"
 done
 
 # Emit results.
