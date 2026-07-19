@@ -34,23 +34,23 @@ New here? [`WORKFLOW_DEMO.md`](./WORKFLOW_DEMO.md) is a full walkthrough with ex
 
 ## Quickstart
 
-Fhorja lives in its own repository, separate from any product codebase you work on. You clone it once, centrally, the same way you'd install a CLI tool, not once per project. The commands then reach whichever product repo you're working in, either automatically (open that repo in an editor that reads Agent Skills, once you've mirrored them with `--with-skills` below) or by installing straight into it with `--project`.
+Fhorja lives in its own repository, separate from any product codebase you work on. You clone it once, centrally, the same way you'd install a CLI tool, not once per project. The commands then reach whichever product repo you're working in, either automatically (open that repo in an editor that reads Agent Skills, which the sync mirrors by default) or by installing straight into it with `--project`.
 
 ```bash
 git clone https://github.com/Mozurok/fhorja.dev.git
 cd fhorja.dev
 ./scripts/bootstrap-user-setup.sh          # once: seeds USER_MEMORY.md, runs a lint sanity check
-./scripts/sync-workflow-slash-commands.sh  # installs the 12-command loop into Cursor and Claude Code
+./scripts/sync-workflow-slash-commands.sh  # opens a setup wizard: pick "Sync everything", or pass flags to script it
 ```
 
 In any editor that reads `.claude/skills/` (Cursor 2.4+, Claude Code), the commands are available as Agent Skills with no install step at all. Start your first task by running `task-init` and following the handoff printed at the end of each command. New to the workflow itself, not just this repo? Run `workflow-guide` instead of `task-init` first: it explains which command and editor mode to use right now, why, and the next two or three steps, so you are not guessing your way through the first task. Already fluent in the phases and just want the fast answer? Run `what-next` at any point; it gives the same routing decision with none of the explanation. Feeling stuck or looping? Run `im-stuck` instead. All three are safe to run anytime and never change your task's state. If you only have a few minutes before your first task, skim ahead to [Task memory on disk](#task-memory-on-disk) and [Repository layout](#repository-layout) below; they answer where things live, which is usually the first real question, before the full command catalog.
 
 ### Install profiles
 
-The `minimal` profile (the twelve-command loop) installs by default. Pass `--profile` to grow into a larger surface when a task needs it:
+Run it with no flags on a terminal and it opens a setup wizard: a state panel showing what you already have, an arrow-key menu, and a one-keystroke **Sync everything**. Skills sync by default. To script it (or run it in CI), pass any flag and it runs non-interactively. The `minimal` profile (the twelve-command loop) is the command-set default; `--profile` grows the surface:
 
 ```bash
-./scripts/sync-workflow-slash-commands.sh                    # minimal: the 12-command loop (default)
+./scripts/sync-workflow-slash-commands.sh --profile minimal  # the 12-command loop (command default)
 ./scripts/sync-workflow-slash-commands.sh --profile core     # everyday use, no fleets or personas
 ./scripts/sync-workflow-slash-commands.sh --profile full     # the whole catalog
 ```
@@ -61,7 +61,7 @@ The `minimal` profile (the twelve-command loop) installs by default. Pass `--pro
 
 The three profiles nest: `minimal` (<!-- count:commands-minimal -->12<!-- /count --> commands) inside `core` (<!-- count:commands-core -->50<!-- /count --> commands) inside `full` (<!-- count:commands -->94<!-- /count --> commands, the default). The `minimal` spine covers the everyday loop: `task-init`, `impact-analysis`, `decision-interview`, `implementation-plan`, `approve-plan`, `implement-approved-slice`, `slice-closure`, `review-hard`, `pr-package`, `what-next`, `sync-task-state`, `task-close`. Profiles are declared in each command's `x-wos-profiles` frontmatter and enforced by lint.
 
-Two more flags worth knowing: `--with-skills` mirrors the Agent Skills to your user-level directories so they follow you across every project, and `--project /path/to/your/repo` additionally installs into a specific product repo, alongside your user directories.
+Skills sync by default: they mirror to your user-level directories so they follow you across every project. Pass `--no-skills` to skip them. Two more flags worth knowing: `--clean-orphans` removes command files left behind by renamed or deleted commands, and `--project /path/to/your/repo` additionally installs into a specific product repo, alongside your user directories.
 
 ## The task loop
 
@@ -311,7 +311,7 @@ MCP-dependent commands (`db-context-supabase`, `db-context-postgres`, the Figma 
 | Script | What it does |
 |---|---|
 | `scripts/bootstrap-user-setup.sh` | First-time setup: seeds `USER_MEMORY.md` and runs a lint sanity check. |
-| `scripts/sync-workflow-slash-commands.sh` | Copies commands to Cursor, Claude Code, and Codex. Accepts `--profile`, `--with-skills`, `--with-docs`, `--project`. |
+| `scripts/sync-workflow-slash-commands.sh` | Copies commands and skills to Cursor, Claude Code, and Codex. Run bare on a terminal for a setup wizard; skills sync by default. Accepts `--profile`, `--no-skills`, `--clean-orphans`, `--with-docs`, `--project`. |
 | `scripts/lint-commands.sh` | Validates every command file: required sections, frontmatter, shared-block drift, forbidden bytes, registry membership, count markers, index-row membership, and skills drift. Run before committing a command edit. |
 | `scripts/build-agent-skills.sh` | Generates `.claude/skills/<name>/SKILL.md` from each command file. Idempotent; supports `--check` for CI drift detection. |
 | `scripts/build-command-catalog.py` | Generates `docs/command-catalog.html`, `docs/command-catalog.json`, and this README's Command catalog pointer. |
