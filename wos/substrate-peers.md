@@ -76,6 +76,8 @@ Legend: O = owner (writes via Edit/Write); P = propose-only (PROPOSED block); R 
 
 **Write rule:** D-N entries are **APPEND-ONLY**. Editing a locked D-N requires a new `D-(N+M)` with `Supersedes: D-N` line + entry in `## Decision history`. Never mutate silently. **Placement (ADR-0101):** `## Decision history` is a separate H2 placed immediately after `## Locked decisions`; new D-N entries are appended at the END of the `## Locked decisions` block, before the next H2, so the block stays contiguous (the `sha_of_section` computation assumes one contiguous block per H2).
 
+**Defeasible-claim revision (ADR-0109, D-10).** `DECISIONS.md ## Decision history` is the append-only home for TWO distinct operations, not one. (1) Supersede: a new decision replaces an old one; the trigger is an intent change; recorded as `D-(N+M)` with `Supersedes: D-N` (above). (2) Evidence-triggered revision: new evidence contradicts an already-persisted claim; the trigger is an evidence change, not an intent change. The two coincide only when the contradicted claim IS a locked decision, in which case the revision is recorded AS a supersede. When the contradicted claim is a NON-decision persisted claim (a `TASK_STATE.md ## Current known facts` row, a `TASK_STATE.md ## Risks to watch` row, an `IMPACT_ANALYSIS.md` finding), the revision is a standalone Decision-history entry with a `Revises:` line naming the claim's location, the contradicting evidence, and that evidence's provenance rank per `WORKFLOW_OPERATING_SYSTEM.md ## Evidence priority`. Rules: the revision is APPEND-ONLY and never overwrites the prior claim text; the contradicting evidence must sit at a provenance rank at least as high as the claim's, and an equal-rank conflict is recorded `[OPEN: equal-rank, escalate]` rather than auto-resolved; a command that notices contradicting evidence but is not a `DECISIONS.md ## Decision history` co-writer routes to `direction-adjust` (mid-task realization) or `decision-interview` (a locked decision) to record it, rather than widening the co-writer set. Lifecycle position: a revision entry is written `[OPEN]` and an in-task checkpoint only annotates it; `task-close` blocks archive on any `[OPEN]` revision (`commands/task-close.md`). A revision is resolved by a superseding decision, an accepted-and-recorded revision that updates the owning section through its normal owner, or an explicit `[WAIVED: <reason>]` tag.
+
 ### IMPLEMENTATION_PLAN.md
 
 | Section | Owner | Co-writers | Readers |
@@ -245,6 +247,7 @@ The orchestrator command (e.g. `atom-audit-fleet`, `screen-spec-fleet`) is the S
 2. Supersedes: new `D-(N+M)` with `Supersedes: D-N` + rationale. Old D-N gains tag `[SUPERSEDED by D-<N+M>]`.
 3. EARS form required when `impact-analysis` flagged behavior/contract risk (per ADR-0031).
 4. Discarded alternatives FORBIDDEN (`wos/task-file-contracts.md` already enforces).
+5. Evidence-triggered revision (ADR-0109, D-10): a distinct append-only operation in `## Decision history`, not a supersede unless the contradicted claim is itself a locked decision. See the `## Decision history` **Defeasible-claim revision** write rule above for the full contract; `task-close` blocks on an `[OPEN]` revision.
 
 ### IMPLEMENTATION_PLAN.md -- slice-status-restricted
 

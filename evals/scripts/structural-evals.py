@@ -241,6 +241,35 @@ def check_shared_block_sources():
     return (not fails, fails)
 
 
+def check_epistemic_doctrine_surfaces():
+    """[scenarios 110, 112] The ADR-0109 doctrine's load-bearing surfaces exist and
+    the claim-grounding block covers its full approved consumer set.
+
+    Guards TEST_STRATEGY.md row 8 (a silent removal of the spec fold, the reference
+    topic, or the read-map reference) and row 7's completeness half (a command in
+    the consumer set dropping the universal claim-grounding marker). The consumer
+    set is the flat command layer commands/*.md (the ~85 files carrying the
+    standard-output-layout shared marker per Slice 2/3); the folder-shaped persona
+    commands are out of that approved set. The row 6 no-confidence-field property is
+    guarded warn-only by scripts/check-claim-grounding.sh, not here (structural: a
+    prose check would be brittle and the doctrine forbids asserting its own wording).
+    """
+    fails = []
+    spec = read(p("WORKFLOW_OPERATING_SYSTEM.md"))
+    if not re.search(r"^### Claim status and abstention", spec, re.M):
+        fails.append("WORKFLOW_OPERATING_SYSTEM.md: missing '### Claim status and abstention' H3 (ADR-0109 spec fold)")
+    if "active-epistemic-humility.md" not in spec:
+        fails.append("WORKFLOW_OPERATING_SYSTEM.md: no reference to wos/active-epistemic-humility.md (read-map row and H3 both gone)")
+    if not os.path.exists(p("wos", "active-epistemic-humility.md")):
+        fails.append("wos/active-epistemic-humility.md: reference topic missing")
+    if not os.path.exists(p("commands", "_shared", "claim-grounding.md")):
+        fails.append("commands/_shared/claim-grounding.md: shared block source missing")
+    for f in sorted(glob.glob(p("commands", "*.md"))):
+        if "shared:claim-grounding" not in read(f):
+            fails.append(f"{os.path.relpath(f, REPO)}: missing <!-- shared:claim-grounding --> marker")
+    return (not fails, fails)
+
+
 CHECKS = [
     ("corpus-wellformed", "scenario corpus", "every scenario has a goal, criteria, and a FAIL section", check_corpus_wellformed),
     ("corpus-indexed", "scenario corpus", "every scenario is linked from evals/README.md", check_corpus_indexed),
@@ -253,6 +282,7 @@ CHECKS = [
     ("adr-indexed", "ADR index scenarios", "every ADR file has a row in docs/adr/README.md", check_adr_indexed),
     ("no-emdash", "forbidden-bytes scenarios", "no em-dash in commands or root docs", check_no_emdash),
     ("shared-block-sources", "shared-block scenarios", "every <!-- shared:X --> has a canonical source", check_shared_block_sources),
+    ("epistemic-doctrine-surfaces", "scenarios 110, 112", "the ADR-0109 doctrine surfaces exist and the claim-grounding marker covers the flat command set", check_epistemic_doctrine_surfaces),
 ]
 
 

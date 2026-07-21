@@ -54,6 +54,7 @@ Minimum read map for execution:
   - designing, building, or running the autonomous delivery track (the autonomy cluster: two human gates, runtime governor, mid-run escalation, run protocol): load `wos/autonomous-track.md` (built per ADR-0044; not loaded by default)
   - Godot 2D-mobile game development (scene architecture, save/state and the mobile lifecycle, 2D rendering performance, touch input and game-feel, audio, the asset pipeline, headless testing and CI): load `wos/godot-2d-architecture.md`, `wos/godot-2d-mobile-rendering-performance.md`, `wos/godot-mobile-interaction-and-feel.md`, `wos/godot-2d-audio.md`, `wos/godot-2d-asset-pipeline.md`, `wos/godot-testing-and-ci.md` (the Godot cluster reference layer per ADR-0078 and ADR-0084; capability-scoped, not loaded by default)
   - previewing a built frontend so a human can see it and record an experience verdict (serving the production build, the Vite/`astro preview` `allowedHosts` host-check gotcha and the static-server fallback, remote tunnel, recording the verdict): load `wos/frontend-preview-and-experience-verdict.md` (per ADR-0099; feeds the ADR-0091 experience-verdict floor and the release-plan pre-deploy gate; capability-scoped, not loaded by default)
+  - authoring or reviewing a rule about what an agent may assert, when it must investigate instead of guessing, how a claim records its provenance, or how a persisted claim gets revised: load `wos/active-epistemic-humility.md` (per ADR-0109; the normative core is inline in `## Global output contract` → `### Claim status and abstention` and the shared block `commands/_shared/claim-grounding.md`; this topic is the full contract with rationale, not loaded by default)
 
 ---
 
@@ -112,7 +113,7 @@ The workflow operates on a separate task-memory repository. Compact path index (
 - `commands/<name>.md`: command files (source of truth for which commands exist; carry Agent Skills frontmatter validated by `lint-commands.sh`).
 - `commands/_shared/<name>.md`: canonical shared blocks propagated by `sync-shared-blocks.sh` into commands that declare the marker.
 - `.claude/skills/<name>/SKILL.md`: **generated** Agent Skills artifacts produced by `scripts/build-agent-skills.sh` from each canonical `commands/<name>.md`. Drop-in for the 35+ tools that read `.claude/skills/` natively (Cursor 2.4+, Claude Code, Copilot, Codex, Gemini CLI, etc.). Never edit by hand; lint fails on drift.
-- `wos/<topic>.md`: lazy-loaded reference files (<!-- count:wos-topics -->36<!-- /count --> topics; e.g. `command-roles.md`, `cross-cutting-workflow-guardrails.md`, `global-output-contract.md`; see the Minimum read map for the full set). Loaded only when explicitly needed.
+- `wos/<topic>.md`: lazy-loaded reference files (<!-- count:wos-topics -->37<!-- /count --> topics; e.g. `command-roles.md`, `cross-cutting-workflow-guardrails.md`, `global-output-contract.md`; see the Minimum read map for the full set). Loaded only when explicitly needed.
 - `templates/`: starting points for task artifacts (`PR_PACKAGE.md`, `review-hard-checklist.md`).
 - `scripts/`: automation (`lint-commands.sh`, `sync-shared-blocks.sh`, `sync-workflow-slash-commands.sh`, `build-agent-skills.sh`, `check-doc-sync.sh`, `check-natural-voice.sh`, `monitor-fleet-progress.sh`, `scan-substrate-orphans.py`, `measure-tokens.py`, `measure-task-cost.py`).
 - `evals/scenarios/<NN>-*.md`: manual eval harness exercising load-bearing workflow contracts (project-bootstrap to task-init wiring, multi-repo schema, slice execution and closure scope discipline, pr-package diff grounding, state-reconcile minimum patch). `evals/scripts/run-evals.sh` walks through them.
@@ -539,6 +540,12 @@ Unless a command explicitly says otherwise:
 - Treat task-memory updates as **`PROPOSED`** by default in Ask/Plan modes.
 - Prefer applying `TASK_STATE.md` updates via `sync-task-state` after meaningful progress (unless the command explicitly requires an immediate `TASK_STATE.md` patch and the user is persisting in Agent mode).
 - **Exception (ADR-0026):** `implement-approved-slice` running in Agent mode uses **`APPLIED`** by default for slice execution notes (slice files, TASK_STATE.md updates). Rationale: the user already authorized execution via the handoff; a PROPOSED cycle adds overhead with near-zero rejection rate (0% in Fhorja analysis). This exception does NOT extend to other commands or to Ask/Plan modes; the PROPOSED-by-default contract from ADR-0001 remains the global default.
+
+### Claim status and abstention (per ADR-0109)
+The active-epistemic-humility doctrine (`wos/active-epistemic-humility.md`, shared block `commands/_shared/claim-grounding.md`). This subsection is inert on any output whose claims are all grounded, so a normal output pays nothing:
+- A load-bearing claim (one a downstream command or a human decision consumes) that a command persists into a task-memory artifact SHALL carry a provenance referent naming where it came from: a `REFERENCES.md` entry, a file path plus line, or a gate output. It SHALL NOT carry a confidence degree. A status with an empty referent reads as unknown. In a chat-only output the referent is required only on a claim that crosses the grounding boundary and triggers a route.
+- WHEN a load-bearing claim cannot be traced to the grounded set (captured references, files read this session, command output seen, a passing deterministic gate), the command SHALL either investigate or abstain, and SHALL NOT assert it from model memory.
+- Abstention is a routed continuation, never a bare refusal: it names the specific investigation that would settle the question and routes to the command that runs it. Abstention is distinct from `NO_OP` (no work to do); it means the grounding to proceed is missing.
 
 ### Every command should end with:
 - recommended next command

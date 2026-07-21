@@ -1208,6 +1208,19 @@ if [[ -x "$IB_SCRIPT" ]]; then
   [[ -n "$IB_LINE" ]] && echo "$IB_LINE"
 fi
 
+# --- Claim-grounding advisory (ADR-0109, D-11) ------------------------------
+# Delegates to scripts/check-claim-grounding.sh. INFORMATIONAL: warn-only,
+# never flips the exit code (mirrors the instruction-budget advisory tier).
+# The D-2 regression guard: flags a confidence-field pattern reintroduced into
+# the doctrine's source surfaces (the claim-grounding block, the wos topic, the
+# spec H3). It does NOT check referent presence in real outputs; that is
+# manual-tier per the task's TEST_STRATEGY.md. See scripts/check-claim-grounding.sh.
+CG_SCRIPT="${SCRIPT_DIR}/check-claim-grounding.sh"
+if [[ -x "$CG_SCRIPT" ]]; then
+  CG_LINE="$("$CG_SCRIPT" 2>/dev/null | grep -iE '^claim-grounding:' | tail -n1 || true)"
+  [[ -n "$CG_LINE" ]] && echo "Claim-grounding: ${CG_LINE#claim-grounding: } (informational; per ADR-0109 D-2 guard)"
+fi
+
 # --- Skill-triggers advisory (W-19) -----------------------------------------
 # Delegates to scripts/check-skill-triggers.sh. INFORMATIONAL: warn-only,
 # never flips the exit code (mirrors the instruction-budget advisory tier).
