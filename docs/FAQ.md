@@ -70,11 +70,11 @@ Fhorja itself does not. It is markdown files and local shell scripts: no server,
 
 ## Why so many commands? What is the difference between them?
 
-The workflow has <!-- count:commands -->94<!-- /count --> commands organized in <!-- count:command-categories -->9<!-- /count --> categories, mapped to the engineering task lifecycle:
+The workflow has <!-- count:commands -->95<!-- /count --> commands organized in <!-- count:command-categories -->9<!-- /count --> categories, mapped to the engineering task lifecycle:
 
 The categories span the engineering task lifecycle: project initialization, state and navigation, discovery and scoping, database context, contract and decision hardening, planning and validation, execution and closure, delivery and communication, and prompt tooling. The per-command breakdown (every command with its description, an example, and metadata, grouped by category) lives in the generated catalog, not in this FAQ.
 
-The parallel `*-fleet` variants and the nine specialist persona commands round the catalog out to <!-- count:commands -->94<!-- /count -->. For the complete per-command list, see the generated catalog: open [`docs/command-catalog.html`](./command-catalog.html) (browsable, with examples and metadata) or the [README command catalog](../README.md#command-catalog). Both are generated from `commands/*.md` by `scripts/build-command-catalog.py`; this FAQ does not hand-maintain a command list.
+The parallel `*-fleet` variants and the nine specialist persona commands round the catalog out to <!-- count:commands -->95<!-- /count -->. For the complete per-command list, see the generated catalog: open [`docs/command-catalog.html`](./command-catalog.html) (browsable, with examples and metadata) or the [README command catalog](../README.md#command-catalog). Both are generated from `commands/*.md` by `scripts/build-command-catalog.py`; this FAQ does not hand-maintain a command list.
 
 Most tasks use only 4-6 of these in a typical run. The full count exists because each command captures a distinct **phase boundary** with explicit `Operating rules:` and a `### Definition of done`. Collapsing them into fewer commands would either lose the boundaries (one command does many phases poorly) or expand each command's responsibility surface (one command's `### Definition of done` becomes unreadable).
 

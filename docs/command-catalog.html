@@ -121,13 +121,13 @@ footer{max-width:1180px;margin:0 auto;padding:24px 30px 50px;color:var(--faint);
 </div>
 <div class="layout">
   <aside class="sidebar">
-    <div class="stats">94 commands &middot; 9 categories</div>
+    <div class="stats">95 commands &middot; 9 categories</div>
     <ul>
         <li><a href="#project-initialization" data-cat="project-initialization"><span class="nav-label">Project initialization</span><span class="nav-n">2</span></a></li>
         <li><a href="#discovery-and-scoping" data-cat="discovery-and-scoping"><span class="nav-label">Discovery and scoping</span><span class="nav-n">30</span></a></li>
         <li><a href="#contract-and-decision-hardening" data-cat="contract-and-decision-hardening"><span class="nav-label">Contract and decision hardening</span><span class="nav-n">3</span></a></li>
         <li><a href="#planning-and-validation" data-cat="planning-and-validation"><span class="nav-label">Planning and validation</span><span class="nav-n">13</span></a></li>
-        <li><a href="#execution-and-closure" data-cat="execution-and-closure"><span class="nav-label">Execution and closure</span><span class="nav-n">22</span></a></li>
+        <li><a href="#execution-and-closure" data-cat="execution-and-closure"><span class="nav-label">Execution and closure</span><span class="nav-n">23</span></a></li>
         <li><a href="#delivery-and-communication" data-cat="delivery-and-communication"><span class="nav-label">Delivery and communication</span><span class="nav-n">6</span></a></li>
         <li><a href="#state-and-navigation" data-cat="state-and-navigation"><span class="nav-label">State and navigation</span><span class="nav-n">15</span></a></li>
         <li><a href="#database-context" data-cat="database-context"><span class="nav-label">Database context</span><span class="nav-n">2</span></a></li>
@@ -569,7 +569,7 @@ footer{max-width:1180px;margin:0 auto;padding:24px 30px 50px;color:var(--faint);
       </article>
     </section>
     <section class="cat" id="execution-and-closure" data-cat="execution-and-closure">
-      <h2><span>Execution and closure</span><span class="n">22</span></h2>
+      <h2><span>Execution and closure</span><span class="n">23</span></h2>
       <article class="cmd" id="cmd-app-runtime-verify" data-name="app-runtime-verify">
         <div class="cmd-head"><h3><a class="anchor" href="#cmd-app-runtime-verify">#</a><code>app-runtime-verify</code></h3></div>
         <div class="badges"><span class="badge cat-badge">Execution and closure</span><span class="badge mode mode-agent">Agent</span><span class="badge soft">Sonnet 4.6</span><span class="badge soft">~3200 tok</span></div>
@@ -750,6 +750,12 @@ footer{max-width:1180px;margin:0 auto;padding:24px 30px 50px;color:var(--faint);
         <p class="callout dont"><span class="ico">Avoid</span> when only a single slice is ending (use slice-closure), when implementation or review is still in progress, when the goal is only to assess progress (use where-we-at) or sync memory (use sync-task-state), or when a follow-up is really new scope (use task-init for a new task). Before archiving a long session, use harvest-session-learnings to sweep durable lessons. For picking the next thread after archiving, use portfolio-review.</p>
         <div class="ex"><div class="ex-head"><span class="exlabel">Example prompt</span><button class="copy" type="button" aria-label="Copy example">Copy</button></div><code>Run `@commands/task-close.md` for `TASK_FOLDER`. Close the whole task: verify done-conditions (waive team-approval/merge if solo), write final `TASK_STATE.md`, move `active/` -&gt; `archive/`. Mode: Agent to execute the move.</code></div>
         <div class="next"><span class="nextlabel">Next</span> <a class="chip" href="#cmd-delivery-asset">delivery-asset</a><a class="chip" href="#cmd-task-init">task-init</a></div>
+      </article>
+      <article class="cmd" id="cmd-web-runtime-verify" data-name="web-runtime-verify">
+        <div class="cmd-head"><h3><a class="anchor" href="#cmd-web-runtime-verify">#</a><code>web-runtime-verify</code></h3></div>
+        <div class="badges"><span class="badge cat-badge">Execution and closure</span><span class="badge mode mode-agent">Agent</span><span class="badge soft">Sonnet 4.6</span><span class="badge soft">~2600 tok</span></div>
+        <p class="lead">Verify a built web or static frontend at runtime: serve the build on an ephemeral free port, assert page identity FIRST (automatic recovery on a collision or stale server), run the web battery (overflow 320 to 2560, keyboard and focus, console errors, Lighthouse and axe when available), and decide a PASS/FAIL/BLOCKED runtime gate. The run&#x27;s real output IS the Layer-1 evidence (ADR-0048); a claimed-but-not-shown run is unverified. Capability-routed and MCP-agnostic; serving mechanics live in wos/frontend-preview-and-experience-verdict.md (ADR-0099), referenced never duplicated. It verifies and routes fixes, it does not apply them. Use after a web slice is implemented to gate runtime behavior the static checks cannot catch.</p>
+        <p class="callout dont"><span class="ico">Avoid</span> to plan a page (implementation-plan), to write or fix code (implement-approved-slice), to record the HUMAN experience verdict (the ADR-0091 floor), for numeric perf budgets (performance-budget), for Godot or mobile (the sibling verify commands), or with no built frontend to serve.</p>
       </article>
       <article class="cmd" id="cmd-where-we-at" data-name="where-we-at">
         <div class="cmd-head"><h3><a class="anchor" href="#cmd-where-we-at">#</a><code>where-we-at</code></h3></div>

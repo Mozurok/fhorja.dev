@@ -26,7 +26,7 @@ Fhorja is a workflow operating system for AI-assisted engineering: a markdown-pl
 
 The everyday product is a loop of twelve commands: `task-init`, `impact-analysis`, `decision-interview`, `implementation-plan`, `approve-plan`, `implement-approved-slice`, `review-hard`, `slice-closure`, `sync-task-state`, `pr-package`, `task-close`, and `what-next`. They share one output contract and chain into each other across discovery, decisions, planning, slice-by-slice execution, review, and delivery, distributed to any editor as Agent Skills or legacy slash commands. Most tasks touch four to six of them.
 
-Behind that loop sits an optional catalog of <!-- count:commands -->94<!-- /count --> commands in total (parallel fleets, design-system personas, reliability and security specialists) that you install only when a task needs them. The `minimal` install profile is the default and gives you exactly the twelve.
+Behind that loop sits an optional catalog of <!-- count:commands -->95<!-- /count --> commands in total (parallel fleets, design-system personas, reliability and security specialists) that you install only when a task needs them. The `minimal` install profile is the default and gives you exactly the twelve.
 
 It targets engineers who already use an AI coding tool (Cursor, Claude Code, and 35+ others that read the open Agent Skills standard, per [`CONTRIBUTING.md`](./CONTRIBUTING.md)) and want plan-before-code discipline with an explicit human approval gate before implementation.
 
@@ -59,7 +59,7 @@ Run it with no flags on a terminal and it opens a setup wizard: a state panel sh
   <img src=".github/assets/profiles.svg" alt="The three install profiles nest: minimal inside core inside full" width="100%">
 </p>
 
-The three profiles nest: `minimal` (<!-- count:commands-minimal -->12<!-- /count --> commands) inside `core` (<!-- count:commands-core -->50<!-- /count --> commands) inside `full` (<!-- count:commands -->94<!-- /count --> commands, the default). The `minimal` spine covers the everyday loop: `task-init`, `impact-analysis`, `decision-interview`, `implementation-plan`, `approve-plan`, `implement-approved-slice`, `slice-closure`, `review-hard`, `pr-package`, `what-next`, `sync-task-state`, `task-close`. Profiles are declared in each command's `x-wos-profiles` frontmatter and enforced by lint.
+The three profiles nest: `minimal` (<!-- count:commands-minimal -->12<!-- /count --> commands) inside `core` (<!-- count:commands-core -->50<!-- /count --> commands) inside `full` (<!-- count:commands -->95<!-- /count --> commands, the default). The `minimal` spine covers the everyday loop: `task-init`, `impact-analysis`, `decision-interview`, `implementation-plan`, `approve-plan`, `implement-approved-slice`, `slice-closure`, `review-hard`, `pr-package`, `what-next`, `sync-task-state`, `task-close`. Profiles are declared in each command's `x-wos-profiles` frontmatter and enforced by lint.
 
 Skills sync by default: they mirror to your user-level directories so they follow you across every project. Pass `--no-skills` to skip them. Two more flags worth knowing: `--clean-orphans` removes command files left behind by renamed or deleted commands, and `--project /path/to/your/repo` additionally installs into a specific product repo, alongside your user directories.
 
@@ -90,7 +90,7 @@ A task moves through a short, explicit chain. Each command persists its result t
 
 ## Command clusters
 
-<!-- count:commands -->94<!-- /count --> commands, grouped here into 14 clusters for orientation (this grouping is editorial, not the formal <!-- count:command-categories -->9<!-- /count -->-category boundary used inside the spec):
+<!-- count:commands -->95<!-- /count --> commands, grouped here into 14 clusters for orientation (this grouping is editorial, not the formal <!-- count:command-categories -->9<!-- /count -->-category boundary used inside the spec):
 
 <p align="center">
   <img src=".github/assets/clusters.svg" alt="The command families, one color per group, the same color key the fhorja.dev page uses" width="100%">
@@ -165,8 +165,8 @@ Paths above are relative to wherever you cloned the repo; the folder name itself
 
 - **One source of truth per command.** `commands/<name>.md` is canonical. `scripts/build-agent-skills.sh` generates `.claude/skills/<name>/SKILL.md` from it, so any Agent-Skills-compatible tool gets the same command with no extra step. Editing a generated skill by hand is prohibited; lint fails CI on drift.
 - **Registry membership.** Per [ADR-0029](./docs/adr/0029-drift-guards-registry-and-count-markers.md), every command must appear in four discoverability surfaces: the cluster list above, the Command roles index in `WORKFLOW_OPERATING_SYSTEM.md`, [`wos/command-roles.md`](./wos/command-roles.md), and [`COMMAND_PROMPT_STUBS.md`](./COMMAND_PROMPT_STUBS.md). Lint fails on a gap in either direction.
-- **Count markers.** Prose claims about on-disk quantities, like the <!-- count:commands -->94<!-- /count --> commands above, use `<!-- count:KIND -->N<!-- /count -->` markers that lint checks against the live count, which is why the numbers in this README are trustworthy.
-- **Index rows and regression net.** Every ADR has a row in [`docs/adr/README.md`](./docs/adr/README.md); every eval scenario has a row in [`evals/README.md`](./evals/README.md). The decision history is <!-- count:adrs -->110<!-- /count --> Architecture Decision Records, each immutable once accepted, and the regression net is <!-- count:scenarios -->111<!-- /count --> scenarios, run with `evals/scripts/run-evals.sh`.
+- **Count markers.** Prose claims about on-disk quantities, like the <!-- count:commands -->95<!-- /count --> commands above, use `<!-- count:KIND -->N<!-- /count -->` markers that lint checks against the live count, which is why the numbers in this README are trustworthy.
+- **Index rows and regression net.** Every ADR has a row in [`docs/adr/README.md`](./docs/adr/README.md); every eval scenario has a row in [`evals/README.md`](./evals/README.md). The decision history is <!-- count:adrs -->111<!-- /count --> Architecture Decision Records, each immutable once accepted, and the regression net is <!-- count:scenarios -->112<!-- /count --> scenarios, run with `evals/scripts/run-evals.sh`.
 
 ## Command catalog
 
@@ -255,6 +255,7 @@ Generated from `commands/*.md` by `scripts/build-command-catalog.py`. Do not han
 - `skill-vet`: Read-only safety inspection of a third-party agent skill or plugin BEFORE it is installed or trusted.
 - `slice-closure`: Decide whether the current slice is ready to close, distinguishing slice completion from full task completion, then persist the result in slice notes and TASK_STATE.md as explicit reviewable closure notes.
 - `task-close`: Perform the terminal task lifecycle transition for a finished task: verify the spec done-conditions, set TASK_STATE.md to its final closed state, and move the task folder from active/ to archive/.
+- `web-runtime-verify`: Verify a built web or static frontend at runtime: serve the build on an ephemeral free port, assert page identity FIRST (automatic recovery on a collision or stale server), run the web battery (overflow 320 to 2560, keyboard and focus, console errors, Lighthouse and axe when available), and decide a PASS/FAIL/BLOCKED runtime gate.
 - `where-we-at`: Macro checkpoint that assesses the real current task state against the approved plan and task artifacts, then determines what is done, what is missing, and what remains to finish the proposed work.
 
 ### Delivery and communication
@@ -320,7 +321,7 @@ MCP-dependent commands (`db-context-supabase`, `db-context-postgres`, the Figma 
 
 ## Eval harness and quality
 
-The workflow ships a regression net of <!-- count:scenarios -->111<!-- /count --> scenarios under `evals/scenarios/`, indexed in [`evals/README.md`](./evals/README.md). Each scenario is self-contained: a full input prompt, the expected response shape, and numbered pass criteria a reviewer checks by reading the model output. Most are behavioral and reviewed by hand with `evals/scripts/run-evals.sh` (or the optional `evals/scripts/judge.py` LLM-as-judge second pass, which never replaces manual review). The subset that reduces to a static repo invariant runs in CI on every push via `evals/scripts/structural-evals.py`, so a broken handoff basename, a stale count marker, or a malformed scenario fails the build rather than waiting for a manual pass. That harness does not run a model and makes no claim of full automated coverage.
+The workflow ships a regression net of <!-- count:scenarios -->112<!-- /count --> scenarios under `evals/scenarios/`, indexed in [`evals/README.md`](./evals/README.md). Each scenario is self-contained: a full input prompt, the expected response shape, and numbered pass criteria a reviewer checks by reading the model output. Most are behavioral and reviewed by hand with `evals/scripts/run-evals.sh` (or the optional `evals/scripts/judge.py` LLM-as-judge second pass, which never replaces manual review). The subset that reduces to a static repo invariant runs in CI on every push via `evals/scripts/structural-evals.py`, so a broken handoff basename, a stale count marker, or a malformed scenario fails the build rather than waiting for a manual pass. That harness does not run a model and makes no claim of full automated coverage.
 
 `repo-consistency-sweep` draws on the curated bug-class library in `wos/bug-classes/`, auto-discovered at sweep time; project-local templates can override a global one on name collision.
 

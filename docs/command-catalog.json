@@ -1,5 +1,5 @@
 {
-  "command_count": 94,
+  "command_count": 95,
   "commands": [
     {
       "category": "planning-and-validation",
@@ -1216,6 +1216,16 @@
       "name": "verify-against-rubric-fleet",
       "next_commands": [],
       "token_budget": "4500"
+    },
+    {
+      "category": "execution-and-closure",
+      "description": "Verify a built web or static frontend at runtime: serve the build on an ephemeral free port, assert page identity FIRST (automatic recovery on a collision or stale server), run the web battery (overflow 320 to 2560, keyboard and focus, console errors, Lighthouse and axe when available), and decide a PASS/FAIL/BLOCKED runtime gate. The run's real output IS the Layer-1 evidence (ADR-0048); a claimed-but-not-shown run is unverified. Capability-routed and MCP-agnostic; serving mechanics live in wos/frontend-preview-and-experience-verdict.md (ADR-0099), referenced never duplicated. It verifies and routes fixes, it does not apply them. Use after a web slice is implemented to gate runtime behavior the static checks cannot catch. Do not use to plan a page (implementation-plan), to write or fix code (implement-approved-slice), to record the HUMAN experience verdict (the ADR-0091 floor), for numeric perf budgets (performance-budget), for Godot or mobile (the sibling verify commands), or with no built frontend to serve.",
+      "mode": "Agent",
+      "model": "claude-sonnet-4-6",
+      "multi_repo_aware": "false",
+      "name": "web-runtime-verify",
+      "next_commands": [],
+      "token_budget": "2600"
     },
     {
       "category": "state-and-navigation",

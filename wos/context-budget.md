@@ -165,7 +165,7 @@ Project memory (`PROJECT_CHARTER.md`, `REFERENCES.md`) is less prone to bloat bu
 
 ### `tools`: bounded by Agent Skills progressive disclosure
 
-The <!-- count:commands -->94<!-- /count --> commands are surfaced as Agent Skills with `description:` fields used for relevance routing. The Agent Skills spec's progressive disclosure pattern means a tool's full body is only loaded when the description matches the active task. Tools the model does not need are out of the budget.
+The <!-- count:commands -->95<!-- /count --> commands are surfaced as Agent Skills with `description:` fields used for relevance routing. The Agent Skills spec's progressive disclosure pattern means a tool's full body is only loaded when the description matches the active task. Tools the model does not need are out of the budget.
 
 ### `history`: aggressively compacted by the tool
 

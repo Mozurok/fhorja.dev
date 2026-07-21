@@ -903,6 +903,18 @@ Typical next commands:
 - `incident-triage` on a FAIL whose cause or fix size is unclear (and, for an upstream-bug escalation, its ADR-0086 read-comments gate)
 - `implement-slice-complement` on a FAIL with a bounded known fix inside the slice intent
 
+### web-runtime-verify
+Role:
+- verify a built web or static frontend at runtime: serve the production build on an EPHEMERAL free port (a fixed port is invalid output; the observed 4321-class failure), poll readiness, always tear down
+- page identity is the FIRST assertion, paired with automatic recovery: on a collision or a stale-server mismatch, re-bind to a fresh free port and re-run once before any FAIL (the G2 rule; an environment hazard is not a task blocker)
+- the standard web battery: overflow sweep at 320, 768, 1280 and 2560 px, keyboard and focus walk, console error capture, Lighthouse and axe when available with honest `n/a (tool absent)` degradation
+- taxonomy adapter: PAGE_IDENTITY_MISMATCH, SERVE_FAILURE, CONSOLE_ERROR, OVERFLOW, FOCUS_DEFECT, A11Y_VIOLATION, PERF_MEASUREMENT, CLEAN
+- the run's actual output IS the Layer-1 runtime evidence (ADR-0048, ADR-0112); a claimed-but-not-shown check is `unverified`; live capture only, never a fixture (G3)
+- serving mechanics are consumed from `wos/frontend-preview-and-experience-verdict.md` (ADR-0099), one serving doctrine with two consumers (this machine gate and the human experience verdict)
+- verifies and routes the fix; never writes code; bounded-retry cap on a hold-until-pass loop; under Codex CLI the browser step fires early in the turn (`wos/editor-mode-mappings.md ## Harness operational quirks`)
+- distinct from `godot-runtime-verify` (Godot scenes), `app-runtime-verify` (mobile), the ADR-0091 experience-verdict floor (human judgment over the same served build), `performance-budget` (numeric thresholds), and `a11y-audit` (full WCAG ledger; this gate surfaces axe findings and routes clusters there)
+
+
 ### design-bootstrap
 Role:
 - zero-state entry for design system work
