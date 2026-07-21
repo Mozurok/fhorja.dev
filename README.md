@@ -5,7 +5,7 @@
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   &nbsp;
-  <a href="#status-license-and-contributing"><img src="https://img.shields.io/badge/Status-v1.0.0-brightgreen.svg" alt="Status: v1.0.0"></a>
+  <a href="#status-license-and-contributing"><img src="https://img.shields.io/badge/Status-v1.1.0-brightgreen.svg" alt="Status: v1.1.0"></a>
 </p>
 
 > A workflow operating system for AI-assisted engineering. Task state, decisions, and plans live on disk as files, not in chat history, so context survives across sessions, tools, and restarts.
@@ -349,7 +349,7 @@ Fhorja is built and maintained by Bruno Mazurok, a fullstack engineer with about
 
 ## Status, license, and contributing
 
-**Status.** v1.0.0, the first public release. The contract for command outputs and `TASK_STATE.md` is the defined public API: breaking changes to either mean a major version bump per [SemVer](https://semver.org/). See [`CHANGELOG.md`](./CHANGELOG.md) for what changed and [`ROADMAP.md`](./ROADMAP.md) for what's next.
+**Status.** v1.1.0, the cross-model dogfood release (see CHANGELOG for the 1.1.0 section). The contract for command outputs and `TASK_STATE.md` is the defined public API: breaking changes to either mean a major version bump per [SemVer](https://semver.org/). See [`CHANGELOG.md`](./CHANGELOG.md) for what changed and [`ROADMAP.md`](./ROADMAP.md) for what's next.
 
 **Governance.** A personal open-source project under single-maintainer (BDFL) governance while it matures toward a community model; the contribution flow is documented in [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
