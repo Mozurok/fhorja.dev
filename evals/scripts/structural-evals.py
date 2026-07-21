@@ -243,16 +243,17 @@ def check_shared_block_sources():
 
 def check_epistemic_doctrine_surfaces():
     """[scenarios 110, 112] The ADR-0109 doctrine's load-bearing surfaces exist and
-    the claim-grounding block covers its full approved consumer set.
+    the claim-grounding block covers the whole universal command layer.
 
     Guards TEST_STRATEGY.md row 8 (a silent removal of the spec fold, the reference
-    topic, or the read-map reference) and row 7's completeness half (a command in
-    the consumer set dropping the universal claim-grounding marker). The consumer
-    set is the flat command layer commands/*.md (the ~85 files carrying the
-    standard-output-layout shared marker per Slice 2/3); the folder-shaped persona
-    commands are out of that approved set. The row 6 no-confidence-field property is
-    guarded warn-only by scripts/check-claim-grounding.sh, not here (structural: a
-    prose check would be brittle and the doctrine forbids asserting its own wording).
+    topic, or the read-map reference) and row 7's completeness half (a command
+    dropping the universal claim-grounding marker). The invariant is claim-driven,
+    not count-driven: every command file that carries the standard-output-layout
+    shared marker (the universal layer) MUST also carry claim-grounding. This covers
+    both the flat commands/*.md and the folder-shaped persona commands/*/SKILL.md.
+    The row 6 no-confidence-field property is guarded warn-only by
+    scripts/check-claim-grounding.sh, not here (structural: a prose check would be
+    brittle and the doctrine forbids asserting its own wording).
     """
     fails = []
     spec = read(p("WORKFLOW_OPERATING_SYSTEM.md"))
@@ -264,9 +265,10 @@ def check_epistemic_doctrine_surfaces():
         fails.append("wos/active-epistemic-humility.md: reference topic missing")
     if not os.path.exists(p("commands", "_shared", "claim-grounding.md")):
         fails.append("commands/_shared/claim-grounding.md: shared block source missing")
-    for f in sorted(glob.glob(p("commands", "*.md"))):
-        if "shared:claim-grounding" not in read(f):
-            fails.append(f"{os.path.relpath(f, REPO)}: missing <!-- shared:claim-grounding --> marker")
+    for f in _command_files():
+        body = read(f)
+        if "shared:standard-output-layout" in body and "shared:claim-grounding" not in body:
+            fails.append(f"{os.path.relpath(f, REPO)}: has standard-output-layout but missing <!-- shared:claim-grounding --> marker")
     return (not fails, fails)
 
 
@@ -282,7 +284,7 @@ CHECKS = [
     ("adr-indexed", "ADR index scenarios", "every ADR file has a row in docs/adr/README.md", check_adr_indexed),
     ("no-emdash", "forbidden-bytes scenarios", "no em-dash in commands or root docs", check_no_emdash),
     ("shared-block-sources", "shared-block scenarios", "every <!-- shared:X --> has a canonical source", check_shared_block_sources),
-    ("epistemic-doctrine-surfaces", "scenarios 110, 112", "the ADR-0109 doctrine surfaces exist and the claim-grounding marker covers the flat command set", check_epistemic_doctrine_surfaces),
+    ("epistemic-doctrine-surfaces", "scenarios 110, 112", "the ADR-0109 doctrine surfaces exist and claim-grounding covers the universal command layer", check_epistemic_doctrine_surfaces),
 ]
 
 
