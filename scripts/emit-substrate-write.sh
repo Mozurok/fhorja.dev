@@ -29,6 +29,19 @@
 #         genesis-style first writes, e.g. task-init's ~25-30 sections; for
 #         mutations of existing sections use per-section emit with a captured
 #         sha_before). One RUN_ID/TS pair is shared across the whole batch.
+#   apply --owner O --file F --section '## X' --reason R --body-file B
+#         [--mode applied] [--event write|overwrite] [--task-root DIR]
+#         [--run-id ID] [--invoked-by P] [--sha-before H]
+#         The whole write cycle in ONE call (ADR-0110): capture sha_before,
+#         insert-or-replace the transaction header above the section, splice
+#         the section body from B, self-check sha_after against the intended
+#         body, append one JSONL line. Die rules: the exact section line must
+#         be UNIQUE in F (a duplicate, e.g. a code-fence decoy, refuses); the
+#         body must not contain H2 or wos:write lines (apply never creates
+#         sections); a caller-passed --sha-before that mismatches the measured
+#         value refuses (the measured value is authoritative). Event defaults
+#         to write when the section body was empty, overwrite otherwise.
+#         sha/emit/batch behavior is unchanged; apply is additive.
 #
 # Reason strings are capped at 80 chars (validator rule). Requires jq.
 #
@@ -122,6 +135,7 @@ fi
 SUB="${1:-}"; shift || true
 OWNER="" FILE="" SECTION="" EVENT="write" MODE="applied" REASON="" SHA_BEFORE="null"
 TASK_ROOT="." RUN_ID="" INVOKED_BY="" PRINT_HEADER=0
+BODY_FILE="" EVENT_EXPLICIT=0  # apply (ADR-0110)
 DERIVE_SB=0 ALLOW_SB_MISMATCH=0 SB_EXPLICIT=0  # S2 (opt-in): off by default; default path unchanged
 WOS_TIMEOUT="${WOS_TIMEOUT:-}"  # P5 (opt-in): wall-time cap (timeout(1) duration); empty=off
 while [[ $# -gt 0 ]]; do
@@ -129,7 +143,7 @@ while [[ $# -gt 0 ]]; do
     --owner) OWNER="$2"; shift 2;;
     --file) FILE="$2"; shift 2;;
     --section) SECTION="$2"; shift 2;;
-    --event) EVENT="$2"; shift 2;;
+    --event) EVENT="$2"; EVENT_EXPLICIT=1; shift 2;;
     --mode) MODE="$2"; shift 2;;
     --reason) REASON="$2"; shift 2;;
     --sha-before) SHA_BEFORE="$2"; SB_EXPLICIT=1; shift 2;;
@@ -140,6 +154,7 @@ while [[ $# -gt 0 ]]; do
     --derive-sha-before) DERIVE_SB=1; shift;;                 # S2 (opt-in)
     --allow-sha-before-mismatch) ALLOW_SB_MISMATCH=1; shift;; # S2 (opt-in)
     --timeout) WOS_TIMEOUT="$2"; shift 2;;                    # P5 (opt-in)
+    --body-file) BODY_FILE="$2"; shift 2;;                    # apply (ADR-0110)
     *) die "unknown flag: $1";;
   esac
 done
@@ -257,5 +272,64 @@ USAGE
     echo "emitted $COUNT, skipped $SKIP_OWNER other-owner, $SKIP_HEADERLESS headerless ($FILE, run_id=$RUN_ID)"
     [[ "$COUNT" -gt 0 ]] || die "batch emitted 0 lines (no owner=$OWNER headers in $FILE)"
     [[ "$COUNT" -eq "$FOUND" ]] || die "batch count mismatch: found $FOUND owner=$OWNER section(s) but emitted $COUNT ($FILE, run_id=$RUN_ID)" ;;
+  apply)
+    # ADR-0110: the whole write cycle in one call. sha/emit/batch untouched.
+    [[ -n "$OWNER" && -n "$FILE" && -n "$SECTION" && -n "$REASON" ]] || die "apply needs --owner --file --section --reason"
+    [[ -f "$FILE" ]] || die "file not found (cwd and task-root checked): $FILE"
+    [[ -n "$BODY_FILE" ]] || die "apply needs --body-file (the new section body)"
+    [[ -f "$BODY_FILE" ]] || die "body file not found: $BODY_FILE"
+    if grep -qE '^## |^<!-- wos:write ' "$BODY_FILE"; then
+      die "apply body must not contain H2 headings or wos:write lines (apply never creates sections; header lines are excluded from the section hash and would break the self-check)"
+    fi
+    MATCHES=$(grep -cxF "$SECTION" "$FILE" || true)
+    [[ "$MATCHES" -eq 1 ]] || die "apply target '$SECTION' must match exactly one line in $FILE (found $MATCHES; a duplicate can be a code-fence decoy and the splice boundary is not fence-aware)"
+    SB=$(sha_of_section "$FILE" "$SECTION")
+    if [[ "$SB_EXPLICIT" == 1 && "$SHA_BEFORE" != "$SB" ]]; then
+      die "apply sha_before mismatch for $(basename "$FILE") '$SECTION': caller expected '$SHA_BEFORE', measured '$SB' (the measured value is authoritative)"
+    fi
+    if [[ "$EVENT_EXPLICIT" -eq 0 ]]; then
+      if [[ "$SB" == "null" ]]; then EVENT="write"; else EVENT="overwrite"; fi
+    fi
+    HDR_LINE=$(printf '<!-- wos:write owner=%s section='\''%s'\'' run_id=%s ts=%s reason=%s mode=%s -->' \
+      "$OWNER" "$SECTION" "$RUN_ID" "$TS" "$REASON" "$MODE")
+    TMP_OUT=$(mktemp "${TMPDIR:-/tmp}/wos-apply.XXXXXX")
+    awk -v sec="$SECTION" -v hdr="$HDR_LINE" -v bodyfile="$BODY_FILE" '
+      BEGIN {
+        n = 0
+        while ((getline line < bodyfile) > 0) body[n++] = line
+        close(bodyfile)
+      }
+      { lines[NR] = $0 }
+      END {
+        s = 0
+        for (i = 1; i <= NR; i++) if (lines[i] == sec) { s = i; break }
+        e = NR + 1
+        for (i = s + 1; i <= NR; i++) if (lines[i] ~ /^## /) { e = i; break }
+        stop = e - 1
+        if (e <= NR && stop >= s + 1 && lines[stop] ~ /^<!-- wos:write /) stop = stop - 1
+        pre_end = s - 1
+        if (pre_end >= 1 && lines[pre_end] ~ /^<!-- wos:write /) pre_end = pre_end - 1
+        for (i = 1; i <= pre_end; i++) print lines[i]
+        print hdr
+        print lines[s]
+        for (j = 0; j < n; j++) print body[j]
+        if (e <= NR) print ""
+        for (i = stop + 1; i <= NR; i++) print lines[i]
+      }
+    ' "$FILE" > "$TMP_OUT"
+    SA=$(sha_of_section "$TMP_OUT" "$SECTION")
+    BODY_CONTENT=$(<"$BODY_FILE")
+    if [[ -z "$BODY_CONTENT" ]]; then
+      EXPECT="null"
+    else
+      EXPECT=$(printf '%s' "$BODY_CONTENT" | shasum -a 256 | awk '{print $1}')
+    fi
+    if [[ "$SA" != "$EXPECT" ]]; then
+      rm -f "$TMP_OUT"
+      die "apply self-check failed for '$SECTION': post-splice hash '$SA' != intended-body hash '$EXPECT' (splice boundary error; original file untouched)"
+    fi
+    mv "$TMP_OUT" "$FILE"
+    append_line "$TASK_ROOT" "$OWNER" "$(basename "$FILE")" "$SECTION" "$EVENT" "$MODE" "$REASON" "$SB" "$SA" "$RUN_ID" "$TS" "$INVOKED_BY"
+    echo "applied '$SECTION' in $FILE (event=$EVENT sha_before=$SB sha_after=$SA run_id=$RUN_ID)" ;;
   *) die "unknown subcommand: $SUB" ;;
 esac

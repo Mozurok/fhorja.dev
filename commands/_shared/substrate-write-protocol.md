@@ -53,7 +53,18 @@ VALID per `wos/substrate-peers.md ## Legacy file without headers`. The first mut
 
 ## Concrete computation (bash helpers)
 
-The K.2 protocol is half-compliant if you emit the JSONL line but skip the inline header, or if you set `sha_*` fields to `null` when the section already existed. The K.8 first-lived-test (2026-06-04) found 125 of 126 substrate writes shipped the JSONL line without the inline header. Preferred path: run `bash scripts/emit-substrate-write.sh` (wraps RUN_ID/TS generation, sha_of_section, and emit_audit; its `--batch <file>` mode emits one JSONL line per owner-headed section of a file, so a task-init-scale ~25-30-section run is one invocation per file). The helpers below are the same logic inline, for hosts without script access; use them verbatim to avoid the half-compliance failure mode.
+The K.2 protocol is half-compliant if you emit the JSONL line but skip the inline header, or if you set `sha_*` fields to `null` when the section already existed. The K.8 first-lived-test (2026-06-04) found 125 of 126 substrate writes shipped the JSONL line without the inline header. Preferred path (ADR-0110): `bash scripts/emit-substrate-write.sh apply --owner O --file F --section '## X' --reason R --body-file B` performs the WHOLE cycle in one call (sha_before capture, header insert-or-replace, body splice with a self-check before the original file is touched, JSONL append), with hard die rules (exact-unique target line, no H2 or wos:write lines in the body, caller sha_before mismatch refuses). Honest accounting: apply removes 2 to 4 calls per write, because the legacy floor below is already 3 calls when batched right, not the 5-6 a naive flow spends. Quick combined flow (the 3-call legacy floor, for hosts or edits where apply does not fit, e.g. a surgical line edit via the Edit tool):
+
+```bash
+# call 1: one bash call captures sha_before (reuse RUN_ID across the run)
+SHA_BEFORE=$(scripts/emit-substrate-write.sh sha --file F --section '## X')
+# call 2: the section write itself (Edit tool or sed)
+# call 3: emit with the captured value and the run's shared --run-id
+scripts/emit-substrate-write.sh emit --owner O --file F --section '## X' \
+  --event write --mode applied --reason R --sha-before "$SHA_BEFORE" --run-id "$RUN_ID"
+```
+
+Batch verification (run ONCE per batch of writes, not after each edit): `bash scripts/verify-substrate-batch.sh <task-folder>` runs scan-substrate-headers, verify-log-validator and scan-substrate-orphans with independent exit-code capture and exits with the OR. Legacy `--batch <file>` mode (one JSONL line per owner-headed section) remains for genesis-style multi-section creation. The helpers below are the same logic inline, for hosts without script access; use them verbatim to avoid the half-compliance failure mode.
 
 A section's bytes run from its H2 to the next H2 heading; any transaction-header lines inside that range, including the next section's header immediately above the next H2, are excluded from the hash (matching the sha definition in `wos/substrate-peers.md`).
 
@@ -130,7 +141,7 @@ emit_audit \
 
 **Edit-tool timing (P1-7, dogfood-wave-2 2026-07-12):** `SHA_BEFORE` MUST be computed in the same turn, immediately before the write, not from memory of an earlier turn's content: by the time a later turn runs the JSONL-append step, the pre-edit bytes are gone from disk and cannot be recovered without a forbidden `null` fallback or reading from version control. When authoring via the Edit tool rather than bash/sed, run the `sha_of_section` computation (via `scripts/emit-substrate-write.sh sha` or the inline helper) as the step immediately preceding the Edit call in the same turn, and hold the value in scope until the JSONL append. If the pre-edit content is genuinely unavailable (a compacted session, a cross-turn gap), re-read the current file state with the Read tool first rather than guessing or defaulting to `null`.
 
-**Codex CLI write mechanics (item A, v3 wave1 2026-07-21):** when the executing harness is Codex CLI, perform the section write with the harness's NATIVE apply-patch tool invoked directly, never via a shell redirect (`apply_patch < tmpfile`): the redirected form never qualifies for approval-prefix reuse (every state write re-escalates to a manual approval) and produced malformed nested patches in the bv3 dogfood. Full harness guidance: `wos/editor-mode-mappings.md ## Harness operational quirks`. Integration note: when the `emit-substrate-write.sh apply` subcommand lands (v3 wave2, item E), it becomes the preferred path on harnesses where a bash call does not re-escalate (Claude Code today), and that item updates this paragraph.
+**Codex CLI write mechanics (item A, v3 wave1 2026-07-21; integrated with ADR-0110, v3 wave2):** when the executing harness is Codex CLI, perform the section write with the harness's NATIVE apply-patch tool invoked directly, never via a shell redirect (`apply_patch < tmpfile`): the redirected form never qualifies for approval-prefix reuse (every state write re-escalates to a manual approval) and produced malformed nested patches in the bv3 dogfood. On a harness where a bash call does not re-escalate (Claude Code today), the preferred path is `emit-substrate-write.sh apply` (the one-call cycle above). Full harness guidance: `wos/editor-mode-mappings.md ## Harness operational quirks`.
 
 **Header placement relative to a mandatory H1 (P2-7, dogfood-wave-2 2026-07-12):** when the file has a mandatory H1 title (e.g. `# TASK_STATE` per `task-init.md`'s canonical template), the transaction header for the FIRST section goes after the H1 and its blank line, immediately above the first `## ` heading, never above the H1 itself:
 

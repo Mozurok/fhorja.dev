@@ -267,6 +267,9 @@ The orchestrator command (e.g. `atom-audit-fleet`, `screen-spec-fleet`) is the S
 
 ## Conflict resolution
 
+**Unconditional cross-command ownership rule (v3 wave2, item B; inherited from the rejected chain-mode design).** Any command writes ONLY the sections it owns (or co-writes per this matrix). Needing another command's section, file, or owner id means STOP and name that command on the `Run now:` line, never invoke or emulate it inline, and this holds OUTSIDE any chain or authorization context: an inherited "run without stopping" authorization does not transfer section ownership. Observed violations motivating the rule: a closure run implementing the next slice under a foreign owner (bv3 turn 10, 2026-07-21), and four slices collapsed under one unrelated command label with no authorization at all (av3, 2026-07-19).
+
+
 ### Owner collision (two non-owner writers want the same section)
 
 REFUSE both. Emit Handoff:

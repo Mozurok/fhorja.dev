@@ -61,11 +61,16 @@ Operating rules:
 - **Mode C eligibility (parallel fanout, per ADR-0032):** when the diff touches >10 files OR the task is multi-repo with `## Repositories` listed in `SOURCE_OF_TRUTH.md`, emit a `Delegate now:` directive in the handoff dispatching one sub-agent per logical file group (per-repo for multi-repo, or per bug-class group when single-repo with wide diff). Each sub-agent runs its slice of the sweep and returns a structured findings list. The parent merges, dedupes, and emits the normal Mode A handoff with the integrated findings. Skip Mode C when diff is small (<10 files) and single-repo.
 - **Pre-flight: substrate audit (K.4 + K.5 + K.7).** ALWAYS execute FIRST, before Step 1, before any diff computation, before any hash check, before any bug-class loading. There is no condition under which this step is skipped (except graceful-skip when the named scripts are missing -- in which case report `n/a`, not `0`). Concrete invocation (run in this order; header drift first so renamed parents do not mask orphan detection):
   ```bash
-  bash    scripts/scan-substrate-headers.sh <active-task-folder>
-  python3 scripts/scan-substrate-orphans.py <active-task-folder>
-  python3 scripts/verify-log-validator.py   <active-task-folder>/.wos/VERIFICATION_LOG.jsonl --check-deletes  # delete-orphan class promoted to errors per ADR-0101/0105
+  bash scripts/verify-substrate-batch.sh <active-task-folder>
+  # one wrapper call (ADR-0110): runs scan-substrate-headers.sh, then
+  # verify-log-validator.py --check-deletes (delete-orphan class promoted to
+  # errors per ADR-0101/0105), then scan-substrate-orphans.py, each with
+  # independent exit-code capture; prints every underlying stdout line plus a
+  # combined summary; exits with the OR of the three codes. Headers still run
+  # first, so renamed parents do not mask orphan detection. Graceful-skip when
+  # the wrapper or an underlying script is missing: report n/a, not 0.
   ```
-  Capture three integers from stdout: `substrate_header_drift_count: <N>` (first script), `substrate_bullet_orphan_count: <N>` (second), and `invalid: <N>` (third, recorded as `verification_log_invalid_count`). Persist the orphan paths list (first 10) for the snapshot; write the full list to `REVIEW_SWEEPS/SWEEP_<ts>.orphans.txt` for diffability. These three integers are the audit deliverables for THIS run.
+  Capture three integers from the wrapper's combined stdout: `substrate_header_drift_count: <N>` (first script), `substrate_bullet_orphan_count: <N>` (second), and `invalid: <N>` (third, recorded as `verification_log_invalid_count`). Persist the orphan paths list (first 10) for the snapshot; write the full list to `REVIEW_SWEEPS/SWEEP_<ts>.orphans.txt` for diffability. These three integers are the audit deliverables for THIS run.
   - **WARN semantics for orphans (not FAIL).** `substrate_bullet_orphan_count > 0` surfaces a WARN line in sweep output, mirroring `header_drift` per ADR-0029's drift-guard pattern. It does NOT add a bug-class finding and does NOT affect Step 11 routing. The gate lives in `evals/e2e/assertions/09-repo-consistency-sweep.sh` (orphan-cap block, default `EXPECTED_MAX_SUBSTRATE_ORPHANS=0`).
   - **Legacy-orphan tolerance.** Honour `OPT_OUT_ORPHAN_BASELINE=1`: when set, still emit the counter and snapshot fields but suppress the WARN escalation. The detector stays pure; tolerance is a sweep-layer policy (ADR-0029 detection-vs-gating separation). Repos with known legacy debt use this to keep the signal visible without blocking unrelated work.
   - **FORBIDDEN: carrying counts forward from a prior SWEEP snapshot without re-invoking the scripts.** The "informational" qualifier elsewhere refers ONLY to routing impact (Step 11 does NOT route on these counts); it does NOT make the scripts optional. Substrate state (header drift, bullet orphans, log validity) changes outside the code-repo diff, so the prior snapshot's counts are stale the moment any substrate writer fires anywhere in the Fhorja task repo. Invoking all three scripts on every sweep run is the only way to know the current state.
