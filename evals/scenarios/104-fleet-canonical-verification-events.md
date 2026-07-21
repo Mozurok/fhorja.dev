@@ -6,7 +6,7 @@
 
 ## Goal
 
-Validates the F4 fix from the fhorja.dev site dogfood: `commands/implement-fleet.md` no longer instructs the orchestrator to emit `event=wave-merge` or `event=integration-gate`, neither of which is in the validator's canonical `EVENTS` set (`scripts/verify-log-validator.py`), so every literal fleet run used to produce lines the validator rejected (the recurring F-15, observed across the Minerva, connector, and site dogfoods). After the fix, a fleet wave records its merge as one `event=fleet-merge` line whose `reason` carries the integration-gate result, and one `event=merge_include` per satisfied worker, and the emitted log passes `scripts/verify-log-validator.py`.
+Validates the F4 fix from the fhorja.dev site dogfood: `commands/implement-fleet.md` no longer instructs the orchestrator to emit `event=wave-merge` or `event=integration-gate`, neither of which is in the validator's canonical `EVENTS` set (`scripts/verify-log-validator.py`), so every literal fleet run used to produce lines the validator rejected (the recurring F-15, observed across the rn-reference-app, connector, and site dogfoods). After the fix, a fleet wave records its merge as one `event=fleet-merge` line whose `reason` carries the integration-gate result, and one `event=merge_include` per satisfied worker, and the emitted log passes `scripts/verify-log-validator.py`.
 
 ## Setup
 
