@@ -28,8 +28,8 @@ my_work_tasks/
   COMMAND_PROMPT_STUBS.md              # optional; minimal @commands/ prompts per phase (one row per command)
   CLAUDE.md                            # internal Phase 1 context (will be removed or restructured before public release)
   USER_MEMORY.md                       # gitignored; bootstrap from templates/USER_MEMORY.template.md; ADR-0016
-  LICENSE                              # AGPL-3.0
-  CONTRIBUTING.md                      # contribution flow, CLA, style guide
+  LICENSE                              # MIT
+  CONTRIBUTING.md                      # contribution flow, DCO sign-off, style guide
   SECURITY.md                          # security scope and reporting policy
   CODE_OF_CONDUCT.md                   # Contributor Covenant 2.1
   CHANGELOG.md                         # Keep a Changelog format
@@ -186,8 +186,8 @@ my_work_tasks/
 
 The repository includes standard open-source governance files. They are not part of the runtime workflow contract, but they are part of the repository contract:
 
-- `LICENSE`: project is licensed under AGPL-3.0; see `## Final rule` in the spec for what this means for derivatives.
-- `CONTRIBUTING.md`: how to report issues, propose changes, submit PRs, and what the CLA requires. Source of truth for contribution policy.
+- `LICENSE`: project is licensed under MIT (permissive; commercial and closed-source use allowed, no share-alike obligation). Copyright (c) 2026 Bruno Mazurok.
+- `CONTRIBUTING.md`: how to report issues, propose changes, submit PRs, and the DCO sign-off required on commits. Source of truth for contribution policy.
 - `SECURITY.md`: scope of "security" in a markdown-based workflow repo, plus reporting flow.
 - `CODE_OF_CONDUCT.md`: Contributor Covenant 2.1.
 - `CHANGELOG.md`: chronological record of changes following Keep a Changelog and SemVer.
