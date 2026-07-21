@@ -44,12 +44,14 @@ The assessment is a recommendation. The user can override by choosing a differen
 
 Each tier maps to a recommended Claude model. This is non-normative guidance — the user may override at runtime — but defaults reduce the "always use Opus" anti-pattern (Claude Max 20x users routinely waste plan capacity by running Opus for Express tasks).
 
-| Tier | Default model | Rationale |
-|---|---|---|
-| **Express** | `claude-haiku-4-5` | Single-file, known decisions, <5 files. Haiku 4.5 is >4x faster output and handles trivial-to-moderate edits without quality loss. |
-| **Standard** | `claude-sonnet-4-6` | Multi-file, some research. Sonnet 4.6 hit 79.8% SWE-Bench at ~1/10 the cost of Opus 4.7. Sweet spot for most coding work. |
-| **Disciplined** | `claude-sonnet-4-6` (default) → `claude-opus-4-7` (escalate) | Multi-package or non-obvious tradeoffs. Start Sonnet; escalate to Opus when integration risk is high. |
-| **Strict** | `claude-opus-4-7` or `claude-opus-4-8` | Auth/payments/compliance/multi-tenant. Opus 4.8 (released 28-mai-2026) is 88.6% SWE-Bench Verified and ~4x less likely to miss failures. Worth the cost when blast radius is large. |
+| Tier | Default model | Codex reasoning-effort default | Rationale |
+|---|---|---|---|
+| **Express** | `claude-haiku-4-5` | `low` | Single-file, known decisions, <5 files. Haiku 4.5 is >4x faster output and handles trivial-to-moderate edits without quality loss. |
+| **Standard** | `claude-sonnet-4-6` | `medium` | Multi-file, some research. Sonnet 4.6 hit 79.8% SWE-Bench at ~1/10 the cost of Opus 4.7. Sweet spot for most coding work. |
+| **Disciplined** | `claude-sonnet-4-6` (default) → `claude-opus-4-7` (escalate) | `medium` → `high` (escalate) | Multi-package or non-obvious tradeoffs. Start Sonnet; escalate to Opus when integration risk is high. |
+| **Strict** | `claude-opus-4-7` or `claude-opus-4-8` | `high` | Auth/payments/compliance/multi-tenant. Opus 4.8 (released 28-mai-2026) is 88.6% SWE-Bench Verified and ~4x less likely to miss failures. Worth the cost when blast radius is large. |
+
+Codex column note (v3 wave1, item I): the effort defaults are a PROPOSED mapping, not validated. The only cross-model dogfood to date (bv3, 2026-07-20/21) ran a single effort setting for the whole session, undifferentiated by tier. The Override rules below apply to the effort column textually (escalating up is always valid; do not demote below the tier's default; per-task, recorded in TASK_STATE.md).
 
 ### Override rules
 

@@ -80,7 +80,7 @@ If all four answers are yes, delegate. If any answer is no, stay inline.
 
 | Tool | Sub-agent primitives | Notes |
 |---|---|---|
-| Claude Code | `Explore` (broad codebase search; read-only); `Plan` (architect an implementation plan); `general-purpose` (catch-all multi-step research); `Task` API (named sub-agent types) | Most mature sub-agent surface in current ecosystem; explicit per-agent tool restrictions; isolated context windows |
+| Claude Code | `Explore` (broad codebase search; read-only); `Plan` (architect an implementation plan); `general-purpose` (catch-all multi-step research); `Task` API (named sub-agent types); `SendMessage` (continue a previously spawned sub-agent with its context intact: spawn once, reuse across verification rounds while the main thread keeps working) | Most mature sub-agent surface in current ecosystem; explicit per-agent tool restrictions; isolated context windows |
 | Cursor | agent mode (autonomous multi-step work) | Single sub-agent surface; less granular than Claude Code's; agent mode is the primary sub-agent primitive |
 | Codex (OpenAI) | agents (background tasks running on isolated environments) | Cloud-execution-shaped sub-agents; longer turnaround; different cost model |
 | GitHub Copilot | (no first-class sub-agent yet at v0.2.x) | Multi-step work happens in the main agent thread |
@@ -89,6 +89,17 @@ If all four answers are yes, delegate. If any answer is no, stay inline.
 | Goose | session sub-agents | Lightweight; less mature than Claude Code's |
 
 The table is dated; tools evolve. Update via PR when a tool's sub-agent surface changes.
+
+## Harness equivalence (v3 wave1, item I)
+
+When a command or pattern in this repo assumes a Claude Code primitive, this table maps the equivalent or the explicit degradation on another harness, so a non-Claude session degrades deliberately instead of improvising. Evidence base: the av3 (Claude Code) vs bv3 (Codex CLI) cross-model dogfood, 2026-07-19/21. Operational quirks (sandbox write-root, approval timing, patch mechanics) live in `wos/editor-mode-mappings.md ## Harness operational quirks` (mutual cross-link); this section owns the primitive surface. Same maintenance rule as the primitives table above: dated, update via PR.
+
+| Primitive assumed | Claude Code | Codex CLI equivalent or degradation |
+|---|---|---|
+| `SendMessage` (persistent sub-agent: spawn once, resume with context intact; av3 reused one verifier twice while the main thread kept implementing) | Native | No analog. Explicit degradation: verify inline in the same turn, or accept a stateless respawn per verification round as the honest floor; do not emulate persistence by pasting prior transcripts. |
+| `Workflow` and fleet fan-out (parallel sub-agent orchestration, ADR-0038) | Native | Not available; documented as Claude Code-only (spec `## Parallel workflow`). Degradation: serialize the wave inline. |
+| `AskUserQuestion` (interactive gate) | Native | Becomes an unanswered paste-string. Degradation: auto-waiver by observable signal ONLY for administrative gates (team-approval, merge, tag confirmation), following the delivered solo/local precedent in `commands/task-close.md`; the experience-verdict floor (ADR-0091) is explicitly excepted and requires a recorded human PASS in any harness. Decision-bearing surfaces follow the Unattended-sessions doctrine (`wos/cross-cutting-workflow-guardrails.md`) unchanged. |
+| `suggested-model` frontmatter (Claude SKUs) | Native | Maps to the `Codex reasoning-effort default` column in ADR-0025 `## Model selection by tier`. |
 
 ## Pattern relationships
 

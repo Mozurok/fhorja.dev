@@ -159,7 +159,7 @@ projects/                       # your task memory (gitignored; never committed)
 .github/workflows/lint.yml      # CI
 ```
 
-Paths above are relative to wherever you cloned the repo; the folder name itself isn't load-bearing. The curated library it draws on: <!-- count:bug-templates -->78<!-- /count --> bug-class templates across <!-- count:bug-categories -->22<!-- /count --> categories, <!-- count:anti-patterns -->29<!-- /count --> anti-patterns, <!-- count:entry-points -->21<!-- /count --> entry points, <!-- count:fleet-commands -->7<!-- /count --> parallel fleet commands, and <!-- count:personas -->9<!-- /count --> senior-specialist personas, with <!-- count:wos-topics -->37<!-- /count --> lazy-loaded reference topics. Full tree and governance-file inventory: [`wos/repository-structure.md`](./wos/repository-structure.md).
+Paths above are relative to wherever you cloned the repo; the folder name itself isn't load-bearing. The curated library it draws on: <!-- count:bug-templates -->78<!-- /count --> bug-class templates across <!-- count:bug-categories -->22<!-- /count --> categories, <!-- count:anti-patterns -->29<!-- /count --> anti-patterns, <!-- count:entry-points -->21<!-- /count --> entry points, <!-- count:fleet-commands -->7<!-- /count --> parallel fleet commands, and <!-- count:personas -->9<!-- /count --> senior-specialist personas, with <!-- count:wos-topics -->38<!-- /count --> lazy-loaded reference topics. Full tree and governance-file inventory: [`wos/repository-structure.md`](./wos/repository-structure.md).
 
 ## How it stays honest
 
