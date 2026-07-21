@@ -1,6 +1,6 @@
 ---
 name: resume-from-state
-description: Resume the task from TASK_STATE.md and linked task artifacts, reconstruct the current truth, and determine the best next step. Used to bring back full task context after a session break or chat switch. Use when work is resuming in a new chat or session, the task was paused and needs fast reconstruction, or the user wants to continue without rereading the whole history. Do not use when this is a brand-new task that has not been initialized (use task-init), the current need is only to sync task memory after new progress (use sync-task-state), or the task state is obviously stale or contradictory across artifacts and must first be corrected (use sync-task-state for narrow drift, or state-reconcile when drift is wide).
+description: Resume the task from TASK_STATE.md and linked task artifacts, reconstruct the current truth, and determine the best next step. Used to bring back full task context after a session break or chat switch. Use when work is resuming in a new chat or session, the task was paused and needs fast reconstruction, or the user wants to continue without rereading the whole history. Do not use when this is a brand-new task that has not been initialized (use task-init), the current need is only to sync task memory after new progress (use sync-task-state), or the task state is obviously stale or contradictory across artifacts and must first be corrected (use sync-task-state for narrow drift, or state-reconcile when drift is wide). Also owns the explicit --lost-session recovery mode (ADR-0113) for when the session transcript itself is lost: a capped, read-only sweep of the harness session files that proposes context with provenance and routes to state-reconcile or task-init.
 metadata:
   category: state-and-navigation
   primary-cursor-mode: Ask
@@ -41,6 +41,7 @@ Required inputs:
 - DECISIONS.md
 - IMPLEMENTATION_PLAN.md
 - other relevant task artifacts if present
+- optional: `--lost-session` to recover working context when the session transcript itself is lost (per ADR-0113; see the Lost-session recovery mode in Operating rules)
 
 Task repository files to update:
 - none by default
@@ -54,6 +55,12 @@ Operating rules:
   3. Read task artifacts (TASK_STATE.md, DECISIONS.md, IMPLEMENTATION_PLAN.md, SLICES/) from the task folder in the Fhorja repo. Read product code from the resolved workspace path. Never assume the two share the same root.
   4. If neither source yields a workspace path and the task references product code, ask the user for the workspace path (one targeted question) instead of failing with file-not-found errors.
 - **Archived task path (ADR-0105):** WHEN the given task path resolves under `archive/` (or the legacy `done/`) instead of `active/`, do not fail. Route to `task-close`'s reopen mode first (the folder moves back to `active/` and the final state is reset), then resume normally from the reopened state.
+- **Lost-session recovery mode (`--lost-session`, per ADR-0113):** recover working context when the session transcript itself is lost (a crash or dropped session that left no Handoff). The trigger is EXPLICIT only: this flag or an unequivocal user ask; a missing `TASK_STATE.md` alone never fires it (the normal missing-state path stays unchanged). Flow:
+  1. Before any tool call, ask ONE targeted question for a date window and the harness (zero tool cost; both shrink the sweep).
+  2. Load `wos/session-recovery.md` for the per-harness session-file map and cite which subsection was read (the G3-style safeguard); sweep for candidate session files per that map only.
+  3. Hard cap: 6 tool calls TOTAL for the whole recovery, PREVAILING over any per-step budget. Candidates found but not read are reported as unconfirmed leads, never silently dropped (guard-rail G1: the shortcut is auditable).
+  4. Every extraction (active task folder, last completed command and its Handoff, files being edited, decisions stated in the final turns) is PROPOSED with provenance: the source file plus the line or event it came from. The mode is read-only by construction: it writes no task file, no product file, and no session file, and emits no substrate write (mirrored in `wos/substrate-peers.md ## Read/write contracts`).
+  5. Mandatory handoff, never self-resolution: a found task folder routes to `state-reconcile` (which reconciles the PROPOSED extractions against the on-disk substrate); none found routes to `task-init`. Unattended runs with an unknown project slug stall as PROPOSED rather than guessing a directory to sweep.
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full).
 - **Context-rot guardrail (ADR-0023):** before producing the output, estimate the current TASK_STATE.md token count (excluding the `## Compaction history` section). Compare against the phase threshold from `wos/context-budget.md ## Context-rot thresholds` (discovery: 3000; planning: 5000; implementation: 8000; review/closure/delivery: 6000). If current count exceeds the threshold, emit a single-line warning in `### Command transcript`: `WARN: TASK_STATE.md is ~Ntokens (phase threshold: Mthreshold). Consider running compact-task-memory before continuing.` The warning is INFORMATIONAL; proceed with the normal output. Suppress the warning if the immediately prior step was `compact-task-memory`.
 - Treat TASK_STATE.md as the operational memory for the task.

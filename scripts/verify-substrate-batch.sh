@@ -31,11 +31,15 @@ RC_HEADERS=0; RC_LOG=0; RC_ORPHANS=0
 bash "$SCRIPT_DIR/scan-substrate-headers.sh" "$TASK_DIR" || RC_HEADERS=$?
 
 LOG="$TASK_DIR/.wos/VERIFICATION_LOG.jsonl"
+# Battery default (v3 wave4 Slice 05, S1 tail): activate the validator's sha-chain
+# and content-vs-log checks with the S1 cutover (they shipped 2026-07-18 as opt-in
+# and all live logs measure clean under it). An explicit WOS_CUTOVER_TS still wins.
+CUTOVER="${WOS_CUTOVER_TS:-2026-07-18T00:00:00.000Z}"
 if [[ -f "$LOG" ]]; then
   if [[ "$CHECK_DELETES" -eq 1 ]]; then
-    python3 "$SCRIPT_DIR/verify-log-validator.py" "$LOG" --check-deletes || RC_LOG=$?
+    python3 "$SCRIPT_DIR/verify-log-validator.py" "$LOG" --check-deletes --cutover-ts "$CUTOVER" || RC_LOG=$?
   else
-    python3 "$SCRIPT_DIR/verify-log-validator.py" "$LOG" || RC_LOG=$?
+    python3 "$SCRIPT_DIR/verify-log-validator.py" "$LOG" --cutover-ts "$CUTOVER" || RC_LOG=$?
   fi
 else
   echo "substrate-batch: no VERIFICATION_LOG.jsonl (valid for legacy tasks predating K.1)"

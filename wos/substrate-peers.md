@@ -228,6 +228,8 @@ The orchestrator command (e.g. `atom-audit-fleet`, `screen-spec-fleet`) is the S
 
 ## Read/write contracts
 
+Read-only peers: the `--lost-session` mode of `resume-from-state` (ADR-0113) is read-only by construction across ALL four files: it emits no `wos:write` header and no log line, and its transcript extractions enter the substrate only as PROPOSED lines consumed by `state-reconcile`. A recovery flow that finds itself about to write a substrate section has left the mode's contract.
+
 ### TASK_STATE.md -- section-owned, transactional
 
 1. Every write MUST emit a transaction header above the section:
