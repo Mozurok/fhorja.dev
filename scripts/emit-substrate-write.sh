@@ -136,7 +136,8 @@ SUB="${1:-}"; shift || true
 OWNER="" FILE="" SECTION="" EVENT="write" MODE="applied" REASON="" SHA_BEFORE="null"
 TASK_ROOT="." RUN_ID="" INVOKED_BY="" PRINT_HEADER=0
 BODY_FILE="" EVENT_EXPLICIT=0  # apply (ADR-0110)
-DERIVE_SB=0 ALLOW_SB_MISMATCH=0 SB_EXPLICIT=0  # S2 (opt-in): off by default; default path unchanged
+DERIVE_SB=1 ALLOW_SB_MISMATCH=0 SB_EXPLICIT=0  # S2: derive-by-default since v3 wave3 (opt out: --no-derive-sha-before / WOS_DERIVE_SHA_BEFORE=0)
+DERIVE_EXPLICIT=0 FIRST_LOGGED=0               # v3 wave3: flag tracking + legacy-promote entry path
 WOS_TIMEOUT="${WOS_TIMEOUT:-}"  # P5 (opt-in): wall-time cap (timeout(1) duration); empty=off
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -151,7 +152,9 @@ while [[ $# -gt 0 ]]; do
     --run-id) RUN_ID="$2"; shift 2;;
     --invoked-by) INVOKED_BY="$2"; shift 2;;
     --print-header) PRINT_HEADER=1; shift;;
-    --derive-sha-before) DERIVE_SB=1; shift;;                 # S2 (opt-in)
+    --derive-sha-before) DERIVE_SB=1; DERIVE_EXPLICIT=1; shift;;     # S2 (now the default)
+    --no-derive-sha-before) DERIVE_SB=0; DERIVE_EXPLICIT=1; shift;;  # S2 opt-out (v3 wave3)
+    --first-logged-write) FIRST_LOGGED=1; shift;;                    # legacy-promote entry (v3 wave3)
     --allow-sha-before-mismatch) ALLOW_SB_MISMATCH=1; shift;; # S2 (opt-in)
     --timeout) WOS_TIMEOUT="$2"; shift 2;;                    # P5 (opt-in)
     --body-file) BODY_FILE="$2"; shift 2;;                    # apply (ADR-0110)
@@ -159,8 +162,12 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# S2 (opt-in): env fallback so CI can enable without a flag; if-form is set -e safe.
-if [[ "${WOS_DERIVE_SHA_BEFORE:-}" == 1 ]]; then DERIVE_SB=1; fi
+# S2 env fallback (explicit flags win; if-form is set -e safe). Since v3 wave3 the
+# default is derive=on, so the env's main job is the opt-out for CI or legacy flows.
+if [[ "$DERIVE_EXPLICIT" != 1 ]]; then
+  if [[ "${WOS_DERIVE_SHA_BEFORE:-}" == 0 ]]; then DERIVE_SB=0; fi
+  if [[ "${WOS_DERIVE_SHA_BEFORE:-}" == 1 ]]; then DERIVE_SB=1; fi
+fi
 if [[ "${WOS_ALLOW_SHA_BEFORE_MISMATCH:-}" == 1 ]]; then ALLOW_SB_MISMATCH=1; fi
 if [[ -n "$WOS_TIMEOUT" && -z "$TIMEOUT_BIN" ]]; then
   echo "emit-substrate-write: --timeout set but no timeout(1)/gtimeout(1) found; running unguarded" >&2
@@ -215,12 +222,26 @@ USAGE
   emit)
     [[ -n "$OWNER" && -n "$FILE" && -n "$SECTION" && -n "$REASON" ]] || die "emit needs --owner --file --section --reason"
     [[ -f "$FILE" ]] || die "file not found (cwd and task-root checked): $FILE"
+    if [[ "$FIRST_LOGGED" == 1 ]]; then
+      # v3 wave3: dedicated entry for the FIRST logged write to an EXISTING
+      # legacy section. Asserts no prior record; records the caller's captured
+      # pre-write sha (capture-then-write) or, when omitted, the current
+      # measured value; event defaults to legacy-promote (already in the enum).
+      DERIVED=$(last_sha_after)
+      [[ -z "$DERIVED" ]] || die "--first-logged-write: a prior log record exists for $(basename "$FILE") '$SECTION' (last sha_after=$DERIVED); use the normal derive path"
+      if [[ "$SB_EXPLICIT" != 1 ]]; then
+        SHA_BEFORE=$(sha_of_section_guarded "$FILE" "$SECTION")
+      fi
+      if [[ "$EVENT_EXPLICIT" -eq 0 ]]; then EVENT="legacy-promote"; fi
+      DERIVE_SB=0
+    fi
     if [[ "$DERIVE_SB" == 1 ]]; then
-      # S2 (opt-in): derive sha_before from the log instead of trusting the flag.
+      # S2 (default since v3 wave3): derive sha_before from the log instead of
+      # trusting the flag.
       DERIVED=$(last_sha_after)
       if [[ -z "$DERIVED" ]]; then
         if [[ "$SB_EXPLICIT" == 1 && "$SHA_BEFORE" != "null" && "$ALLOW_SB_MISMATCH" != 1 ]]; then
-          die "sha_before for a section with no prior log record must be null (got '$SHA_BEFORE'); pass --allow-sha-before-mismatch to override"
+          die "sha_before for a section with no prior log record must be null (got '$SHA_BEFORE'). If this is the first LOGGED write to an existing legacy section, pass --first-logged-write (records event=legacy-promote with the measured value); if the section is genuinely new, pass --sha-before null; --allow-sha-before-mismatch overrides"
         fi
         SHA_BEFORE="null"
       else

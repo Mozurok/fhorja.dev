@@ -37,6 +37,7 @@ Legend: O = owner (writes via Edit/Write); P = propose-only (PROPOSED block); R 
 | Section (H2) | Owner | Co-writers (propose) | Readers |
 |---|---|---|---|
 | `## Task summary` | task-init | direction-adjust (P) | all |
+| `## Quick reanchor` | sync-task-state | decision-interview (co-write on lock, ADR-0111); task-init (genesis) | all |
 | `## Current phase` | slice-closure | sync-task-state, where-we-at, implementation-plan, plus the pattern writers (rule 2b) | all |
 | `## Objective` | task-init | post-review-pivot (P) | all |
 | `## Requested deliverables` | task-init (seed, ADR-0056) | implementation-plan (--spec ledger extension); slice-closure, task-close, review-hard, where-we-at (re-tagging via `commands/_shared/deliverable-reconcile.md`) | all |

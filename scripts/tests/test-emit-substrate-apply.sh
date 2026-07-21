@@ -132,9 +132,9 @@ check "last-section body replaced" $(grep -q 'omega rewritten' DOC.md; echo $?)
 SB=$(bash "$EMIT" sha --file DOC.md --section '## Alpha')
 check "legacy sha still works" $([[ -n "$SB" && "$SB" != "null" ]]; echo $?)
 BEFORE_LOG=$(log_lines)
-bash "$EMIT" emit --owner tester --file DOC.md --section '## Alpha' --event write --mode applied --reason legacy --sha-before "$SB" --task-root . >/dev/null 2>&1
+bash "$EMIT" emit --owner tester --file DOC.md --section '## Alpha' --mode applied --reason legacy --sha-before "$SB" --first-logged-write --task-root . >/dev/null 2>&1
 rc=$?
-check "legacy emit still works" $([[ $rc -eq 0 && "$(log_lines)" -eq $((BEFORE_LOG+1)) ]]; echo $?)
+check "legacy emit still works (first-logged-write path since the v3 wave3 derive default)" $([[ $rc -eq 0 && "$(log_lines)" -eq $((BEFORE_LOG+1)) ]]; echo $?)
 
 echo
 echo "pass=$PASS fail=$FAIL"

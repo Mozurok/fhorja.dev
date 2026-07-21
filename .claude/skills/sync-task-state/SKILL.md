@@ -80,26 +80,31 @@ Operating rules:
 - If the task state is unclear, say what evidence is missing instead of inventing it.
 - Set **Work complexity** from current phase, blast radius, and the **next** recommended command (not from bravado). Use `N/A` only when the next step has no meaningful capability tradeoff. Never name model SKUs.
 - **Post-commit delivery sync is handled by `branch-commit`:** when all slices are complete and committed, `branch-commit` auto-updates TASK_STATE.md phase to "delivered". A separate `sync-task-state` call solely to mark "delivered" after commit is unnecessary and should be skipped (see anti-pattern: redundant post-commit sync).
+- **Quick reanchor maintenance (ADR-0111):** rebuild the `## Quick reanchor` block mechanically on every sync: Active decisions from the non-superseded D-N entries (one line each, truncated at a clause boundary such as a comma or semicolon, never a fixed word count; cap 10 with an explicit overflow line pointing at DECISIONS.md; `none locked yet` when empty), current slice from `IMPLEMENTATION_PLAN.md ## Slices`, phase and next step mirroring their own sections. Backfill: when a legacy task lacks the block, add it as the first H2 on this sync (same precedent as the Work complexity backfill below).
+- Prefix each `## Canonical decisions` bullet with its D-N id, so reanchoring survives truncation and cross-checks stay mechanical (ADR-0111 free-rider).
 - If **Work complexity (for next execution step)** is missing from `TASK_STATE.md` (for example older tasks created before that subsection existed), add the full subsection in this run using the same structure as `task-init` (heading, `LOW | MEDIUM | HIGH | N/A` line, and one-line rationale).
 
-TASK_STATE.md must contain:
-1. Task summary
-2. Current phase
-3. Objective
-4. Source of truth
-5. Current known facts
-6. Canonical decisions
-7. Open questions / blockers
-8. Last completed step
-9. Current status
-10. Active files in scope
-11. Constraints / things that must not change
-12. Risks to watch
-13. Recommended next step
-14. Resume notes
-15. Task scope level
-16. Current closure target
-17. Work complexity (for next execution step): one of `LOW`, `MEDIUM`, `HIGH`, or `N/A`, plus a one-line rationale (definitions in `WORKFLOW_OPERATING_SYSTEM.md`)
+TASK_STATE.md must contain (template order, 20 sections per ADR-0111):
+1. Quick reanchor (first H2 by design; see the maintenance rule above)
+2. Task summary
+3. Current phase
+4. Objective
+5. Requested deliverables (ledger per ADR-0056)
+6. Recommended pipeline (per ADR-0025/ADR-0101)
+7. Source of truth
+8. Current known facts
+9. Canonical decisions
+10. Open questions / blockers
+11. Last completed step
+12. Current status
+13. Active files in scope
+14. Constraints / things that must not change
+15. Risks to watch
+16. Recommended next step
+17. Resume notes
+18. Task scope level
+19. Current closure target
+20. Work complexity (for next execution step): one of `LOW`, `MEDIUM`, `HIGH`, or `N/A`, plus a one-line rationale (definitions in `WORKFLOW_OPERATING_SYSTEM.md`)
 
 Required output:
 1. Whether TASK_STATE.md should be updated and why

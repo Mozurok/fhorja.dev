@@ -57,6 +57,7 @@ Operating rules:
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full).
 - **Context-rot guardrail (ADR-0023):** before producing the output, estimate the current TASK_STATE.md token count (excluding the `## Compaction history` section). Compare against the phase threshold from `wos/context-budget.md ## Context-rot thresholds` (discovery: 3000; planning: 5000; implementation: 8000; review/closure/delivery: 6000). If current count exceeds the threshold, emit a single-line warning in `### Command transcript`: `WARN: TASK_STATE.md is ~Ntokens (phase threshold: Mthreshold). Consider running compact-task-memory before continuing.` The warning is INFORMATIONAL; proceed with the normal output. Suppress the warning if the immediately prior step was `compact-task-memory`.
 - Treat TASK_STATE.md as the operational memory for the task.
+- **Quick reanchor fast path (ADR-0111):** WHEN `## Quick reanchor` is present, read it FIRST and trust it ONLY after the freshness cross-check: the highest D-N cited in the block equals the highest locked D-N in `DECISIONS.md ## Locked decisions`. On mismatch, or when the block is absent (legacy task), fall back to the full artifact re-read; never resume from a stale anchor.
 - Treat linked plan/decision/test artifacts as the current source of truth.
 - Reconstruct:
   - what has already been done

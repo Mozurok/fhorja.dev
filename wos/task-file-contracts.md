@@ -115,6 +115,8 @@ Create when:
 - Filename remains `DB_CONTEXT.md` regardless of which `db-context-*` variant produced it; the snapshot header identifies the source provider.
 
 ### SLICES/
+
+Lifecycle (v3 wave3, item G): a slice note is born as a skeleton BEFORE the first in-scope edit (goal, approved scope, complexity, Status: in progress) and FILLED at close, never rewritten; see the slice-note-first floor in `commands/implement-approved-slice.md` and its mirror in `commands/slice-closure.md`. SLICES/*.md is outside the substrate protocol and excluded from SHA batches.
 Create when:
 - the task is being executed in meaningful slices
 - slice-level traceability helps implementation or resumption

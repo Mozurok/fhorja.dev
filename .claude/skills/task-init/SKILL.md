@@ -113,7 +113,7 @@ Operating rules:
 - **Substrate write protocol (per ADR-0034, K.2 2026-06-04 -- dogfood).** MANDATORY for every write to a substrate section this command creates (task-init is the INITIAL writer for TASK_STATE.md, DECISIONS.md, IMPLEMENTATION_PLAN.md, SOURCE_OF_TRUTH.md per `wos/substrate-peers.md`). Per `commands/_shared/substrate-write-protocol.md ## Concrete computation`:
   1. Compute `sha_before` via the canonical `sha_of_section` bash helper. task-init writes FRESH sections into files that did not exist before this run, so `sha_before` is `null` for every section in this command's first invocation on a task.
   2. Insert the transaction header on its own line IMMEDIATELY above each section heading: `<!-- wos:write owner=task-init section='## X' run_id=<ULID-or-uuid> ts=<ISO-8601-ms-with-Z> reason=task-init-<task-slug> mode=applied -->`.
-  3. Write the section content per the canonical template in this command's "Files to generate" + the 19-section TASK_STATE.md structure (the `## Requested deliverables` section sits right after `## Objective` with the ledger seeded per ADR-0056, and `## Recommended pipeline` sits right after it per ADR-0025/ADR-0101).
+  3. Write the section content per the canonical template in this command's "Files to generate" + the 20-section TASK_STATE.md structure (the `## Quick reanchor` block sits FIRST per ADR-0111; `## Requested deliverables` sits right after `## Objective` with the ledger seeded per ADR-0056, and `## Recommended pipeline` sits right after it per ADR-0025/ADR-0101).
   4. Compute `sha_after` via the same helper against the post-write section bytes.
   5. Append exactly one JSON line to `active/<task>/.wos/VERIFICATION_LOG.jsonl` per the 12-field schema in `wos/substrate-peers.md ## Audit trail`. `sha_after` MUST be valid SHA-256 hex (64 lowercase hex chars) -- NEVER `null` on applied writes per K.5 validator. `sha_before` is `null` for every initial-creation section (the file did not exist before this run).
   6. task-init writes ~25-30 sections across 4 task-memory files in one run. Repeat steps 1-5 PER section: one transaction header above each section heading + one JSONL line per section. Reuse the same `run_id` + `ts` across ALL sections written in this single invocation (the run_id ties together all task-init's initial substrate creation events). Create `active/<task>/.wos/VERIFICATION_LOG.jsonl` if it does not exist yet (this command creates the `.wos/` directory as part of task initialization).
@@ -163,6 +163,13 @@ Must include:
 Must use this exact structure:
 
 # TASK_STATE
+
+## Quick reanchor
+(Compaction-proof anchor, FIRST section by design, ADR-0111. Rebuilt mechanically by sync-task-state on every sync; decision-interview co-writes the Active decisions line in the same turn it locks a D-N in persist mode. Truncate each line at a clause boundary such as a comma or semicolon, never a fixed word count; cap Active decisions at 10 with an explicit overflow line pointing at DECISIONS.md; write `none locked yet` when empty.)
+- Active decisions: [D-N: one clause each | none locked yet]
+- Current slice: [from IMPLEMENTATION_PLAN.md ## Slices | none]
+- Phase: [current phase]
+- Next step: [command from ## Recommended next step]
 
 ## Task summary
 [Short description of the task]
