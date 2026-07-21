@@ -1,0 +1,12 @@
+# Copy this file to scripts/.mirror-codenames (which is gitignored) and fill it
+# in with the real private codenames. Consumed by scripts/check-mirror-codenames.sh.
+#
+# Format: one entry per line, PRIVATE_CODENAME|public-alias
+#   - the alias is optional (leave it empty to detect-only)
+#   - blank lines and lines starting with # are ignored
+#   - PRIVATE_CODENAME is matched whole-word, case-sensitive
+#
+# The real file is gitignored on purpose so no private codename ever lands in
+# either repo. This example carries only placeholders.
+EXAMPLE_CLIENT_CODENAME|public-alias-to-use-instead
+ANOTHER_CODENAME_NO_ALIAS|

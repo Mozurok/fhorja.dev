@@ -77,7 +77,7 @@ scan_file "${REPO}/wos/active-epistemic-humility.md" "active-epistemic-humility.
 # The spec H3 only, not the whole 1600-line spec.
 spec="${REPO}/WORKFLOW_OPERATING_SYSTEM.md"
 if [ -f "$spec" ]; then
-  h3="$(awk '/^### Claim status and abstention/{f=1} f{print} f&&/^### /&&!/Claim status and abstention/{if(NR>start+1)exit} /^### Claim status and abstention/{start=NR}' "$spec")"
+  h3="$(awk '/^### Claim status and abstention/{f=1; print; next} f&&/^### /{f=0} f{print}' "$spec")"
   scan_file "$spec" "spec ### Claim status and abstention" "$h3"
 fi
 

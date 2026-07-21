@@ -36,3 +36,6 @@ __pycache__/
 .wos
 # Local maintainer memory, never public (ADR-0090)
 CLAUDE.md
+
+# private mirror codename list (consumed by check-mirror-codenames.sh; never commit)
+scripts/.mirror-codenames
