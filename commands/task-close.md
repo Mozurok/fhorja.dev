@@ -10,7 +10,6 @@ metadata:
   tools: [Read, Write, Edit, Bash, Glob, Grep]
   x-wos-profiles: [minimal, core, full]
   provenance: first-party
-  token-budget: 3000
   suggested-model: claude-opus-4-7
 ---
 # task-close

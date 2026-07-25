@@ -7,7 +7,6 @@ metadata:
   multi-repo-aware: false
   context-layers-consumed: [memory, retrieved]
   context-layers-produced: [memory]
-  token-budget: <integer; budget your operating-rules body fits within; bump per ADR-0013 if you exceed>
   suggested-model: claude-sonnet-4-6
   # Persona-specific fields (K.6/K.8). Optional at L1 launch; required by L3+:
   triggers:

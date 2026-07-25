@@ -21,7 +21,6 @@ metadata:
   x-wos-profiles:
     - full
   provenance: first-party
-  token-budget: 2500
   suggested-model: claude-sonnet-4-6
 ---
 
@@ -37,8 +36,9 @@ Mandatory context bootstrap (before any output):
   - `## Editor mode policy` (mode definitions only; the tool mapping table is lazy-loaded in `wos/editor-mode-mappings.md` and needed only for non-Claude-Code tools)
   - `## Global output contract` (including **Adaptive handoff** and **Mode selection rule**)
   - `## Cross-cutting workflow guardrails`
-- **Bootstrap tiers (ADR-0025):** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) may skip `## Editor mode policy` good-fits lists and `## Cross-cutting workflow guardrails` sequencing heuristics, reading only the mode definitions and the core guardrail rules (routing memory, command-less input triage, official command names, material change, no-op). This reduces bootstrap from ~6,750 to ~3,500 tokens for these commands. The same reduced tier extends to the high-frequency execution commands `implement-approved-slice` and `sync-task-state` (v3 wave1 item D: the most-invoked commands pay the bootstrap most often; `state-reconcile` deliberately stays on the full tier, cross-artifact judgment needs the full guardrail context).
-- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this same conversation already performed this bootstrap read in an earlier turn that is still VISIBLE in the current context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one instead, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. Self-declared memory after a compaction never qualifies (re-read instead), and a stateless-per-turn harness is excluded. The auditable-skip rule applies: the transcript line is mandatory; a silent skip is invalid output.
+- **Bootstrap tiers (ADR-0025):** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) may skip `## Editor mode policy` good-fits lists and `## Cross-cutting workflow guardrails` sequencing heuristics, reading only the mode definitions and the core guardrail rules (routing memory, command-less input triage, official command names, material change, no-op). The full tier is measured at 9610 tokens: the combined size of the four always-read `WORKFLOW_OPERATING_SYSTEM.md` sections listed above. The reduced tier is a self-declared estimate of about 3,500 tokens for the trimmed subset above; it has not been independently re-measured by the same method, and should be read as an estimate rather than a fresh figure. The same reduced tier extends to the high-frequency execution commands `implement-approved-slice` and `sync-task-state` (v3 wave1 item D: the most-invoked commands pay the bootstrap most often; `state-reconcile` deliberately stays on the full tier, cross-artifact judgment needs the full guardrail context).
+- **Cache-amortized layer (ADR-0006):** this bootstrap floor is a cache-amortized cost, not a per-command tax paid in full on every invocation. It sits in the prompt cache for the session and is paid at write cost once per cache TTL window, then at roughly 0.1x on cached reads inside that window. Account for it separately from any per-skill Load budget (the generated `.claude/skills/<name>/SKILL.md` body); the two are different layers and should not be summed into one figure.
+- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this same conversation already performed this bootstrap read in an earlier turn that is still VISIBLE in the current context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one instead, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. This is a scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), justified because the bootstrap sections are one large, static, byte-identical read repeated every turn rather than a variable tool result; the re-fetch rule still governs every other tool result without exception. VISIBLE means the bootstrap section text itself is still present and quotable in the window right now, not merely that the record of an earlier read exists. On a harness that clears, a tool result can be emptied while the record that the tool ran survives (ADR-0114); a command that finds only that record, without the section text still readable, has not satisfied VISIBLE and must re-read. Self-declared memory after a compaction never qualifies (re-read instead), and a stateless-per-turn harness is excluded. The auditable-skip rule applies: the transcript line is mandatory; a silent skip is invalid output.
 - Read additional sections only when relevant to this command's role.
 - Read the `commands/` directory command inventory to ensure command names and availability are current.
 - Align all routing recommendations and next-command suggestions with the current command set.
@@ -65,13 +65,15 @@ Operating rules:
 - **Check 8: Storybook story.** Does a story exist for this component? Does it showcase all variants and key states?
 - **Check 9: Anti-patterns.** Does the implementation violate any of the spec's section 14 (Do not) items?
 - **Check 10: Platform specifics.** Are iOS/Android/Web differences handled as documented in the spec's section 9?
-- **Check 11: Visual fidelity (P2-5, careers-page dogfooding 2026-06-23).** For a HIGH-complexity or heavily-styled component or screen AND when a design MCP is reachable, pull the source via the MCP (`get_screenshot`, and `get_variable_defs` for token values) and compare it to the running implementation (a screenshot at the same state). Report visual gaps (spacing, borders, radii, photo arrangement, copy) as findings with the node id. When the design MCP is unavailable, record `Check 11: deferred (design MCP unavailable)` rather than skipping silently. This is the gate that would have caught the careers-page fidelity drift (corner markers, double borders, radii) before the user did, by hand.
+- **Check 11: Visual fidelity (P2-5, careers-page dogfooding 2026-06-23).** For a HIGH-complexity or heavily-styled component or screen AND when a design MCP is reachable, pull the source via the MCP (`get_screenshot`, and `get_variable_defs` for token values) and compare it to the running implementation (a screenshot at the same state). Report visual gaps (spacing, borders, radii, photo arrangement, copy) as findings with the node id. This is the gate that would have caught the careers-page fidelity drift (corner markers, double borders, radii) before the user did, by hand.
+  - **No-Figma fallback (image-to-spec sources).** When no design MCP node id exists but the spec's header carries a populated `Source image:` field, do not defer. Read the source image's capture date; when the running implementation has changed materially since that date, say so and treat the comparison as lower-confidence rather than skipping it. Capture a same-state screenshot of the running implementation and compare it directly against the source image file (spacing, borders, radii, arrangement, copy), reporting gaps as findings the same way as an MCP-sourced comparison, citing the image file path in place of a node id.
+  - Only when neither a design MCP node id nor a populated `Source image:` field exists should the check be skipped: record `Check 11: deferred (no design MCP and no source image)` rather than skipping silently.
 - Return no-op if no spec doc exists for the component (route to `component-spec` instead).
 - If the implementation is faithful to the spec, say so clearly.
 
 Required output:
 1. Component/screen identity
-2. Checks passed vs failed (11 checks; Check 11 may be `deferred` when the design MCP is unavailable)
+2. Checks passed vs failed (11 checks; Check 11 may be `deferred` only when neither the design MCP nor a populated `Source image:` field is available)
 3. Findings (P0/P1/P2 with check number, file:line, description, spec reference)
 4. Overall verdict (faithful / needs fixes / significant drift)
 5. Recommended next command (route visual-fidelity gaps to `implement-slice-complement` before `pr-package`)
@@ -110,7 +112,7 @@ Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
 Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state).
 
 ### Definition of done (command output)
-- All 11 checks are explicitly reported (passed, failed with evidence, or Check 11 `deferred` when the design MCP is unavailable).
+- All 11 checks are explicitly reported (passed, failed with evidence, or Check 11 `deferred` only when neither the design MCP nor a populated `Source image:` field is available).
 - Findings reference the spec section number and code file:line.
 - If implementation is faithful, verdict says so clearly.
 - Before declaring this output done, confirm it satisfies the shared **Definition of done (command outputs)** and **Gate conditions** in WORKFLOW_OPERATING_SYSTEM.md.

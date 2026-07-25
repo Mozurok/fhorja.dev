@@ -28,8 +28,8 @@ my_work_tasks/
   COMMAND_PROMPT_STUBS.md              # optional; minimal @commands/ prompts per phase (one row per command)
   CLAUDE.md                            # internal Phase 1 context (will be removed or restructured before public release)
   USER_MEMORY.md                       # gitignored; bootstrap from templates/USER_MEMORY.template.md; ADR-0016
-  LICENSE                              # MIT
-  CONTRIBUTING.md                      # contribution flow, DCO sign-off, style guide
+  LICENSE                              # AGPL-3.0
+  CONTRIBUTING.md                      # contribution flow, CLA, style guide
   SECURITY.md                          # security scope and reporting policy
   CODE_OF_CONDUCT.md                   # Contributor Covenant 2.1
   CHANGELOG.md                         # Keep a Changelog format
@@ -123,7 +123,7 @@ my_work_tasks/
   docs/
     FAQ.md                            # user-facing entry point for common questions
     MIGRATION.md                      # adoption + forking + tool migration guide
-    adr/                              # Architecture Decision Records (<!-- count:adrs -->112<!-- /count --> ADR files; 0037 is an intentional gap; highest is 0086)
+    adr/                              # Architecture Decision Records (<!-- count:adrs -->115<!-- /count --> ADR files; 0037 is an intentional gap; highest is 0116)
       README.md                       # index + format + when to write
       template.md                     # ADR template
       0001-proposed-by-default.md     # example; full list under docs/adr/
@@ -131,7 +131,7 @@ my_work_tasks/
       0070-mcp-server-vet-command.md  # latest
   evals/
     README.md                         # eval harness overview + cadence + LLM-as-judge layer (ADR-0019)
-    scenarios/                        # <!-- count:scenarios -->112<!-- /count --> scenarios as of v0.2.x; one markdown file per scenario
+    scenarios/                        # <!-- count:scenarios -->115<!-- /count --> scenarios as of v0.2.x; one markdown file per scenario
       template.md                     # scenario template
       01-bootstrap-and-init.md        # example
       ...
@@ -186,8 +186,8 @@ my_work_tasks/
 
 The repository includes standard open-source governance files. They are not part of the runtime workflow contract, but they are part of the repository contract:
 
-- `LICENSE`: project is licensed under MIT (permissive; commercial and closed-source use allowed, no share-alike obligation). Copyright (c) 2026 Bruno Mazurok.
-- `CONTRIBUTING.md`: how to report issues, propose changes, submit PRs, and the DCO sign-off required on commits. Source of truth for contribution policy.
+- `LICENSE`: project is licensed under AGPL-3.0; see `## Final rule` in the spec for what this means for derivatives.
+- `CONTRIBUTING.md`: how to report issues, propose changes, submit PRs, and what the CLA requires. Source of truth for contribution policy.
 - `SECURITY.md`: scope of "security" in a markdown-based workflow repo, plus reporting flow.
 - `CODE_OF_CONDUCT.md`: Contributor Covenant 2.1.
 - `CHANGELOG.md`: chronological record of changes following Keep a Changelog and SemVer.

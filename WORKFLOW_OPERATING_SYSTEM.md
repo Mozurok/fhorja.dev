@@ -303,6 +303,12 @@ Lint enforces presence of both fields and validates values against the canonical
 
 Every `commands/<name>.md` ends with a single `<!-- cache-breakpoint -->` HTML comment marker as the LAST non-blank line of the body. The marker delimits the static cacheable prefix (the command file content) from the runtime-dynamic content that follows in the conversation (user invocation, task state, paste content). Lint validates presence (exactly one), count, and position (after `### Definition of done`) with hard FAIL on drift. See `wos/context-budget.md ## Cache breakpoint convention` for the full rationale and tool-integration notes; ADR-0014 records the decision.
 
+### Example classification (contract-fixing exemption)
+
+Every example inside a `commands/*.md` file (or a `commands/_shared/*.md` block) is one of two classes. A contract-fixing example is one whose exact shape, the bytes, field order, or delimiters, is parsed by a script or validator elsewhere in the repository; `commands/_shared/substrate-write-protocol.md`'s transaction-header and JSONL example is the canonical case, read byte-exact by `scripts/emit-substrate-write.sh`. A judgment-illustrating example is everything else: a worked case that helps a reader calibrate tone, depth, or a borderline call, with no downstream parser depending on its literal text.
+
+A contract-fixing example is exempt from any fold that reduces examples on context-engineering grounds. Removing or reshaping it does not just cost a reader's understanding; it breaks the script or validator that parses it. This is an exemption carved out for the one class where trimming has a mechanical failure mode, not a license to strip judgment-illustrating examples wherever they occur: those stay wherever they earn their keep, and a future fold judges each on its own merit. (D-2; ADR-0115.)
+
 ---
 
 ## Task lifecycle

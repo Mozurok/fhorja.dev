@@ -3,6 +3,7 @@
 > **Tier:** atom | molecule | organism | layout
 > **Status:** draft | researched | approved | implemented
 > **Figma:** `<Component/FrameName>` (node IDs: `<fileKey:nodeId>`)
+> **Source image:** `<path/to/image.png>` (captured `<YYYY-MM-DD>`) or `N/A` when a Figma node exists
 > **Used in screens:** <list of screen docs that consume this component>
 > **Reference benchmarks:** <Apple HIG, Material 3, Nubank, Coinbase, etc.>
 

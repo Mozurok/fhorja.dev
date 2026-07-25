@@ -4,6 +4,7 @@
 > **Route:** `/<persona>/<path>`
 > **Journey:** `<journey-name>` (step N of M)
 > **Figma:** `<frame name>` (node ID: `<fileKey:nodeId>`, size: `<W x H>`)
+> **Source image:** `<path/to/image.png>` (captured `<YYYY-MM-DD>`) or `N/A` when a Figma node exists
 > **Status:** stub | documented | implemented
 > **Auth required:** yes | no
 

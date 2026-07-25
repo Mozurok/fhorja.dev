@@ -351,8 +351,6 @@ FM_FAILED=0
 FM_MISSING=0
 FM_FAILURES=()
 FM_MISSING_CMDS=()
-TB_WARNED=0
-TB_WARNINGS=()
 
 for file in "${COMMAND_FILES[@]}"; do
   FM_TOTAL=$((FM_TOTAL + 1))
@@ -488,29 +486,6 @@ for file in "${COMMAND_FILES[@]}"; do
     fm_failures+=("frontmatter: missing required field 'metadata.provenance' (ADR-0046 DEF-09)")
   elif ! is_valid_provenance "$fm_provenance"; then
     fm_failures+=("frontmatter: metadata.provenance '$fm_provenance' not in enum (${VALID_PROVENANCE[*]})")
-  fi
-
-  # Per-command token budget (ADR-0013). Required positive integer >= 100.
-  # Current command-file token cost is recomputed from file size and compared
-  # against the declared budget; overruns emit a warning (not a failure).
-  fm_token_budget="$(printf '%s\n' "$fm_block" | awk '/^  token-budget: / { sub(/^  token-budget: /, ""); print; exit }')"
-  if [[ -z "$fm_token_budget" ]]; then
-    fm_failures+=("frontmatter: missing required field 'metadata.token-budget' (ADR-0013)")
-  elif ! [[ "$fm_token_budget" =~ ^[0-9]+$ ]]; then
-    fm_failures+=("frontmatter: token-budget '$fm_token_budget' is not a non-negative integer")
-  elif (( fm_token_budget < 100 )); then
-    fm_failures+=("frontmatter: token-budget '$fm_token_budget' is below the floor of 100")
-  else
-    # Compute current token cost (chars / 4, same approximation as measure-tokens.py).
-    current_chars=$(wc -c < "$file")
-    current_tokens=$(( (current_chars + 2) / 4 ))
-    if (( current_tokens > fm_token_budget )); then
-      TB_WARNED=$((TB_WARNED + 1))
-      TB_WARNINGS+=("${command_name}: current ~${current_tokens} > budget ${fm_token_budget}")
-      if [[ $VERBOSE -eq 1 ]] || [[ $STRICT -eq 1 ]]; then
-        echo "WARN (token-budget): ${command_name} current ~${current_tokens} > budget ${fm_token_budget}"
-      fi
-    fi
   fi
 
   if [[ ${#fm_failures[@]} -gt 0 ]]; then
@@ -1179,7 +1154,6 @@ echo "Lint summary: $TOTAL command(s), $PASSED passed, $FAILED failed, $WARNED w
 echo "Root docs:    $ROOT_TOTAL file(s) scanned for forbidden bytes, $ROOT_WARNED warned"
 echo "Shared:       $SHARED_TOTAL marker(s), $SHARED_PASSED matched canonical, $SHARED_FAILED drifted"
 echo "Frontmatter:  $FM_TOTAL command(s), $FM_PRESENT with frontmatter ($FM_PASSED passed, $FM_FAILED failed), $FM_MISSING pending migration"
-echo "Token budget: $TB_WARNED command(s) over declared budget (warning only; per ADR-0013)"
 echo "Maturity ladder: $ML_CHECKED persona(s) checked; $ML_WARNED warning(s) (per wos/maturity-ladder.md)"
 echo "Skills:       ${SKILLS_DRIFT_STATUS} (build-agent-skills.sh --check)"
 echo "Catalog:      ${CATALOG_DRIFT_STATUS} (build-command-catalog.py --check)"
@@ -1411,14 +1385,6 @@ if [[ "$DS_STATUS" == "ran" ]] && (( DSBROKEN > 0 )); then
   exit 1
 fi
 
-if [[ $TB_WARNED -gt 0 ]] && { [[ $VERBOSE -eq 1 ]] || [[ $STRICT -eq 1 ]]; }; then
-  echo ""
-  echo "Token-budget overruns ($TB_WARNED command(s)):"
-  for w in "${TB_WARNINGS[@]}"; do
-    echo "  - $w"
-  done
-fi
-
 # Maturity ladder warnings (K.6). INFORMATIONAL in v2.1: never increments
 # FAILED, never exits non-zero. Promotion to fail-fast is post-v2.1.
 if [[ $ML_WARNED -gt 0 ]] && { [[ $VERBOSE -eq 1 ]] || [[ $STRICT -eq 1 ]]; }; then
@@ -1429,7 +1395,7 @@ if [[ $ML_WARNED -gt 0 ]] && { [[ $VERBOSE -eq 1 ]] || [[ $STRICT -eq 1 ]]; }; t
   done
 fi
 
-if [[ $STRICT -eq 1 ]] && [[ $((WARNED + ROOT_WARNED + TB_WARNED)) -gt 0 ]]; then
+if [[ $STRICT -eq 1 ]] && [[ $((WARNED + ROOT_WARNED)) -gt 0 ]]; then
   echo "Strict mode: warnings present, exiting non-zero."
   exit 1
 fi

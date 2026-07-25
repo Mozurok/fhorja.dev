@@ -21,7 +21,6 @@ metadata:
   x-wos-profiles:
     - full
   provenance: first-party
-  token-budget: 4500
   suggested-model: claude-sonnet-4-6
 ---
 

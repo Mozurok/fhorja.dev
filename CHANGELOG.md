@@ -15,7 +15,10 @@ While the project is in alpha (0.x.y), MINOR may include breaking changes; expec
 
 ## [Unreleased]
 
-_(nothing yet)_
+### Added
+- One enforced size budget at the Load stage; the per-command token-budget field is retired (ADR-0116, **Accepted** 2026-07-25; context-engineering frontier sweep, D-5, supersedes ADR-0013): the `metadata.token-budget` frontmatter field and its warn-only overrun check are removed from all 95 command frontmatters and `scripts/lint-commands.sh`. `evals/scripts/structural-evals.py` gains a hard `check_skill_load_budget()`, measuring the generated `.claude/skills/<name>/SKILL.md` (the artifact the Load stage actually reads, not the source command file ADR-0013 measured) against a 10000-token (40000-char) no-regression ceiling set just above today's measured maximum, meant to ratchet down as trim waves land, never up; the predicate is path-parameterized so it can be tested against a fixture without touching the real corpus. A companion `check_no_retired_frontmatter_field()` guards against a partial retirement. Named up front: a Load-stage ruler does not guard CLAUDE.md, the frontmatter description fields, or the token baseline, which keep their existing coverage unchanged. Eval scenario 116. Count markers: ADRs 115.
+- Contract-fixing examples are exempt from any example-reduction fold (ADR-0115, **Accepted** 2026-07-25; context-engineering frontier sweep, D-2): `WORKFLOW_OPERATING_SYSTEM.md` gains an example-classification rule under `## Context budget`, sorting every command-file example as contract-fixing (its exact shape is parsed by a script or validator, the concrete instance being `commands/_shared/substrate-write-protocol.md`'s transaction-header and JSONL example read byte-exact by `scripts/emit-substrate-write.sh`) or judgment-illustrating (everything else). A future fold that trims examples on context-engineering grounds applies to the judgment-illustrating class only; the rule is stated as an exemption for the class that breaks a parser when touched, not as license to strip judgment-illustrating examples elsewhere. Grounded in the sweep's adversarial angle A2 and the OpenAI GPT-5.6 guidance naming "instructions that encode product requirements" as worth preserving. Eval scenario 115. Count markers: ADRs 114.
+- The `history` layer gains doctrine (ADR-0114, **Accepted** 2026-07-25; context-engineering frontier sweep, deep-read fold): `wos/context-budget.md`'s `### 5. history` section, which previously delegated the whole layer to the harness compactor with no rule of its own, now names three intra-session operations without naming a vendor API (compaction compresses the whole window, clearing surgically drops stale re-fetchable tool results, memory moves data out of the window), states the re-fetch rule (re-run a command for a large deterministic result rather than cite a possibly-stale transcript entry), and documents why `resume-from-state` and `im-stuck`, the two `consumed: [history]` commands, already fall back to `memory` as the source of record. Grounded in "The Complexity Trap" (arXiv 2508.21433) and the Anthropic cookbook context-engineering-tools page. Distinguishes this from ADR-0093's `isolate`, which governs a separate agent's context, not clearing inside one agent's own transcript. Count markers: ADRs 113.
 
 ## [1.1.0] - 2026-07-21
 
@@ -198,7 +201,7 @@ First public release: Fhorja goes open source under AGPL-3.0, published with a f
 
 ### Notes
 - `## [0.1.0]` was cut on 2026-04-30; the "Initial public release under AGPL-3.0" entries below it remain as the pre-launch baseline.
-- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->112<!-- /count --> (0001-0104, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->115<!-- /count --> (0001-0104, with 0037 as the reserved gap).
 
 ---
 

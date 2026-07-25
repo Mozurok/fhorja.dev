@@ -68,7 +68,15 @@ Examples:
 - The user's earlier prompts in the same chat.
 - Tool results returned within this session.
 
-`history` is the most volatile layer: compaction (`/compact` in Claude Code; equivalent in other tools) shrinks it; a new session resets it entirely. Commands that explicitly leverage `history` (`resume-from-state`, `im-stuck`) declare it in `consumed:`.
+`history` is the most volatile layer, and a harness can shrink it in three distinct ways, not one. Compaction compresses the whole window into a summary once it grows past a trigger size; this is what `/compact` in Claude Code and the equivalent in other tools do, and it costs inference and loses verbatim specifics. Clearing drops stale, re-fetchable data from inside the window while leaving the surrounding turns intact: some harnesses can surgically empty an old tool result without touching the user's messages, the model's own reasoning, or the record that a tool call happened at all. Memory moves data out of the window entirely so it survives past the session; that is the `memory` layer above, a different operation from either of the first two. A new session resets `history` in full regardless of which of the three, if any, a harness performed along the way.
+
+Fhorja is model-agnostic and harness-agnostic by design: it names these three operations because a command author needs to reason about them, but it does not implement or invoke any of them, and it names no vendor API as doctrine. Whether a given harness offers compaction, clearing, all three, or none is outside Fhorja's control and is not assumed.
+
+**The re-fetch rule.** A command that needs a large, deterministic tool result (a file read, a grep, a script's output) re-runs the read or re-runs the command rather than citing an older transcript entry as though it were still there. An older entry may already have been summarized away by compaction, or, on a harness that clears, surgically emptied while the record that the tool ran survives. Re-running a deterministic read costs one tool call; trusting a possibly-stale citation costs a wrong answer built on data that is no longer actually present. The rule holds regardless of which operation, if any, the active harness performs, which is why it belongs here rather than in a harness-specific note.
+
+One narrow, named exception exists. The mandatory context bootstrap's session-bootstrap-reuse clause (`commands/_shared/mandatory-context-bootstrap.md`, "Session bootstrap reuse") lets a command skip re-reading the WOS bootstrap sections specifically, when an earlier read of that same byte-identical file is still visible and quotable in the current window and the file has not changed since. That exception is scoped to one large, static, repeated-every-turn read; it does not extend to any other tool result, and its own safety condition (the content must stay actually visible, not merely recorded as having happened) is what keeps it inside the discipline this rule states rather than outside it. See that clause for what the visibility check can and cannot detect.
+
+**The `consumed: [history]` interaction.** `resume-from-state` and `im-stuck` are the two commands that declare `history` in `consumed:` (see the table below): they read recent conversation turns to reconstruct context or diagnose a loop. On a harness with compaction or clearing active, part of what they would read may already be gone by the time they run: compaction has replaced it with a summary, clearing has emptied the tool-result content while leaving the surrounding messages and the tool-use record intact. Both commands treat `history` as a best-effort, possibly-partial source, not a source of record, and fall back to `memory` (`TASK_STATE.md`, `DECISIONS.md`) whenever the two disagree; `memory` is what Fhorja owns and audits, `history` is not. See ADR-0114 for the full doctrine and its relationship to ADR-0093's four context operations.
 
 ### 6. `task`
 
@@ -153,6 +161,8 @@ The Chroma `Context-Rot` report (2024-2025) showed that all models degrade as co
 
 Fhorja itself, command personas, and output contracts are tight already. The lazy-load spec pattern (ADR-0006) is the compaction strategy for this layer: load `wos/<topic>.md` only when needed. Slice 01 of the context-engineering uplift adds this file as a lazy topic; future topics (sub-agent orchestration, etc.) extend the same pattern.
 
+The `mandatory-context-bootstrap` shared block, inlined into 89 of the 95 command files, is the largest single piece of this layer. It is measured at 9610 tokens for the full tier (the four always-read `WORKFLOW_OPERATING_SYSTEM.md` sections it names), with a reduced tier for the light-weight and high-frequency commands listed in the block itself. Treat this floor as cache-amortized under ADR-0006, not as a per-invocation tax: it is written once per cache TTL window and read back at roughly 0.1x afterward. It is a separate accounting line from the `tools` layer's per-skill Load budget below; the two measure different things and do not sum into one number.
+
 ### `memory`: compactable on growth
 
 Task memory grows monotonically as a task progresses (more decisions logged, more slices closed, more observations captured). When `TASK_STATE.md` feels heavy after multiple closed slices (typically 5+), `commands/compact-task-memory.md` produces a lossy summarized form preserving canonical decisions, recommended next step, and invariants verbatim while filtering stale facts, resolved questions, and mitigated risks into a `## Compaction history` audit entry. The compaction is reversible only via git; the audit entry lists what was dropped so the user can challenge over-eager filtering. ADR-0015 documents the policy. Per-phase warning thresholds (ADR-0023) surface the cost; see `## Context-rot thresholds` below.
@@ -167,9 +177,9 @@ Project memory (`PROJECT_CHARTER.md`, `REFERENCES.md`) is less prone to bloat bu
 
 The <!-- count:commands -->95<!-- /count --> commands are surfaced as Agent Skills with `description:` fields used for relevance routing. The Agent Skills spec's progressive disclosure pattern means a tool's full body is only loaded when the description matches the active task. Tools the model does not need are out of the budget.
 
-### `history`: aggressively compacted by the tool
+### `history`: aggressively shrunk by the tool, in more than one way
 
-Claude Code's `/compact` and equivalent compaction in Cursor / Codex / Copilot summarize earlier turns when the context window approaches its limit. The Fhorja contract assumes compaction can happen at any time and persists routing-critical state in `memory` (TASK_STATE.md `## Resume notes`) rather than `history`.
+Claude Code's `/compact` and equivalent compaction in Cursor / Codex / Copilot summarize earlier turns when the context window approaches its limit; a harness that additionally supports clearing can also empty individual stale tool results without a full compaction pass. The Fhorja contract assumes either can happen at any time and persists routing-critical state in `memory` (TASK_STATE.md `## Resume notes`) rather than `history`. See `### 5. history` above for the re-fetch rule and the `consumed: [history]` interaction.
 
 ### `task`: bounded by user input
 

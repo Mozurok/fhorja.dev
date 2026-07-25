@@ -80,11 +80,16 @@ for cmd_file in "${COMMANDS_DIR}"/*.md; do
     model="claude-sonnet-4-6"
   fi
 
-  # Insert after token-budget line (assumed present in every command)
-  if grep -q "^  token-budget:" "$cmd_file"; then
-    # Use awk to insert after the token-budget line
+  # Idempotent: a command that already declares the hint is left alone.
+  if grep -q "^  suggested-model:" "$cmd_file"; then
+    SKIPPED=$((SKIPPED + 1))
+    printf "  SKIPPED %-40s (already has suggested-model)\n" "$cmd_name" >&2
+  # Insert after context-layers-produced, present in every command frontmatter.
+  # This anchored on token-budget until ADR-0116 retired that field; anchoring on
+  # a field that no longer exists made this script silently skip all 86 commands.
+  elif grep -q "^  context-layers-produced:" "$cmd_file"; then
     awk -v model="$model" '
-      /^  token-budget:/ {
+      /^  context-layers-produced:/ {
         print
         printf "  suggested-model: %s\n", model
         next
@@ -95,7 +100,7 @@ for cmd_file in "${COMMANDS_DIR}"/*.md; do
     printf "  added %-40s -> %s\n" "$cmd_name" "$model" >&2
   else
     SKIPPED=$((SKIPPED + 1))
-    printf "  SKIPPED %-40s (no token-budget line)\n" "$cmd_name" >&2
+    printf "  SKIPPED %-40s (no context-layers-produced anchor)\n" "$cmd_name" >&2
   fi
 done
 

@@ -58,7 +58,7 @@ def parse_frontmatter(path):
         return None
     fm = lines[1:end]
     meta = {"name": None, "description": "", "category": "",
-            "mode": "", "model": "", "token_budget": "", "multi_repo": ""}
+            "mode": "", "model": "", "multi_repo": ""}
     in_metadata = False
     for line in fm:
         if line.startswith("name:"):
@@ -76,8 +76,6 @@ def parse_frontmatter(path):
                 meta["mode"] = val
             elif key == "suggested-model":
                 meta["model"] = val
-            elif key == "token-budget":
-                meta["token_budget"] = val
             elif key == "multi-repo-aware":
                 meta["multi_repo"] = val
     if not meta["name"]:
@@ -194,8 +192,6 @@ def render_card(m, stubs, nexts):
         badges.append(f'<span class="badge mode mode-{esc(m["mode"].lower())}">{esc(m["mode"])}</span>')
     if m.get("model"):
         badges.append(f'<span class="badge soft">{esc(pretty_model(m["model"]))}</span>')
-    if m.get("token_budget"):
-        badges.append(f'<span class="badge soft">~{esc(m["token_budget"])} tok</span>')
     if str(m.get("multi_repo", "")).lower() == "true":
         badges.append('<span class="badge soft">multi-repo</span>')
     badge_row = "".join(badges)
@@ -469,7 +465,6 @@ def render_json(commands):
             "category": commands[name]["category"],
             "mode": commands[name]["mode"],
             "model": commands[name]["model"],
-            "token_budget": commands[name]["token_budget"],
             "multi_repo_aware": commands[name]["multi_repo"],
             "description": commands[name]["description"],
             "next_commands": nexts.get(name, []),

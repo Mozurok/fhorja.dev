@@ -22,7 +22,6 @@ metadata:
     - core
     - full
   provenance: first-party
-  token-budget: 4650
   suggested-model: claude-opus-4-7
 ---
 

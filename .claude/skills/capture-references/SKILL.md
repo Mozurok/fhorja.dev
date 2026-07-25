@@ -23,7 +23,6 @@ metadata:
     - core
     - full
   provenance: first-party
-  token-budget: 3100
   suggested-model: claude-sonnet-4-6
 ---
 

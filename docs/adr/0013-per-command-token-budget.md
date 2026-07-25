@@ -1,6 +1,6 @@
 # ADR-0013: Per-command token budget
 
-- **Status**: Accepted
+- **Status**: Superseded (by ADR-0116, single Load-stage size budget, 2026-07-25)
 - **Date**: 2026-05-15
 - **Tags**: context-engineering, token-budget, cost-visibility, lint-enforced-warning
 

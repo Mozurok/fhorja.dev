@@ -7,7 +7,6 @@ metadata:
   multi-repo-aware: <true | false>
   context-layers-consumed: [memory, retrieved]
   context-layers-produced: [memory]
-  token-budget: <integer>
   suggested-model: claude-opus-4-7
   orchestrator: true
   workers:

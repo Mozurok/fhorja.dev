@@ -46,6 +46,7 @@ WITH_SKILLS=1          # skills ON by default (opt out with --no-skills)
 DO_CLEAN_ORPHANS=0
 ASSUME_YES=0
 PROJECT=""
+PROFILE_SET=0   # 1 only when the caller passed --profile=TIER explicitly (D-4, ADR-0059)
 
 # Capture whether the script was invoked with zero arguments, before the arg
 # loop consumes them. This drives the interactivity gate below: a bare, TTY
@@ -69,8 +70,16 @@ Options:
   --dry-run              Print actions only; do not write files.
   --profile=TIER         Which command set to install: minimal (the 12-command
                          everyday loop; the default), core (~50 commands), or full
-                         (all 85 flat commands). Skills are never profile-filtered;
-                         they always sync in full.
+                         (all 85 flat commands). Passing --profile explicitly also
+                         filters the skills mirror: core installs only core-tier
+                         skills, full (or an empty --profile=) installs every
+                         skill. minimal is REFUSED for skills (D-4, ADR-0059):
+                         the tier stays gated until evals/scripts/structural-evals.py's
+                         check_tier_routing_closure() reports a clean corpus (it
+                         currently finds one open break). Add --no-skills to still
+                         install the minimal command set with no skills. Omitting
+                         --profile entirely leaves skills unfiltered, unchanged
+                         from before D-4.
   --no-skills            Do NOT sync agent skills (skills sync by default).
   --with-skills          Sync agent skills (default; kept for backward compatibility).
   --clean-orphans        Also remove command files in the destinations that no
@@ -116,7 +125,7 @@ PROFILE="${PROFILE:-minimal}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run) DRY_RUN=1 ;;
-    --profile=*) PROFILE="${1#*=}" ;;
+    --profile=*) PROFILE="${1#*=}"; PROFILE_SET=1 ;;
     --no-skills) WITH_SKILLS=0 ;;
     --with-skills) WITH_SKILLS=1 ;;
     --clean-orphans) DO_CLEAN_ORPHANS=1 ;;
@@ -155,6 +164,68 @@ file_in_profile() {
   line="$(awk '/^  x-wos-profiles:/{print; exit}' "$f")"
   [[ "$line" == *"$p"* ]] && return 0
   return 1
+}
+
+# Skill profile filter (D-4, ADR-0059). Same intent as file_in_profile(), but
+# reads the generated .claude/skills/<name>/SKILL.md, not the canonical
+# commands/*.md source. build-agent-skills.sh normalizes the canonical
+# flow-style `x-wos-profiles: [core, full]` into spec-conformant block-style
+# YAML on emit (see render_skill() in that script), so the shape here is:
+#   x-wos-profiles:
+#     - core
+#     - full
+# Only ever called with a tier the caller explicitly asked for; see
+# skills_effective_profile() below for how that intent is derived.
+skill_in_profile() {
+  local skill_dir="$1" p="$2" f
+  f="${skill_dir%/}/SKILL.md"
+  [[ -z "$p" ]] && return 0
+  [[ -f "$f" ]] || return 1
+  awk -v want="$p" '
+    /^  x-wos-profiles:/ { in_block=1; next }
+    in_block && /^    - / { val=$0; sub(/^    - /, "", val); if (val == want) found=1; next }
+    in_block { in_block=0 }
+    END { exit(found ? 0 : 1) }
+  ' "$f"
+}
+
+# The profile that actually gates the skills mirror. Skills stay unfiltered
+# (empty string -> file_in_profile-style "copy everything") unless the caller
+# passed --profile explicitly; PROFILE's own default ("minimal", set below for
+# the *command* sync) must never leak into the skills filter, or a bare
+# invocation would silently start refusing/filtering skills it always mirrored
+# in full before D-4.
+skills_effective_profile() {
+  if [[ "$PROFILE_SET" -eq 1 ]]; then
+    printf '%s' "$PROFILE"
+  else
+    printf ''
+  fi
+}
+
+# D-4 (ADR-0059) skill-profile gate: minimal is refused for skills, explicitly,
+# rather than silently downgraded to core. Only fires when the caller asked
+# for it (PROFILE_SET=1 via --profile=minimal); the untouched default (no
+# --profile flag at all) keeps mirroring every skill, unchanged from before
+# D-4. Exits before any destination is touched.
+refuse_minimal_skills_if_requested() {
+  if [[ "$WITH_SKILLS" -eq 1 && "$PROFILE_SET" -eq 1 && "$PROFILE" == "minimal" ]]; then
+    cat >&2 <<'EOF'
+Refusing: skills cannot be mirrored at the minimal profile yet.
+
+D-4 (ADR-0059, x-wos-profiles) gates the minimal skill tier on a lint rule
+that enforces every command's own routing chain staying inside its own
+declared x-wos-profiles tier. That rule is not clean yet:
+evals/scripts/structural-evals.py's check_tier_routing_closure() reports one
+open break (task-init is [minimal, core, full] and its own Express chain
+routes to branch-commit, which is [core, full] only), so a minimal-tier skill
+install would hand a user a documented next step it did not install.
+
+Use --profile=core or --profile=full (or omit --profile) to install skills,
+or add --no-skills to install the minimal command set with no skills.
+EOF
+    exit 1
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -247,21 +318,28 @@ sync_skills_dest() {
     echo "==> ${label}: skipped (source ${SKILLS_SRC} not present; run scripts/build-agent-skills.sh first)" >&2
     return 0
   fi
+  local sp
+  sp="$(skills_effective_profile)"
   echo "==> ${label}: ${dest}"
   if [[ "$DRY_RUN" -eq 1 ]]; then
     echo "    mkdir -p $(printf '%q' "$dest")"
+    local would=0
     shopt -s nullglob
     for d in "${SKILLS_SRC}"/*/; do
+      skill_in_profile "$d" "$sp" || continue
       name="$(basename "$d")"
       echo "    cp -R $(printf '%q' "$d") $(printf '%q' "${dest}/${name}")"
+      would=$((would + 1))
     done
     shopt -u nullglob
+    echo "    would write ${would} skill(s) (profile: ${sp:-all})"
     return 0
   fi
   mkdir -p "$dest"
   shopt -s nullglob
   local n=0
   for d in "${SKILLS_SRC}"/*/; do
+    skill_in_profile "$d" "$sp" || continue
     local name
     name="$(basename "$d")"
     rm -rf "${dest}/${name}"
@@ -270,7 +348,7 @@ sync_skills_dest() {
     n=$((n + 1))
   done
   shopt -u nullglob
-  echo "    wrote ${n} skill(s)"
+  echo "    wrote ${n} skill(s) (profile: ${sp:-all})"
 }
 
 cleanup_legacy_codex_skills() {
@@ -357,8 +435,13 @@ clean_orphans() {
 
 # End-of-run summary: an honest line naming what was synced and how to get more.
 print_summary() {
-  local skills_txt cmd_txt
-  if [[ "$WITH_SKILLS" -eq 1 ]]; then skills_txt="all skills"; else skills_txt="no skills"; fi
+  local skills_txt cmd_txt sp
+  sp="$(skills_effective_profile)"
+  if [[ "$WITH_SKILLS" -eq 1 ]]; then
+    if [[ -n "$sp" ]]; then skills_txt="${sp}-tier skills"; else skills_txt="all skills"; fi
+  else
+    skills_txt="no skills"
+  fi
   cmd_txt="${PROFILE:-all} commands"
   echo ""
   echo "Summary: synced ${skills_txt} + ${cmd_txt} to the selected tools."
@@ -473,6 +556,7 @@ run_wizard() {
 # the flags set, so there is a single sync code path.
 # ---------------------------------------------------------------------------
 run_sync() {
+  refuse_minimal_skills_if_requested
   if [[ "$DO_CURSOR" -eq 1 ]]; then
     sync_one_dest "Cursor" "$CURSOR_DEST"
   fi

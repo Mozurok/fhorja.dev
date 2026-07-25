@@ -10,7 +10,6 @@ metadata:
   tools: [Read, Write, Edit, Bash, Glob, Grep]
   x-wos-profiles: [full]
   provenance: first-party
-  token-budget: 4500
   suggested-model: claude-sonnet-4-6
 ---
 # db-context-supabase

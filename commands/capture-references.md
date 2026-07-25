@@ -10,7 +10,6 @@ metadata:
   tools: [Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch]
   x-wos-profiles: [core, full]
   provenance: first-party
-  token-budget: 3100
   suggested-model: claude-sonnet-4-6
 ---
 # capture-references
