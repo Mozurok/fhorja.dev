@@ -199,10 +199,53 @@ symptom, no Face ID prompt on login after the app was backgrounded, as a
 the frame would have shown whether the prompt actually appeared. Cite the
 frame number and timestamp, not just the classification.
 
+## Cold start vs warm resume (the entry path a verdict must name)
+
+A launch-triggered behavior (a quick action, a notification tap, a deep link, a
+widget, a universal link) can work on every warm path and fail on every cold one,
+with no error in either log. On a cold start the intent arrives before the
+navigator is mounted, before auth is hydrated, and before any cache is warm; on a
+warm resume all three already exist. They are different code paths, so a warm
+observation says nothing about the cold one.
+
+Kill the process first, then launch from the real entry point:
+
+```bash
+# iOS Simulator: terminate, then trigger from the Home Screen (long-press the icon)
+xcrun simctl terminate booted <bundle-id>
+# Android: force-stop, then trigger from the launcher shortcut
+adb shell am force-stop <package-name>
+```
+
+`xcrun simctl openurl` and `adb shell am start -a android.intent.action.VIEW`
+deliver the URL to a process that is usually already alive, so they exercise the
+warm path. They are useful for a warm-resume check and are not evidence for a
+cold-start one. When the app is installed as an Expo dev client, note that the
+bundle download on launch widens every mount race, so a dev-client cold start and
+a production cold start can order things differently; say which one was run.
+
+For a fallback path (the behavior is supposed to land somewhere specific and
+otherwise falls back to a default screen), pick a target that is NOT the fallback
+destination. A recording of a tap that lands on home cannot distinguish a dropped
+intent from a correct fallback.
+
+### Throwaway scenario harness (no device)
+
+When several launch scenarios need to be walked and a device round trip is
+expensive, drive the real exported boundary functions directly from the repo's
+existing test runner: no React, no query client, no navigation container, just
+the decision functions with each scenario's inputs, printing what each returns.
+This reproduces a routing or decision defect in seconds and needs no simulator.
+It is a diagnostic, never committed, and never a substitute for the cold-start
+run: it proves what the decision layer does, not what the app does.
+
 ## What to hand to `app-runtime-verify`
 
 - The run mechanism (device / emulator / headless / MCP run tool) and whether it
   was a clean rebuild or a JS reload.
+- The entry path each observation came from (cold-start, warm-resume, or in-app).
+  A launch-triggered behavior needs a cold-start observation; the gate caps a
+  warm-only run at BLOCKED.
 - The real captured output: the native log block around the crash (verbatim) for
   a native/navigation crash, and/or the Metro console for a JS error.
 - For an iOS Simulator run: the `simctl launch` log block (verbatim) plus the

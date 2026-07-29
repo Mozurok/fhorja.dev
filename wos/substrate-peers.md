@@ -104,6 +104,7 @@ Legend: O = owner (writes via Edit/Write); P = propose-only (PROPOSED block); R 
 | `## Active codebase / repo` | task-init | project-bootstrap (seed) | all |
 | `## Active branch` | task-init | branch-commit (P) | all |
 | `## Main files in scope` | code-locate | impact-analysis, sync-task-state | all |
+| `## Repo instruction files` | impact-analysis | code-locate (P) | all |
 | `## Tickets / docs / Figma / links` | task-init | capture-references (P) | all |
 | `## Official external docs` | capture-references | external-research (P) | all |
 | `## Repositories` (multi-repo) | task-init | project-bootstrap | all |

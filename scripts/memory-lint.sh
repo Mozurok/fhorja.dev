@@ -6,8 +6,21 @@
 # model-driven layer in state-reconcile:
 #   1. Dead relative links  - markdown links and backticked paths that point at a
 #      ./ or ../ target which does not exist on disk, plus bare task-artifact
-#      references on bullet lines (TASK_STATE.md, SLICES/<file>.md) that do not
-#      resolve against the containing file's directory.
+#      references on bullet lines (TASK_STATE.md, SLICES/<file>.md) that resolve
+#      against neither the containing file's directory nor the task root.
+#
+#      The bare-reference half is deliberately narrow, because a lint that cries
+#      on healthy memory teaches its reader to skip the output. Five rules bound
+#      it (2026-07-29: it reported 45 findings on a healthy task, all false):
+#        - only TASK-MEMORY artifact names count (TASK_ARTIFACT_RE below), never
+#          a file belonging to another tree such as the product repo's CLAUDE.md
+#        - a token resolves against the task root as well as its own directory
+#        - project-level files (PROJECT_CHARTER, project REFERENCES) are skipped,
+#          since a mention there describes child tasks and has no sibling
+#        - a sentence stating the artifact is ABSENT, or naming where something
+#          WOULD go, is discussing it, not linking to it
+#        - a glossed example (`<path>` followed by " -- <what it shows>") is
+#          documenting a format, not citing a file
 #   2. Orphaned SLICES/ files - slice files not referenced by IMPLEMENTATION_PLAN.md
 #      or TASK_STATE.md in the same task folder.
 #   3. LEARNINGS entry quality - reflexion entries in LEARNINGS.md with a missing or
@@ -29,6 +42,16 @@ set -uo pipefail
 
 findings=0
 report() { findings=$((findings + 1)); echo "  - $1"; }
+
+# Task-memory artifact names this scanner will resolve as sibling files.
+# Deliberately a POSITIVE list. Anything not here is a reference to another
+# tree (the product repo's CLAUDE.md or AGENTS.md, the repo-root USER_MEMORY.md,
+# a generated report under the product repo) and is none of this lint's
+# business; matching those was the whole of the 2026-07-29 false-positive run.
+# Sources: the 4 task-memory substrate files plus the task-scoped templates in
+# `templates/`. Fleet-substrate and project-level names are excluded on purpose:
+# they do not live beside a task's own files.
+TASK_ARTIFACT_RE='(TASK_STATE|SOURCE_OF_TRUTH|DECISIONS|IMPLEMENTATION_PLAN|IMPACT_ANALYSIS|INVARIANTS_AND_NON_GOALS|TEST_STRATEGY|PR_PACKAGE|LEARNINGS|TASK_PREFERENCES|BRIEF|EXTERNAL_RESEARCH|OPEN_QUESTIONS|AI_EVAL_PLAN|RELEASE_PLAN|SLO_SPEC|PERFORMANCE_BUDGET|POSTMORTEM|ACCESSIBILITY_AUDIT|BACKEND_SYSTEM_DESIGN|FRONTEND_SYSTEM_DESIGN|DB_CONTEXT|CODE_CONTEXT_MAP|FEATURE_LIBRARIES|STACK_RECOMMENDATION|CURRENT_PATTERNS|VERIFICATION_LOG)\.md'
 
 # ---------------------------------------------------------------------------
 # 1. Resolve the task folder
@@ -104,7 +127,25 @@ for f in ${scan_files[@]+"${scan_files[@]}"}; do
 
   # Bare task-artifact references on bullet lines outside code fences:
   # tokens like TASK_STATE.md or SLICES/01-foo.md mentioned without a markdown
-  # link or path prefix. Resolve against the containing file's directory.
+  # link or path prefix.
+  #
+  # Three rules keep this honest (2026-07-29, 2026-07-29 mobile dogfood: this detector
+  # produced 45 findings on a healthy task and every one was a false positive):
+  #
+  # 1. Only TASK-MEMORY artifact names count. A mention of `CLAUDE.md`,
+  #    `AGENTS.md`, `USER_MEMORY.md`, or a report living in the product repo is
+  #    a reference to a file in ANOTHER tree, not a broken neighbour link. The
+  #    old `[A-Z][A-Z0-9_]*\.md` pattern matched every one of them.
+  # 2. Resolve against the TASK ROOT as well as the containing directory. A
+  #    slice note in `SLICES/` naming `TEST_STRATEGY.md` means the task's file
+  #    one level up, not `SLICES/TEST_STRATEGY.md`.
+  # 3. Skip project-level files entirely. In `PROJECT_CHARTER.md`, a mention of
+  #    `TASK_STATE.md` describes what child tasks contain; there is no sibling
+  #    to resolve, and reporting one is noise by construction.
+  case "$f" in
+    "$task_dir"/*) ;;
+    *) continue ;;
+  esac
   in_fence=0
   while IFS= read -r line || [[ -n "$line" ]]; do
     case "$line" in
@@ -119,11 +160,33 @@ for f in ${scan_files[@]+"${scan_files[@]}"}; do
       [[ -n "$token" ]] || continue
       # Trim the single non-token lead character kept by the boundary match.
       token="$(printf '%s' "$token" | sed -E 's/^[^A-Z]//')"
-      if [[ ! -e "$base/$token" ]]; then
+      # Rule 4: a line that says the artifact is ABSENT, or names where something
+      # WOULD go, is discussing the artifact, not linking to it. Naming a file
+      # that does not exist is the whole point of those sentences, so reporting
+      # them as broken links inverts the lint's meaning. Observed forms, all
+      # from real task memory: "inert, no `AI_EVAL_PLAN.md` in the task folder",
+      # "the task has no `INVARIANTS_AND_NON_GOALS.md`", "that belongs in
+      # `TASK_PREFERENCES.md`", and the `## Entry shape` template example
+      # citing `SLICES/03_auth-refactor.md` as an anchor format.
+      lead="$(printf '%s' "$stripped" | sed -E "s/\\Q${token}\\E.*//" 2>/dev/null || printf '%s' "$stripped")"
+      if printf '%s' "$line" | grep -qiE '(\bno\b|\bnot\b|\bnever\b|\bwithout\b|\babsent\b|\blacks?\b|\bmissing\b|belongs in|would (go|live|be)|should (go|live|be)|for example|e\.g\.)[^.]{0,60}'"$(printf '%s' "$token" | sed 's/[.[\*^$/]/\\&/g')"; then
+        continue
+      fi
+      # Rule 5: a glossed example, `<path>` followed by ` -- <what it shows>`,
+      # is documenting a format, not citing a file. This is the repo's own
+      # convention for example lists (see `templates/LEARNINGS.md` `## Entry
+      # shape`), and because every task's LEARNINGS.md is seeded from that
+      # template, without this rule the anchor examples report as broken links
+      # in EVERY task that has one.
+      if printf '%s' "$line" | grep -qE '`[^`]*'"$(printf '%s' "$token" | sed 's/[.[\*^$/]/\\&/g')"'[^`]*`[[:space:]]+--[[:space:]]'; then
+        continue
+      fi
+      # Rule 2: the task root is as valid a home as the containing directory.
+      if [[ ! -e "$base/$token" && ! -e "$task_dir/$token" ]]; then
         report "$f -> $token (bare relative reference missing)"
         dead_links=$((dead_links + 1))
       fi
-    done < <(printf '%s\n' "$stripped" | grep -oE '(^|[^A-Za-z0-9_./-])(SLICES/[A-Za-z0-9_.-]+\.md|[A-Z][A-Z0-9_]*\.md)' 2>/dev/null)
+    done < <(printf '%s\n' "$stripped" | grep -oE "(^|[^A-Za-z0-9_./-])(SLICES/[A-Za-z0-9_.-]+\.md|${TASK_ARTIFACT_RE})" 2>/dev/null)
   done < "$f"
 done
 [[ "$dead_links" -eq 0 ]] && echo "  (none)"

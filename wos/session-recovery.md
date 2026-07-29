@@ -32,6 +32,14 @@ Scope discipline: an entry exists ONLY for a harness whose layout was verified i
 
 - Some harnesses (and editors embedding them) persist recent-session metadata in a local sqlite database rather than, or in addition to, transcript files. Treat sqlite as a best-effort LAST resort inside the same 6-call cap: a single read-only query listing recent sessions or workspace paths, only when the transcript sweep found nothing. Never write to the database; a locked or missing database is reported as a dead end, not retried.
 
+## The highest-risk window for memory drift
+
+The review-and-fix leg, between the first review verdict and the merged PR, is where task memory most often goes stale. It has the shape that defeats state upkeep: many small fixes, each too narrow to feel like a step worth recording, applied under time pressure while attention sits on the review output rather than on the task folder. `pr-feedback-ingest` is the command that drives this leg and it is also the one most often skipped, because the feedback arrives as a readable list that looks actionable without any intake step.
+
+A measured instance: a 21-hour task wrote nothing to its task folder for 12h35m, a window that contained three full review runs, 81 findings, a base merge, the PR, and about 20 hand-applied fixes. Its `TASK_STATE.md` ended the session asserting that four review phases had never run while the review's own manifest recorded them complete, so the memory said the work could not ship while the artifact said it could.
+
+Recovery reads this as a signal, not a surprise: when a session is lost and its last state write predates a review verdict, assume the whole fix leg is unrecorded and reconcile against the review artifacts and the git log rather than trusting the last state write.
+
 ## What recovery extracts (and what it never does)
 
 Extract, as PROPOSED lines with provenance: the active task folder path (if any), the last completed command and its Handoff, the files being edited, and any explicit decisions stated in the final turns. The mode then routes: `state-reconcile` when a task folder was found (it reconciles the PROPOSED extractions against the on-disk substrate), `task-init` when none was. Unattended runs with an unknown project slug stall as PROPOSED rather than guessing a directory to sweep.

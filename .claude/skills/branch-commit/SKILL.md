@@ -48,7 +48,7 @@ Mandatory context bootstrap (before any output):
 Required inputs:
 - current task summary (for orientation only, never the primary source for the commit message)
 - explicit diff source, exactly one of:
-  - `git diff` (unstaged), `git diff --staged` (staged), or `git diff <base>...HEAD` (branch ahead of base)
+  - `git diff` (unstaged), `git diff --staged` (staged), or `git diff <base>...HEAD` (branch ahead of base; derive it against a freshly fetched base, see `pr-package` for the base-freshness rule)
 - the actual diff output (paths and hunks, not the stat summary alone) so the commit message can name the real change
 - current branch name (from `git branch --show-current`) so the branch suggestion only proposes a rename when the existing name is generic
 - last completed step from TASK_STATE.md (command + summary), if available

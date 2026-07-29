@@ -55,6 +55,7 @@ Required inputs:
 - current local branch name (as shown by `git branch --show-current`)
 - working tree context (as shown by `git status --porcelain` or an explicit statement that the working tree is clean)
 - explicit diff commands used (at minimum):
+  - `git fetch <remote> <base>` (run first; the diff is taken against the freshly fetched ref, never a stale local one)
   - `git diff <base>...HEAD`
   - optional: `git diff --stat <base>...HEAD`
 - real git diff vs the explicit base branch
@@ -73,6 +74,7 @@ Operating rules:
 - Do not focus only on the latest slice.
 - Treat the full current task diff against the explicit base branch as the delivery scope.
 - Before producing output, verify the diff is stable enough to package; if it is still moving quickly, return a no-op and route to stabilization steps.
+- **Base freshness and merge prediction (mobile dogfood 2026-07-29):** run `git fetch <remote> <base>` before taking any diff, and report the base ref's age plus the commit count since the fork point (`git rev-list --count <base>...HEAD` and its inverse). Then run a merge dry-run (`git merge-tree` or a throwaway merge) and list every conflicting file under `Reviewer attention points`; a predicted conflict on a file this branch rewrote is a reviewer decision, not a footnote. A claim that *this branch* changed a value SHALL be grounded in the merge-base diff (`git diff $(git merge-base <base> HEAD) HEAD -- <path>`), never in a comparison against the integration branch head, which reports the other side's movement as yours. Order matters: base-sync happens BEFORE the final review pass, never between review and push, because a post-review base merge breaks the reviewed-tree-equals-pushed-tree guarantee and a host-repo ship gate may then refuse to clear its review badge. When the base has moved and no sync has happened, say so and route to the sync before packaging.
 - No-op rule for artifacts:
   - If `PR_PACKAGE.md` would not materially change versus the current diff, do not rewrite it.
   - If `TASK_STATE.md` would not materially change, do not rewrite it.
@@ -90,7 +92,7 @@ Operating rules:
 - **Project PR template (P2-6, careers-page dogfooding 2026-06-23):** detect the product repo's `.github/PULL_REQUEST_TEMPLATE.md` (resolve the repo path from `SOURCE_OF_TRUTH.md`; or the path named in `TASK_PREFERENCES.md`). When it exists, render item 8 (the PR description) into that template, filling each section from the real diff and leaving unknown checklist items unchecked. When it does not exist, emit the generic PR body unchanged.
 
 PR_PACKAGE.md must include:
-1. Explicit base branch, current branch, and the exact diff commands used, ready to paste (for auditability)
+1. Explicit base branch, current branch, and the exact diff commands used, ready to paste (for auditability), plus the base ref's fetch age, the commit count since the fork point, and the merge dry-run result (clean, or the list of predicted conflicting files)
 2. Delivery scope based on diff vs the explicit base branch
 3. Suggested branch name
 4. Suggested main commit message
@@ -152,6 +154,7 @@ Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global ou
 - PR narrative matches the real diff vs the explicit base branch (no invented work).
 - The diff is both an upper and a lower bound on the narrative: every path/hunk that materially changes behavior in `git diff <base>...HEAD` appears in the PR description, and every claim in the narrative is grounded in a path or hunk in that diff. Summarizing from `TASK_STATE.md`, `DECISIONS.md`, or `IMPLEMENTATION_PLAN.md` without citing the real diff is invalid output (under-reporting and over-promising are both regressions).
 - Includes explicit diff commands, current branch, and working tree notes (clean vs dirty) grounded in real `git` output.
+- The base was fetched in this run and the package states its age, the commit count since the fork point, and the merge dry-run result. A package produced from an unfetched base ref, or one that omits the merge prediction, is invalid output.
 - All 11 items of `PR_PACKAGE.md must include` are present, or each omission carries an explicit one-line `SKIP: <reason>` note. Silent omission of items such as `Reviewer attention points`, working tree status, or the verbatim diff commands is invalid output.
 - The PR package file (`PR_PACKAGE.md` for single-repo, `PR_PACKAGE.<repo>.md` for multi-repo) is `PROPOSED` unless persisting in Agent mode; never put task-memory paths into GitHub PR text.
 - Multi-repo validation: when `SOURCE_OF_TRUTH.md` has a `## Repositories` section, output rejects invocations missing the `target repo` input or with an identifier that does not match any entry; producing `PR_PACKAGE.md` (without repo suffix) in multi-repo mode is invalid output; using a base branch other than the one declared in the matched `## Repositories` entry is invalid output unless the user explicitly overrides with one-line justification. Single-repo tasks (no `## Repositories` section) behave identically to the v1.0 contract.

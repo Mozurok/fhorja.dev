@@ -28,6 +28,14 @@ Only close a slice if:
 - remaining issues are follow-ups, not blockers inside the slice
 - the slice is not being confused with full task completion
 
+### A closure floor needs two homes, or it does not exist
+
+`implement-approved-slice` closes a LOW or MEDIUM slice INLINE and explicitly does not route to `slice-closure`; only a HIGH-complexity slice, or one whose exit criteria cannot be verified inline, reaches that command. So a floor written only into `slice-closure.md` never fires on the majority of slices, and it fires least on the ones a plan judged routine, which is where an unreviewed defect travels furthest.
+
+Every generalized floor therefore ships as a pair: the version in `slice-closure.md` (verdict `not ready to close`) and its `(inline-close, ...)` twin in `implement-approved-slice.md` (verdict: do NOT inline-close). `commit-evidence`, `experience-verdict`, `entry-path probe`, `eval-threshold`, `Layer-2 review`, and `rollout-constraint reconcile` all follow this shape, and `task-close.md` carries the whole-task backstop for several of them. When adding a floor, write both halves and keep the escape clause identical, or state in the floor itself why one home is deliberately enough.
+
+This is a live failure mode, not a hypothetical: the 2026-07-29 mobile dogfood proposed the Layer-2 review floor for `slice-closure.md` alone, and the plan that motivated it had 5 LOW and 3 MEDIUM slices with zero HIGH, so the floor would have been unreachable on the exact run that produced it.
+
 ## Verification layering (the three-layer quality gate)
 Order the verification effort cheapest-first. Each layer must pass and be shown before the next runs; the existing no-op rules still let a layer be skipped when it genuinely adds no signal, but never silently.
 

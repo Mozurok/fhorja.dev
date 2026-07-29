@@ -2,6 +2,21 @@ Canonical substrate write protocol -- emit transaction header above every substr
 
 Applies to writes targeting the 11 substrate files (4 task-memory + 7 fleet-substrate + project-level REFERENCES.md). Shadow mode at launch: writers emit, no reader enforces. Validator (`scripts/verify-log-validator.py`) lands in K.5 / Epic J.5.
 
+## Do this, not the format below
+
+Run the helper. It performs the whole cycle in one call, computing every field this document specifies:
+
+```bash
+bash scripts/emit-substrate-write.sh apply --owner <command> --file <F> \
+  --section '## X' --reason '<=80 chars' --body-file <B> --mode applied --task-root <task-dir>
+```
+
+Repeat once per section, reusing one `--run-id` across the run. The helper captures `sha_before`, inserts or replaces the transaction header, splices the body with a self-check before the original file is touched, and appends the JSONL line. Its die rules refuse the failure cases hand-writing produces silently.
+
+**Author the fields by hand only when the helper genuinely does not fit** (a surgical Edit-tool change, a host where a bash call re-escalates approval). The sections below are the field reference for that case; they are not the default path, and reading them as a template to copy is how the drift below happens.
+
+Measured drift (2026-07-29 sweep over 306 audit logs in this repository): 188 of 306 carry validator errors, 3,688 in total. The top classes are a broken sha chain (1,278), a malformed `section` value (568), `sha_after` null on an applied write (347), an `event` outside the canonical taxonomy (263), and a null `owner_type` (162). Every one of those is a field the helper fills correctly and a hand-written line gets wrong. The K.8 first-lived test already found 125 of 126 writes half-compliant; the helper exists because of that result, and 3 of the 21 commands that declare this protocol currently name it.
+
 ## Transaction header (above the section write)
 
 Place this HTML comment line immediately above the section content being written:
