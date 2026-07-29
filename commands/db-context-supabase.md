@@ -1,6 +1,6 @@
 ---
 name: db-context-supabase
-description: Validate that a Supabase MCP server is reachable, introspect a user-scoped subset of the database (tables, columns, types, RLS policies, optionally functions and recent migrations), and persist the result as DB_CONTEXT.md inside the active task folder; adds a single ## DB context cross-link in SOURCE_OF_TRUTH.md. Read-only introspection only; never destructive SQL. Opt-in, not part of default task init. Use when the active task touches Supabase data/schema/RLS, when planning or implementation needs verified schema rather than assumed schema, or when an existing DB_CONTEXT.md is stale. Do not use without an active task folder (run task-init first), when the task does not touch Supabase, when the database is not Supabase, or when the user wants to record a schema decision (use decision-interview).
+description: Validate that a Supabase MCP server is reachable, introspect a user-scoped subset of the database (tables, columns, types, RLS policies, optionally functions and recent migrations), and persist the result as DB_CONTEXT.md inside the active task folder; adds a single ## DB context cross-link in SOURCE_OF_TRUTH.md. Read-only introspection only; never destructive SQL. Falls back to the local Supabase CLI when no MCP server is reachable, and never records supabase status output into a task artifact because it prints the service_role key. Opt-in, not part of default task init. Use when the active task touches Supabase data/schema/RLS, when planning or implementation needs verified schema rather than assumed schema, or when an existing DB_CONTEXT.md is stale. Do not use without an active task folder (run task-init first), when the task does not touch Supabase, when the database is not Supabase, or when the user wants to record a schema decision (use decision-interview).
 metadata:
   category: database-context
   primary-cursor-mode: Ask
@@ -18,6 +18,8 @@ Act as a senior/staff engineering database context capture for the active task, 
 
 Goal:
 Validate that a Supabase MCP server is configured and reachable, introspect a user-scoped subset of the database (tables, columns, types, RLS policies, and optionally functions/migrations), and persist the result as `DB_CONTEXT.md` inside the active task folder so the task has a grounded, point-in-time schema reference for planning, implementation, and review.
+
+When no MCP server is reachable, the command falls back to the local Supabase CLI and produces the same snapshot from CLI output. Only when neither path is available does it end in a no-op.
 
 This command is opt-in. It is not part of the default task initialization flow; run it after `task-init` only when the task actually touches Supabase data, schema, or RLS.
 
@@ -46,6 +48,7 @@ Required inputs:
   - `full`: `tables+rls` plus relevant functions, triggers, and the most recent migration filenames touching in-scope tables
 - optional: Supabase project ref (if the MCP server is configured for multiple projects); when omitted, use the project the MCP server is currently bound to and record which one was used
 - optional: refresh flag (`refresh` to regenerate an existing `DB_CONTEXT.md`; default is to fail with `NO_OP_TRACE` if a non-stale `DB_CONTEXT.md` already exists for the same scope)
+- optional: path to the local Supabase project directory. Needed only on the local CLI path below, where every CLI form runs from that directory. When omitted and the MCP path is unavailable, ask for it once instead of guessing a directory.
 
 Project repository files to read:
 - projects/<client>__<project>/active/YYYY-MM-DD_<task-slug>/TASK_STATE.md
@@ -56,17 +59,41 @@ Project repository files to update:
 - projects/<client>__<project>/active/YYYY-MM-DD_<task-slug>/DB_CONTEXT.md (create or fully regenerate; never partial-merge)
 - projects/<client>__<project>/active/YYYY-MM-DD_<task-slug>/SOURCE_OF_TRUTH.md (append-only: add a single `## DB context` section pointing to `./DB_CONTEXT.md` if not already present)
 
+Introspection path selection (MCP first, then the local CLI):
+Choose the path before any introspection, in this order, and record which one was used.
+
+1. Supabase MCP server. When the MCP server is configured, reachable, and exposes introspection tools, use it. Nothing about this path changes: same read-only rules, same scope and depth handling, same output.
+2. Local Supabase CLI. WHEN no MCP server is reachable AND a local Supabase CLI is available, fall back to the CLI and produce `DB_CONTEXT.md` from its output under the local CLI branch rules below.
+3. Neither. WHEN no MCP server is reachable and no local CLI is available, propose no `DB_CONTEXT.md` content and end with `NO_OP_TRACE` plus one actionable configuration line naming both paths (configure the Supabase MCP server, or bring the local stack up with `supabase start` in the local project directory and re-run). This is the existing no-op behavior and it is unchanged.
+
+Local CLI branch (applies only when path 2 was selected):
+- Availability check first. It reads the state of the local stack, not the database. Run `supabase status` from the local Supabase project directory. When it exits non-zero or reports the stack as not running, propose no `DB_CONTEXT.md` content and end with `NO_OP_TRACE` plus the actionable line naming `supabase start`. This command never starts, resets, seeds, or pushes to the stack; the user runs `supabase start` and re-runs this command.
+- Secrets rule, non-negotiable. `supabase status` prints the JWT secret, the anon key, and the service_role key to stdout. That raw output is NEVER written into `DB_CONTEXT.md`, NEVER into `SOURCE_OF_TRUTH.md`, NEVER into the command transcript or any other task artifact, and NEVER echoed back in the chat output. Record three facts and nothing more: that the local stack is reachable, the DB host, and the DB port, the last two read off the `DB URL` line with the user and password components stripped (the captured example `postgresql://postgres:postgres@127.0.0.1:54322/postgres` becomes host `127.0.0.1` and port `54322`). Pasting a status block into an artifact leaks a service-role credential, which bypasses RLS, into task memory that outlives the run.
+- Read-only, restated in full here because it must not live only on the MCP branch. On this branch, never run `INSERT` / `UPDATE` / `DELETE` / `DROP` / `ALTER` / `TRUNCATE` / `GRANT` / `REVOKE` through the CLI or through any connection the CLI reports. If the user requests one, redirect them to the appropriate implementation command and stop.
+- The read-only set for this branch is exactly these forms, each cited to the captured Supabase CLI reference, and nothing outside it may be issued:
+  - `supabase status` (availability only, subject to the secrets rule above)
+  - `supabase db dump -f <path>` for the schema
+  - `supabase db diff [--linked | --local | --db-url <string>]`
+  - `supabase db lint [--linked | --local | --db-url <string>]`
+  - `supabase inspect db <bloat|blocking|calls|locks|outliers>`
+  - `supabase inspect report [--output-dir <string>]`
+  Any subcommand outside this list is out of scope for this command, including anything that starts, resets, seeds, pushes, or applies migrations.
+- Write the schema dump to a scratch path outside the task folder, read it there, and do not add it as a task artifact. `DB_CONTEXT.md` plus the single `## DB context` cross-link stay the only files this command touches.
+- Grounding limits carried from the captured reference, kept rather than papered over: `supabase db dump` is captured with `-f <path>` only, so its target-selection flags are `[unclear in source]`. Narrow to the in-scope tables while reading the dump, not through a flag this command cannot cite. The captured reference states no CLI version, so the version this branch is written against is `[unclear in source]`; record the version only if the CLI output you actually read reports one, otherwise carry `[unclear in source]` into the snapshot.
+- Any field the CLI output does not answer (an RLS policy, a function body, a migration filename) is marked `[unclear from CLI output]`, never guessed.
+
 Operating rules:
 - Do not implement production code, migrations, or destructive SQL.
-- Only issue read-only introspection queries through the MCP server. Never run `INSERT` / `UPDATE` / `DELETE` / `DROP` / `ALTER` / `TRUNCATE` / `GRANT` / `REVOKE` for any reason; if the user requests one, redirect them to the appropriate implementation command and stop.
-- Do not invent tables, columns, types, policies, functions, or migrations. Every recorded field must come from the MCP server's response or from explicit user-supplied scope.
-- Always record `Last refreshed:` as today's date in `YYYY-MM-DD` format and the resolved Supabase project identifier. Stale snapshots without these fields are invalid.
+- Only issue read-only introspection: through the MCP server on the MCP path, and through the read-only CLI forms listed above on the local CLI path. Never run `INSERT` / `UPDATE` / `DELETE` / `DROP` / `ALTER` / `TRUNCATE` / `GRANT` / `REVOKE` for any reason on either path; if the user requests one, redirect them to the appropriate implementation command and stop.
+- Never record a credential. No `supabase status` output block, no service_role key, no anon key, no JWT secret, and no full connection string appears in `DB_CONTEXT.md`, in `SOURCE_OF_TRUTH.md`, in the transcript, or in the chat output. Host and port are the only connection details worth recording.
+- Do not invent tables, columns, types, policies, functions, or migrations. Every recorded field must come from the MCP server's response, from the CLI output on the local path, or from explicit user-supplied scope.
+- Always record `Last refreshed:` as today's date in `YYYY-MM-DD` format, the introspection path used, and the resolved Supabase project identifier (`local` on the local CLI path). Stale snapshots without these fields are invalid.
 - Never dump the entire database. If the user provides a schema with more than 25 tables and no narrowing list, ask one targeted question to narrow scope before introspecting.
 - Re-run policy: regeneration replaces `DB_CONTEXT.md` in full. Do not partial-merge. If the user has handwritten notes that should survive refresh, those belong in `DECISIONS.md` or `TASK_STATE.md`, not in `DB_CONTEXT.md`. State this explicitly when proposing a refresh that overwrites an existing file.
 - Cross-link policy: `SOURCE_OF_TRUTH.md` gets at most one `## DB context` section with a single relative pointer to `./DB_CONTEXT.md`. Do not duplicate schema content into `SOURCE_OF_TRUTH.md`.
 - Do not modify other task-scoped artifacts (`TASK_STATE.md`, `DECISIONS.md`, `IMPLEMENTATION_PLAN.md`, `IMPACT_ANALYSIS.md`, `INVARIANTS_AND_NON_GOALS.md`, `TEST_STRATEGY.md`, `PR_PACKAGE.md`, slice files).
 - Treat task-memory write policy per `WORKFLOW_OPERATING_SYSTEM.md`: `PROPOSED` in Ask/Plan mode, `APPLIED` only in Agent mode.
-- Mark fields as `[unclear from MCP response]` when the introspection tool returned ambiguous or partial data; never fill gaps with guesses.
+- Mark fields as `[unclear from MCP response]` on the MCP path, or `[unclear from CLI output]` on the local CLI path, when the introspection returned ambiguous or partial data; never fill gaps with guesses.
 - Output is intentionally bounded. Do not produce schema analysis, ER diagrams, or design recommendations beyond the snapshot itself; routing those follow-ups belongs in subsequent commands (`impact-analysis`, `decision-interview`, `implementation-plan`).
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full). Default `Run now`: read TASK_STATE.md `Last completed step`; if it was `task-init`, default to `impact-analysis`; if uncertain, default to `what-next`.
 
@@ -77,7 +104,11 @@ Snapshot format (canonical):
 
 ## Snapshot metadata
 - Provider: supabase
-- Project ref: <resolved-project-ref-or-alias>
+- Introspection path: mcp | local-cli
+- Project ref: <resolved-project-ref-or-alias, or "local" on the local-cli path>
+- Local stack: reachable (local-cli path only; never a key, a secret, or a connection string)
+- DB host/port: <host>:<port> (local-cli path only; host and port only, no user, no password)
+- CLI version: <version if the CLI output reported one, else [unclear in source]> (local-cli path only)
 - Last refreshed: YYYY-MM-DD
 - Depth: tables-only | tables+rls | full
 - Scope: <comma-separated list of schema.table or schema.* entries actually introspected>
@@ -111,8 +142,8 @@ Sections that have no content for the chosen depth must be omitted entirely rath
 
 Required output:
 1. Resolved active task path.
-2. Result of the MCP precondition check (configured / reachable / introspection tools available, or the actionable failure line).
-3. Resolved Supabase project ref/alias used for introspection.
+2. Which introspection path was selected (`mcp`, `local-cli`, or none) and the result of its precondition check. For the MCP path: configured / reachable / introspection tools available, or the actionable failure line. For the local CLI path: whether the local stack is reachable, reported without any key, secret, or connection string.
+3. Resolved Supabase project ref/alias used for introspection, or `local` plus the DB host and port on the local CLI path.
 4. Resolved scope (tables/schemas) and depth flag.
 5. Whether this is a `create` or a `refresh` of `DB_CONTEXT.md`, and (on refresh) a one-line drift summary versus the prior snapshot (e.g., "3 new columns, 1 dropped table, RLS toggled on `public.orders`").
 6. Exact content for `DB_CONTEXT.md` using the canonical snapshot format.
@@ -155,10 +186,11 @@ Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
 Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state).
 
 ### Definition of done (command output)
-- The MCP precondition check is performed first and its result is reported; if it failed, no `DB_CONTEXT.md` content is proposed and the run ends with `NO_OP_TRACE` plus the actionable configuration line.
-- The proposed `DB_CONTEXT.md` includes `Provider`, `Project ref`, `Last refreshed`, `Depth`, and `Scope` metadata, and at least one populated `## Tables` entry (or an explicit `NO_OP_TRACE` if the requested scope returned no tables).
-- Every column type, policy, function, and migration entry is grounded in the MCP server's response; no field is fabricated. Ambiguous fields are marked `[unclear from MCP response]`.
-- No destructive SQL was issued. Only read-only introspection was used.
+- The MCP precondition check is performed first and its result is reported. When it fails, the local CLI path is checked next; when neither path is available, no `DB_CONTEXT.md` content is proposed and the run ends with `NO_OP_TRACE` plus the actionable configuration line.
+- The proposed `DB_CONTEXT.md` includes `Provider`, `Introspection path`, `Project ref`, `Last refreshed`, `Depth`, and `Scope` metadata, and at least one populated `## Tables` entry (or an explicit `NO_OP_TRACE` if the requested scope returned no tables).
+- Every column type, policy, function, and migration entry is grounded in the MCP server's response or in the CLI output; no field is fabricated. Ambiguous fields are marked `[unclear from MCP response]` or `[unclear from CLI output]`.
+- No destructive SQL was issued on either path. Only read-only introspection was used, and on the local CLI path only the command forms in that branch's read-only set.
+- No credential escaped the local CLI path: no `supabase status` output block, no service_role key, no anon key, no JWT secret, and no full connection string appears in `DB_CONTEXT.md`, in `SOURCE_OF_TRUTH.md`, in the transcript, or in the chat output.
 - No task-scoped artifact other than `DB_CONTEXT.md` and (at most) a single `## DB context` cross-link in `SOURCE_OF_TRUTH.md` is modified.
 - On refresh, the prior `DB_CONTEXT.md` is fully replaced (no partial merge), and the drift summary in the required output makes the change auditable.
 - `### Artifact changes` marks the patches as `PROPOSED` in Ask mode or `APPLIED` only when the user explicitly authorized Agent persistence.
@@ -167,6 +199,6 @@ Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global ou
 - Before declaring this output done, confirm it satisfies the shared **Definition of done (command outputs)** and **Gate conditions** in WORKFLOW_OPERATING_SYSTEM.md.
 
 Quality bar:
-Optimize for fidelity to the live Supabase schema, point-in-time auditability, narrow scope (no full-DB dumps), and minimal disruption to whatever task-scoped work was in progress before this capture.
+Optimize for fidelity to the live Supabase schema, point-in-time auditability, narrow scope (no full-DB dumps), credential hygiene (a service-role key never reaches a task artifact), and minimal disruption to whatever task-scoped work was in progress before this capture.
 
 <!-- cache-breakpoint -->

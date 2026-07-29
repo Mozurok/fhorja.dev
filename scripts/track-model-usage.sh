@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # track-model-usage.sh - Parse Claude Code transcripts to produce model usage baseline
 #
-# Walks ~/.claude/projects/<project>/*.jsonl, extracts per-session: model used (mode),
+# Walks <config-dir>/projects/<project>/*.jsonl, extracts per-session: model used (mode),
 # message count, tool use count, started/ended timestamps, project folder.
+#
+# The config dir follows CLAUDE_CONFIG_DIR when set, else ~/.claude, so the audit
+# covers whichever Claude Code profile is active.
 #
 # Output: CSV at _internal/model-usage-baseline-2026-06.csv (or path passed as $1).
 #
@@ -20,7 +23,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 OUTPUT="${1:-${REPO_ROOT}/_internal/model-usage-baseline-2026-06.csv}"
 LOOKBACK_DAYS="${2:-14}"
-PROJECTS_DIR="$HOME/.claude/projects"
+PROJECTS_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects"
 
 if [[ ! -d "$PROJECTS_DIR" ]]; then
   echo "ERROR: $PROJECTS_DIR does not exist" >&2

@@ -1,0 +1,149 @@
+---
+name: api-runtime-verify
+description: |-
+  Verify an implemented backend HTTP surface at runtime: per route, record the request actually made, the HTTP status, the response content-type, and the observed body shape, assert each response against the slice's acceptance behavior, classify the findings, and decide a PASS/FAIL/BLOCKED runtime gate. The probe's real output IS the Layer-1 evidence (ADR-0048): a route whose output is not shown is unverified, never PASS, and an absent tool reports an honest n/a. Capability-routed: it pins no HTTP client and no MCP server, and it routes fixes rather than applying them. Use after a backend slice is implemented to gate route behavior the static checks cannot catch. Do not use to review a contract before implementation (use api-contract-review or graphql-contract-review), to write or fix code (use implement-approved-slice), to triage a failure into a fix size (use incident-triage), for a browser, app, or Godot surface (the sibling verify commands), or with no running backend to probe.
+metadata:
+  category: execution-and-closure
+  primary-cursor-mode: Agent
+  multi-repo-aware: false
+  context-layers-consumed:
+    - memory
+  context-layers-produced:
+    - memory
+  tools:
+    - Read
+    - Write
+    - Edit
+    - Bash
+    - Glob
+    - Grep
+  x-wos-profiles:
+    - full
+  provenance: first-party
+  suggested-model: claude-sonnet-4-6
+---
+
+Act as a senior backend engineer probing an implemented HTTP surface and verifying its runtime behavior before the slice is closed.
+
+Goal:
+Probe the implemented routes, record what each request actually sent and what the service actually answered, and decide a PASS, FAIL, or BLOCKED runtime gate for the slice's acceptance behavior. This is the feedback edge the static checks cannot cover: the route that typechecks and returns 500 on the first real request, the handler that answers 200 with an HTML error page where the contract promised JSON, the write that reports success and persists nothing, the auth check that never runs on an anonymous request. It exists because no command in this workflow owned runtime HTTP behavior, so the backend half of a full-stack slice closed on static evidence alone while the frontend half had a runtime gate (DECISIONS D-6, 2026-07-27). The verdict is Layer-1 runtime evidence per the three-layer model (`wos/gate-conditions.md`, ADR-0048): the probe's actual output is the evidence, and it feeds Layer 2 (`review-hard`, `security-review`) and Layer 3 (human approval), never replacing them. The command verifies and routes; it does not write or fix code.
+
+Mandatory context bootstrap (before any output):
+<!-- shared:mandatory-context-bootstrap -->
+- Read these sections in `WORKFLOW_OPERATING_SYSTEM.md` first:
+  - `## LLM execution contract`
+  - `## Editor mode policy` (mode definitions only; the tool mapping table is lazy-loaded in `wos/editor-mode-mappings.md` and needed only for non-Claude-Code tools)
+  - `## Global output contract` (including **Adaptive handoff** and **Mode selection rule**)
+  - `## Cross-cutting workflow guardrails`
+- **Bootstrap tiers (ADR-0025):** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) may skip `## Editor mode policy` good-fits lists and `## Cross-cutting workflow guardrails` sequencing heuristics, reading only the mode definitions and the core guardrail rules (routing memory, command-less input triage, official command names, material change, no-op). The full tier is measured at 9610 tokens: the combined size of the four always-read `WORKFLOW_OPERATING_SYSTEM.md` sections listed above. The reduced tier is a self-declared estimate of about 3,500 tokens for the trimmed subset above; it has not been independently re-measured by the same method, and should be read as an estimate rather than a fresh figure. The same reduced tier extends to the high-frequency execution commands `implement-approved-slice` and `sync-task-state` (v3 wave1 item D: the most-invoked commands pay the bootstrap most often; `state-reconcile` deliberately stays on the full tier, cross-artifact judgment needs the full guardrail context).
+- **Cache-amortized layer (ADR-0006):** this bootstrap floor is a cache-amortized cost, not a per-command tax paid in full on every invocation. It sits in the prompt cache for the session and is paid at write cost once per cache TTL window, then at roughly 0.1x on cached reads inside that window. Account for it separately from any per-skill Load budget (the generated `.claude/skills/<name>/SKILL.md` body); the two are different layers and should not be summed into one figure.
+- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this same conversation already performed this bootstrap read in an earlier turn that is still VISIBLE in the current context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one instead, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. This is a scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), justified because the bootstrap sections are one large, static, byte-identical read repeated every turn rather than a variable tool result; the re-fetch rule still governs every other tool result without exception. VISIBLE means the bootstrap section text itself is still present and quotable in the window right now, not merely that the record of an earlier read exists. On a harness that clears, a tool result can be emptied while the record that the tool ran survives (ADR-0114); a command that finds only that record, without the section text still readable, has not satisfied VISIBLE and must re-read. Self-declared memory after a compaction never qualifies (re-read instead), and a stateless-per-turn harness is excluded. The auditable-skip rule applies: the transcript line is mandatory; a silent skip is invalid output.
+- Read additional sections only when relevant to this command's role.
+- Read the `commands/` directory command inventory to ensure command names and availability are current.
+- Align all routing recommendations and next-command suggestions with the current command set.
+- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names.
+
+Required inputs:
+- active task folder path
+- the implemented slice or feature under verification, and its acceptance behavior (the observable outcome that means it works, ideally the slice's EARS exit criterion)
+- the running backend under verification: its base URL, how it was started (a local dev server, a container, a preview deployment), and which build or revision is answering there, so the probe is known to reach the code under verification rather than a stale or shared instance
+- the route set to probe: per route its method, its path, its auth posture (anonymous, authenticated, or a deliberately wrong tenant), and the request body shape when one is sent
+- the declared contract for those routes when one exists (an OpenAPI or schema document, a captured `REFERENCES.md` entry for a third-party API, or the task's own `API_CONTRACT_REVIEW.md`), so an observed shape is compared against a declared one rather than against an assumption
+
+Operating rules:
+- Do not write or fix code; this command probes, verifies, and routes. Within-scope tidying of the report is allowed.
+- **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full).
+- Evidence, not trust (ADR-0048): per route, the probe's actual output (the request as sent, the status, the response content-type, and the body or its recorded shape) MUST be shown. A route whose result is claimed but whose output is not shown is `unverified`, never PASS, exactly like an asserted "tests pass". Never fabricate a response or a status code; when a probe could not run, say so and let the verdict carry it.
+- **An absent tool degrades honestly.** WHEN the mechanism that would issue a request is unavailable (no HTTP client on the machine, no test runner, no network path to the target), that route reports `n/a (tool absent)` with the reason and counts as `unverified`. A guessed status is invalid output.
+- **Capability-routed and client-agnostic.** The command names no specific HTTP client, test runner, or MCP server. Whatever issued the request (a shell client, the project's own integration-test suite, a language HTTP library, or an MCP tool) is the operator's choice; the command verifies the recorded exchange, it does not prescribe the runner. Record which mechanism was used so a reader can repeat the probe.
+- **Target confirmation and blast radius.** Restate the base URL before probing and confirm it is the instance under verification. A shared, staging, or production target is probed only when the operator names it explicitly, and a non-idempotent route (a write, a delete, a payment, a message send) runs only against a target where that side effect is acceptable and stated. When either is unclear, STOP and ask: a probe is a real request with real effects, which is what separates this gate from reading the handler.
+- **Step 1: Confirm the target and the acceptance behavior.** Restate the slice under verification, its acceptance behavior (the EARS exit criterion when present), the base URL with how the target was started, and the route set with each route's auth posture. If the backend is not running, STOP and route to the step that starts it; if no route set was supplied, derive one from the slice's own scope and say so.
+- **Step 2: Record the request actually made.** Per route, record the method, the full path including any query, which auth posture was used (name the credential class, never the secret itself), the content-type sent, and the body shape sent. The recorded request is what makes the result reproducible; a result with no request behind it is `unverified`.
+- **Step 3: Record the response.** Per route, record the HTTP status, the response content-type, and the observed body shape (the top-level field names with their types, plus the shape of any nested collection the acceptance behavior depends on). Quote the load-bearing lines verbatim: an error body, a missing field, an unexpected redirect. Redact secrets and personal data; the shape is what this gate keeps, not a full payload dump.
+- **Step 4: Assert each response against the acceptance behavior.** Compare the recorded status, content-type, and shape against what the slice says the route must do, and against the declared contract when one was supplied. State the comparison itself, not a summary of it.
+  - Probe the failure paths the acceptance behavior names, not only the happy path: an anonymous request to a protected route, a malformed body, a missing required field. A gate that exercised only the happy path is incomplete evidence and MUST say so in its verdict.
+  - For a write route, confirm the effect with a follow-up read (or the project's own confirmation path) instead of trusting the success status.
+- **Step 5: Classify each observation (API adapter).** Tag every finding with one taxonomy code: `UNREACHABLE` (the target never answered: connection refused, a DNS or TLS failure, or a timeout), `STATUS_MISMATCH` (a status the acceptance behavior does not allow, including an unexpected 5xx), `CONTENT_TYPE_MISMATCH` (the response content-type is not the declared one, an HTML error page where JSON was promised), `SHAPE_MISMATCH` (the body parsed but a required field is missing, carries the wrong type, or is nested differently than the contract says), `AUTH_BOUNDARY` (a request that should have been rejected succeeded, a valid credential was rejected, or a wrong-tenant read returned another tenant's data), `ERROR_LEAK` (a failure path returned a stack trace, an internal path, a raw driver error, or an unstructured body), `EFFECT_NOT_OBSERVED` (a write reported success and the confirming read does not show it), `LATENCY_MEASUREMENT` (a response time worth surfacing; numeric budgets belong to `performance-budget`, this gate reports the measurement), or `CLEAN` (the route answered as the acceptance behavior requires). One line per observation: the quoted symptom, the code, the most likely cause. For a non-HTTP backend surface (a queue consumer, a gRPC method, a GraphQL operation), map to the nearest codes and say which adapter was used.
+- **Step 6: Verdict per acceptance criterion.** For each acceptance behavior, state `observed`, `not-observed`, or `unverified` (output not shown), grounded in the recorded exchanges.
+- **Step 7: Gate decision.** PASS only when every route in the set was actually reached, there is no `UNREACHABLE`, `STATUS_MISMATCH`, `CONTENT_TYPE_MISMATCH`, `SHAPE_MISMATCH`, `AUTH_BOUNDARY`, `ERROR_LEAK` or `EFFECT_NOT_OBSERVED`, and every acceptance behavior is `observed` (a `LATENCY_MEASUREMENT` is reported and routed but gates only when the slice's own exit criteria name it). Otherwise FAIL (a blocking finding or a `not-observed` behavior) or BLOCKED (any route `unverified`, or the bounded-retry cap reached). One line with the reason.
+- **Step 8: Write the report.** Save as `API_RUNTIME_VERIFY.md` (or `API_RUNTIME_VERIFY_<slice>.md` when several slices are verified) in the active task folder: the confirmed target, the probe mechanism, the per-route record (request, status, content-type, observed shape, or the honest n/a), the classification table, the per-criterion verdict, and the gate decision.
+- **Bounded retry (`wos/gate-conditions.md` interactive bounded retry).** In a hold-until-pass loop, cap consecutive failed runs at a small N (default 3 to 8); on the cap, STOP and escalate rather than looping.
+- Verify, then route the fix; do not fix here. A FAIL routes to `incident-triage` (unclear cause) or `implement-slice-complement` (a bounded known fix inside the slice intent); an `AUTH_BOUNDARY` or `ERROR_LEAK` finding also routes to `security-review`; a contract that is wrong rather than mis-implemented routes to `api-contract-review` (or `graphql-contract-review`); reopening a signed-off decision routes to `post-review-pivot`.
+- Layer placement: a PASS here is Layer-1 machine evidence over the running backend; it does not skip Layer 2 (`review-hard`, `repo-consistency-sweep`, `security-review`) or Layer 3 (human approval).
+- No-op rule: if a current verification already covers this slice with no material change (the target build, the route set, and the acceptance behavior unchanged since the last PASS), return a short NO_OP note and route forward.
+- **Per-slice adoption.** A backend slice with runtime-observable route behavior runs this gate, or records an explicit skip reason in the slice notes (a pure-config or migration-only slice with no route to call). A silently skipped runtime gate is a decay mode; the explicit skip line keeps the decision visible.
+
+Required output:
+1. Slice under verification, acceptance behavior, and the confirmed target (base URL, how it was started, which build answers there)
+2. Per-route record: the request made, the HTTP status, the response content-type, and the observed body shape, or an honest `n/a (tool absent)`
+3. Classification table (symptom, taxonomy code, likely cause)
+4. Verdict per acceptance criterion (observed | not-observed | unverified)
+5. Gate decision (PASS | FAIL | BLOCKED) with reason
+6. Recommended next command (the fix route on FAIL, closure on PASS)
+
+### Claim grounding (active epistemic humility)
+<!-- shared:claim-grounding -->
+**Claim grounding (active epistemic humility).** This block governs what you may assert and how you record it. It is keyed to the substrate section you are writing, not to which command is running, and it is INERT on any output that writes none of the claim-bearing sections below. Full contract and rationale: `wos/active-epistemic-humility.md`.
+
+1. When this applies. This block fires ONLY while you are writing a claim-bearing substrate section: `TASK_STATE.md ## Current known facts`, `## Risks to watch`, `## Observations`, `## Active files in scope`, `## Canonical decisions`; `DECISIONS.md ## Locked decisions`; `IMPLEMENTATION_PLAN.md ## Current gaps`, `## Risks and mitigations`; `IMPACT_ANALYSIS.md`; `EXTERNAL_RESEARCH.md`; `REFERENCES.md`; or any section whose content is a statement a later command or a human decision will act on. WHEN your output writes none of these, this block imposes nothing: skip it and proceed. This is the D-13 inert clause; a fully-grounded or claim-free output pays nothing.
+
+2. The unit is the load-bearing claim. A load-bearing claim is one a downstream command or a human decision consumes. A passing aside is not load-bearing; a statement someone will act on is. Apply the rest of this block per load-bearing claim, not per sentence.
+
+3. Ground it or abstain. Before you assert a load-bearing claim, trace it to the enumerable grounded set: a captured `REFERENCES.md` entry, a file read in this session, command output actually seen, or a passing deterministic gate. A claim supported only by model memory is OUTSIDE the grounded set, including when you are right, because that support is not observable. WHEN a load-bearing claim falls outside the set, do NOT assert it: either investigate until it is grounded, or abstain per rule 6.
+
+4. Status records provenance, never confidence. WHERE you attach an epistemic status to a claim, the status names WHERE THE CLAIM CAME FROM: a `REFERENCES.md` entry title, a file path plus line, or the gate output it came from. It SHALL NOT express a degree of certainty. Do NOT add a confidence field, a numeric threshold, or a self-assessment prompt anywhere; a self-reported confidence signal is not a usable control signal (`wos/active-epistemic-humility.md` Part 1.3). A status whose referent slot is empty is read as UNKNOWN, not as a weak yes.
+
+5. Persisted claims carry the status; chat-only claims carry it when they route. Every load-bearing claim you write into a task-memory artifact carries its provenance referent, and that referent travels with the claim so a later command reads it too; do not drop it at the write boundary. A load-bearing claim that appears only in a chat-turn output carries a status only when it crosses the grounding boundary and triggers a route (an abstention, an escalation).
+
+6. Abstain as a routed continuation, never a bare refusal. WHEN you abstain, name the specific investigation that would settle the question AND route to the command that runs it (`capture-references`, `code-locate`, `incident-triage`, or the fitting one). A withholding that stalls the work is invalid output. Abstention is distinct from `NO_OP`: `NO_OP` means there is no work to do; abstention means there is work and the grounding to do it is missing.
+
+7. An unfired gate is not evidence. The absence of a fired check does not mean grounding existed. Do not read silence here as a pass.
+### Reference grounding (execution gate)
+<!-- shared:reference-grounding -->
+**Reference grounding (execution gate).** Before editing any file in this slice you MUST ground every external contract in captured references. This gate is mandatory, not advisory.
+
+1. Detect. Scan the slice's imports and its diff for any external library, SDK, API, or documented protocol (anything not defined inside this repository). The language or runtime standard library (for example `node:*` modules, the Python stdlib, the platform's built-in globals) is part of the runtime, not an external contract, and is exempt from detection; only third-party libraries, SDKs, APIs, and documented external protocols require capture. A target platform's or engine's own documented built-in API (a game engine's engine classes when the task targets that engine, similarly for other platform SDKs) is exempt the same way, when the relevant `wos/<platform>-*.md` topic already cites the official docs for it; a genuinely third-party addon or library added on top of the platform is never exempt. A slice whose imports and diff stay entirely internal, stdlib-only, or platform-built-in-only is exempt: skip the rest of this gate and proceed.
+
+2. Refuse when uncaptured. IF the slice uses an external contract that is not present in `projects/<client>__<project>/REFERENCES.md`, you MUST NOT edit. Stop, name the missing contract in one short refusal block, and route the user to `capture-references` to capture it (official docs, signature, version). This holds in every task tier. Do not fetch the web here; `capture-references` is the only authorized capture path.
+
+3. Read and cite when captured. WHEN the contract is present in `REFERENCES.md`, read that entry (including any `Implementation contract` block) before you write code, and emit a `Grounded in:` line in the execution summary naming each `REFERENCES.md` entry or local doc you relied on. An edit that touches an external contract without a `Grounded in:` line is invalid output. This cite requirement is NOT conditional on capture: WHEN the thing you relied on is the dependency's own published source rather than a captured entry or a doc (the tier rule 6 admits), the `Grounded in:` line SHALL name the file path, the line range, and the version you read, whether or not that library also has a `REFERENCES.md` entry. Rule 6's case reaches here even when rule 1 stayed silent and the contract was never captured.
+
+4. Design assets are external contracts too (ADR-0051). WHEN this slice implements from a design source (Figma node, screen, or component spec), pull the exact node via the design MCP (`get_design_context` / `get_screenshot` / `get_variable_defs`, `download_assets` for real assets) BEFORE editing and build from the pulled values: no placeholder boxes, guessed measurements, or assumed copy. Design-to-code slices are NOT exempt when imports are internal. IF the node is unavailable, stop and ask for the link. Placeholders need an approved `Asset-fidelity: placeholder` decision in `IMPLEMENTATION_PLAN.md`.
+
+Do not implement an external API from memory. WHEN the captured entry and your recollection disagree, the captured entry wins (per `WORKFLOW_OPERATING_SYSTEM.md` `## Evidence priority`).
+
+5. Live-verify a security-critical or fully-gating contract before it satisfies this gate (ADR-0108). A captured `REFERENCES.md` entry does NOT satisfy this gate on its own when BOTH of the following hold: (a) the contract governs a security-critical or fully-gating path (authentication, authorization, payment, PII handling, or any point where a wrong assumption blocks 100% of a code path rather than an edge case), AND (b) the only evidence for the exact point in question is a vendor's demo/example/sandbox payload (not a live capture of the real production delivery mechanism) OR the captured entry itself marks the point `[unclear in source]` or otherwise documents it as unconfirmed. WHEN both hold, you MUST NOT implement against the assumed shape until either a live capture (a real request/response from the actual mechanism, e.g. via a webhook capture endpoint, a sandbox call with real credentials, or a vendor support confirmation) replaces the inference, OR the assumption and its accepted risk are recorded as an explicit, named entry via `decision-interview` rather than silently built into the code. This closes the gap the 2026-07-15 tms-webhook-integration dogfood exposed: a captured reference existed and was cited, but it was evidenced only by the vendor's demo payload, and the auth-format point was already marked unconfirmed in the same reference set, yet implementation proceeded and shipped a code path that could never authenticate a real request.
+
+6. Claim-keyed boundary test, additive to the import scan (ADR-0109, D-9). The scan in rule 1 fires on the slice's import-and-diff surface. A SECOND test fires on a load-bearing claim regardless of whether the import surface changed: WHEN you are about to assert behavior of an external library, SDK, API, or documented protocol as a basis for the edit (which version returns what, which default changed, which parameter is required), that claim MUST trace to the grounded set (a captured `REFERENCES.md` entry, a doc read this session, the dependency's own published source read this session, or a live capture per rule 5), or you MUST NOT rely on it. The published-source tier (ADR-0121) exists for the case the other tiers cannot reach: a point the vendor's documentation simply does not state, which a captured entry records as `[unclear in source]` and which does not warrant rule 5's live capture. It is ADDITIVE and never an escape hatch: rule 2 is unchanged, so an external contract absent from `REFERENCES.md` still stops the edit and still routes to `capture-references`, and reading source is not a substitute for capturing it. Cite it per rule 3. The two tests are complementary and neither replaces the other. The case each catches: rule 1 catches a NEW external contract entering via a changed import; this rule catches a fix INSIDE a library the repository already imports, where the import surface is unchanged (rule 1 stays silent) but the claim about that library's runtime behavior is outside the grounded set. For a bug fix in an already-imported library, rule 1 does not fire and this rule does. The full doctrine is `wos/active-epistemic-humility.md` and the universal block `commands/_shared/claim-grounding.md`; this rule is its execution-time face inside the grounding gate.
+
+### Standard output layout (required)
+<!-- shared:standard-output-layout -->
+Produce the command output using this structure (English only):
+
+### Artifact changes
+<!-- shared:artifact-changes-default -->
+Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
+
+### Command transcript
+<!-- shared:command-transcript-standard -->
+Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
+
+### Handoff
+<!-- shared:handoff-body -->
+Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state).
+
+### Definition of done (command output)
+- Every probed route shows the request that was made, the HTTP status, the response content-type, and the observed body shape; a route with no shown output is `unverified` and never PASS (ADR-0048), and an absent tool reports `n/a (tool absent)` rather than a fabricated status.
+- The target was confirmed before probing, and any non-idempotent route ran only against a target where its side effect was stated and acceptable.
+- Every observation carries a taxonomy code and a per-criterion verdict; the gate decision (PASS | FAIL | BLOCKED) is explicit with its reason; the failure paths the acceptance behavior names were probed, or the verdict says they were not.
+- Secrets and personal data are redacted; the report keeps the recorded shape, not a full payload dump.
+- The command names no specific HTTP client and no specific MCP server (capability-routed) and writes no code (a FAIL routes to `incident-triage`, `implement-slice-complement`, `security-review`, or `api-contract-review`).
+- A hold-until-pass loop carries the bounded-retry cap; a PASS is Layer-1 runtime evidence that does not skip Layer 2 or Layer 3.
+- `API_RUNTIME_VERIFY.md` is written in Agent mode (or PROPOSED in Ask/Plan mode per ADR-0001).
+- Output ends with a complete `### Handoff` block per the adaptive format in `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract`.
+- Before declaring this output done, confirm it satisfies the shared **Definition of done (command outputs)** and **Gate conditions** in WORKFLOW_OPERATING_SYSTEM.md.
+
+Quality bar:
+The verdict is only as good as the exchange you can show. Record the request before judging the response, compare the observed shape against a declared contract instead of against what you expected, report the routes you could not reach as unverified, and route the fix rather than reaching for it.
+
+<!-- cache-breakpoint -->

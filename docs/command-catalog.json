@@ -1,5 +1,5 @@
 {
-  "command_count": 95,
+  "command_count": 97,
   "commands": [
     {
       "category": "planning-and-validation",
@@ -41,6 +41,20 @@
         "implementation-plan",
         "decision-interview",
         "impact-analysis"
+      ]
+    },
+    {
+      "category": "execution-and-closure",
+      "description": "Verify an implemented backend HTTP surface at runtime: per route, record the request actually made, the HTTP status, the response content-type, and the observed body shape, assert each response against the slice's acceptance behavior, classify the findings, and decide a PASS/FAIL/BLOCKED runtime gate. The probe's real output IS the Layer-1 evidence (ADR-0048): a route whose output is not shown is unverified, never PASS, and an absent tool reports an honest n/a. Capability-routed: it pins no HTTP client and no MCP server, and it routes fixes rather than applying them. Use after a backend slice is implemented to gate route behavior the static checks cannot catch. Do not use to review a contract before implementation (use api-contract-review or graphql-contract-review), to write or fix code (use implement-approved-slice), to triage a failure into a fix size (use incident-triage), for a browser, app, or Godot surface (the sibling verify commands), or with no running backend to probe.",
+      "mode": "Agent",
+      "model": "claude-sonnet-4-6",
+      "multi_repo_aware": "false",
+      "name": "api-runtime-verify",
+      "next_commands": [
+        "slice-closure",
+        "incident-triage",
+        "implement-slice-complement",
+        "security-review"
       ]
     },
     {
@@ -128,7 +142,19 @@
     },
     {
       "category": "execution-and-closure",
-      "description": "Drive an approved, waved IMPLEMENTATION_PLAN through the autonomous delivery track. A thin code-orchestrated dispatcher over the existing fleet primitives (the Workflow tool, implement-approved-slice as single writer) bounded by two human gates and a runtime governor. Runs verifiable slices with little supervision and emits PROPOSED slice diffs only; it never merges. Use when the plan is approved (approve-plan), broken into dependency-ordered waves, and the maintainer wants the work between the two gates run hands-off in a single supervised session. Do not use when the plan is not yet approved (run approve-plan), the work is a single slice (use implement-approved-slice), the run would need to remove the human merge gate or auto-merge (never allowed; a human always performs the merge), or cross-session durable resume (restart and re-attach of a stopped run) is required (out of v1 scope; a detached single continuous background session is in scope via the opt-in background mode).",
+      "description": "Decide whether an already-defined project is ready to boot an unattended overnight run, and refuse until it is. Reads the project's own definition artifacts through the shared definition-completeness reader, emits a per-criterion ledger with a BOOT or NOT-READY verdict naming every missing item, and returns NOT-READY when a declared runtime surface has no evidence adapter rather than booting blind. It reports and routes: it never answers a criterion on the operator's behalf, never records a decision as user input, and a BOOT verdict never substitutes for plan approval. Use before handing a night to autonomous-run. Do not use to approve a plan (use approve-plan), to drive the run itself (use autonomous-run), to view a run already in flight (use autonomous-board), or to shape a fuzzy objective before a task exists (use problem-framing).",
+      "mode": "Ask",
+      "model": "claude-sonnet-4-6",
+      "multi_repo_aware": "false",
+      "name": "autonomous-readiness",
+      "next_commands": [
+        "autonomous-run",
+        "decision-interview"
+      ]
+    },
+    {
+      "category": "execution-and-closure",
+      "description": "Drive an approved, waved IMPLEMENTATION_PLAN through the autonomous delivery track. A thin dispatcher over the existing fleet primitives (the Workflow tool, implement-approved-slice as single writer) bounded by two human gates and a runtime governor. Runs verifiable slices with little supervision and emits PROPOSED slice diffs only; it never merges. Use when the plan is approved (approve-plan), autonomous-readiness returned BOOT, broken into dependency-ordered waves, and the maintainer wants the work between the two gates run hands-off in a single supervised session. Do not use when the plan is not yet approved (run approve-plan), readiness is absent or NOT-READY (run autonomous-readiness), the work is a single slice (use implement-approved-slice), the run would need to auto-merge (never allowed; a human always performs the merge), or cross-session durable resume (restart and re-attach) is required (out of v1 scope; a detached continuous background session is in scope via the opt-in background mode).",
       "mode": "Agent",
       "model": "claude-sonnet-4-6",
       "multi_repo_aware": "false",
@@ -269,7 +295,7 @@
     },
     {
       "category": "database-context",
-      "description": "Validate that a Supabase MCP server is reachable, introspect a user-scoped subset of the database (tables, columns, types, RLS policies, optionally functions and recent migrations), and persist the result as DB_CONTEXT.md inside the active task folder; adds a single ## DB context cross-link in SOURCE_OF_TRUTH.md. Read-only introspection only; never destructive SQL. Opt-in, not part of default task init. Use when the active task touches Supabase data/schema/RLS, when planning or implementation needs verified schema rather than assumed schema, or when an existing DB_CONTEXT.md is stale. Do not use without an active task folder (run task-init first), when the task does not touch Supabase, when the database is not Supabase, or when the user wants to record a schema decision (use decision-interview).",
+      "description": "Validate that a Supabase MCP server is reachable, introspect a user-scoped subset of the database (tables, columns, types, RLS policies, optionally functions and recent migrations), and persist the result as DB_CONTEXT.md inside the active task folder; adds a single ## DB context cross-link in SOURCE_OF_TRUTH.md. Read-only introspection only; never destructive SQL. Falls back to the local Supabase CLI when no MCP server is reachable, and never records supabase status output into a task artifact because it prints the service_role key. Opt-in, not part of default task init. Use when the active task touches Supabase data/schema/RLS, when planning or implementation needs verified schema rather than assumed schema, or when an existing DB_CONTEXT.md is stale. Do not use without an active task folder (run task-init first), when the task does not touch Supabase, when the database is not Supabase, or when the user wants to record a schema decision (use decision-interview).",
       "mode": "Ask",
       "model": "claude-sonnet-4-6",
       "multi_repo_aware": "false",
@@ -447,7 +473,7 @@
     },
     {
       "category": "execution-and-closure",
-      "description": "Verify a built Godot 2D scene at runtime: run the scene (press-play or headless), read the captured debugger output, classify any runtime errors against a Godot-specific taxonomy, and decide a PASS/FAIL runtime gate for the slice's acceptance behavior. The run's real output IS the Layer-1 runtime evidence (ADR-0048); a claimed-but-not-shown run is unverified. MCP-agnostic about how the scene is run; it verifies and routes fixes, it does not apply them. Use after a Godot slice is implemented to gate runtime behavior the static checks (lint, typecheck) cannot catch. Do not use to plan a scene (use godot-scene-plan), to write or fix the code (use implement-approved-slice or implement-slice-complement), to triage a failure into a fix size (use incident-triage), or with no implemented scene to run.",
+      "description": "Verify a built Godot 2D or 3D scene at runtime: run the scene (press-play or headless), read the captured debugger output, classify any runtime errors against a Godot-specific taxonomy, and decide a PASS/FAIL runtime gate for the slice's acceptance behavior. The run's real output IS the Layer-1 runtime evidence (ADR-0048); a claimed-but-not-shown run is unverified. MCP-agnostic about how the scene is run; it verifies and routes fixes, it does not apply them. Use after a Godot slice is implemented to gate runtime behavior the static checks (lint, typecheck) cannot catch. Do not use to plan a scene (use godot-scene-plan), to write or fix the code (use implement-approved-slice or implement-slice-complement), to triage a failure into a fix size (use incident-triage), or with no implemented scene to run.",
       "mode": "Agent",
       "model": "claude-sonnet-4-6",
       "multi_repo_aware": "false",
@@ -460,7 +486,7 @@
     },
     {
       "category": "discovery-and-scoping",
-      "description": "Plan the Godot scene and node structure for a 2D game feature before any GDScript is written: the scene tree, node types and responsibilities, autoloads (singletons), signal wiring, the input map, and the resources and sub-scenes to create. Produces GODOT_SCENE_PLAN.md, a design-time plan an MCP-driven editor or a human then builds against. Capability-routed and MCP-agnostic (names no specific server). Consults the Godot reference topics (architecture, interaction-and-feel) for save-state, touch, and feedback-layer depth. Use when a Godot 2D feature or screen needs its scene architecture decided before implementation. Do not use to frame whether the game idea is right (use problem-framing in its game-design mode), to slice an already-planned build (use implementation-plan), to analyze blast radius of an existing Godot project (use impact-analysis), to verify a running scene (use godot-runtime-verify), or with no active task folder (run task-init first).",
+      "description": "Plan the Godot scene and node structure for a 2D or 3D game feature before any GDScript is written: the scene tree, node types and responsibilities, autoloads (singletons), signal wiring, the input map, and the resources and sub-scenes to create. Produces GODOT_SCENE_PLAN.md, a design-time plan an MCP-driven editor or a human then builds against. Capability-routed and MCP-agnostic (names no specific server). Consults the per-dimension Godot reference topics. A 3D plan SHALL declare its renderer tier or it is incomplete. Use when a Godot 2D or 3D feature or screen needs its scene architecture decided before implementation. Do not use to frame whether the game idea is right (use problem-framing in its game-design mode), to slice an already-planned build (use implementation-plan), to analyze blast radius of an existing Godot project (use impact-analysis), to verify a running scene (use godot-runtime-verify), or with no active task folder (run task-init first).",
       "mode": "Agent",
       "model": "claude-sonnet-4-6",
       "multi_repo_aware": "false",
@@ -507,7 +533,7 @@
     },
     {
       "category": "discovery-and-scoping",
-      "description": "Generate a design-system spec from a raw image file (a screenshot, mockup, or captured app screen) when there is no Figma source. Reads the image with vision and emits a COMPONENT_SPEC.md-shaped doc (--component) or a SCREEN_SPEC.md-shaped doc (--screen), auto-detecting the mode when no flag is given. A gated --gameplay mode (ADR-0084, off by default) instead derives a MECHANICS_SPEC.md behavior contract for a 2D game from screenshots, extracted video frames, and playtest notes, with every rule in EARS form tagged observed, assumed, or open. Every observation is marked proposed because an image is an inference source, not a source of truth. Use when you have only an image and want a structured spec the design cluster can consume. Do not use when a Figma node exists (use component-spec or screen-spec), when you want code rather than a spec, or to push the image into Figma (that is generate_figma_design, a separate capability).",
+      "description": "Generate a design-system spec from a raw image file (a screenshot, mockup, or captured app screen) when there is no Figma source. Reads the image with vision and emits a COMPONENT_SPEC.md-shaped doc (--component) or a SCREEN_SPEC.md-shaped doc (--screen), auto-detecting the mode when no flag is given. A gated --gameplay mode (ADR-0084, off by default) instead derives a MECHANICS_SPEC.md behavior contract for a 2D or 3D game from screenshots, extracted video frames, and playtest notes, with every rule in EARS form tagged observed, assumed, or open. Every observation is marked proposed because an image is an inference source, not a source of truth. Use when you have only an image and want a structured spec the design cluster can consume. Do not use when a Figma node exists (use component-spec or screen-spec), when you want code rather than a spec, or to push the image into Figma (that is generate_figma_design, a separate capability).",
       "mode": "Agent",
       "model": "claude-sonnet-4-6",
       "multi_repo_aware": "false",
@@ -692,7 +718,7 @@
     },
     {
       "category": "planning-and-validation",
-      "description": "Senior performance-budget auditor that declares the numeric non-functional budgets a change must hold (Core Web Vitals, backend latency percentiles, payload and bundle size, key-operation cost) and the action when a metric regresses. Produces PERFORMANCE_BUDGET.md, a per-metric table of threshold, percentile, measurement source, and regression action. Activates when a task changes a performance-sensitive surface (page, endpoint, list, query, bundle) without a numeric budget, when DECISIONS.md or PROJECT_CHARTER.md names a performance target without per-metric thresholds, or before delivery of a latency- or size-sensitive change. Do not use when the task has no performance surface (docs, internal CRUD with no scale concern), for functional test selection (use test-strategy), or for post-deploy live-signal verification (use post-deploy-verifier). Spec-only; never runs load tests itself. Also covers mobile surfaces: React Native and a Godot 2D-mobile surface (frame budget, draw calls).",
+      "description": "Senior performance-budget auditor that declares the numeric non-functional budgets a change must hold (Core Web Vitals, backend latency percentiles, payload and bundle size, key-operation cost) and the action when a metric regresses. Produces PERFORMANCE_BUDGET.md, a per-metric table of threshold, percentile, measurement source, and regression action. Activates when a task changes a performance-sensitive surface (page, endpoint, list, query, bundle) without a numeric budget, when DECISIONS.md or PROJECT_CHARTER.md names a performance target without per-metric thresholds, or before delivery of a latency- or size-sensitive change. Do not use when the task has no performance surface (docs, internal CRUD with no scale concern), for functional test selection (use test-strategy), or for post-deploy live-signal verification (use post-deploy-verifier). Spec-only; never runs load tests itself. Also covers React Native plus Godot 2D-mobile and 3D surfaces (frame budget, draw calls).",
       "mode": "Ask",
       "model": "claude-sonnet-4-6",
       "multi_repo_aware": "false",
@@ -819,7 +845,7 @@
     },
     {
       "category": "planning-and-validation",
-      "description": "Design a pre-deploy release and rollout strategy for a change: pick the rollout pattern (feature flag, canary, blue-green, or full progressive delivery) by risk and infra, then specify the exposure ramp, the promotion metric and threshold that advances each step, and the rollback trigger and mechanism. Produces RELEASE_PLAN.md. Use when a change is approaching deploy and needs a deliberate rollout (user-facing, risky, or hard to reverse). Do not use for post-deploy live-signal verification (use post-deploy-verifier, which consumes this plan's promotion metric and rollback mechanism), for the standing pipeline's rollback-existence audit (reserved for the future pipeline-gate-review), or for a trivial fully reversible change with no rollout concern. Stack- and infra-agnostic; it designs the rollout, it does not execute it. A gated --godot-mobile mode (ADR-0069) plans an asymmetric Android and iOS Godot 2D-mobile store ship (export toolchain, preflights, store gotchas), off by default.",
+      "description": "Design a pre-deploy release and rollout strategy for a change: pick the rollout pattern (feature flag, canary, blue-green, or full progressive delivery) by risk and infra, then specify the exposure ramp, the promotion metric and threshold that advances each step, and the rollback trigger and mechanism. Produces RELEASE_PLAN.md. Use when a change is approaching deploy and needs a deliberate rollout (user-facing, risky, or hard to reverse). Do not use for post-deploy live-signal verification (use post-deploy-verifier, which consumes this plan's promotion metric and rollback mechanism), for the standing pipeline's rollback-existence audit (reserved for the future pipeline-gate-review), or for a trivial fully reversible change with no rollout concern. Stack- and infra-agnostic; it designs the rollout, it does not execute it. Gated --godot-mobile and --godot-desktop modes plan a Godot mobile store ship or a desktop ship (ADR-0069, ADR-0117), both off by default.",
       "mode": "Plan",
       "model": "claude-sonnet-4-6",
       "multi_repo_aware": "false",
@@ -1098,7 +1124,7 @@
     },
     {
       "category": "planning-and-validation",
-      "description": "Define the smallest set of meaningful tests that protects behavior and reduces regression risk for the active task, then persist as TEST_STRATEGY.md plus a TASK_STATE.md update. Avoids forcing a strategy artifact when it adds no material signal. Detects a Godot 2D-mobile target and routes to GUT or gdUnit4 headless, treating the godot-runtime-verify press-play gate as complementary to the headless suite. Use when the task has a valid implementation plan or a clearly understood behavior under change, the change affects important behavior or contracts or data flow or runtime risk or regression risk, or test choices should be decided before or alongside implementation. Use when scope is tagged or reads as auth, biometric, or runtime-risk with no TEST_STRATEGY.md, even if small. Do not use when the task is still too unclear to know what behavior is changing, the current need is broad discovery or contract resolution, or the task is too small to justify a dedicated test strategy artifact.",
+      "description": "Define the smallest set of meaningful tests that protects behavior and reduces regression risk for the active task, then persist as TEST_STRATEGY.md plus a TASK_STATE.md update. Avoids forcing a strategy artifact when it adds no material signal. Detects a Godot 2D or 3D target and routes to GUT or gdUnit4 headless, treating the godot-runtime-verify press-play gate as complementary to the headless suite. Use when the task has a valid implementation plan or a clearly understood behavior under change, the change affects important behavior or contracts or data flow or runtime risk or regression risk, or test choices should be decided before or alongside implementation. Use when scope is tagged or reads as auth, biometric, or runtime-risk with no TEST_STRATEGY.md, even if small. Do not use when the task is still too unclear to know what behavior is changing, the current need is broad discovery or contract resolution, or the task is too small to justify a dedicated test strategy artifact.",
       "mode": "Plan",
       "model": "claude-sonnet-4-6",
       "multi_repo_aware": "false",

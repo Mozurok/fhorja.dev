@@ -2,7 +2,8 @@
 """audit-command-usage.py - Per-command usage audit (one-pass, optimized)
 
 Counts mentions of each command in:
-  - ~/.claude/projects/<project>/*.jsonl (last LOOKBACK_DAYS days)
+  - <config-dir>/projects/<project>/*.jsonl (last LOOKBACK_DAYS days), where the
+    config dir follows CLAUDE_CONFIG_DIR when set, else ~/.claude
   - git log of Fhorja repo (commit messages)
   - projects/*/active|archive/*/TASK_STATE.md mentions
 
@@ -25,7 +26,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 OUTPUT = sys.argv[1] if len(sys.argv) > 1 else str(REPO_ROOT / "_internal" / "command-usage-audit-2026-06.csv")
 LOOKBACK_DAYS = int(sys.argv[2]) if len(sys.argv) > 2 else 60
-PROJECTS_DIR = Path.home() / ".claude" / "projects"
+CONFIG_DIR = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
+PROJECTS_DIR = CONFIG_DIR / "projects"
 
 NOW = time.time()
 CUTOFF = NOW - (LOOKBACK_DAYS * 86400)

@@ -1,0 +1,49 @@
+# mirror-divergent-files.txt -- files whose PUBLIC version is permanently
+# divergent from the staging version, per D-9 of the 2026-07-29 mirror task.
+#
+# Why this list exists: mirror sanitization is a human-authored step, not a
+# mechanical transformation. A file lands here when its PUBLIC version is
+# DELIBERATELY DIFFERENT from staging, for any reason: content removed and the
+# prose rewritten (a codename redaction), or lines that only make sense in one
+# repo (a per-repo .gitignore). The wrong test is "does it contain a codename";
+# .gitignore has none and still leaked a protected line when copied wholesale
+# on 2026-07-29 (M1, review-hard). The right test is "is the public version
+# intentionally not identical to staging". For those files no substitution map
+# or bulk copy reproduces the public text, so copying staging bytes over them
+# re-leaks or silently drops whatever the public version protects. Three
+# text, so copying staging bytes over them re-leaks whatever the redaction
+# removed. Three automated approaches were tried on 2026-07-29 and all three
+# leaked; the boundary is sharp: automation held wherever the public file was
+# RENAMED and broke wherever it was REDACTED.
+#
+# Rule for a file listed here: NEVER copy the staging version over the public
+# one, and NEVER apply an automated substitution to it. Port content by hand,
+# or record the delta as deferred, and run
+# scripts/check-mirror-codenames.sh <public-tree> before any push regardless.
+#
+# Format: one repo-relative path per line, then a blank line, then a `deferred:`
+# block naming any staging content that has not been ported. `#` comments and
+# blank lines are ignored by any consumer.
+
+docs/adr/0108-external-contract-live-verification-gate.md
+
+.gitignore
+
+# README.md is NOT redacted content; a raw copy is correct today because every
+# line that differs from staging is a count marker (<!-- count:KIND -->N<!-- /count -->)
+# or a generated command-catalog entry, and the public version came out byte-
+# identical to staging with nothing public-only lost (verified 2026-07-29,
+# review-hard M1 second pass). Listed anyway per the corrected D-9 criterion
+# (deliberately different, not just redacted): the next mirror should confirm
+# this by re-running ./scripts/reconcile-counts.sh --all and
+# ./scripts/build-command-catalog.py IN THE PUBLIC REPO rather than assuming a
+# raw copy stays correct, the same way the shared-block consumers are re-
+# derived rather than copied.
+README.md
+
+# deferred: docs/adr/0108-external-contract-live-verification-gate.md carries a
+# 20-line staging content delta that has NOT been ported to the public version
+# (D-8, 2026-07-29). The public version keeps its human redaction, which removed
+# a task slug, a PR number and a client source path and rewrote the surrounding
+# sentences. Porting the delta requires rewriting that prose by hand; it is not a
+# substitution. Until then the public file is intentionally older than staging.

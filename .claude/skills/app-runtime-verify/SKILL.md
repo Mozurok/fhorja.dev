@@ -46,7 +46,7 @@ Mandatory context bootstrap (before any output):
 Required inputs:
 - active task folder path
 - the implemented slice or feature under verification, and its acceptance behavior (the observable outcome that means it works, ideally the slice's EARS exit criterion)
-- how the app was run and the real captured output: the run mechanism (an MCP run tool, an emulator/simulator, a physical device, or a headless run) plus the actual runtime output from that run (native `adb logcat` for Android, the device log for iOS, and/or the Metro/JS console). When the output is not yet captured, this command STOPS and asks for it (see `wos/rn-expo-runtime-evidence.md` for the exact capture commands) rather than asserting a result.
+- how the app was run and the real captured output: the run mechanism (an MCP run tool, an emulator/simulator, a physical device, or a headless run) plus the actual runtime output from that run (native `adb logcat` for Android, the device log for iOS, and/or the Metro/JS console). When the output is not yet captured, this command STOPS and asks for it (see `wos/rn-expo-runtime-evidence.md` for the exact capture commands) rather than asserting a result. For an Expo iOS target the same topic carries the iOS Simulator and Maestro capture recipes (`simctl` for the device log and the screenshot, Maestro for the flow); this command reads what those produce and never runs them itself.
 - the target stack and version when relevant to interpreting an error (React Native/Expo SDK, native platform), so the taxonomy maps correctly
 
 Operating rules:

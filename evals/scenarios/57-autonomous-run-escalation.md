@@ -17,7 +17,7 @@ This exercises:
 
 ## Setup
 
-The same task as scenario 56, but the plan has three slices in wave 1: Slice A touches `src/checkout/total.ts` (plain), Slice B touches `db/migrations/0009_add_discount.sql` (boundary), Slice C touches `src/checkout/total.test.ts` (test). All are approved in the plan.
+The same task as scenario 56, including its recorded BOOT verdict from `autonomous-readiness`, but the plan has three slices in wave 1: Slice A touches `src/checkout/total.ts` (plain), Slice B touches `db/migrations/0009_add_discount.sql` (boundary), Slice C touches `src/checkout/total.test.ts` (test). All are approved in the plan.
 
 ## Input prompt
 

@@ -1,0 +1,1 @@
+# GODOT_SCENE_PLAN (fixture: nel-pseudo-fence)```wos-godot-declarationDimension: 3DRenderer tier: Forward+```One non-ASCII member of the set str.splitlines() adds over the three real line endings, so the rule is not read as form-feed-specific.

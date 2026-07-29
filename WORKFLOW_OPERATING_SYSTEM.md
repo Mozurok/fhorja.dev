@@ -53,6 +53,7 @@ Minimum read map for execution:
   - editor mode translation to non-Claude-Code tools (Cursor, Copilot, Codex, Gemini CLI equivalents) and per-harness operational quirks (sandbox write-root alignment, approval front-load, patch mechanics): load `wos/editor-mode-mappings.md` (only when working in a tool other than Claude Code)
   - designing, building, or running the autonomous delivery track (the autonomy cluster: two human gates, runtime governor, mid-run escalation, run protocol): load `wos/autonomous-track.md` (built per ADR-0044; not loaded by default)
   - Godot 2D-mobile game development (scene architecture, save/state and the mobile lifecycle, 2D rendering performance, touch input and game-feel, audio, the asset pipeline, headless testing and CI): load `wos/godot-2d-architecture.md`, `wos/godot-2d-mobile-rendering-performance.md`, `wos/godot-mobile-interaction-and-feel.md`, `wos/godot-2d-audio.md`, `wos/godot-2d-asset-pipeline.md`, `wos/godot-testing-and-ci.md` (the Godot cluster reference layer per ADR-0078 and ADR-0084; capability-scoped, not loaded by default)
+  - Godot 3D development (renderer tiers and what each drops, the four limitation classes, the nine optimization techniques, GridMap and MeshLibrary level building, navigation meshes and agents, the physics body taxonomy, CC0 asset sourcing and the glTF import path): load `wos/godot-3d-rendering-and-performance.md`, `wos/godot-3d-architecture.md`, `wos/godot-3d-asset-pipeline.md` (the Godot 3D reference layer per ADR-0117; dimension-neutral content stays in the 2D topics and is cross-referenced, not duplicated; capability-scoped, not loaded by default)
   - platform runtime inline-close floors on a Godot or mobile task (runtime-gate, feel-verdict, and mobile-runtime-gate variants per closing command): load `wos/platform-runtime-floors.md` (moved out of the closing commands per v3 wave1 item D; capability-scoped, not loaded by default)
   - previewing a built frontend so a human can see it and record an experience verdict (serving the production build, the Vite/`astro preview` `allowedHosts` host-check gotcha and the static-server fallback, remote tunnel, recording the verdict): load `wos/frontend-preview-and-experience-verdict.md` (per ADR-0099; feeds the ADR-0091 experience-verdict floor and the release-plan pre-deploy gate; capability-scoped, not loaded by default)
   - authoring or reviewing a rule about what an agent may assert, when it must investigate instead of guessing, how a claim records its provenance, or how a persisted claim gets revised: load `wos/active-epistemic-humility.md` (per ADR-0109; the normative core is inline in `## Global output contract` → `### Claim status and abstention` and the shared block `commands/_shared/claim-grounding.md`; this topic is the full contract with rationale, not loaded by default)
@@ -115,7 +116,7 @@ The workflow operates on a separate task-memory repository. Compact path index (
 - `commands/<name>.md`: command files (source of truth for which commands exist; carry Agent Skills frontmatter validated by `lint-commands.sh`).
 - `commands/_shared/<name>.md`: canonical shared blocks propagated by `sync-shared-blocks.sh` into commands that declare the marker.
 - `.claude/skills/<name>/SKILL.md`: **generated** Agent Skills artifacts produced by `scripts/build-agent-skills.sh` from each canonical `commands/<name>.md`. Drop-in for the 35+ tools that read `.claude/skills/` natively (Cursor 2.4+, Claude Code, Copilot, Codex, Gemini CLI, etc.). Never edit by hand; lint fails on drift.
-- `wos/<topic>.md`: lazy-loaded reference files (<!-- count:wos-topics -->39<!-- /count --> topics; e.g. `command-roles.md`, `cross-cutting-workflow-guardrails.md`, `global-output-contract.md`; see the Minimum read map for the full set). Loaded only when explicitly needed.
+- `wos/<topic>.md`: lazy-loaded reference files (<!-- count:wos-topics -->42<!-- /count --> topics; e.g. `command-roles.md`, `cross-cutting-workflow-guardrails.md`, `global-output-contract.md`; see the Minimum read map for the full set). Loaded only when explicitly needed.
 - `templates/`: starting points for task artifacts (`PR_PACKAGE.md`, `review-hard-checklist.md`).
 - `scripts/`: automation (`lint-commands.sh`, `sync-shared-blocks.sh`, `sync-workflow-slash-commands.sh`, `build-agent-skills.sh`, `check-doc-sync.sh`, `check-natural-voice.sh`, `monitor-fleet-progress.sh`, `scan-substrate-orphans.py`, `measure-tokens.py`, `measure-task-cost.py`).
 - `evals/scenarios/<NN>-*.md`: manual eval harness exercising load-bearing workflow contracts (project-bootstrap to task-init wiring, multi-repo schema, slice execution and closure scope discipline, pr-package diff grounding, state-reconcile minimum patch). `evals/scripts/run-evals.sh` walks through them.
@@ -197,7 +198,7 @@ Required: `README.md`, `TASK_STATE.md`, `SOURCE_OF_TRUTH.md`, `DECISIONS.md`, `I
 
 ## Multi-repo support (v1)
 
-This section defines opt-in multi-repo support for tasks that legitimately span multiple product repositories (typical fullstack work crossing backend and frontend repos). Multi-repo support is **additive only**: single-repo tasks continue working unchanged. The discriminator is the presence of an optional `## Repositories` section in `SOURCE_OF_TRUTH.md`; tasks without that section (the default) behave as single-repo across all <!-- count:commands -->95<!-- /count --> commands and do not pay any multi-repo overhead.
+This section defines opt-in multi-repo support for tasks that legitimately span multiple product repositories (typical fullstack work crossing backend and frontend repos). Multi-repo support is **additive only**: single-repo tasks continue working unchanged. The discriminator is the presence of an optional `## Repositories` section in `SOURCE_OF_TRUTH.md`; tasks without that section (the default) behave as single-repo across all <!-- count:commands -->97<!-- /count --> commands and do not pay any multi-repo overhead.
 
 For the schema (identifier, path, base branch, role), example, locked decisions D1-D7, invariants I1-I4, non-goals NG1-NG5, runtime decision table, and implementation notes, load `wos/multi-repo-support.md`.
 
@@ -460,7 +461,7 @@ Across the workflow, use this evidence priority unless a command states otherwis
 3. other task artifacts in the task folder
 4. project-level memory (`PROJECT_CHARTER.md`, `REFERENCES.md`)
 5. internal project docs / tickets / local references
-6. official framework or library docs
+6. official framework or library docs, and a dependency's own published source when the docs are silent or unclear on the point (ADR-0121; cite it per `commands/_shared/reference-grounding.md` rule 3, and note the tier is additive: it never replaces capturing the contract via `capture-references`)
 7. external web references, via `capture-references` only (never ad-hoc web fetches inside other commands; see `## Cross-cutting workflow guardrails` → `### External web access (centralized)`)
 
 Rule:
@@ -895,10 +896,12 @@ Navigation note:
 - `skill-vet`
 - `mcp-server-vet`
 - `where-we-at`
+- `autonomous-readiness`
 - `autonomous-run`
 - `godot-runtime-verify`
 - `app-runtime-verify`
 - `web-runtime-verify`
+- `api-runtime-verify`
 
 ### Delivery and communication
 - `pr-package`
@@ -915,7 +918,7 @@ Navigation note:
 
 ## Command roles
 
-Compact routing index with Role + Next for each of the <!-- count:commands -->95<!-- /count --> commands. For full per-command detail (distinctness rules, guard rails, multi-repo hints, edge-case routing), load `wos/command-roles.md`.
+Compact routing index with Role + Next for each of the <!-- count:commands -->97<!-- /count --> commands. For full per-command detail (distinctness rules, guard rails, multi-repo hints, edge-case routing), load `wos/command-roles.md`.
 
 ### project-bootstrap
 Role: zero-state entry for a new project; creates `projects/<client>__<project>/` and project-level memory (`PROJECT_CHARTER.md`, `REFERENCES.md`).
@@ -1073,6 +1076,10 @@ Next: `decision-interview` on rubric (when SYSTEMIC clusters present), `directio
 Role: macro checkpoint against the approved plan; broader than slice closure; for multi-slice or longer tasks.
 Next: `what-next`, `implement-approved-slice`, `implement-slice-complement`, `pr-package`.
 
+### autonomous-readiness
+Role: boot gate in front of `autonomous-run`; runs the shared definition-completeness reader over the project's own artifacts and emits a per-criterion ledger with one verdict, BOOT or NOT-READY, naming every missing item; returns NOT-READY when a declared runtime surface has no evidence adapter; reports and routes, never answering a criterion for the operator, and a BOOT verdict never substitutes for plan approval.
+Next: `autonomous-run` (on BOOT), `decision-interview`, `implementation-plan`, `approve-plan` (on NOT-READY, per the gap named).
+
 ### autonomous-run
 Role: controller for the autonomous delivery track (ADR-0044); drives an approved waved plan through bounded execution behind two human gates and a runtime governor; reuses `implement-approved-slice` as single writer; emits PROPOSED diffs only and never merges.
 Next: `approve-proposed`, `review-hard`, `implement-approved-slice` (for an escalated slice the human approves).
@@ -1196,6 +1203,10 @@ Next: `slice-closure` / `review-hard` (on PASS), `incident-triage` / `implement-
 ### web-runtime-verify
 Role: verify a built web or static frontend at runtime; serve the build on an ephemeral free port (mechanics per `wos/frontend-preview-and-experience-verdict.md`, ADR-0099), assert page identity FIRST with automatic re-bind recovery on a collision or stale server, run the web battery (overflow 320 to 2560, keyboard and focus, console errors, Lighthouse and axe with honest n/a when absent), classify against the web taxonomy (PAGE_IDENTITY_MISMATCH, SERVE_FAILURE, CONSOLE_ERROR, OVERFLOW, FOCUS_DEFECT, A11Y_VIOLATION, PERF_MEASUREMENT, CLEAN), and decide a PASS/FAIL/BLOCKED gate. The run's real output IS the Layer-1 evidence (ADR-0048, ADR-0112); verifies and routes fixes, never writes code. Distinct from `godot-runtime-verify` (Godot scenes), `app-runtime-verify` (mobile), the ADR-0091 experience verdict (human, over the same served build), and `performance-budget` (numeric thresholds).
 Next: `slice-closure` / `review-hard` (on PASS), `incident-triage` / `implement-slice-complement` / `a11y-audit` (on FAIL).
+
+### api-runtime-verify
+Role: verify an implemented backend HTTP surface at runtime; per route record the request actually made, the HTTP status, the response content-type and the observed body shape, assert each response against the slice's acceptance behavior, classify the findings, and decide a PASS/FAIL/BLOCKED gate. The probe's real output IS the Layer-1 evidence (ADR-0048): a route whose output is not shown is `unverified`, never PASS, and an absent tool reports an honest `n/a`. Capability-routed (no pinned HTTP client, no pinned MCP server); verifies and routes fixes, never writes code. Distinct from `api-contract-review` and `graphql-contract-review` (design-time contract review, before implementation) and from the browser, app, and Godot verify gates.
+Next: `slice-closure` / `review-hard` (on PASS), `incident-triage` / `implement-slice-complement` / `security-review` / `api-contract-review` (on FAIL).
 
 ### design-bootstrap
 Role: zero-state entry for design system work; reads Figma via MCP, extracts tokens, scaffolds foundation docs, creates component/screen inventories, bootstraps directory structure and OPEN_QUESTIONS.md.

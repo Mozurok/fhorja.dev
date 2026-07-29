@@ -15,7 +15,8 @@ maintainer actually ran to reproduce and capture the Android Fabric
 A React Native app on the New Architecture (Fabric) has two distinct runtime log
 surfaces, and a crash can live in either:
 
-- **Native log** (`adb logcat` on Android, the device console on iOS): native
+- **Native log** (`adb logcat` on Android, the device console on iOS, captured
+  through `simctl launch`): native
   exceptions, the Fabric `SurfaceMountingManager` mounting crashes, JNI errors,
   native-module load failures, ANRs. A native crash class does NOT appear in the
   Metro/JS console. Judging a native crash from a JS-only log is the mistake that
@@ -79,6 +80,90 @@ device management, which can still leave Keychain items behind depending on the
 entitlement's `kSecAttrAccessible`/access-group scope. An uninstall alone is not
 proof of clean state for Keychain-backed values.
 
+## Capture the native log and a screenshot (iOS Simulator)
+
+Every command form below is grounded in a captured entry, not in model memory:
+"xcrun simctl command forms (Xcode 26.5, read from the tool's own help)" and
+"Maestro documentation corpus (flows, takeScreenshot, device targeting)" in the
+project `REFERENCES.md`. Do not substitute a remembered flag for one of them.
+
+`simctl` accepts a device UDID or the special string `booted`, which picks a
+booted device. Four steps produce the device log and the screenshot:
+
+```bash
+xcrun simctl boot <device>                        # <device> is a UDID
+xcrun simctl install booted <path-to-app-bundle>  # the built .app
+xcrun simctl launch --console booted <bundle-id>  # app output inline in this terminal
+xcrun simctl io booted screenshot screenshot.png  # PNG of the current screen
+```
+
+To keep the log as a file instead of reading it live, `launch` takes
+`--stdout=<path>` and `--stderr=<path>`; use those when the output has to be
+attached as evidence. `launch` also takes `--terminate-running-process`, which
+kills an already-running instance first, so the evidence comes from a fresh
+launch rather than a resumed app. The clean-build rule above still holds: a
+native or module-scope change needs a rebuilt bundle before `install`, or the
+run verifies the old binary.
+
+Version note carried from the capture: these forms were read from
+`xcrun simctl help` on Xcode 26.5, build version 17F42. One flag in that same
+help text is version-sensitive: `launch --arch` "Requires runtime version 26 or
+newer."
+
+Not captured, so deliberately not written here: a device-listing form. When you
+need a specific UDID rather than `booted`, read it from a source you can see.
+The captured entries carry no listing command, and inventing one would defeat
+the point of grounding the rest.
+
+## Drive the flow and take labeled screenshots (Maestro)
+
+A Maestro flow is a YAML file: an `appId:` declaration, a `---` separator, then
+a list of commands. `takeScreenshot` takes a label argument.
+
+```yaml
+appId: com.apple.MobileAddressBook
+---
+- launchApp
+- takeScreenshot: All Contacts
+```
+
+Run it against one specific device by placing `--device <UDID>` before the
+`test` subcommand:
+
+```bash
+maestro --device 5B6D77EF-2AE9-47D0-9A62-70A1ABBC5FA2 test flow.yaml
+```
+
+Two gaps the captured corpus leaves open, carried through rather than filled in
+from memory: the Maestro version this syntax belongs to is [unclear in source],
+and the screenshot filename pattern is [unclear in source]. The corpus says
+screenshots are saved to a `.maestro` folder in the workspace
+(`.maestro/screenshots` in Maestro Studio). List that directory after the run to
+learn the real filenames instead of predicting them.
+
+## Which iOS output feeds which taxonomy code
+
+`app-runtime-verify` classifies against a fixed code set, and each iOS capture
+above answers a different part of it:
+
+- The `simctl launch` output (inline with `--console`, or the `--stdout` and
+  `--stderr` files) is the iOS native log surface. `NATIVE_CRASH`,
+  `NAVIGATION_TEARDOWN`, `MISSING_NATIVE_MODULE`, and `STARTUP_CRASH` are judged
+  from it.
+- The Metro console (the capture command above is the same on both platforms)
+  stays the surface for `JS_ERROR`. An iOS native crash does not appear there,
+  exactly as on Android.
+- The screenshot set (`simctl io ... screenshot`, or Maestro `takeScreenshot`)
+  is what supports an `observed` or `not-observed` verdict for an acceptance
+  behavior that is visible on screen: a prompt that should appear, the screen
+  the app lands on. It is evidence for the per-criterion verdict and never a
+  substitute for the log on a crash class.
+- `PERMISSION_OR_CONFIG` usually needs both surfaces: the screenshot shows the
+  dialog or the empty state, the log shows the refusal behind it.
+- `ANR` is Android-only. An iOS main-thread stall shows up as the launch log
+  going quiet with the acceptance behavior `not-observed`; report it that way
+  rather than stretching a code to fit.
+
 ## Video/screen-recording evidence (ADR-0107)
 
 A screen recording is common evidence for a mobile bug: it shows the actual
@@ -120,6 +205,9 @@ frame number and timestamp, not just the classification.
   was a clean rebuild or a JS reload.
 - The real captured output: the native log block around the crash (verbatim) for
   a native/navigation crash, and/or the Metro console for a JS error.
+- For an iOS Simulator run: the `simctl launch` log block (verbatim) plus the
+  screenshot files produced during that same run. A screenshot kept from an
+  earlier run is not evidence for this one (ADR-0048).
 - When a screen recording is supplied: the extracted frames covering the
   minimum-coverage set (state transitions plus each reported symptom's
   neighborhood), not the raw video alone.

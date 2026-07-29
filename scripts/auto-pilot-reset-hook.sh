@@ -42,8 +42,9 @@ if [[ "$is_slash_command" -eq 1 ]]; then
   exit 0
 fi
 
-# User typed real text -- reset counter
-STATE_DIR="$HOME/.claude/wos-state"
+# User typed real text -- reset counter. Same config dir as the checkpoint hook,
+# so the reset lands on the active profile's counter.
+STATE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/wos-state"
 STATE_FILE="$STATE_DIR/auto-pilot.json"
 mkdir -p "$STATE_DIR"
 echo '{"slice_count": 0}' > "$STATE_FILE"

@@ -123,7 +123,7 @@ my_work_tasks/
   docs/
     FAQ.md                            # user-facing entry point for common questions
     MIGRATION.md                      # adoption + forking + tool migration guide
-    adr/                              # Architecture Decision Records (<!-- count:adrs -->115<!-- /count --> ADR files; 0037 is an intentional gap; highest is 0116)
+    adr/                              # Architecture Decision Records (<!-- count:adrs -->120<!-- /count --> ADR files; 0037 is an intentional gap; highest is 0121)
       README.md                       # index + format + when to write
       template.md                     # ADR template
       0001-proposed-by-default.md     # example; full list under docs/adr/
@@ -131,7 +131,7 @@ my_work_tasks/
       0070-mcp-server-vet-command.md  # latest
   evals/
     README.md                         # eval harness overview + cadence + LLM-as-judge layer (ADR-0019)
-    scenarios/                        # <!-- count:scenarios -->115<!-- /count --> scenarios as of v0.2.x; one markdown file per scenario
+    scenarios/                        # <!-- count:scenarios -->123<!-- /count --> scenarios as of v0.2.x; one markdown file per scenario
       template.md                     # scenario template
       01-bootstrap-and-init.md        # example
       ...

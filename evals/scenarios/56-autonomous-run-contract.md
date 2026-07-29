@@ -17,7 +17,7 @@ This exercises:
 
 ## Setup
 
-A task `projects/acme__app/active/2026-06-16_checkout-polish/` with an `IMPLEMENTATION_PLAN.md` that has a `## Approval log` entry and an `## Execution waves` section (two waves, file-scope-disjoint, all slices plain source files). A STOP sentinel path is provided outside the agent writable scope, with governor limits (max-iter 20, timeout 1800s, token/cost ceiling).
+A task `projects/acme__app/active/2026-06-16_checkout-polish/` with an `IMPLEMENTATION_PLAN.md` that has a `## Approval log` entry and an `## Execution waves` section (two waves, file-scope-disjoint, all slices plain source files). A STOP sentinel path is provided outside the agent writable scope, with governor limits (max-iter 20, timeout 1800s, token/cost ceiling). A BOOT verdict from `autonomous-readiness` is on record for this plan revision (`RUN_READINESS.md` in the task folder), satisfying the readiness precondition ADR-0120 added; the approval entry above remains separately required.
 
 ## Input prompt (turn 1: plan approved)
 

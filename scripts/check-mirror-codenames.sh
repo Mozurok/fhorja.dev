@@ -41,14 +41,24 @@ hits=0
 # gitignored files (e.g. .claude/settings.local.json) never reach the remote, so
 # a match there is not a leak. `git grep` searches tracked working-tree files
 # only. Fall back to a whole-tree grep if TARGET is not a git repo.
-# Note: git grep's regex engine has no `\b`, so whole-word matching uses `-w`
-# (supported by both git grep and GNU grep) rather than a `\b...\b` pattern.
-scan_word() {  # whole-word match of a codename token
+# Note: git grep's regex engine has no `\b`. Whole-word `-w` was the original
+# choice and it LEAKED: `-w` treats `_` as a word character, so a codename
+# embedded in a project slug (`client__client-be`) never matched and passed this
+# gate. The scan now bounds on any NON-ALPHANUMERIC character instead, which
+# catches the embedded form while still rejecting a longer word that merely
+# starts with the token (`clientele` stays a non-match, `client__client-be`
+# does not). Verified against every token in the sidecar: identical counts to
+# `-w` on all of them, plus the one file `-w` missed (2026-07-29, D-1). The match
+# is also CASE-INSENSITIVE (D-7): a codename lowercased inside a slug leaked past a
+# case-sensitive scan. Measured at +1 file and zero false positives across every
+# other token, because the alnum boundary still rejects ordinary words.
+scan_word() {  # identifier-boundary match of a codename token
   local tok="$1"
+  local pat="(^|[^A-Za-z0-9])${tok}([^A-Za-z0-9]|\$)"
   if git -C "$TARGET" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    ( cd "$TARGET" && git grep -wInE "$tok" -- . 2>/dev/null || true )
+    ( cd "$TARGET" && git grep -iInE "$pat" -- . 2>/dev/null || true )
   else
-    grep -rwInE "$tok" "$TARGET" --exclude-dir=.git 2>/dev/null || true
+    grep -riInE "$pat" "$TARGET" --exclude-dir=.git 2>/dev/null || true
   fi
 }
 scan_ere() {  # arbitrary ERE (no word boundary), e.g. an absolute path

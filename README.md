@@ -26,7 +26,7 @@ Fhorja is a workflow operating system for AI-assisted engineering: a markdown-pl
 
 The everyday product is a loop of twelve commands: `task-init`, `impact-analysis`, `decision-interview`, `implementation-plan`, `approve-plan`, `implement-approved-slice`, `review-hard`, `slice-closure`, `sync-task-state`, `pr-package`, `task-close`, and `what-next`. They share one output contract and chain into each other across discovery, decisions, planning, slice-by-slice execution, review, and delivery, distributed to any editor as Agent Skills or legacy slash commands. Most tasks touch four to six of them.
 
-Behind that loop sits an optional catalog of <!-- count:commands -->95<!-- /count --> commands in total (parallel fleets, design-system personas, reliability and security specialists) that you install only when a task needs them. The `minimal` install profile is the default and gives you exactly the twelve.
+Behind that loop sits an optional catalog of <!-- count:commands -->97<!-- /count --> commands in total (parallel fleets, design-system personas, reliability and security specialists) that you install only when a task needs them. The `minimal` install profile is the default and gives you exactly the twelve.
 
 It targets engineers who already use an AI coding tool (Cursor, Claude Code, and 35+ others that read the open Agent Skills standard, per [`CONTRIBUTING.md`](./CONTRIBUTING.md)) and want plan-before-code discipline with an explicit human approval gate before implementation.
 
@@ -59,7 +59,7 @@ Run it with no flags on a terminal and it opens a setup wizard: a state panel sh
   <img src=".github/assets/profiles.svg" alt="The three install profiles nest: minimal inside core inside full" width="100%">
 </p>
 
-The three profiles nest: `minimal` (<!-- count:commands-minimal -->14<!-- /count --> commands) inside `core` (<!-- count:commands-core -->50<!-- /count --> commands) inside `full` (<!-- count:commands -->95<!-- /count --> commands, the default). The `minimal` spine covers the everyday loop: `task-init`, `impact-analysis`, `decision-interview`, `implementation-plan`, `approve-plan`, `implement-approved-slice`, `slice-closure`, `review-hard`, `pr-package`, `what-next`, `sync-task-state`, `task-close`. Profiles are declared in each command's `x-wos-profiles` frontmatter and enforced by lint.
+The three profiles nest: `minimal` (<!-- count:commands-minimal -->14<!-- /count --> commands) inside `core` (<!-- count:commands-core -->50<!-- /count --> commands) inside `full` (<!-- count:commands -->97<!-- /count --> commands, the default). The `minimal` spine covers the everyday loop: `task-init`, `impact-analysis`, `decision-interview`, `implementation-plan`, `approve-plan`, `implement-approved-slice`, `slice-closure`, `review-hard`, `pr-package`, `what-next`, `sync-task-state`, `task-close`. Profiles are declared in each command's `x-wos-profiles` frontmatter and enforced by lint.
 
 Skills sync by default: they mirror to your user-level directories so they follow you across every project. Pass `--no-skills` to skip them. Two more flags worth knowing: `--clean-orphans` removes command files left behind by renamed or deleted commands, and `--project /path/to/your/repo` additionally installs into a specific product repo, alongside your user directories.
 
@@ -90,7 +90,7 @@ A task moves through a short, explicit chain. Each command persists its result t
 
 ## Command clusters
 
-<!-- count:commands -->95<!-- /count --> commands, grouped here into 14 clusters for orientation (this grouping is editorial, not the formal <!-- count:command-categories -->9<!-- /count -->-category boundary used inside the spec):
+<!-- count:commands -->97<!-- /count --> commands, grouped here into 14 clusters for orientation (this grouping is editorial, not the formal <!-- count:command-categories -->9<!-- /count -->-category boundary used inside the spec):
 
 <p align="center">
   <img src=".github/assets/clusters.svg" alt="The command families, one color per group, the same color key the fhorja.dev page uses" width="100%">
@@ -159,14 +159,14 @@ projects/                       # your task memory (gitignored; never committed)
 .github/workflows/lint.yml      # CI
 ```
 
-Paths above are relative to wherever you cloned the repo; the folder name itself isn't load-bearing. The curated library it draws on: <!-- count:bug-templates -->78<!-- /count --> bug-class templates across <!-- count:bug-categories -->22<!-- /count --> categories, <!-- count:anti-patterns -->29<!-- /count --> anti-patterns, <!-- count:entry-points -->21<!-- /count --> entry points, <!-- count:fleet-commands -->7<!-- /count --> parallel fleet commands, and <!-- count:personas -->9<!-- /count --> senior-specialist personas, with <!-- count:wos-topics -->39<!-- /count --> lazy-loaded reference topics. Full tree and governance-file inventory: [`wos/repository-structure.md`](./wos/repository-structure.md).
+Paths above are relative to wherever you cloned the repo; the folder name itself isn't load-bearing. The curated library it draws on: <!-- count:bug-templates -->78<!-- /count --> bug-class templates across <!-- count:bug-categories -->22<!-- /count --> categories, <!-- count:anti-patterns -->29<!-- /count --> anti-patterns, <!-- count:entry-points -->21<!-- /count --> entry points, <!-- count:fleet-commands -->7<!-- /count --> parallel fleet commands, and <!-- count:personas -->9<!-- /count --> senior-specialist personas, with <!-- count:wos-topics -->42<!-- /count --> lazy-loaded reference topics. Full tree and governance-file inventory: [`wos/repository-structure.md`](./wos/repository-structure.md).
 
 ## How it stays honest
 
 - **One source of truth per command.** `commands/<name>.md` is canonical. `scripts/build-agent-skills.sh` generates `.claude/skills/<name>/SKILL.md` from it, so any Agent-Skills-compatible tool gets the same command with no extra step. Editing a generated skill by hand is prohibited; lint fails CI on drift.
 - **Registry membership.** Per [ADR-0029](./docs/adr/0029-drift-guards-registry-and-count-markers.md), every command must appear in four discoverability surfaces: the cluster list above, the Command roles index in `WORKFLOW_OPERATING_SYSTEM.md`, [`wos/command-roles.md`](./wos/command-roles.md), and [`COMMAND_PROMPT_STUBS.md`](./COMMAND_PROMPT_STUBS.md). Lint fails on a gap in either direction.
-- **Count markers.** Prose claims about on-disk quantities, like the <!-- count:commands -->95<!-- /count --> commands above, use `<!-- count:KIND -->N<!-- /count -->` markers that lint checks against the live count, which is why the numbers in this README are trustworthy.
-- **Index rows and regression net.** Every ADR has a row in [`docs/adr/README.md`](./docs/adr/README.md); every eval scenario has a row in [`evals/README.md`](./evals/README.md). The decision history is <!-- count:adrs -->115<!-- /count --> Architecture Decision Records, each immutable once accepted, and the regression net is <!-- count:scenarios -->115<!-- /count --> scenarios, run with `evals/scripts/run-evals.sh`.
+- **Count markers.** Prose claims about on-disk quantities, like the <!-- count:commands -->97<!-- /count --> commands above, use `<!-- count:KIND -->N<!-- /count -->` markers that lint checks against the live count, which is why the numbers in this README are trustworthy.
+- **Index rows and regression net.** Every ADR has a row in [`docs/adr/README.md`](./docs/adr/README.md); every eval scenario has a row in [`evals/README.md`](./evals/README.md). The decision history is <!-- count:adrs -->120<!-- /count --> Architecture Decision Records, each immutable once accepted, and the regression net is <!-- count:scenarios -->123<!-- /count --> scenarios, run with `evals/scripts/run-evals.sh`.
 
 ## Command catalog
 
@@ -194,7 +194,7 @@ Generated from `commands/*.md` by `scripts/build-command-catalog.py`. Do not han
 - `feature-library-scout-fleet`: Orchestrator-workers variant of feature-library-scout for deep per-feature-problem library research.
 - `frontend-architecture-review`: Review a frontend architecture at scale and gate micro-frontend adoption BEFORE building.
 - `frontend-system-design`: Produce a staff-grade frontend system-design RFC for the active task: a 12-section design document (problem, requirements, architecture, data model, API and interface contract, rendering and delivery, state management, performance budget, accessibility, security, rollout, trade-offs) covering web and mobile, persisted as FRONTEND_SYSTEM_DESIGN.md.
-- `godot-scene-plan`: Plan the Godot scene and node structure for a 2D game feature before any GDScript is written: the scene tree, node types and responsibilities, autoloads (singletons), signal wiring, the input map, and the resources and sub-scenes to create.
+- `godot-scene-plan`: Plan the Godot scene and node structure for a 2D or 3D game feature before any GDScript is written: the scene tree, node types and responsibilities, autoloads (singletons), signal wiring, the input map, and the resources and sub-scenes to create.
 - `graphql-contract-review`: Review a GraphQL schema and a Backend-for-Frontend (BFF) contract BEFORE implementation, against a GraphQL-specific checklist: schema shape and nullability (null-bubbling), errors-as-data unions, N+1 and DataLoader, query cost and depth limits, cursor-connection pagination, federation entity ownership, breaking-change gate (schema checks), auth layering and BFF token posture, BFF thinness, and partial-failure degradation.
 - `image-to-spec`: Generate a design-system spec from a raw image file (a screenshot, mockup, or captured app screen) when there is no Figma source.
 - `impact-analysis`: Understand the requested change deeply enough to make safe workflow decisions, then persist the analysis as IMPACT_ANALYSIS.md in the active task folder.
@@ -234,14 +234,16 @@ Generated from `commands/*.md` by `scripts/build-command-catalog.py`. Do not han
 
 ### Execution and closure
 
+- `api-runtime-verify`: Verify an implemented backend HTTP surface at runtime: per route, record the request actually made, the HTTP status, the response content-type, and the observed body shape, assert each response against the slice's acceptance behavior, classify the findings, and decide a PASS/FAIL/BLOCKED runtime gate.
 - `app-runtime-verify`: Verify a built mobile or app runtime at runtime: run the app (device, emulator, or headless), read the captured runtime output (native logcat, iOS device log, or the Metro/JS console), classify any runtime errors against a per-stack taxonomy, and decide a PASS/FAIL runtime gate for the slice's acceptance behavior.
 - `apply-sweep-triage`: Persist the user's triage decisions (apply, decline, discuss) from a SWEEP snapshot into REVIEW_PREFERENCES.md so future sweeps suppress declined findings and track applied fixes.
 - `atom-audit`: Produce ATOM_AUDIT.md table auditing every atom component against COMPONENT_GUIDELINES.md (memo, callbacks, inline styles, press anim, touch target, a11y, reduced motion).
 - `atom-audit-fleet`: Orchestrator-workers variant of atom-audit.
+- `autonomous-readiness`: Decide whether an already-defined project is ready to boot an unattended overnight run, and refuse until it is.
 - `autonomous-run`: Drive an approved, waved IMPLEMENTATION_PLAN through the autonomous delivery track.
 - `design-spec-review`: Review a component or screen implementation against its spec doc for alignment on variants, states, accessibility, tokens, and visual fidelity.
 - `foundation-audit`: Compare design tokens in code against foundation docs and optionally Figma variables to detect drift (tokens added without documentation, documented tokens not in code, value mismatches).
-- `godot-runtime-verify`: Verify a built Godot 2D scene at runtime: run the scene (press-play or headless), read the captured debugger output, classify any runtime errors against a Godot-specific taxonomy, and decide a PASS/FAIL runtime gate for the slice's acceptance behavior.
+- `godot-runtime-verify`: Verify a built Godot 2D or 3D scene at runtime: run the scene (press-play or headless), read the captured debugger output, classify any runtime errors against a Godot-specific taxonomy, and decide a PASS/FAIL runtime gate for the slice's acceptance behavior.
 - `harvest-session-learnings`: Scan the current working session and the active task's artifacts for reusable, generalizable lessons (what was tried, what failed and why, what surprised us, what the next task should do differently) and propose anchored entries to append to the task's LEARNINGS.md, the produce-side counterpart to the ADR-0017 consume path that task-init already reads.
 - `implement-approved-slice`: Implement only the approved slice with minimal, explicit, review-friendly changes, then persist execution evidence in slice notes and TASK_STATE.md.
 - `implement-fleet`: Orchestrator-workers variant of implement-approved-slice that executes independent approved slices in parallel.
@@ -321,7 +323,7 @@ MCP-dependent commands (`db-context-supabase`, `db-context-postgres`, the Figma 
 
 ## Eval harness and quality
 
-The workflow ships a regression net of <!-- count:scenarios -->115<!-- /count --> scenarios under `evals/scenarios/`, indexed in [`evals/README.md`](./evals/README.md). Each scenario is self-contained: a full input prompt, the expected response shape, and numbered pass criteria a reviewer checks by reading the model output. Most are behavioral and reviewed by hand with `evals/scripts/run-evals.sh` (or the optional `evals/scripts/judge.py` LLM-as-judge second pass, which never replaces manual review). The subset that reduces to a static repo invariant runs in CI on every push via `evals/scripts/structural-evals.py`, so a broken handoff basename, a stale count marker, or a malformed scenario fails the build rather than waiting for a manual pass. That harness does not run a model and makes no claim of full automated coverage.
+The workflow ships a regression net of <!-- count:scenarios -->123<!-- /count --> scenarios under `evals/scenarios/`, indexed in [`evals/README.md`](./evals/README.md). Each scenario is self-contained: a full input prompt, the expected response shape, and numbered pass criteria a reviewer checks by reading the model output. Most are behavioral and reviewed by hand with `evals/scripts/run-evals.sh` (or the optional `evals/scripts/judge.py` LLM-as-judge second pass, which never replaces manual review). The subset that reduces to a static repo invariant runs in CI on every push via `evals/scripts/structural-evals.py`, so a broken handoff basename, a stale count marker, or a malformed scenario fails the build rather than waiting for a manual pass. That harness does not run a model and makes no claim of full automated coverage.
 
 `repo-consistency-sweep` draws on the curated bug-class library in `wos/bug-classes/`, auto-discovered at sweep time; project-local templates can override a global one on name collision.
 

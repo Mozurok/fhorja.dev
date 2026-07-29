@@ -1,7 +1,7 @@
 ---
 name: autonomous-run
 description: |-
-  Drive an approved, waved IMPLEMENTATION_PLAN through the autonomous delivery track. A thin code-orchestrated dispatcher over the existing fleet primitives (the Workflow tool, implement-approved-slice as single writer) bounded by two human gates and a runtime governor. Runs verifiable slices with little supervision and emits PROPOSED slice diffs only; it never merges. Use when the plan is approved (approve-plan), broken into dependency-ordered waves, and the maintainer wants the work between the two gates run hands-off in a single supervised session. Do not use when the plan is not yet approved (run approve-plan), the work is a single slice (use implement-approved-slice), the run would need to remove the human merge gate or auto-merge (never allowed; a human always performs the merge), or cross-session durable resume (restart and re-attach of a stopped run) is required (out of v1 scope; a detached single continuous background session is in scope via the opt-in background mode).
+  Drive an approved, waved IMPLEMENTATION_PLAN through the autonomous delivery track. A thin dispatcher over the existing fleet primitives (the Workflow tool, implement-approved-slice as single writer) bounded by two human gates and a runtime governor. Runs verifiable slices with little supervision and emits PROPOSED slice diffs only; it never merges. Use when the plan is approved (approve-plan), autonomous-readiness returned BOOT, broken into dependency-ordered waves, and the maintainer wants the work between the two gates run hands-off in a single supervised session. Do not use when the plan is not yet approved (run approve-plan), readiness is absent or NOT-READY (run autonomous-readiness), the work is a single slice (use implement-approved-slice), the run would need to auto-merge (never allowed; a human always performs the merge), or cross-session durable resume (restart and re-attach) is required (out of v1 scope; a detached continuous background session is in scope via the opt-in background mode).
 metadata:
   category: execution-and-closure
   primary-cursor-mode: Agent
@@ -46,12 +46,14 @@ Mandatory context bootstrap (before any output):
 Required inputs:
 - active task folder path
 - IMPLEMENTATION_PLAN.md with an approved `## Approval log` entry and an `## Execution waves` section (dependency-ordered, file-scope-disjoint per ADR-0041)
+- a BOOT verdict from `autonomous-readiness` for the current plan revision (`RUN_READINESS.md` in the active task folder); an absent or NOT-READY verdict routes there
 - TASK_STATE.md, DECISIONS.md (the run honors every locked decision)
 - the STOP sentinel file path (outside the agent writable scope) and the governor limits (per-task token/cost ceiling, max-iteration, wall-clock timeout)
 - last completed step from TASK_STATE.md (command + summary)
 
 Operating rules:
 - **Approval is a precondition.** If `IMPLEMENTATION_PLAN.md` has no `## Approval log` entry for the current plan revision, refuse and route to `approve-plan`. Never run an unapproved plan.
+- **Readiness is a second, independent precondition (D-3 of the 2026-07-27 readiness task).** Before the first slice, a BOOT verdict from `autonomous-readiness` for the current plan revision must be on record (`RUN_READINESS.md` in the active task folder). IF it is absent, or the recorded verdict is NOT-READY, THEN refuse and route to `autonomous-readiness`, naming what the gate still has to answer. This precondition is ADDITIVE and never a replacement: a BOOT verdict does not approve a plan, an approved plan does not make a project ready, and the approval rule above is unchanged. Both must hold before the run begins, and neither is satisfied by the controller's own judgment.
 - **Two gates, never auto-merge (D6).** The plan-approval gate is upstream (`approve-plan`, already passed). The merge gate is downstream: the controller produces PROPOSED slice diffs and routes the merge to `approve-proposed` and `review-hard`. The controller MUST NOT commit, merge, deploy, or take any irreversible step.
 - **Single writer (ADR-0040).** Each slice is executed by `implement-approved-slice`; the controller never writes product files itself. Parallel subagents on the implement leg are forbidden (D9).
 - **Between every slice, run the governor and the classifier.** Call `scripts/autonomy/stop-check.sh` (halt if STOP present, D11), `scripts/autonomy/governor.sh` (halt on max-iteration, wall-clock timeout, or identical-command loop, D11), and `scripts/autonomy/classify-slice.sh` over the slice's file set.
@@ -59,6 +61,9 @@ Operating rules:
 - **Default to escalate on uncertainty.** A slice whose file set cannot be proven free of boundary and test/eval paths escalates. A false auto-advance is the dangerous failure.
 - **Skip list (D9), refuse and record.** Never run in a permissive headless mode (acceptEdits, bypassPermissions, skip-permissions, yolo), never auto-run without approval, never let the model pick its own autonomy tier, never auto-deploy. If asked, refuse and cite ADR-0044 D9.
 - **Tracking is Fhorja-internal (D7).** The board of record is the spec, the plan waves, and the TASK_STATE phases. Do not integrate or write to an external work tracker. For a single-glance read-only view of that board of record, use `autonomous-board`.
+- **Evidence manifest (one per run).** At the end of a run, write `EVIDENCE_MANIFEST.md` into the active task folder: one row per evidence artifact the run produced, each row naming the artifact's path and the gate that produced it (for example `WEB_RUNTIME_VERIFY.md` and its `WEB_RUNTIME_VERIFY_SHOTS/` images from `web-runtime-verify`, `API_RUNTIME_VERIFY.md` from `api-runtime-verify`, `APP_RUNTIME_VERIFY.md` from `app-runtime-verify`, `GODOT_RUNTIME_VERIFY.md` from `godot-runtime-verify`, `DB_CONTEXT.md` from the db-context commands). The manifest is an INDEX: it records paths, never the artifacts' contents. Two rules make it honest rather than decorative:
+  - **Check the disk before naming a path.** A row whose file is not on disk at write time reads `absent` with the reason, never a path. A named path that does not exist is invalid output, the same standard the gates themselves hold.
+  - **Never embed credential-bearing output.** Do not paste an artifact's body into the manifest, and never a `supabase status` block, a service_role key, an anon key, a JWT secret, or a full connection string. `db-context-supabase` strips those at the source; a manifest that re-embeds them would undo that at the aggregation point, which is exactly where a leak is easiest to miss.
 - **Trust comes from the Fhorja evals and the human merge (D10).** Mark a slice done only when its EARS exit criterion is met and verified; never gate on a vendor benchmark.
 - **Single supervised session (v1).** Scope a run to one session bounded by the governor and the STOP file. Cross-session durable resume (restart and re-attach of a stopped run) is out of scope; if the run cannot finish in-session, stop cleanly at a slice boundary and hand off with the resume point recorded in TASK_STATE.md. A detached background session (below) is still ONE continuous session and does not conflict with this rule.
 - **Background mode (opt-in; D-1..D-4 of the 2026-07-03 background-run task; runs-feed contract in ADR-0080).** The run MAY execute detached in an isolated worktree, launched via `scripts/autonomy/launch-background-run.sh` (or the manual pattern it prints when `WOS_AGENT_CMD` is unset). In background mode the controller ADDITIONALLY:
@@ -71,15 +76,16 @@ Operating rules:
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract`.
 
 Required output:
-1. Pre-flight: plan approved (yes/no), waves detected, governor limits, STOP file path (background mode: plus the run_id, feed file path, and log path)
+1. Pre-flight: plan approved (yes/no), readiness verdict (BOOT, NOT-READY, or absent) with the path it was read from, waves detected, governor limits, STOP file path (background mode: plus the run_id, feed file path, and log path)
 2. Per wave: the slices attempted, each slice's classifier verdict (auto / escalate + reason)
 3. Slices executed (via `implement-approved-slice`) with PROPOSED-diff status, and slices escalated to the human gate
 4. Governor status at stop (iterations, elapsed, whether a limit halted the run)
 5. The exact merge-gate routing (`approve-proposed` / `review-hard`) for the PROPOSED diffs
-6. What was intentionally not done (no merge, no deploy, escalated slices left for the human)
-7. Recommended next command (`approve-proposed` for the produced diffs, or `implement-approved-slice` for an escalated slice the human now approves)
-8. Recommended editor mode
-9. Why this is the correct next step
+6. The evidence manifest: the path to `EVIDENCE_MANIFEST.md` and its row count, with any `absent` rows named here too so a missing artifact is visible without opening the file
+7. What was intentionally not done (no merge, no deploy, escalated slices left for the human)
+8. Recommended next command (`approve-proposed` for the produced diffs, or `implement-approved-slice` for an escalated slice the human now approves)
+9. Recommended editor mode
+10. Why this is the correct next step
 
 ### Claim grounding (active epistemic humility)
 <!-- shared:claim-grounding -->
@@ -119,7 +125,9 @@ Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global ou
 - Every slice passed the governor (`stop-check.sh`, `governor.sh`) and the classifier (`classify-slice.sh`) before execution; the evidence is in the transcript.
 - Every boundary or test/eval-touching slice was escalated to the human gate, not auto-advanced (D6/D12).
 - The plan was approved (`## Approval log` present) before the run; an unapproved plan is a refusal routed to `approve-plan`.
+- A BOOT verdict from `autonomous-readiness` was on record before the first slice; an absent or NOT-READY verdict is a refusal routed to `autonomous-readiness`, and it never stood in for the approval check above.
 - In background mode: the runs feed reflected every state transition (start, per-slice heartbeats, escalated on any halt, end on clean exit), the STOP path was absolute in the main repo, and the permission posture was allowlist-only with no permissive flag (the D9 skip list unchanged).
+- `EVIDENCE_MANIFEST.md` was written with every row's path checked against the disk, `absent` recorded where a file is missing, and no artifact body or credential-bearing output embedded.
 - No existing command was modified; the controller reused `implement-approved-slice`, `approve-proposed`, and `review-hard` (D5/D8).
 - Output ends with a complete `### Handoff` block per the adaptive format in `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract`.
 - Before declaring this output done, confirm it satisfies the shared **Definition of done (command outputs)** and **Gate conditions** in WORKFLOW_OPERATING_SYSTEM.md.

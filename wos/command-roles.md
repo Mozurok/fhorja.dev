@@ -495,6 +495,19 @@ Typical next commands:
 - `implement-slice-complement` when the gap is a small explicit follow-up under a known slice
 - `pr-package`
 
+### autonomous-readiness
+Role:
+- boot gate in front of `autonomous-run`: decides whether an already-defined project is ready to be handed an unattended night, and refuses until it is
+- runs the shared definition-completeness reader (`commands/_shared/definition-completeness-reader.md`) over the project's own artifacts (charter, references, `SOURCE_OF_TRUTH.md`, `DECISIONS.md`, `IMPLEMENTATION_PLAN.md`, plus any named spec) and writes the per-criterion ledger to `RUN_READINESS.md`
+- emits exactly one verdict, BOOT or NOT-READY, naming every missing item; a declared runtime surface with no evidence adapter (`web-runtime-verify`, `api-runtime-verify`, `app-runtime-verify`, `godot-runtime-verify`, the db-context commands) is NOT-READY, never BOOT
+- reports and routes: it answers no criterion for the operator and records nothing as user input; the operator fills the source and re-runs, and the ledger is regenerated rather than hand-edited
+- a BOOT verdict is an ADDITIONAL precondition, never a substitute for plan approval; `autonomous-run` still refuses a plan with no `## Approval log` entry and still routes to `approve-plan`
+- grants no permission: the ADR-0044 D9 skip list is unchanged and unreachable from here
+
+Typical next commands:
+- `autonomous-run` (on BOOT)
+- `decision-interview`, `implementation-plan`, or `approve-plan` (on NOT-READY, per the gap named)
+
 ### autonomous-run
 Role:
 - controller for the autonomous delivery track (ADR-0044; `wos/autonomous-track.md`)
@@ -503,6 +516,7 @@ Role:
 - escalates any boundary slice (schema, contract, migration, security) or any test/eval-touching slice to the human gate mid-run (D6/D12); defaults to escalate on uncertainty
 - distinct from `implement-fleet` (parallel slices, still human-gated per wave, not an end-to-end loop) and from `implement-approved-slice` (executes one slice; `autonomous-run` sequences many under the governor)
 - refuses any permissive headless or auto-merge mode (D9); refuses an unapproved plan and routes to `approve-plan`
+- takes a second precondition alongside approval: a BOOT verdict from `autonomous-readiness` for the current plan revision; its absence is a refusal routed there, and it never relaxes the approval gate
 
 Typical next commands:
 - `approve-proposed`
@@ -914,6 +928,21 @@ Role:
 - verifies and routes the fix; never writes code; bounded-retry cap on a hold-until-pass loop; under Codex CLI the browser step fires early in the turn (`wos/editor-mode-mappings.md ## Harness operational quirks`)
 - distinct from `godot-runtime-verify` (Godot scenes), `app-runtime-verify` (mobile), the ADR-0091 experience-verdict floor (human judgment over the same served build), `performance-budget` (numeric thresholds), and `a11y-audit` (full WCAG ledger; this gate surfaces axe findings and routes clusters there)
 
+### api-runtime-verify
+Role:
+- verify an implemented backend HTTP surface at runtime: the backend half of the runtime-gate set, added because no command owned runtime HTTP behavior (DECISIONS D-6, 2026-07-27)
+- per route, record the request actually made, the HTTP status, the response content-type and the observed body shape, then assert each response against the slice's acceptance behavior
+- the probe's actual output IS the Layer-1 runtime evidence (ADR-0048); a route whose output is not shown is `unverified`, never PASS, and an absent tool reports an honest `n/a (tool absent)` rather than a fabricated status
+- confirms the target before probing, and runs a non-idempotent route only where its side effect was stated and acceptable; redacts secrets and personal data, keeping the recorded shape rather than a full payload dump
+- capability-routed: names no specific HTTP client and no specific MCP server; verifies and routes the fix, never writes code; bounded-retry cap on a hold-until-pass loop
+- writes `API_RUNTIME_VERIFY.md` (PROPOSED in Ask or Plan mode per ADR-0001)
+- distinct from `api-contract-review` and `graphql-contract-review` (design-time contract review, before implementation), and from `web-runtime-verify`, `app-runtime-verify` and `godot-runtime-verify` (browser, mobile, and Godot surfaces)
+
+Typical next commands:
+- `slice-closure` or `review-hard` on a PASS (Layer 2 after the Layer 1 runtime gate is green)
+- `incident-triage` on a FAIL whose cause or fix size is unclear
+- `implement-slice-complement` on a FAIL with a bounded known fix inside the slice intent
+- `security-review` or `api-contract-review` when the finding is an auth gap or a contract mismatch
 
 ### design-bootstrap
 Role:

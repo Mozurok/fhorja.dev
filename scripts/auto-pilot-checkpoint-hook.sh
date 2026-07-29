@@ -17,7 +17,9 @@ set -euo pipefail
 # Discard stdin (Stop event payload is just {stop_reason})
 cat > /dev/null
 
-STATE_DIR="$HOME/.claude/wos-state"
+# Counter lives in the active profile's config dir, so parallel Claude Code
+# profiles each track their own auto-pilot streak.
+STATE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/wos-state"
 STATE_FILE="$STATE_DIR/auto-pilot.json"
 WARN_THRESHOLD=10
 URGENT_THRESHOLD=15

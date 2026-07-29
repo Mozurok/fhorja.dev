@@ -2,7 +2,8 @@
 # audit-command-usage.sh - Per-command usage audit (one-pass, optimized)
 #
 # For each command in commands/*.md, counts mentions across:
-#   - ~/.claude/projects/<project>/*.jsonl (last LOOKBACK_DAYS)
+#   - <config-dir>/projects/<project>/*.jsonl (last LOOKBACK_DAYS), where the config
+#     dir follows CLAUDE_CONFIG_DIR when set, else ~/.claude
 #   - git log of Fhorja repo (commit messages)
 #   - projects/*/active|archive/*/TASK_STATE.md mentions
 #
@@ -18,7 +19,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 OUTPUT="${1:-${REPO_ROOT}/_internal/command-usage-audit-2026-06.csv}"
 LOOKBACK_DAYS="${2:-60}"
-PROJECTS_DIR="$HOME/.claude/projects"
+PROJECTS_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects"
 
 # Enumerate commands; build a regex alternation
 COMMAND_NAMES=()
