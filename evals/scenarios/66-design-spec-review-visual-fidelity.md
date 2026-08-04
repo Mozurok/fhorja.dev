@@ -32,7 +32,7 @@ Run @commands/design-spec-review.md
 
 Component: HeroCollage (HIGH complexity).
 Spec: docs/research/components/organisms/hero-collage.md
-Code: src/components/careers/CareersPeopleSection.tsx
+Code: src/components/careers/TeamSection.tsx
 Design MCP: connected. The Figma node shows square photos; the implementation rounds the corners.
 Mode: Ask
 ```

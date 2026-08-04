@@ -60,7 +60,7 @@ The <!-- count:scenarios -->124<!-- /count --> scenarios cover the whole corpus,
 | 44 | [db-context-postgres snapshot](./scenarios/44-db-context-postgres-snapshot.md) | Generic Postgres introspection via psql/pg_dump writes DB_CONTEXT.md; re-run NO_OP_TRACE when schema unchanged. |
 | 45 | [PII encryption boundary](./scenarios/45-pii-encryption-boundary.md) | API returning full bank_account flagged P0 (pii-encryption-boundary-leak); last-4 only confirmation passes. |
 | 46 | [stale CSV cache detection](./scenarios/46-stale-csv-cache-detection.md) | fex_quotes_cache freshness check: alerts at > 1.5x interval; refuses serve at > 2x; NULL last_imported_at = immediate refuse. |
-| 47 | [rate-limit no backoff](./scenarios/47-rate-limit-no-backoff.md) | CompuLife-style rate-limited call without backoff flagged P1; with exponential-backoff + circuit breaker passes. |
+| 47 | [rate-limit no backoff](./scenarios/47-rate-limit-no-backoff.md) | AcmeQuote-style rate-limited call without backoff flagged P1; with exponential-backoff + circuit breaker passes. |
 | 48 | [human-in-the-loop audit](./scenarios/48-human-in-the-loop-audit.md) | Manual carrier portal submission without intent/outcome log flagged P1; with both logs passes. |
 | 49 | [GKE Autopilot resource quota](./scenarios/49-gke-autopilot-quota.md) | Deployment manifest missing resources.requests/limits flagged P1; properly sized + HPA passes. |
 | 50 | [multi-tenant cross-agency leak](./scenarios/50-multi-tenant-cross-agency-leak.md) | Query missing tenant_id filter leaks Agency B data to Agency A user (P0); ORM scope or RLS policy passes. |

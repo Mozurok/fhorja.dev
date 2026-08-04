@@ -25,7 +25,7 @@ most prone to guessing had no grounding gate at all.
 
 A separate dogfooding finding from the same session (ADR-0042 reframe) showed that a rule which
 exists but is only stated softly gets skipped under load, while a hard gate holds: the careers-page run
-DID honor the ADR-0043 reference-grounding gate for the Ashby API. The lesson is to encode the
+DID honor the ADR-0043 reference-grounding gate for the third-party ATS API it read from. The lesson is to encode the
 design-asset rule as the same kind of hard execution gate, not as advice.
 
 ## Decision

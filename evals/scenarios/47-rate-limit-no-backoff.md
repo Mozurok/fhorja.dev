@@ -1,12 +1,12 @@
-# Eval scenario 47: Rate-limit handling without backoff (CompuLife-style quoting loop)
+# Eval scenario 47: Rate-limit handling without backoff (AcmeQuote-style quoting loop)
 
-- **Tags**: bug-class, rate-limit-no-backoff, resilience, external-api, compulife, P1
+- **Tags**: bug-class, rate-limit-no-backoff, resilience, external-api, quoting-vendor, P1
 - **Last reviewed**: 2026-06-05
 - **Status**: active
 
 ## Goal
 
-Validates the `rate-limit-no-backoff` bug-class detection on outbound external API integrations modeled on the CompuLife quoting/term-life endpoints. When a third-party API is called from inside a tight loop (per-quote, per-term, per-applicant) without any exponential backoff, jitter, or circuit breaker, a 429 burst will either melt the upstream rate budget or cause the tenant's IP/account to be throttled at the edge. The detector must flag this as P1, and must PASS the same code path once it is wrapped in exponential-backoff + jitter + circuit breaker.
+Validates the `rate-limit-no-backoff` bug-class detection on outbound external API integrations modeled on the AcmeQuote quoting/term-life endpoints. When a third-party API is called from inside a tight loop (per-quote, per-term, per-applicant) without any exponential backoff, jitter, or circuit breaker, a 429 burst will either melt the upstream rate budget or cause the tenant's IP/account to be throttled at the edge. The detector must flag this as P1, and must PASS the same code path once it is wrapped in exponential-backoff + jitter + circuit breaker.
 
 This exercises:
 
@@ -16,15 +16,15 @@ This exercises:
 
 ## Setup
 
-A repo with a `lib/quotes/compulife.ts` (or equivalent) that calls a CompuLife-style quoting endpoint. Two variants live in the diff under review:
+A repo with a `lib/quotes/acme-quote.ts` (or equivalent) that calls an AcmeQuote-style quoting endpoint. Two variants live in the diff under review:
 
-- **Variant A (FAIL case)**: `for (const term of terms) { await compulife.getQuote(applicant, term); }` with no retry wrapper, no `Retry-After` handling, no breaker. The HTTP client returns raw `fetch` responses; a 429 throws and is either swallowed or re-thrown into the request handler.
+- **Variant A (FAIL case)**: `for (const term of terms) { await acmeQuote.getQuote(applicant, term); }` with no retry wrapper, no `Retry-After` handling, no breaker. The HTTP client returns raw `fetch` responses; a 429 throws and is either swallowed or re-thrown into the request handler.
 - **Variant B (PASS case)**: same call wrapped in an exponential-backoff helper (base 500 ms, factor 2, max 30 s, full jitter), honoring `Retry-After` when present, behind a circuit breaker (e.g. opossum-style: half-open after cooldown, opens on rolling 5xx/429 error rate).
 
 ## Input prompt
 
 ```text
-Run @commands/review-hard.md on the staged diff under lib/quotes/compulife.ts.
+Run @commands/review-hard.md on the staged diff under lib/quotes/acme-quote.ts.
 Check against wos/bug-classes/rate-limit-no-backoff.md.
 Report findings per variant (A and B) with severity and rationale.
 ```
@@ -57,11 +57,11 @@ Report findings per variant (A and B) with severity and rationale.
 
 - Severity policy: P1 is reserved for unmitigated 429 amplification on external paid APIs because the blast radius spans cost (per-call billing), availability (account-level throttle), and tenant isolation (one tenant's burst can throttle all tenants sharing an API key).
 - Mitigation contract: backoff + jitter + breaker is the canonical triple. Any two without the third is still a finding, downgraded to P2 only if the missing leg is jitter on a single-tenant low-QPS path.
-- CompuLife is the reference integration but the rule generalizes to any third-party paid API called per-row inside a loop.
+- AcmeQuote is the reference integration but the rule generalizes to any third-party paid API called per-row inside a loop.
 
 ## History
 
-- 2026-06-05: Scenario created to cover `rate-limit-no-backoff` against CompuLife-style quoting/term loops; PASS case added to guard against false positives on correctly wrapped paths.
+- 2026-06-05: Scenario created to cover `rate-limit-no-backoff` against AcmeQuote-style quoting/term loops; PASS case added to guard against false positives on correctly wrapped paths.
 
 ## References
 

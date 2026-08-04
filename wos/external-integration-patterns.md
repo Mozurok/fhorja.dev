@@ -24,7 +24,7 @@ Generic resilience patterns assume the failure mode is "the call sometimes fails
 
 **Bug-class reference:** see `wos/bug-classes/stale-csv-cache-import.md` for the canonical detection rule and the documented incident shape.
 
-## Pattern 2: Rate-limited live API (CompuLife-style)
+## Pattern 2: Rate-limited live API (AcmeQuote-style)
 
 **Integration shape:** vendor exposes a live quoting API with a published quota (per minute, per day, per tenant) and brittle behavior near the cap (429s, silent truncation, or degraded result sets).
 

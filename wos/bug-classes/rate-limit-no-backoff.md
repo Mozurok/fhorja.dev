@@ -13,7 +13,7 @@ reversibility-check: false
 
 # rate-limit-no-backoff
 
-Code calls a rate-limited external API (e.g. CompuLife quoting API, Stripe, Twilio, a CRM webhook) without circuit-breaker, exponential backoff, jitter, or per-tenant quota. When the vendor throttles (HTTP 429 or 503), the client retries hard or in a tight loop, amplifying the load. The result is cascading failures, vendor account suspension, and customer-visible errors that should have been recoverable.
+Code calls a rate-limited external API (e.g. AcmeQuote quoting API, Stripe, Twilio, a CRM webhook) without circuit-breaker, exponential backoff, jitter, or per-tenant quota. When the vendor throttles (HTTP 429 or 503), the client retries hard or in a tight loop, amplifying the load. The result is cascading failures, vendor account suspension, and customer-visible errors that should have been recoverable.
 
 ## What it looks like
 
@@ -26,7 +26,7 @@ Code calls a rate-limited external API (e.g. CompuLife quoting API, Stripe, Twil
 
 ## Why it matters
 
-- Vendor account bans: rate-limited APIs (CompuLife, Stripe, SendGrid) actively suspend accounts that ignore 429s. Recovery often requires a manual support ticket, hours to days of downtime.
+- Vendor account bans: rate-limited APIs (Stripe, Twilio, SendGrid) actively suspend accounts that ignore 429s. Recovery often requires a manual support ticket, hours to days of downtime.
 - Cascading failures: a tight retry loop turns a transient 429 into a sustained DoS-against-self. Adjacent services (queues, DB connections, log pipelines) saturate.
 - Customer-visible errors: quote requests time out, payments hang, notifications drop. The user sees a broken product even though the vendor would have served the request 30 seconds later.
 - Observability gap: without circuit-breaker state and per-tenant counters, operators cannot tell "vendor is throttling us" from "vendor is down" from "one tenant is hammering". MTTR balloons.
@@ -41,7 +41,7 @@ rg -n "fetch\(|axios\.|got\(" apps/web/src packages -A 5 \
   | rg -B 1 -A 5 "retry|backoff|circuit" --files-without-match
 
 # Known rate-limited vendors called without a wrapper
-rg -n "compulife|stripe|twilio|sendgrid" apps/web/src packages -A 3 \
+rg -n "<vendor-sdk>|stripe|twilio|sendgrid" apps/web/src packages -A 3 \
   | rg -B 1 -A 3 "Retry-After|exponential|jitter" --files-without-match
 ```
 

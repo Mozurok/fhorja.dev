@@ -33,7 +33,7 @@ Run @commands/implement-slice-complement.md
 
 Anchor slice: Slice 6 (roles section, static).
 Micro-delta: "make the team filter and the search box functional over the live roles."
-Primary path: src/components/careers/CareersRolesBrowser.tsx
+Primary path: src/components/careers/OpeningsBrowser.tsx
 Mode: Agent
 ```
 
@@ -44,7 +44,7 @@ Run @commands/implement-slice-complement.md
 
 Anchor slice: Slice 6 (roles section, static).
 Micro-delta: "the role-row bottom border is doubled where two rows meet; use border-b only."
-Primary path: src/components/careers/CareersRolesSection.tsx
+Primary path: src/components/careers/OpeningsSection.tsx
 Mode: Agent
 ```
 
