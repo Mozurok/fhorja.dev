@@ -11,8 +11,10 @@
 # The codename list is read from a GITIGNORED sidecar (scripts/.mirror-codenames),
 # so this script itself stays codename-free and is safe to live in the public
 # repo. Copy scripts/.mirror-codenames.example to scripts/.mirror-codenames and
-# fill it in. Format: one `PRIVATE_CODENAME|public-alias` per line (alias
-# optional; `#` comments and blank lines ignored).
+# fill it in. Format: one `PRIVATE_CODENAME|public-alias|mode` per line (alias and
+# mode both optional; `#` comments and blank lines ignored). `mode` is `compound`
+# to also catch the token inside a dotted or underscored machine identifier;
+# anything else, including empty, keeps the default boundary match.
 #
 # Usage:  scripts/check-mirror-codenames.sh <target-dir>
 #   e.g.  scripts/check-mirror-codenames.sh ../fhorja.dev
@@ -52,14 +54,50 @@ hits=0
 # is also CASE-INSENSITIVE (D-7): a codename lowercased inside a slug leaked past a
 # case-sensitive scan. Measured at +1 file and zero false positives across every
 # other token, because the alnum boundary still rejects ordinary words.
-scan_word() {  # identifier-boundary match of a codename token
-  local tok="$1"
+# The boundary form above cannot see a codename embedded in a machine identifier
+# (`com.<tok>eng.<tok>launcherstaging`), because the neighbouring character is
+# alphanumeric on the trailing side. Per-entry `compound` mode widens the scan to
+# that form. The separator class is deliberately `.` and `_` ONLY: a hyphen is
+# shape-identical to ordinary hyphenated English prose, and including it flagged
+# 278 files on a single token with zero real leaks. Measured over the tracked
+# tree at the same commit, all sidecar tokens: with `.`/`_` only, 12 of 14 tokens
+# add zero files while still detecting the bundle-id, dotted-host, and
+# double-underscore-slug forms; the 2 that add files are short strings occurring
+# inside ordinary words, and they stay on the default mode (mobile monorepo
+# dogfood 2026-07-31). An unrecognised mode falls back to the default, so an
+# older checkout reading a newer sidecar keeps working.
+# A token is DATA, not a pattern: it is escaped before it reaches the ERE. Without
+# this, a token carrying a regex metacharacter silently breaks its own check. A `.`
+# acts as a wildcard (token `a.c` flagged a file holding only `aXc`), and a `[`
+# makes the pattern invalid, at which point grep exits >1 and the old `|| true`
+# swallowed it: the guard printed `clean` on a file that literally contained the
+# codename. A leak guard that fails open is worse than none, so a scan error is now
+# a hit, and the error message never echoes the token.
+ere_escape() { printf '%s' "$1" | sed -e 's/[^a-zA-Z0-9_]/\\&/g'; }
+# The compound gap is BOUNDED. An unbounded run between the token and the separator
+# is the mechanism that flagged 278 files when the hyphen was still a separator;
+# restricting the class to `.` and `_` removed the trigger, not the mechanism.
+COMPOUND_GAP_MAX=12
+scan_word() {  # identifier-boundary match of a codename token; mode widens it
+  local tok_raw="$1" mode="${2:-}" tok out rc
+  tok="$(ere_escape "$tok_raw")"
   local pat="(^|[^A-Za-z0-9])${tok}([^A-Za-z0-9]|\$)"
-  if git -C "$TARGET" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    ( cd "$TARGET" && git grep -iInE "$pat" -- . 2>/dev/null || true )
-  else
-    grep -riInE "$pat" "$TARGET" --exclude-dir=.git 2>/dev/null || true
+  if [ "$mode" = "compound" ]; then
+    local g="[A-Za-z0-9]{0,${COMPOUND_GAP_MAX}}"
+    pat="${pat}|[A-Za-z0-9][._]${g}${tok}|${tok}${g}[._][A-Za-z0-9]"
   fi
+  if git -C "$TARGET" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    out="$( cd "$TARGET" && git grep -iInE "$pat" -- . 2>/dev/null )"; rc=$?
+  else
+    out="$(grep -riInE "$pat" "$TARGET" --exclude-dir=.git 2>/dev/null)"; rc=$?
+  fi
+  # 0 = matched, 1 = no match, >1 = real error (bad pattern, unreadable tree).
+  if [ "$rc" -gt 1 ]; then
+    printf 'scan failed (exit %s): the pattern for this entry did not compile, or the tree could not be read\n' "$rc"
+    return 2
+  fi
+  printf '%s' "$out"
+  return 0
 }
 scan_ere() {  # arbitrary ERE (no word boundary), e.g. an absolute path
   local pat="$1"
@@ -73,13 +111,23 @@ scan_ere() {  # arbitrary ERE (no word boundary), e.g. an absolute path
 while IFS= read -r line; do
   case "$line" in ''|'#'*) continue ;; esac
   raw="${line%%|*}"
-  alias="${line#*|}"
-  [ "$alias" = "$line" ] && alias=""
+  rest="${line#*|}"
+  [ "$rest" = "$line" ] && rest=""
+  alias="${rest%%|*}"
+  mode="${rest#*|}"
+  [ "$mode" = "$rest" ] && mode=""
   # trim surrounding whitespace
   raw="$(printf '%s' "$raw" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
   alias="$(printf '%s' "$alias" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  mode="$(printf '%s' "$mode" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
   [ -n "$raw" ] || continue
-  found="$(scan_word "$raw")"
+  found="$(scan_word "$raw" "$mode")"; scan_rc=$?
+  if [ "$scan_rc" -gt 1 ]; then
+    hits=$((hits + 1))
+    echo "SCAN ERROR on one entry (token not echoed):"
+    printf '%s\n' "$found" | sed 's/^/  /'
+    continue
+  fi
   if [ -n "$found" ]; then
     hits=$((hits + 1))
     if [ -n "$alias" ]; then

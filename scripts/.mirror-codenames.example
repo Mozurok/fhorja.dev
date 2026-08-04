@@ -1,12 +1,30 @@
 # Copy this file to scripts/.mirror-codenames (which is gitignored) and fill it
 # in with the real private codenames. Consumed by scripts/check-mirror-codenames.sh.
 #
-# Format: one entry per line, PRIVATE_CODENAME|public-alias
+# Format: one entry per line, PRIVATE_CODENAME|public-alias|mode
 #   - the alias is optional (leave it empty to detect-only)
+#   - the mode is optional; omit it for the default match
 #   - blank lines and lines starting with # are ignored
-#   - PRIVATE_CODENAME is matched whole-word, case-sensitive
+#   - PRIVATE_CODENAME is matched case-insensitively, bounded on any
+#     non-alphanumeric character, so `client__client-be` matches while
+#     `clientele` does not
+#
+# Modes:
+#   (empty)   default. Boundary match only, as described above.
+#   compound  ALSO matches the token embedded inside a dotted or underscored
+#             machine identifier: a bundle id, a package name, a host name, a
+#             double-underscore slug. Use this for a distinctive codename.
+#             Do NOT use it for a short token that occurs inside ordinary
+#             English words: it will flag the whole tree. Check first by
+#             running the guard with the mode set and comparing the file count
+#             against the default mode; a distinctive codename adds zero files.
+#             A hyphen is not a compound separator, deliberately: hyphenated
+#             English prose is shape-identical to a hyphenated identifier.
+#   anything else falls back to the default, so an older checkout reading a
+#   newer sidecar keeps working.
 #
 # The real file is gitignored on purpose so no private codename ever lands in
 # either repo. This example carries only placeholders.
-EXAMPLE_CLIENT_CODENAME|public-alias-to-use-instead
+EXAMPLE_CLIENT_CODENAME|public-alias-to-use-instead|compound
 ANOTHER_CODENAME_NO_ALIAS|
+SHORT_TOKEN_INSIDE_ENGLISH_WORDS|its-alias

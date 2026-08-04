@@ -9,7 +9,8 @@
 #
 # Exit codes:
 #   0 = all checks pass
-#   1 = a command, shared block, frontmatter, skill, registry, or count failed
+#   1 = a command, shared block, frontmatter, skill, registry, count, or the
+#       mirror-codename leak guard failed
 #   2 = invocation error
 
 set -euo pipefail
@@ -1111,6 +1112,45 @@ elif [[ -f "$DOC_SYNC_SCRIPT" ]]; then
   DS_STATUS="skipped (not executable)"
 fi
 
+# --- Mirror-codename leak guard ---------------------------------------------
+# Delegates to scripts/check-mirror-codenames.sh, which greps the TRACKED tree
+# for the private codenames listed in the gitignored sidecar
+# scripts/.mirror-codenames (plus the absolute /Users/<name> path class). This is
+# the guard's only executable caller: without it nothing runs it outside its own
+# test, and a leak gate nobody invokes gates nothing.
+#
+# Guard exit contract: 0 clean, 1 leak class(es) found, 2 usage error / no
+# sidecar. Only exit 1 fails the lint, and the leak classes are printed so the
+# offending file is actionable. Exit 2 is an INFORMATIONAL one-line skip on
+# purpose: the sidecar is gitignored, so it is absent in CI and in every clean
+# checkout, and failing there would break the build for everyone while proving
+# nothing. Any other exit code is also a non-failing skip that names the code.
+#
+# A MISSING guard script is NOT a skip: the script is tracked, so its absence
+# means the tree is broken or the check was deleted, and letting the lint pass
+# there is the same fail-open shape this guard exists to close (a guard that
+# cannot run must never report green). Only the gitignored sidecar is a
+# legitimate absence.
+MC_SCRIPT="${SCRIPT_DIR}/check-mirror-codenames.sh"
+MC_STATUS="MISSING: tracked guard script absent from this tree"
+MC_OUTPUT=""
+MC_EXIT=0
+MC_MISSING=1
+
+if [[ -f "$MC_SCRIPT" ]]; then
+  MC_MISSING=0
+  set +e
+  MC_OUTPUT="$(cd "$REPO_ROOT" && bash "$MC_SCRIPT" . 2>&1)"
+  MC_EXIT=$?
+  set -e
+  case "$MC_EXIT" in
+    0) MC_STATUS="clean (tracked tree)" ;;
+    1) MC_STATUS="LEAK class(es) found (see below)" ;;
+    2) MC_STATUS="skipped (no codename sidecar; scripts/.mirror-codenames is gitignored)" ;;
+    *) MC_STATUS="skipped (guard exited ${MC_EXIT})" ;;
+  esac
+fi
+
 # --- Natural-voice advisory -------------------------------------------------
 # Delegates to scripts/check-natural-voice.sh. INFORMATIONAL: never increments
 # FAILED and never flips the exit code (mirrors the maturity-ladder model).
@@ -1151,12 +1191,32 @@ fi
 echo ""
 echo "================================================================================"
 echo "Lint summary: $TOTAL command(s), $PASSED passed, $FAILED failed, $WARNED warned"
+# Regression guard: every `wos/<topic>.md` a command cites must exist. This is the
+# consumer side of the runtime payload the installer now ships on every sync; a command
+# citing a topic that is not there fails its own MANDATORY load, and today that failure is
+# silent. Passes on first run (0 missing), so it guards against a future rename or delete
+# rather than reporting a live break.
+WOS_REF_TOTAL=0
+WOS_REF_MISSING=0
+WOS_REF_LIST=""
+while IFS= read -r topic; do
+  [[ -n "$topic" ]] || continue
+  WOS_REF_TOTAL=$((WOS_REF_TOTAL + 1))
+  if [[ ! -f "${REPO_ROOT}/wos/${topic}.md" ]]; then
+    WOS_REF_MISSING=$((WOS_REF_MISSING + 1))
+    WOS_REF_LIST="${WOS_REF_LIST} wos/${topic}.md"
+  fi
+done < <(grep -ohE 'wos/[A-Za-z0-9_/-]+\.md' \
+           "${REPO_ROOT}"/commands/*.md "${REPO_ROOT}"/commands/*/SKILL.md 2>/dev/null \
+         | sed -e 's|^wos/||' -e 's|\.md$||' | sort -u)
+
 echo "Root docs:    $ROOT_TOTAL file(s) scanned for forbidden bytes, $ROOT_WARNED warned"
 echo "Shared:       $SHARED_TOTAL marker(s), $SHARED_PASSED matched canonical, $SHARED_FAILED drifted"
 echo "Frontmatter:  $FM_TOTAL command(s), $FM_PRESENT with frontmatter ($FM_PASSED passed, $FM_FAILED failed), $FM_MISSING pending migration"
 echo "Maturity ladder: $ML_CHECKED persona(s) checked; $ML_WARNED warning(s) (per wos/maturity-ladder.md)"
 echo "Skills:       ${SKILLS_DRIFT_STATUS} (build-agent-skills.sh --check)"
 echo "Catalog:      ${CATALOG_DRIFT_STATUS} (build-command-catalog.py --check)"
+echo "Wos-refs:     $WOS_REF_TOTAL topic(s) cited by commands/, $WOS_REF_MISSING missing"
 echo "Registry:     $REG_TOTAL command(s), $REG_PASSED in all 4 registries, $REG_FAILED gap(s)"
 echo "Indexes:      $IDX_TOTAL file(s) (ADR+scenario), $IDX_PASSED indexed, $IDX_FAILED gap(s)"
 echo "Scenario refs: $SCEN_REF_TOTAL reference(s), $SCEN_REF_PASSED resolved, $SCEN_REF_FAILED broken"
@@ -1167,6 +1227,7 @@ if [[ "$DS_STATUS" == "ran" ]]; then
 else
   echo "Doc-sync:     skipped (script missing)"
 fi
+echo "Mirror-guard: ${MC_STATUS}"
 if [[ "$NV_STATUS" == "ran" ]]; then
   echo "Natural-voice: $NV_HITS advisory hit(s) across $NV_FILES file(s) (informational; per wos/natural-voice.md)"
 else
@@ -1382,6 +1443,40 @@ if [[ "$DS_STATUS" == "ran" ]] && (( DSBROKEN > 0 )); then
   printf '%s\n' "$DS_OUTPUT" | sed 's/^/  /'
   echo ""
   echo "Run ./scripts/check-doc-sync.sh to inspect the failing references and fix the targets."
+  exit 1
+fi
+
+if (( MC_MISSING == 1 )); then
+  echo ""
+  echo "Mirror-codename guard is missing: scripts/check-mirror-codenames.sh"
+  echo "That script is tracked, so its absence means the tree is broken or the check was removed."
+  echo "A leak guard that cannot run must not report green. Restore it: git checkout -- scripts/check-mirror-codenames.sh"
+  exit 1
+fi
+
+# The guard's output is NEVER reproduced here, and not by redaction either.
+# Redacting it by pattern was tried and leaked three ways: the codename also
+# lives in file PATHS (the historical `client__client-be` slug form), any LEAK
+# line the pattern did not anticipate passed through raw, and a colon in a file
+# name broke the line filter. The lint cannot sanitise output whose format it
+# does not own, so it reproduces none of it and routes the operator to the guard,
+# which they run by hand with the sidecar already in reach. MC_OUTPUT is captured
+# above solely to keep the guard's stdout out of this log; it is never printed.
+if (( MC_EXIT == 1 )); then
+  echo ""
+  echo "Mirror-codename leak detected in the tracked tree."
+  echo "Details are deliberately not printed here: they name the private codename, and this runs on every lint."
+  echo "See what and where:  scripts/check-mirror-codenames.sh ."
+  echo "Then replace the codename with a synthetic token (e.g. 'Acme') in the versioned file, or drop the absolute path. The sidecar scripts/.mirror-codenames stays gitignored and out of the mirror."
+  exit 1
+fi
+
+if (( WOS_REF_MISSING > 0 )); then
+  echo ""
+  echo "Missing wos topic(s) cited by commands/:${WOS_REF_LIST}"
+  echo "A command citing a topic that does not exist fails its own load, and several of those"
+  echo "loads are declared MANDATORY, so the failure is silent at the point it matters."
+  echo "Fix: restore the topic, or update the citing command to the topic's new name."
   exit 1
 fi
 

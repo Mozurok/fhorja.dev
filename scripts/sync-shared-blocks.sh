@@ -14,7 +14,10 @@
 #
 # Exit codes:
 #   0 = success (any number of files updated)
-#   1 = a command file declares an unknown marker (no canonical file found)
+#   1 = nothing propagated. Either a command file declares an unknown marker (no
+#       canonical file found), or the codename gate refused: a listed codename was
+#       found in a block, or the guard is missing, unparseable, or exited a code
+#       that is neither a verdict nor a skip. The printed message names which.
 #   2 = invocation error
 
 set -euo pipefail
@@ -38,7 +41,7 @@ Options:
 
 Exit codes:
   0 = success
-  1 = unknown marker referenced
+  1 = nothing propagated (unknown marker referenced, or the codename gate refused)
   2 = invocation error
 EOF
 }
@@ -60,6 +63,67 @@ if [[ ! -d "$SHARED_DIR" ]]; then
   echo "Error: shared directory not found at $SHARED_DIR" >&2
   exit 2
 fi
+
+# Codename gate, BEFORE anything is written. A shared block is copied into every
+# command declaring its marker, and each command is then compiled into a tracked
+# SKILL.md, so one codename here reaches roughly 195 tracked files. The lint finds
+# that only on a later run, which is after it already happened.
+#
+# The gate scans a COPY of the blocks outside any git work tree, and that detail is
+# the whole point. check-mirror-codenames.sh scans with `git grep` when its target
+# sits inside a work tree, which reads TRACKED files only. That is right for its
+# usual job (auditing what is published) and wrong here: the propagator enumerates
+# the source directory with opendir, so it copies untracked files too. Pointed at
+# commands/_shared directly, the gate would clear a brand-new block that has not
+# been `git add`ed and then propagate the codename out of it -- on the exact
+# authoring order this script's own header documents (edit block, run sync, run
+# lint; no git step in between). Copying to a non-git temp dir routes the guard
+# down its plain-grep branch, which reads every file on disk.
+#
+# `bash -n` first, so a truncated or unparseable guard is told apart from a real
+# verdict. Without it, bash's own exit 2 on a parse error lands in the no-sidecar
+# arm and prints a reassuring "skipped" while propagating.
+#
+# Fail-closed on any unexpected code, deliberately diverging from the softer
+# handling in scripts/lint-commands.sh: that caller reports on a tree that already
+# exists, this one decides whether to write into ~195 files. The message never
+# claims a codename was found unless the guard actually said so.
+#
+# Reproduces NONE of the guard's output, matching scripts/lint-commands.sh: the
+# guard's LEAK lines carry the codename, so echoing them here would leak it into
+# wherever this output gets pasted.
+#
+# `|| gate_rc=$?` is load-bearing under `set -e` above: without it a non-zero exit
+# aborts the script before the case can classify it, turning a skip into a crash.
+# SYNC_GATE_SCRIPT overrides the guard path, mirroring MIRROR_CODENAMES_FILE in
+# check-mirror-codenames.sh. It exists so the two fail-closed branches below can be
+# exercised by scripts/tests/test-sync-shared-blocks.sh: without it those branches
+# are asserted and never run, which is how the previous task shipped three
+# fail-open paths that no test could see.
+GATE="${SYNC_GATE_SCRIPT:-${SCRIPT_DIR}/check-mirror-codenames.sh}"
+if [[ ! -f "$GATE" ]]; then
+  echo "Codename gate: MISSING at ${GATE#"$REPO_ROOT"/}. Refusing to propagate." >&2
+  exit 1
+fi
+if ! bash -n "$GATE" 2>/dev/null; then
+  echo "Codename gate: ${GATE#"$REPO_ROOT"/} is not parseable shell. Refusing to propagate." >&2
+  exit 1
+fi
+GATE_SCAN_DIR="$(mktemp -d)"
+cp -R "$SHARED_DIR"/. "$GATE_SCAN_DIR"/
+gate_rc=0
+bash "$GATE" "$GATE_SCAN_DIR" >/dev/null 2>&1 || gate_rc=$?
+rm -rf "$GATE_SCAN_DIR"
+case "$gate_rc" in
+  0) ;;
+  1) echo "Codename gate: found a listed codename under ${SHARED_DIR#"$REPO_ROOT"/}. Nothing propagated." >&2
+     echo "  Run scripts/check-mirror-codenames.sh commands/_shared to see where." >&2
+     exit 1 ;;
+  2) echo "Codename gate: skipped (no sidecar; see scripts/.mirror-codenames.example)"
+     echo "  NOTE: the absolute-path check is skipped too, because the guard returns before it." ;;
+  *) echo "Codename gate: guard exited ${gate_rc}, which is neither a verdict nor a skip. Nothing propagated." >&2
+     exit 1 ;;
+esac
 
 # K.3 (2026-06-04): dual layout. Flat at commands/<name>.md AND folder-shaped
 # at commands/<name>/SKILL.md. _shared/ holds canonical block bodies (skip).

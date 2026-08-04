@@ -131,7 +131,7 @@ my_work_tasks/
       0070-mcp-server-vet-command.md  # latest
   evals/
     README.md                         # eval harness overview + cadence + LLM-as-judge layer (ADR-0019)
-    scenarios/                        # <!-- count:scenarios -->123<!-- /count --> scenarios as of v0.2.x; one markdown file per scenario
+    scenarios/                        # <!-- count:scenarios -->124<!-- /count --> scenarios as of v0.2.x; one markdown file per scenario
       template.md                     # scenario template
       01-bootstrap-and-init.md        # example
       ...

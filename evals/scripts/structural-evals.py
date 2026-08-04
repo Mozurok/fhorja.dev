@@ -1204,6 +1204,55 @@ def check_godot_tier_floor_variants():
     return (not fails, fails)
 
 
+def check_commit_evidence_routes_to_apply():
+    """[ADR-0084] Every commit-evidence floor home routes to `branch-commit --apply`.
+
+    No command in this repository can create a commit except `branch-commit --apply`, so a
+    floor home that routes anywhere else is circular by construction: it tells the reader to
+    go get a commit and names a path that cannot produce one. That was the live defect the
+    --apply mode was built to fix.
+
+    Asserted PER HOME, never by grepping the whole file. A file-wide search passes while one
+    of the three homes silently loses its routing, which is the failure mode the assertion
+    exists to catch.
+    """
+    fails = []
+    floors = read(p("wos", "closure-floors.md"))
+    marker = "## Commit-evidence floor"
+    if marker not in floors:
+        return (False, ["wos/closure-floors.md: no Commit-evidence floor section"])
+    block = floors.split(marker, 1)[1].split("\n## ", 1)[0]
+    for variant in ("implement-approved-slice variant", "slice-closure variant"):
+        head = f"### {variant}"
+        if head not in block:
+            fails.append(f"wos/closure-floors.md: commit-evidence floor missing the {variant}")
+            continue
+        body = block.split(head, 1)[1].split("\n### ", 1)[0]
+        if "branch-commit --apply" not in body:
+            fails.append(
+                f"wos/closure-floors.md: the {variant} of the commit-evidence floor does not "
+                "route to `branch-commit --apply`, the only path that can create a commit"
+            )
+    # The third home. Scoped to the floor bullet, not the whole file: task-close names
+    # `branch-commit --apply` in several places, so a file-wide search stays green while the
+    # floor itself loses its routing. A mutation proved that exact miss before this was scoped.
+    body = _command_body("task-close")
+    if body is None:
+        fails.append("commands/task-close: neither a flat .md nor a folder-shaped SKILL.md exists")
+    else:
+        head = "**Commit-evidence floor"
+        if head not in body:
+            fails.append("commands/task-close: no commit-evidence floor bullet")
+        else:
+            bullet = body.split(head, 1)[1].split("\n- **", 1)[0]
+            if "branch-commit --apply" not in bullet:
+                fails.append(
+                    "commands/task-close: the commit-evidence floor bullet does not route to "
+                    "`branch-commit --apply`, the only path that can create a commit"
+                )
+    return (not fails, fails)
+
+
 # Each row's second field is the label printed beside the check. It names the eval
 # scenario the invariant enforces, or, when the invariant predates or postdates any
 # scenario, the ADR that locked it. It is never a D-N task decision: those live under
@@ -1225,6 +1274,7 @@ CHECKS = [
     ("no-emdash", "forbidden-bytes scenarios", "no em-dash in commands or root docs", check_no_emdash),
     ("shared-block-sources", "shared-block scenarios", "every <!-- shared:X --> has a canonical source", check_shared_block_sources),
     ("epistemic-doctrine-surfaces", "scenarios 110, 112", "the ADR-0109 doctrine surfaces exist and claim-grounding covers the universal command layer", check_epistemic_doctrine_surfaces),
+    ("commit-evidence-apply-route", "ADR-0084", "every commit-evidence floor home routes to branch-commit --apply, the only path that can commit", check_commit_evidence_routes_to_apply),
     ("godot-tier-artifact-gate", "ADR-0119", "the tier floor fails closed on every fixture directory on disk, decoy and near misses included", check_godot_tier_artifact_gate),
     ("godot-tier-floor-variants", "ADR-0119", "the tier floor keeps its variants and every command it names a variant for cites it", check_godot_tier_floor_variants),
     ("godot-tier-gate", "scenario 117", "godot-scene-plan requires a declared renderer tier on a 3D plan (ADR-0117 D-9)", check_godot_tier_gate),

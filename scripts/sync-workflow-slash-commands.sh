@@ -56,6 +56,9 @@ INVOKED_ARGC=$#
 
 WORKFLOW_DOCS_DEST="${WORKFLOW_DOCS_DIR:-${HOME}/.cursor/workflow-docs}"
 CLAUDE_WORKFLOW_DOCS_DEST="${CLAUDE_WORKFLOW_DOCS_DIR:-${HOME}/.claude/workflow-docs}"
+# Codex had no docs destination, so a --codex-only sync installed prompts whose wos/ loads
+# resolved nowhere: the payload was gated on the other two tools alone.
+CODEX_WORKFLOW_DOCS_DEST="${CODEX_WORKFLOW_DOCS_DIR:-${HOME}/.codex/workflow-docs}"
 
 usage() {
   sed -n '1,120p' <<'EOF'
@@ -106,9 +109,15 @@ Environment:
   CODEX_PROMPTS_DIR      Same as --codex-dir.
   WORKFLOW_DOCS_DIR      Destination for --with-docs, Cursor-side copy (default: ~/.cursor/workflow-docs).
   CLAUDE_WORKFLOW_DOCS_DIR  Second copy for Claude Code (default: ~/.claude/workflow-docs).
+  CODEX_WORKFLOW_DOCS_DIR   Third copy for Codex (default: ~/.codex/workflow-docs).
   CLAUDE_SKILLS_DIR      Skills destination, Claude Code (default: ~/.claude/skills).
   CURSOR_SKILLS_DIR      Skills destination, Cursor (default: ~/.cursor/skills).
   CODEX_SKILLS_DIR       Skills destination, OpenAI Codex (default: ~/.agents/skills).
+
+Note: EVERY sync, with or without --with-docs, also writes the runtime payload (wos/) into
+the three workflow-docs destinations above, for whichever tools the run targets. Commands
+cite wos/<topic>.md and several of those loads are MANDATORY, so the payload is a runtime
+dependency rather than the optional reading material --with-docs carries.
 
 Note: Command files reference WORKFLOW_OPERATING_SYSTEM.md and paths under this repo.
 For best results, open Claude Code/Codex from my_work_tasks as cwd, or add this
@@ -287,6 +296,42 @@ sync_one_dest() {
   done
   shopt -u nullglob
   echo "    wrote ${copied} markdown files (profile: ${PROFILE:-all})"
+}
+
+# The RUNTIME payload: wos/, and only wos/. Distinct from --with-docs, which by its own
+# help text carries optional reading material (the spec, README, demo, stubs, templates/).
+# This is a runtime dependency: every command file cites at least one `wos/<topic>.md`, and
+# several of those loads are declared MANDATORY, so a session bootstrapping from an
+# installed copy was resolving them against nothing.
+# Copied on EVERY sync, deliberately OUTSIDE the --with-docs gate: that flag defaults to 0
+# and bootstrap-user-setup.sh never suggests it, so behind it the fix would not reach a new
+# user, who is the population it exists for.
+# NO scripts are shipped, per D-3 of the retro wave-1 task. A first pass shipped a measured
+# subset and review found the measurement was the wrong one: it ranked by how often a script
+# is MENTIONED, not by whether it can run where it lands. `portfolio-review.sh` derives its
+# data root from its own file location, so the installed copy chdirs into this directory,
+# finds no projects/, and prints a well-formed EMPTY board with exit 0 while a command is
+# told to trust that output. Shipping a helper that answers confidently and wrongly is worse
+# than shipping none. Which scripts can ship at all is a per-script question and has its own
+# task.
+sync_runtime_payload() {
+  local label="$1"
+  local dest="$2"
+  if [[ -z "$dest" ]]; then
+    return 0
+  fi
+  echo "==> ${label} (runtime payload): ${dest}"
+  local topics
+  topics="$(find "${REPO_ROOT}/wos" -name '*.md' | wc -l | tr -d ' ')"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "    mkdir -p $(printf '%q' "${dest}/wos")"
+    echo "    cp -R wos/. -> $(printf '%q' "${dest}/wos")  (${topics} topics, recursive)"
+    return 0
+  fi
+  mkdir -p "${dest}/wos"
+  # Recursive: wos/ has subdirectories (bug-classes/), and a flat copy would drop them.
+  cp -R "${REPO_ROOT}/wos/." "${dest}/wos/"
+  echo "    copied wos/ (${topics} topics)"
 }
 
 sync_workflow_docs() {
@@ -557,6 +602,13 @@ run_wizard() {
 # ---------------------------------------------------------------------------
 run_sync() {
   refuse_minimal_skills_if_requested
+  # Validate --project BEFORE any destination is written. It used to sit after the three
+  # home sync_one_dest calls, so a bad path left a fully installed command set behind and
+  # then aborted before the payload: commands present, every wos/ load resolving nowhere.
+  if [[ -n "$PROJECT" ]] && [[ ! -d "$PROJECT" ]]; then
+    echo "Project path is not a directory: $PROJECT" >&2
+    exit 1
+  fi
   if [[ "$DO_CURSOR" -eq 1 ]]; then
     sync_one_dest "Cursor" "$CURSOR_DEST"
   fi
@@ -568,10 +620,6 @@ run_sync() {
   fi
 
   if [[ -n "$PROJECT" ]]; then
-    if [[ ! -d "$PROJECT" ]]; then
-      echo "Project path is not a directory: $PROJECT" >&2
-      exit 1
-    fi
     if [[ "$DO_CURSOR" -eq 1 ]]; then
       sync_one_dest "Cursor (project)" "${PROJECT}/.cursor/commands"
     fi
@@ -581,6 +629,23 @@ run_sync() {
     if [[ "$DO_CODEX" -eq 1 ]]; then
       echo "==> OpenAI Codex prompts (project): skipped (Codex custom prompts are user-local under ~/.codex/prompts)"
     fi
+  fi
+
+  # Unconditional with respect to --with-docs, and that placement is the point: inside the
+  # WITH_DOCS block below, the payload every command depends on would ship only to users who
+  # already knew to ask for optional docs. Gated per tool like every sibling call, so
+  # --cursor-only does not write a Claude destination.
+  if [[ "$DO_CURSOR" -eq 1 ]]; then
+    sync_runtime_payload "Runtime payload (Cursor)" "$WORKFLOW_DOCS_DEST"
+  fi
+  if [[ "$DO_CLAUDE" -eq 1 ]]; then
+    sync_runtime_payload "Runtime payload (Claude)" "$CLAUDE_WORKFLOW_DOCS_DEST"
+  fi
+  if [[ "$DO_CODEX" -eq 1 ]]; then
+    sync_runtime_payload "Runtime payload (Codex)" "$CODEX_WORKFLOW_DOCS_DEST"
+  fi
+  if [[ -n "$PROJECT" ]] && [[ "$DO_CURSOR" -eq 1 ]]; then
+    sync_runtime_payload "Runtime payload (project / Cursor)" "${PROJECT}/.cursor/workflow-docs"
   fi
 
   if [[ "$WITH_DOCS" -eq 1 ]]; then
