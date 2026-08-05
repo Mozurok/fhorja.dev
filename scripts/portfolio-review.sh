@@ -55,21 +55,22 @@ cd "$ROOT"
 # --initiative mode: best-effort dependency view over projects/*/INITIATIVE_INDEX.md.
 # Parses each row's slug, status, and any "blocked-by: ..." cross-link, then reports
 # per-task ready/blocked state, one start-now recommendation, and dangling-ref +
-# deadlock(cycle) warnings. Best-effort grep parsing (the cross-link column is free
-# text); it warns rather than fails on rows it cannot parse. Read-only.
+# deadlock(cycle) warnings. Parsing is column-scoped when a header row names the
+# Cross-links column and best-effort whole-row otherwise; it warns rather than
+# fails on rows it cannot parse. Read-only.
 # parse_initiative_rows <index-file> <out-file>
 # The single parse point for INITIATIVE_INDEX.md tables (both the human view
 # and the JSON emitter call this; the board consumes the emitter). Emits one
 # TSV row per data row: slug, status, blocked-by, objective, next-command.
-# Status (and, when a header exists, objective and next) come from
-# header-derived column indexes; a headerless table falls back to the
-# historical whole-row status match with empty objective/next.
+# Status and blocked-by (and, when a header exists, objective and next) come
+# from header-derived column indexes; a headerless table falls back to the
+# historical whole-row match with empty objective/next.
 parse_initiative_rows() {
   local idx="$1" out="$2"
   awk '
     # A non-table line ends the current table: forget the learned column
     # indexes so a later headerless table degrades to the whole-row match.
-    !/^[[:space:]]*\|/ { scol=0; ocol=0; ncol=0; next }
+    !/^[[:space:]]*\|/ { scol=0; ocol=0; ncol=0; xcol=0; next }
     /^[[:space:]]*\|/ {
       line=$0; low=tolower(line)
       if (line ~ /-{3,}/) next
@@ -82,6 +83,7 @@ parse_initiative_rows() {
         if (c=="status") { scol=i; hdr=1 }
         else if (c=="objective") { ocol=i }
         else if (c ~ /^next/) { ncol=i }
+        else if (c ~ /^cross[- ]?links$/) { xcol=i }
       }
       if (hdr) next
       if (low ~ /slug/ && low ~ /status/) next
@@ -93,8 +95,15 @@ parse_initiative_rows() {
       if (scol > 0 && scol <= nc) {
         if (match(cells[scol], /done|closed|delivered|archived|in-progress|in progress|blocked|review|initialized|ready/)) { status=substr(cells[scol],RSTART,RLENGTH); gsub(/ /,"-",status) }
       } else if (match(low, /done|closed|delivered|archived|in-progress|in progress|blocked|review|initialized|ready/)) { status=substr(low,RSTART,RLENGTH); gsub(/ /,"-",status) }
+      # Cross-links: scope to the learned column so a "blocked-by" string in
+      # another cell (an Objective describing a rejected dependency, a Next
+      # command) is not read as a real edge. A headerless table has no column
+      # to scope to and keeps the historical whole-row match, which is what
+      # preserves every row written before the structured format existed.
       bb=""
-      if (match(low, /blocked-by[: ]+[a-z0-9_,. -]+/)) { bb=substr(low,RSTART,RLENGTH); sub(/blocked-by[: ]+/,"",bb) }
+      if (xcol > 0 && xcol <= nc) {
+        if (match(cells[xcol], /blocked-by[: ]+[a-z0-9_,. -]+/)) { bb=substr(cells[xcol],RSTART,RLENGTH); sub(/blocked-by[: ]+/,"",bb) }
+      } else if (match(low, /blocked-by[: ]+[a-z0-9_,. -]+/)) { bb=substr(low,RSTART,RLENGTH); sub(/blocked-by[: ]+/,"",bb) }
       # Original-case objective and next-command cells for the JSON emitter
       # (empty on headerless tables); tabs cannot survive inside table cells,
       # so TSV stays unambiguous.
@@ -108,7 +117,7 @@ parse_initiative_rows() {
 }
 
 initiative_summary() {
-  local found=0 idx project rows slug status bb d deps unmet dang done_slugs all_slugs
+  local found=0 idx project rows slug status bb d deps unmet dang done_slugs all_slugs _row _rest
   for idx in projects/*/INITIATIVE_INDEX.md; do
     [[ -e "$idx" ]] || continue
     project="$(echo "$idx" | sed -E 's#projects/([^/]+)/INITIATIVE_INDEX.md#\1#')"
@@ -125,7 +134,17 @@ initiative_summary() {
     done_slugs="$(awk -F'\t' '$2 ~ /done|closed|delivered|archived/ {print $1}' "$rows")"
     all_slugs="$(cut -f1 "$rows")"
     local ready_list="" blocked_n=0 remain_n=0 dangling=""
-    while IFS=$'\t' read -r slug status bb _objective _nextcmd; do
+    # Split on tab EXPLICITLY. `IFS=$'\t' read -r a b c ...` collapses runs of
+    # tabs because tab is IFS whitespace, so an empty blocked-by field shifts
+    # the objective into `bb` and resurrects the masking the column-scoped
+    # parse just removed. The JSON emitter is unaffected (awk -F'\t' and
+    # Python str.split keep empty fields).
+    while IFS= read -r _row; do
+      slug="${_row%%$'\t'*}"
+      _rest="${_row#*$'\t'}"
+      status="${_rest%%$'\t'*}"
+      _rest="${_rest#*$'\t'}"
+      bb="${_rest%%$'\t'*}"
       [[ -z "$slug" ]] && continue
       if echo "$status" | grep -qE 'done|closed|delivered|archived'; then
         echo "  [done]    ${slug}"; continue
