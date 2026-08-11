@@ -43,7 +43,7 @@
     <g transform="translate(1038 62)">
       <rect width="130" height="80" rx="10" fill="#ef8e7d" fill-opacity="0.12" stroke="#ef8e7d" stroke-opacity="0.55"/>
       <circle cx="18" cy="26" r="5" fill="#ef8e7d"/><text x="32" y="31" font-size="14" fill="#ef8e7d">gamedev</text>
-      <text x="16" y="56" font-size="11" fill="#a3adb0">godot 2D</text>
+      <text x="16" y="56" font-size="11" fill="#a3adb0">godot, unity</text>
     </g>
   </g>
 </svg>

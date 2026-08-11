@@ -19,7 +19,7 @@
   <rect x="30" y="44" width="1140" height="228" rx="16" fill="none" stroke="#e8eae8" stroke-opacity="0.75"/>
   <text x="54" y="74" font-size="17" fill="#e8eae8">full</text>
   <text x="104" y="74" font-size="13" fill="#a3adb0">the whole catalog, the default</text>
-  <text x="1146" y="76" font-size="22" fill="#e8eae8" text-anchor="end">94</text>
+  <text x="1146" y="76" font-size="22" fill="#e8eae8" text-anchor="end">98</text>
 
   <!-- core (middle) -->
   <rect x="102" y="94" width="996" height="128" rx="14" fill="#a3adb0" fill-opacity="0.05" stroke="#a3adb0" stroke-opacity="0.7"/>
@@ -31,5 +31,5 @@
   <rect x="174" y="140" width="852" height="66" rx="12" fill="#3ddc97" fill-opacity="0.1" stroke="#3ddc97" stroke-opacity="0.85"/>
   <text x="198" y="179" font-size="16" fill="#3ddc97">minimal</text>
   <text x="272" y="179" font-size="13" fill="#a3adb0">the lifecycle spine, the everyday loop</text>
-  <text x="1002" y="181" font-size="20" fill="#3ddc97" text-anchor="end">12</text>
+  <text x="1002" y="181" font-size="20" fill="#3ddc97" text-anchor="end">14</text>
 </svg>
