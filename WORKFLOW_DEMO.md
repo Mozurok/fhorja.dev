@@ -67,6 +67,8 @@ Four more commands are not in the diagram because they are opt-in: you reach for
 | `capture-observation` | A small thing worth remembering surfaces mid-implementation, but it is not a decision and does not need a full state sync. | During slice 1 |
 | `direction-adjust` | A small course correction gets realized mid-implementation: the export button needs a disabled state. | During slice 2 |
 
+Two more commands sit outside that table for a different reason: they are not opt-in for this task, they are required by a closure floor. Slice 01 touches an HTTP route handler and Slice 02 touches a servable frontend component, in a project whose `package.json` declares a web build script; the backend-runtime-gate and web-runtime-gate floors (ADR-0127) fire on exactly that shape and block closure until `api-runtime-verify` and `web-runtime-verify` each return a real PASS. Turns 6 through 9 below show both.
+
 ## The task folder
 
 Everything below lives under:
@@ -377,10 +379,10 @@ Approved slice only: Slice 01 (CSV export API route).
 - Row-cap (D-1) enforced with a 5,001st-row check before streaming starts, so a large export fails fast instead of after downloading most of it.
 
 ### Handoff
-Run now: /slice-closure
-Mode: Ask
+Run now: /api-runtime-verify
+Mode: Agent
 Work complexity: LOW
-Reason: Exit criteria are met and evidence is recorded; a closure judgment is enough before moving on.
+Reason: Slice 01 touched an HTTP route handler; the backend-runtime-gate floor (ADR-0127) requires a real PASS before the slice can close.
 ```
 
 ---
@@ -407,10 +409,10 @@ Tag: concern
 - Appended verbatim; no other section touched.
 
 ### Handoff
-Run now: /slice-closure
+Run now: /api-runtime-verify
 Mode: Ask
 Work complexity: LOW
-Reason: Resume the closure judgment that was in progress before this capture.
+Reason: Resume the runtime-gate verification that was in progress before this capture.
 ```
 
 The line added to `TASK_STATE.md`:
@@ -418,6 +420,44 @@ The line added to `TASK_STATE.md`:
 ```text
 ## Observations
 - [2026-07-08] [concern] date columns export in UTC; a customer's spreadsheet app localizing them could show invoice dates off by a day near midnight. Out of scope for this task.
+```
+
+---
+
+### Aside: verify the route at runtime (`api-runtime-verify`, floor-required)
+
+Slice 01 touched an HTTP route handler, so the backend-runtime-gate floor (ADR-0127) requires a real `api-runtime-verify` PASS before `slice-closure` can close it. Unlike the four opt-in commands above, skipping this one is not an option for this task shape.
+
+**What you send:**
+
+```text
+Run @commands/api-runtime-verify.md for the same task folder.
+Slice: 01 (CSV export API route)
+Base URL: http://localhost:3000, started via `next dev`
+Routes: GET /api/invoices/export (authenticated, tenant-scoped)
+```
+
+**What you get back (abbreviated):**
+
+```markdown
+### Artifact changes
+- `API_RUNTIME_VERIFY.md`: `PROPOSED` (create)
+- `TASK_STATE.md`: `PROPOSED` (one line: backend-runtime-gate floor PASS)
+
+### Command transcript
+- Probed GET /api/invoices/export as an authenticated tenant session under the 5,000-row cap: 200, `text/csv`, streamed body matches D-2 and D-3.
+- Probed the same route with a second tenant's session: 200, but every returned row carries only that tenant's own `tenant_id` (AUTH_BOUNDARY: clean).
+- Probed a filter that resolves to 5,200 rows: 413 with the D-1 message, no partial file started.
+- No UNREACHABLE, STATUS_MISMATCH, CONTENT_TYPE_MISMATCH, SHAPE_MISMATCH, AUTH_BOUNDARY, ERROR_LEAK, or EFFECT_NOT_OBSERVED findings.
+
+### Gate decision
+PASS. Every route in scope was reached and every acceptance behavior is `observed`.
+
+### Handoff
+Run now: /slice-closure
+Mode: Ask
+Work complexity: LOW
+Reason: Backend-runtime-gate floor satisfied with a real PASS; ready for a closure judgment.
 ```
 
 ---
@@ -440,6 +480,7 @@ Run @commands/slice-closure.md for the same task folder.
 
 ### Command transcript
 - Exit criteria for Slice 01 verified against the recorded test run; all met.
+- Backend-runtime-gate floor (ADR-0127): `api-runtime-verify` PASS cited (`API_RUNTIME_VERIFY.md`).
 - Commit-evidence floor (ADR-0084, ADR-0100): work is committed on `task/csv-export-for-invoices` (commit a1b2c3d); classified ready to close.
 
 ### Deliverable status (per ADR-0056)
@@ -481,10 +522,10 @@ Approved slice only: Slice 02 (Export button on the invoices list).
 - On the 5,000-row rejection, the UI now shows D-1's message inline instead of a generic error.
 
 ### Handoff
-Run now: /slice-closure
-Mode: Ask
+Run now: /web-runtime-verify
+Mode: Agent
 Work complexity: LOW
-Reason: Exit criteria met; ready for a closure judgment.
+Reason: Slice 02 touched a servable frontend component; the web-runtime-gate floor (ADR-0127) requires a real PASS before the slice can close.
 ```
 
 ---
@@ -529,6 +570,44 @@ Slice 02 is then re-run with the same command shown above. The abbreviated outpu
 
 ---
 
+### Aside: verify the button at runtime (`web-runtime-verify`, floor-required)
+
+Slice 02 touched a servable frontend component in a project with `next build` and `next dev` scripts, so the web-runtime-gate floor (ADR-0127) requires a real `web-runtime-verify` PASS before `slice-closure` can close it.
+
+**What you send:**
+
+```text
+Run @commands/web-runtime-verify.md for the same task folder.
+Slice: 02 (Export button on the invoices list)
+Build: `next build` then `next start`, served on an ephemeral port
+Page: /invoices
+```
+
+**What you get back (abbreviated):**
+
+```markdown
+### Artifact changes
+- `WEB_RUNTIME_VERIFY.md`: `PROPOSED` (create)
+- `TASK_STATE.md`: `PROPOSED` (one line: web-runtime-gate floor PASS)
+
+### Command transcript
+- Served the build on an ephemeral port; page identity confirmed against `/invoices` before any other check.
+- Clicked "Export CSV" on a filtered list: button disabled and showed a spinner (D-4) until the download started; no double request fired on a rapid double-click.
+- Clicked "Export CSV" against a filter over the 5,000-row cap: the D-1 message rendered inline, no console error.
+- Overflow sweep at 320 to 2560 px: clean. Console capture: zero errors or warnings.
+
+### Gate decision
+PASS. Every acceptance behavior is `observed`.
+
+### Handoff
+Run now: /slice-closure
+Mode: Ask
+Work complexity: LOW
+Reason: Web-runtime-gate floor satisfied with a real PASS; ready for a closure judgment.
+```
+
+---
+
 ## Turn 9: close slice 02 (`slice-closure`)
 
 ### What you send
@@ -545,6 +624,7 @@ Run @commands/slice-closure.md for the same task folder.
 
 ### Command transcript
 - Both slices verified against recorded exit-criteria evidence.
+- Web-runtime-gate floor (ADR-0127): `web-runtime-verify` PASS cited (`WEB_RUNTIME_VERIFY.md`).
 - Commit-evidence floor (ADR-0084, ADR-0100): committed on task/csv-export-for-invoices (commit e4f5a6b).
 
 ### Deliverable status (per ADR-0056)
@@ -730,14 +810,15 @@ Merge evidence: PR #128 merged into main, commit 9f1c2ab.
 
 ### Command transcript
 - Done-conditions: implementation complete (met), review complete (met, review-hard + sweep), team approval (met, PR review), merge (met, commit 9f1c2ab).
+- Platform runtime floors (ADR-0127): web-runtime-gate and backend-runtime-gate both satisfied by the PASSes cited at Slice 01 and Slice 02 closure.
 - Commit-evidence floor (ADR-0084, ADR-0100): satisfied by the merge commit.
 
 ### Deliverable reconcile (per ADR-0056)
 - Both requested deliverables are done; nothing unreconciled.
 
 ### Handoff
-Run now: (none; task closed)
-Mode: Ask
+Run now: none
+Mode: N/A
 Work complexity: N/A
 Reason: Task is closed and archived; nothing to run next unless new scope shows up, which would start with task-init.
 ```

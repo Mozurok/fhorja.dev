@@ -24,7 +24,7 @@ Cloning the repo and reading task memory needs no network access at all; the mar
 
 ## Which AI tools work with this?
 
-Any tool that reads `.claude/skills/<name>/SKILL.md` natively works as a drop-in. As of mid-2026 that includes (but is not limited to) Cursor 2.4+, Claude Code, GitHub Copilot, OpenAI Codex, Gemini CLI, OpenHands, Goose, Junie, Roo Code, Mistral Vibe, Snowflake Cortex, Databricks Genie. The skills are generated from `commands/*.md` by `scripts/build-agent-skills.sh` and committed to the repo, so cloning is sufficient.
+Any tool that reads `.claude/skills/<name>/SKILL.md` natively works as a drop-in. As of mid-2026 that includes (but is not limited to) Cursor 2.4+, Claude Code, GitHub Copilot, OpenAI Codex, Gemini CLI, OpenHands, Goose, Junie, Roo Code, Mistral Vibe, Snowflake Cortex, Databricks Genie, Kimi Code CLI. The skills are generated from `commands/*.md` by `scripts/build-agent-skills.sh` and committed to the repo, so cloning is sufficient.
 
 For tools that only read legacy `.claude/commands/` or `.cursor/commands/`, the same `commands/*.md` files are mirrored to those directories by `scripts/sync-workflow-slash-commands.sh`.
 
@@ -63,6 +63,12 @@ The Agent Skills standard supports a `disable-model-invocation` flag for exactly
 ## What happens if the AI gets something wrong, and how do I undo it?
 
 Two different safety nets, depending on when it happens. Before code is written: everything is `PROPOSED` by default (ADR-0001). You see the full content of a plan, a decision, or a file inline before anything is written to disk; a wrong proposal is discarded by not approving it. After code is written: Fhorja never commits or pushes on your behalf. `implement-approved-slice` edits files in your working tree the same way you would by hand, so normal git is your undo button: `git diff` to see what changed, `git checkout -- <file>` or `git restore <file>` to discard one file, `git reset` for the whole working tree. Nothing in the default task loop force-pushes, merges, or deletes branches for you. `autonomous-run`, the one command that runs with less supervision, still never auto-merges and stops at a STOP file or the runtime governor's limits; a human always performs the merge.
+
+## How do I know a `PASS` from a runtime-verify command is real?
+
+Four commands probe an implemented surface and report what actually happened, per platform: `godot-runtime-verify` for a Godot scene, `app-runtime-verify` for a mobile or app build (ADR-0087), `web-runtime-verify` for a web or static frontend, which serves the build on an ephemeral port and checks page identity first (ADR-0112), and `api-runtime-verify` for a backend HTTP surface, which records the real status, content-type, and body per route (ADR-0120). None of the four writes or fixes code; the run's captured output is the evidence, not a claim about what should happen (ADR-0048), so an unshown pass is never a pass.
+
+For a task with a mobile signature, `slice-closure`, the `implement-approved-slice` inline-close path, and `task-close` all require either a real `app-runtime-verify` PASS or an explicit recorded skip reason before a runtime-observable slice closes (ADR-0106). The same floor now covers web and backend HTTP surfaces, closed after a 2026-08 dogfood run found the check named in the plan but reimplemented by hand instead of actually invoked (ADR-0127).
 
 ## Does it send my code anywhere?
 
@@ -141,7 +147,7 @@ The metaphor breaks down at scale (an OS isolates processes; Fhorja does not iso
 
 ## What is the context engineering framework? (ADRs 0012-0020)
 
-The workflow adopts an explicit six-layer context model (`system`, `memory`, `retrieved`, `tools`, `history`, `task`) as a falsifiable contract. Every `commands/<name>.md` declares `metadata.context-layers-consumed` and `metadata.context-layers-produced` (ADR-0012), plus a `metadata.token-budget` (ADR-0013) and a `<!-- cache-breakpoint -->` marker (ADR-0014). Three composable layers extend the basic context model:
+The workflow adopts an explicit six-layer context model (`system`, `memory`, `retrieved`, `tools`, `history`, `task`) as a falsifiable contract. Every `commands/<name>.md` declares `metadata.context-layers-consumed` and `metadata.context-layers-produced` (ADR-0012). The original per-command `metadata.token-budget` field (ADR-0013) and the `<!-- cache-breakpoint -->` marker (ADR-0014) are both retired now: a single enforced ceiling on the generated skill body replaced the per-command budget (ADR-0116), and the marker was dropped once Anthropic's own prompt-caching documentation confirmed no per-file breakpoint was ever addressable (ADR-0139). Three composable layers extend the basic context model:
 
 - **Memory pyramid** (task -> project -> user; specific overrides general): TASK_STATE.md and DECISIONS.md at the task layer; PROJECT_CHARTER.md and REFERENCES.md at the project layer (ADR-0007); USER_MEMORY.md at the user layer (ADR-0016; gitignored; bootstrap from `templates/USER_MEMORY.template.md`).
 - **Working-memory compaction** (ADR-0015): `compact-task-memory` is a new command that produces a lossy summary of long TASK_STATE.md while preserving canonical decisions and the recommended next step verbatim; audit trail in a `## Compaction history` section.
@@ -191,11 +197,11 @@ ADR-0040 (`docs/adr/0040-single-writer-per-folder-exception.md`) requires every 
 
 Fhorja has no cost of its own (no subscription, no API key, no hosted service); you pay only for the AI coding tool and model you already use. It does use more of that tool's usage than a single freeform prompt, and here are measured numbers so you can judge for yourself (approximate, from `scripts/measure-tokens.py`, roughly 10% precision against the real tokenizer):
 
-- **Per command**, the static context a command loads (the spec sections it needs plus its shared blocks) is about 41,000 tokens. With prompt caching, which Claude Code turns on by default, that block is written once and then read at about a tenth of the cost on every command after, so you pay the full amount roughly once per session, not once per command. The command file itself adds 2,000 to 7,400 tokens.
-- **A real multi-command task** (the five-command flow from `task-init` through `pr-package`) costs about 102,000 token-equivalents with caching on, against about 238,000 if you open a fresh chat per command and lose the cache. Caching is worth roughly 57% here. An Express task is lighter still, because it skips the discovery commands.
-- **The task's memory on disk** (`TASK_STATE.md`) averages about 11 KB, roughly 2,700 tokens, measured across 314 real task files (range 0.5 KB to 43 KB). That one file is the entire resumable state of a task: what is done, every decision, and the next step.
+- **Per command**, the static context a command loads (the spec sections it needs plus its shared blocks) is about 50,000 tokens. With prompt caching, which Claude Code turns on by default, that block is written once and then read at about a tenth of the cost on every command after, so you pay the full amount roughly once per session, not once per command. The command file itself adds 3,200 to 9,700 tokens.
+- **A real multi-command task** (the five-command flow from `task-init` through `pr-package`) costs about 144,000 token-equivalents with caching on, against about 312,000 if you open a fresh chat per command and lose the cache. Caching is worth roughly 54% here. An Express task is lighter still, because it skips the discovery commands.
+- **The task's memory on disk** (`TASK_STATE.md`) averages roughly 14 KB, about 3,650 tokens, measured across 476 real task files (range under 1 KB to about 58 KB). That one file is the entire resumable state of a task: what is done, every decision, and the next step.
 
-In exchange you get plan review before code is written and resumable state across sessions, which saves the tokens a freeform chat burns re-explaining context after a compaction or a new session. If you are on a metered budget, the `minimal` install profile (the twelve-command everyday loop) is now the default, so you skip specialist personas and fleet commands until a task actually needs them.
+In exchange you get plan review before code is written and resumable state across sessions, which saves the tokens a freeform chat burns re-explaining context after a compaction or a new session. If you are on a metered budget, the `minimal` install profile (the fourteen-command everyday loop) is now the default, so you skip specialist personas and fleet commands until a task actually needs them.
 
 ## How many MCP servers should I connect, and what does each cost?
 

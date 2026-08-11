@@ -24,9 +24,9 @@ Fhorja's answer: task state, decisions, and plans live in markdown files on disk
 
 Fhorja is a workflow operating system for AI-assisted engineering: a markdown-plus-bash specification, not an application or a hosted service. It gives solo developers and small teams a disciplined, resumable process for AI-assisted work by keeping task state, decisions, and plans as files on disk instead of in chat history.
 
-The everyday product is a loop of twelve commands: `task-init`, `impact-analysis`, `decision-interview`, `implementation-plan`, `approve-plan`, `implement-approved-slice`, `review-hard`, `slice-closure`, `sync-task-state`, `pr-package`, `task-close`, and `what-next`. They share one output contract and chain into each other across discovery, decisions, planning, slice-by-slice execution, review, and delivery, distributed to any editor as Agent Skills or legacy slash commands. Most tasks touch four to six of them.
+The everyday product is a loop of twelve commands: `task-init`, `impact-analysis`, `decision-interview`, `implementation-plan`, `approve-plan`, `implement-approved-slice`, `slice-closure`, `review-hard`, `sync-task-state`, `pr-package`, `task-close`, and `what-next`. They share one output contract and chain into each other across discovery, decisions, planning, slice-by-slice execution, review, and delivery, distributed to any editor as Agent Skills or legacy slash commands. Most tasks touch four to six of them.
 
-Behind that loop sits an optional catalog of <!-- count:commands -->98<!-- /count --> commands in total (parallel fleets, design-system personas, reliability and security specialists) that you install only when a task needs them. The `minimal` install profile is the default and gives you exactly the twelve.
+Behind that loop sits an optional catalog of <!-- count:commands -->98<!-- /count --> commands in total (parallel fleets, design-system personas, reliability and security specialists) that you install only when a task needs them. The `minimal` install profile is the default and gives you the twelve-command loop plus two narrow-scope companions, `branch-commit` and `implement-slice-complement`, fourteen commands in total.
 
 It targets engineers who already use an AI coding tool (Cursor, Claude Code, and 35+ others that read the open Agent Skills standard, per [`CONTRIBUTING.md`](./CONTRIBUTING.md)) and want plan-before-code discipline with an explicit human approval gate before implementation.
 
@@ -47,10 +47,10 @@ In any editor that reads `.claude/skills/` (Cursor 2.4+, Claude Code), the comma
 
 ### Install profiles
 
-Run it with no flags on a terminal and it opens a setup wizard: a state panel showing what you already have, an arrow-key menu, and a one-keystroke **Sync everything**. Skills sync by default. To script it (or run it in CI), pass any flag and it runs non-interactively. The `minimal` profile (the twelve-command loop) is the command-set default; `--profile` grows the surface:
+Run it with no flags on a terminal and it opens a setup wizard: a state panel showing what you already have, an arrow-key menu, and a one-keystroke **Sync everything**. Skills sync by default. To script it (or run it in CI), pass any flag and it runs non-interactively. The `minimal` profile (the twelve-command loop plus two narrow-scope companions, fourteen commands total) is the command-set default; `--profile` grows the surface:
 
 ```bash
-./scripts/sync-workflow-slash-commands.sh --profile minimal  # the 12-command loop (command default)
+./scripts/sync-workflow-slash-commands.sh --profile minimal  # the 14-command minimal profile (command default)
 ./scripts/sync-workflow-slash-commands.sh --profile core     # everyday use, no fleets or personas
 ./scripts/sync-workflow-slash-commands.sh --profile full     # the whole catalog
 ```
@@ -59,7 +59,7 @@ Run it with no flags on a terminal and it opens a setup wizard: a state panel sh
   <img src=".github/assets/profiles.svg" alt="The three install profiles nest: minimal inside core inside full" width="100%">
 </p>
 
-The three profiles nest: `minimal` (<!-- count:commands-minimal -->14<!-- /count --> commands) inside `core` (<!-- count:commands-core -->50<!-- /count --> commands) inside `full` (<!-- count:commands -->98<!-- /count --> commands, the default). The `minimal` spine covers the everyday loop: `task-init`, `impact-analysis`, `decision-interview`, `implementation-plan`, `approve-plan`, `implement-approved-slice`, `slice-closure`, `review-hard`, `pr-package`, `what-next`, `sync-task-state`, `task-close`. Profiles are declared in each command's `x-wos-profiles` frontmatter and enforced by lint.
+The three profiles nest: `minimal` (<!-- count:commands-minimal -->14<!-- /count --> commands) inside `core` (<!-- count:commands-core -->50<!-- /count --> commands) inside `full` (<!-- count:commands -->98<!-- /count --> commands, the default). The `minimal` spine covers the everyday loop: `task-init`, `impact-analysis`, `decision-interview`, `implementation-plan`, `approve-plan`, `implement-approved-slice`, `slice-closure`, `review-hard`, `pr-package`, `what-next`, `sync-task-state`, `task-close`, plus two narrow-scope companions also in the minimal profile: `branch-commit` (naming a branch and commit for a small change) and `implement-slice-complement` (a bounded micro-delta inside an already-implemented slice). Profiles are declared in each command's `x-wos-profiles` frontmatter and enforced by lint.
 
 Skills sync by default: they mirror to your user-level directories so they follow you across every project. Pass `--no-skills` to skip them. Two more flags worth knowing: `--clean-orphans` removes command files left behind by renamed or deleted commands, and `--project /path/to/your/repo` additionally installs into a specific product repo, alongside your user directories.
 
@@ -90,7 +90,7 @@ A task moves through a short, explicit chain. Each command persists its result t
 
 ## Command clusters
 
-<!-- count:commands -->98<!-- /count --> commands, grouped here into 14 clusters for orientation (this grouping is editorial, not the formal <!-- count:command-categories -->9<!-- /count -->-category boundary used inside the spec):
+<!-- count:commands -->98<!-- /count --> commands, grouped here into 15 clusters for orientation (this grouping is editorial, not the formal <!-- count:command-categories -->9<!-- /count -->-category boundary used inside the spec):
 
 <p align="center">
   <img src=".github/assets/clusters.svg" alt="The command families, one color per group, the same color key the fhorja.dev page uses" width="100%">
@@ -98,7 +98,7 @@ A task moves through a short, explicit chain. Each command persists its result t
 
 | Cluster | A few commands | What it does |
 |---|---|---|
-| Core task lifecycle | `task-init`, `implementation-plan`, `implement-approved-slice`, `pr-package`, `task-close` | The 12-command minimal-install-profile spine: the chain a task actually walks from creation to closure. |
+| Core task lifecycle | `task-init`, `implementation-plan`, `implement-approved-slice`, `pr-package`, `task-close` | The 14-command minimal-install-profile spine: the chain a task actually walks from creation to closure. |
 | State, navigation, recovery | `resume-from-state`, `what-next`, `im-stuck`, `portfolio-review` | Resuming, reconciling drift, and routing to the next step, without advancing the plan itself. |
 | Project initialization | `project-bootstrap`, `capture-references` | The zero-state entry: creates project-level memory before any task folder exists. |
 | Discovery, scoping, design-time review | `code-locate`, `impact-analysis`, `decision-interview`, `api-contract-review`, `frontend-system-design`, `backend-system-design` | Locating code, sizing blast radius, and pre-implementation contract or architecture RFCs. |
@@ -109,13 +109,14 @@ A task moves through a short, explicit chain. Each command persists its result t
 | Execution and closure | `implement-approved-slice`, `implement-fleet`, `review-hard`, `security-review`, `godot-runtime-verify`, `app-runtime-verify` | The official execution path plus proactive review, runtime-verification gates, and closure. |
 | Delivery and communication | `pr-package`, `pr-feedback-ingest`, `post-review-pivot`, `team-update` | Packaging a real git diff into PR artifacts, or turning review feedback into a backlog. |
 | Prompt tooling | `prompt-shape` | Shapes a copy-paste-ready prompt aligned to the intended editor mode. |
-| Godot 2D-mobile game-dev cluster | `godot-scene-plan`, `godot-runtime-verify` | Scene planning and a press-play runtime gate, added on top of the general lifecycle. See [ADR-0069](./docs/adr/0069-godot-2d-mobile-cluster.md). |
+| Godot 2D and 3D game-dev cluster | `godot-scene-plan`, `godot-runtime-verify` | Scene planning and a press-play runtime gate for a 2D or 3D target, added on top of the general lifecycle; a 3D plan must declare its renderer tier. See [ADR-0069](./docs/adr/0069-godot-2d-mobile-cluster.md) and [ADR-0117](./docs/adr/0117-godot-3d-dimension-routed-surface.md). |
+| Unity 3D game-dev widening | `unity-scene-plan`, `app-runtime-verify` | GameObject and component planning for a Unity 3D feature, verified through `app-runtime-verify`'s Unity adapter rather than a dedicated runtime-verify command. See [ADR-0130](./docs/adr/0130-unity-3d-mobile-widening.md) and [ADR-0132](./docs/adr/0132-unity-scene-plan-command.md). |
 | Autonomous delivery track | `autonomous-run`, `autonomous-board` | A dispatcher over an approved, waved plan, bounded by two human gates; it never auto-merges. See [ADR-0044](./docs/adr/0044-autonomous-delivery-track.md). |
 | Fleet (orchestrator-workers) variants | `implement-fleet`, `task-init-fleet`, `external-research-fleet`, `screen-spec-fleet` | Parallelizes an existing single-agent command across independent slices, screens, or research angles once file scopes are disjoint (ADR-0038, ADR-0041). |
 
 ### Two clusters worth a closer look
 
-Frontend (`frontend-system-design`, `graphql-contract-review`, `frontend-architecture-review`, plus a mobile surface on `performance-budget`) and Godot 2D-mobile (`godot-scene-plan`, `godot-runtime-verify`) are additive, capability-routed groups, not separate products. Both reuse the whole lifecycle and add only the steps it doesn't already cover, and both are recorded in their own ADRs: the frontend set from [ADR-0065](./docs/adr/0065-frontend-system-design-rfc-command.md) through [ADR-0068](./docs/adr/0068-mobile-performance-budget-surface.md), Godot in [ADR-0069](./docs/adr/0069-godot-2d-mobile-cluster.md). `godot-runtime-verify` runs the scene and reads the real captured debugger output as Layer-1 runtime evidence ([ADR-0048](./docs/adr/0048-deterministic-gate-evidence.md)) rather than a claimed-but-unshown result, the same evidence bar the rest of the workflow holds a passing deterministic gate to.
+Frontend (`frontend-system-design`, `graphql-contract-review`, `frontend-architecture-review`, plus a mobile surface on `performance-budget`) and the Godot 2D and 3D game-dev cluster (`godot-scene-plan`, `godot-runtime-verify`) are additive, capability-routed groups, not separate products. Both reuse the whole lifecycle and add only the steps it doesn't already cover, and both are recorded in their own ADRs: the frontend set from [ADR-0065](./docs/adr/0065-frontend-system-design-rfc-command.md) through [ADR-0068](./docs/adr/0068-mobile-performance-budget-surface.md), Godot in [ADR-0069](./docs/adr/0069-godot-2d-mobile-cluster.md) and [ADR-0117](./docs/adr/0117-godot-3d-dimension-routed-surface.md). `godot-runtime-verify` runs the scene and reads the real captured debugger output as Layer-1 runtime evidence ([ADR-0048](./docs/adr/0048-deterministic-gate-evidence.md)) rather than a claimed-but-unshown result, the same evidence bar the rest of the workflow holds a passing deterministic gate to.
 
 ## Task memory on disk
 
@@ -164,7 +165,7 @@ Paths above are relative to wherever you cloned the repo; the folder name itself
 ## How it stays honest
 
 - **One source of truth per command.** `commands/<name>.md` is canonical. `scripts/build-agent-skills.sh` generates `.claude/skills/<name>/SKILL.md` from it, so any Agent-Skills-compatible tool gets the same command with no extra step. Editing a generated skill by hand is prohibited; lint fails CI on drift.
-- **Registry membership.** Per [ADR-0029](./docs/adr/0029-drift-guards-registry-and-count-markers.md), every command must appear in four discoverability surfaces: the cluster list above, the Command roles index in `WORKFLOW_OPERATING_SYSTEM.md`, [`wos/command-roles.md`](./wos/command-roles.md), and [`COMMAND_PROMPT_STUBS.md`](./COMMAND_PROMPT_STUBS.md). Lint fails on a gap in either direction.
+- **Registry membership.** Per [ADR-0029](./docs/adr/0029-drift-guards-registry-and-count-markers.md), every command must appear in four discoverability surfaces: the Command categories list and the Command roles index, both in `WORKFLOW_OPERATING_SYSTEM.md`, [`wos/command-roles.md`](./wos/command-roles.md), and [`COMMAND_PROMPT_STUBS.md`](./COMMAND_PROMPT_STUBS.md). Lint fails on a gap in either direction.
 - **Count markers.** Prose claims about on-disk quantities, like the <!-- count:commands -->98<!-- /count --> commands above, use `<!-- count:KIND -->N<!-- /count -->` markers that lint checks against the live count, which is why the numbers in this README are trustworthy.
 - **Index rows and regression net.** Every ADR has a row in [`docs/adr/README.md`](./docs/adr/README.md); every eval scenario has a row in [`evals/README.md`](./evals/README.md). The decision history is <!-- count:adrs -->143<!-- /count --> Architecture Decision Records, each immutable once accepted, and the regression net is <!-- count:scenarios -->133<!-- /count --> scenarios, run with `evals/scripts/run-evals.sh`.
 
@@ -209,7 +210,7 @@ Generated from `commands/*.md` by `scripts/build-command-catalog.py`. Do not han
 - `stack-currency-check`: Verify that the patterns the model is about to use for a given framework+version are current per official docs, and cache the result as CURRENT_PATTERNS.md at the project level.
 - `stack-recommend`: Research and recommend a technology stack for the active project by consulting official documentation, quality articles, and AAA company practices for latest stable versions.
 - `targeted-questions`: Ask the minimum set of high-value factual questions needed to proceed safely, then persist the result in the task repository.
-- `unity-scene-plan`: "Plan the Unity GameObject hierarchy and component architecture for a 3D feature before any C# is written: the scene and prefab structure, what each MonoBehaviour owns, the input model, and, for a multiplayer feature, the networked-authority declarations.
+- `unity-scene-plan`: Plan the Unity GameObject hierarchy and component architecture for a 3D feature before any C# is written: the scene and prefab structure, what each MonoBehaviour owns, the input model, and, for a multiplayer feature, the networked-authority declarations.
 
 ### Contract and decision hardening
 
@@ -306,6 +307,7 @@ The same `commands/*.md` files are published as Agent Skills, an open standard, 
 | Cursor | Slash commands + Agent Skills | Primary environment. Commands go to `~/.cursor/commands`; skills to `~/.cursor/skills` with `--with-skills`. |
 | Claude Code | Slash commands + Agent Skills | Commands go to `~/.claude/commands`; `.claude/skills/` is read automatically. |
 | Codex | Custom prompts + Agent Skills | Prompts go to `~/.codex/prompts` (deprecated); `--with-skills` installs the preferred skills in `~/.agents/skills`. |
+| Kimi Code | Agent Skills | No slash-command directory exists, so commands arrive as skills in `~/.agents/skills` (which Kimi scans natively) and are invoked as `/skill:<name>`. The runtime payload goes to `<kimi-home>/workflow-docs`. |
 | Other tools | Agent Skills | Any Agent-Skills-aware tool reads `.claude/skills/` or the mirrored user-level paths. See [`docs/FAQ.md`](./docs/FAQ.md) for the full list. |
 
 MCP-dependent commands (`db-context-supabase`, `db-context-postgres`, the Figma design-system commands) need a configured MCP server; without one, they stop at a precondition check with an actionable note. Every other command works with no MCP. Example configs live in [`recommended-mcp-configs/`](./recommended-mcp-configs/).
@@ -315,7 +317,7 @@ MCP-dependent commands (`db-context-supabase`, `db-context-postgres`, the Figma 
 | Script | What it does |
 |---|---|
 | `scripts/bootstrap-user-setup.sh` | First-time setup: seeds `USER_MEMORY.md` and runs a lint sanity check. |
-| `scripts/sync-workflow-slash-commands.sh` | Copies commands and skills to Cursor, Claude Code, and Codex. Run bare on a terminal for a setup wizard; skills sync by default. Accepts `--profile`, `--no-skills`, `--clean-orphans`, `--with-docs`, `--project`. |
+| `scripts/sync-workflow-slash-commands.sh` | Copies commands and skills to Cursor, Claude Code, Codex, and Kimi Code. Run bare on a terminal for a setup wizard; skills sync by default. Accepts `--profile`, `--no-skills`, `--clean-orphans`, `--with-docs`, `--project`, and the composable `--cursor-only`, `--claude-only`, `--codex-only`, `--kimi-only`. |
 | `scripts/lint-commands.sh` | Validates every command file: required sections, frontmatter, shared-block drift, forbidden bytes, registry membership, count markers, index-row membership, and skills drift. Run before committing a command edit. |
 | `scripts/build-agent-skills.sh` | Generates `.claude/skills/<name>/SKILL.md` from each command file. Idempotent; supports `--check` for CI drift detection. |
 | `scripts/build-command-catalog.py` | Generates `docs/command-catalog.html`, `docs/command-catalog.json`, and this README's Command catalog pointer. |

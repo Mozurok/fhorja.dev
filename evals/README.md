@@ -4,7 +4,7 @@ Manual eval harness for the my_work_tasks workflow. Each scenario under [`scenar
 
 ## Why this exists
 
-Fhorja is a **contract**: every command's output is supposed to follow a fixed shape (frontmatter, mandatory sections, a `### Handoff` block with `Paste this next:` body, etc.). When that contract drifts (because a model regresses, a command file changes, or a shared block goes out of sync), tasks downstream break in ways that are slow to diagnose.
+Fhorja is a **contract**: every command's output is supposed to follow a fixed shape (frontmatter, mandatory sections, a `### Handoff` block with `Run now:` body, etc.). When that contract drifts (because a model regresses, a command file changes, or a shared block goes out of sync), tasks downstream break in ways that are slow to diagnose.
 
 This eval harness catches drift before users hit it. It is not exhaustive coverage; it is a **regression net** of representative cases that exercise the load-bearing properties of the workflow.
 
@@ -206,7 +206,7 @@ The `### Notes` section at the bottom of each scenario file is where past failur
 3. Add a row to the table above.
 4. Open a PR. Include rationale in the description: what gap in coverage does this fill?
 
-Aim to grow toward Anthropic's 20-50 cases over time. Prioritize scenarios that exercise:
+The corpus already passed Anthropic's starting guidance of 20-50 cases (<!-- count:scenarios -->133<!-- /count --> scenarios); past that point, what to add matters more than how many. Prioritize scenarios that exercise:
 
 - **Routing edges**: cases where two commands could reasonably be the next step; the scenario validates that the right one is chosen.
 - **Multi-turn flows**: the workflow's value is in sequences (`task-init` to `impact-analysis` to `decision-interview` to `implementation-plan`); single-turn scenarios miss most of the contract.
