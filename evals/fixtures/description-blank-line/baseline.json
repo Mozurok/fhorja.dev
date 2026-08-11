@@ -1,0 +1,12 @@
+{
+  "_comment": "Fixture baseline. Generated with the same helper as the real one.",
+  "references": {
+    "fixture-plan": [
+      "fixture-status"
+    ],
+    "fixture-status": [
+      "fixture-plan"
+    ]
+  },
+  "skills": 2
+}

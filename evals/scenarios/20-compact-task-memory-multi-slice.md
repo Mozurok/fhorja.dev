@@ -6,7 +6,7 @@
 
 ## Goal
 
-Validates `compact-task-memory` (slice 04 of the 2026-05-15 context-engineering uplift; ADR-0015). The command must preserve canonical decisions, recommended next step, current phase, objective, invariants, source of truth, and constraints VERBATIM while filtering stale facts (resolved questions, mitigated risks, closed-slice-only files) into a `## Compaction history` audit entry with a git SHA pointer.
+Validates `compact-task-memory` (slice 04 of the 2026-05-15 context-engineering uplift; ADR-0015). The command must preserve canonical decisions, recommended next step, current phase, objective, invariants, source of truth, and constraints VERBATIM while filtering stale facts (resolved questions, mitigated risks, closed-slice-only files) into a `## Compaction history` audit entry whose reversibility pointer resolves to something that exists.
 
 ## Setup
 
@@ -80,7 +80,8 @@ I have 6 closed slices and the TASK_STATE feels heavy. Compact it before slice 7
 3. **Current phase, objective, work complexity preserved verbatim**: `implementation (slice 7 of 8)`, the objective sentence, `MEDIUM` work complexity remain identical.
 4. **Stale facts dropped**: the proposed slimmed `## Current known facts` does NOT include: Stripe API version (resolved slice 5), Q1 bug fix (no longer load-bearing), Mobile team parsing (resolved D-3), Salesforce export (consumed). It DOES include: tier values (still load-bearing for slice 7).
 5. **Mitigated risks moved to history**: R2 and R3 (both mitigated) are removed from `## Risks to watch` and listed in the new `## Compaction history` entry. R1 (active) remains in `## Risks to watch`.
-6. **Compaction history entry present**: a new section is appended with date, lines-before/after, list of dropped fact categories, mitigated risks moved, git SHA pointer for reversibility.
+6. **Compaction history entry present**: a new section is appended with date, lines-before/after, list of dropped fact categories, and mitigated risks moved.
+6b. **Reversibility pointer resolves**: `Reversible via` cites the pre-compaction snapshot path under `.wos/compaction/`, and the response shows that snapshot being written BEFORE the pruned file. The task in this scenario lives under `projects/`, which is gitignored, so a response citing only `git show <SHA>:TASK_STATE.md` FAILS this criterion: the pointer names bytes that were never committed.
 7. **PROPOSED status**: `### Artifact changes` marks TASK_STATE.md as `PROPOSED`, not `APPLIED` (Plan mode default per ADR-0001).
 8. **No invented decisions**: response does not add new decisions or change existing ones; D-3's "200 with empty array" wording is preserved as-is.
 9. **Handoff routes correctly**: `Run now:` is `sync-task-state` or `resume-from-state` or `implement-approved-slice` (any of the three is defensible; `implement-approved-slice` is the most user-aligned since they want to start slice 7).

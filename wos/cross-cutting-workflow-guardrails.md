@@ -1,6 +1,6 @@
 ---
 activation: model_decision
-description: Heuristics + external-web motivation + NEEDS CLARIFICATION marker + environment-claim verification. Load on phase-by-phase sequencing ambiguity.
+description: Heuristics + external-web motivation + NEEDS CLARIFICATION marker + environment-claim verification + the unattended-session rule. Load on phase-by-phase sequencing ambiguity, AND whenever the session has no human respondent (unattended, background, or fleet-dispatched) and the command is about to hit a question loop or a decision-bearing surface.
 ---
 
 # wos/cross-cutting-workflow-guardrails.md

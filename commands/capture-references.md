@@ -169,5 +169,3 @@ Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global ou
 
 Quality bar:
 Optimize for fidelity to the source, persistent project-level memory, fast deduplication, and minimal disruption to whatever task-scoped work was in progress before this capture.
-
-<!-- cache-breakpoint -->

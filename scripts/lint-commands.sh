@@ -162,21 +162,6 @@ for file in "${COMMAND_FILES[@]}"; do
     fi
   done
 
-  # Cache-breakpoint marker validation (ADR-0014). Required: exactly one marker;
-  # must appear AFTER the `### Definition of done (command output)` line.
-  cb_count="$(grep -cE '^<!-- cache-breakpoint -->$' "$file" || true)"
-  if [[ "$cb_count" == "0" ]]; then
-    file_failures+=("missing: <!-- cache-breakpoint --> marker (ADR-0014)")
-  elif [[ "$cb_count" -gt "1" ]]; then
-    file_failures+=("cache-breakpoint marker appears $cb_count times (must be exactly one; ADR-0014)")
-  else
-    dod_line=$(grep -nE '^### Definition of done \(command output\)$' "$file" | head -1 | cut -d: -f1)
-    cb_line=$(grep -nE '^<!-- cache-breakpoint -->$' "$file" | head -1 | cut -d: -f1)
-    if [[ -n "$dod_line" ]] && [[ -n "$cb_line" ]] && (( cb_line < dod_line )); then
-      file_failures+=("cache-breakpoint marker (line $cb_line) appears BEFORE '### Definition of done' (line $dod_line); per ADR-0014 the marker is the last non-blank line of the body")
-    fi
-  fi
-
   # Check forbidden patterns
   for entry in "${FORBIDDEN_PATTERNS[@]}"; do
     pattern="${entry%%:*}"
@@ -707,6 +692,39 @@ if [[ -x "$ADAPTER_SCRIPT" ]]; then
   fi
 fi
 
+# --- Proper-noun novelty check (mirror-guard complement) ---------------------
+# check-mirror-codenames.sh knows a LIST and is blind to every name not on it, which is how a
+# private engagement name sat in two wos/ topics on 2026-08-10 with the guard reporting clean.
+# This does not classify names (measured unworkable: 2087 capitalised names, 941 appearing
+# once). It flags NOVELTY, and the 20 commits of that day introduced zero.
+PROPER_NOUN_STATUS="skipped"
+PROPER_NOUN_OUTPUT=""
+
+PROPER_NOUN_SCRIPT="${SCRIPT_DIR}/build-proper-noun-baseline.py"
+if [[ -f "$PROPER_NOUN_SCRIPT" ]]; then
+  if PROPER_NOUN_OUTPUT="$(python3 "$PROPER_NOUN_SCRIPT" --check 2>&1)"; then
+    PROPER_NOUN_STATUS="clean"
+  else
+    PROPER_NOUN_STATUS="new-names"
+  fi
+fi
+
+# --- Closure-floor view drift check (ADR-0138) ------------------------------
+# The per-consumer views are generated from wos/closure-floors.md. Editing a view by hand,
+# or editing the canonical file without regenerating, silently changes which floors a
+# closure command applies. Drift is a FAIL for the same reason skills drift is.
+CLOSURE_VIEWS_STATUS="skipped"
+CLOSURE_VIEWS_OUTPUT=""
+
+CLOSURE_VIEWS_SCRIPT="${SCRIPT_DIR}/build-closure-floor-views.py"
+if [[ -f "$CLOSURE_VIEWS_SCRIPT" ]]; then
+  if CLOSURE_VIEWS_OUTPUT="$(python3 "$CLOSURE_VIEWS_SCRIPT" --check 2>&1)"; then
+    CLOSURE_VIEWS_STATUS="clean"
+  else
+    CLOSURE_VIEWS_STATUS="drifted"
+  fi
+fi
+
 # --- Command-catalog drift check (ADR-0005) ---------------------------------
 # docs/command-catalog.html and the README "## Command catalog" section are
 # GENERATED from commands/*.md by build-command-catalog.py. Drift is a FAIL: the
@@ -1215,6 +1233,8 @@ echo "Shared:       $SHARED_TOTAL marker(s), $SHARED_PASSED matched canonical, $
 echo "Frontmatter:  $FM_TOTAL command(s), $FM_PRESENT with frontmatter ($FM_PASSED passed, $FM_FAILED failed), $FM_MISSING pending migration"
 echo "Maturity ladder: $ML_CHECKED persona(s) checked; $ML_WARNED warning(s) (per wos/maturity-ladder.md)"
 echo "Skills:       ${SKILLS_DRIFT_STATUS} (build-agent-skills.sh --check)"
+echo "Closure-views: ${CLOSURE_VIEWS_STATUS} (build-closure-floor-views.py --check)"
+echo "Proper-nouns: ${PROPER_NOUN_STATUS} (build-proper-noun-baseline.py --check)"
 echo "Catalog:      ${CATALOG_DRIFT_STATUS} (build-command-catalog.py --check)"
 echo "Wos-refs:     $WOS_REF_TOTAL topic(s) cited by commands/, $WOS_REF_MISSING missing"
 echo "Registry:     $REG_TOTAL command(s), $REG_PASSED in all 4 registries, $REG_FAILED gap(s)"
@@ -1370,6 +1390,22 @@ if [[ "$SKILLS_DRIFT_STATUS" == "drifted" ]]; then
   printf '%s\n' "$SKILLS_DRIFT_OUTPUT" | sed 's/^/  /'
   echo ""
   echo "Run ./scripts/build-agent-skills.sh to regenerate from canonical commands/."
+  exit 1
+fi
+
+if [[ "$PROPER_NOUN_STATUS" == "new-names" ]]; then
+  echo ""
+  echo "Compound proper noun(s) new to the tree (mirror-guard complement):"
+  printf '%s\n' "$PROPER_NOUN_OUTPUT" | sed 's/^/  /'
+  exit 1
+fi
+
+if [[ "$CLOSURE_VIEWS_STATUS" == "drifted" ]]; then
+  echo ""
+  echo "Closure-floor view drift (wos/closure-floors.<consumer>.md does not match the canonical file):"
+  printf '%s\n' "$CLOSURE_VIEWS_OUTPUT" | sed 's/^/  /'
+  echo ""
+  echo "Run python3 scripts/build-closure-floor-views.py to regenerate from wos/closure-floors.md."
   exit 1
 fi
 

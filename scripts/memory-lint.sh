@@ -57,7 +57,11 @@ TASK_ARTIFACT_RE='(TASK_STATE|SOURCE_OF_TRUTH|DECISIONS|IMPLEMENTATION_PLAN|IMPA
 # 1. Resolve the task folder
 # ---------------------------------------------------------------------------
 tasks_root="${WOS_TASKS_ROOT:-${CLAUDE_PROJECT_DIR:-.}/projects}"
-mtime() { stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null || echo 0; }
+# Portable mtime, detected once. The `stat -f || stat -c` chain this replaces leaked the
+# GNU filesystem report into the value: `stat -f %m` exits 1 on GNU but writes to STDOUT
+# first, and `2>/dev/null` silences only stderr, so the substitution captured both branches.
+if stat -f '%m' "$0" >/dev/null 2>&1; then STAT_MTIME=(stat -f '%m'); else STAT_MTIME=(stat -c '%Y'); fi
+mtime() { local v; v=$("${STAT_MTIME[@]}" "$1" 2>/dev/null || echo 0); case "$v" in ''|*[!0-9]*) v=0 ;; esac; echo "$v"; }
 
 task_dir="${1:-}"
 if [[ -z "$task_dir" ]]; then

@@ -11,6 +11,7 @@
    - Named deliverables: the concrete things the user asked for by name.
    - Locked decisions: for every boundary the work will touch (schema, contract, auth, migration, permission), whether a decision covering it is locked or still open.
    - Declared surfaces: which runtime surfaces the work produces (web, backend HTTP, mobile app, game, database), because each one needs an evidence adapter downstream.
+   - Declared external dependencies: which things the sources require the ENVIRONMENT to provide before the work can start (a named MCP server, a credential or account, a tool binary, a dataset, a device). Report each one and whether it is reachable right now, because a dependency that is named in the spec and absent from the environment stops the work at its first step rather than at review. Reachability is a fact this reader may check the cheap way (the tool is in the session's tool list, the binary answers `--version`, the path exists); it is never inferred from the spec merely naming the dependency. Rule 1 still binds: report `named, not reachable`, never resolve it on the user's behalf.
 
 3. **Three statuses, and nothing else.** Report each criterion as `present` (naming the source read), `partial` (naming both what is there and what is missing), or `missing`. A status carries the source it came from, never a degree of confidence; a status whose source slot is empty reads as unknown, not as a weak yes (`wos/active-epistemic-humility.md`).
 

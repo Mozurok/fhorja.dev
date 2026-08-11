@@ -120,5 +120,3 @@ Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global ou
 
 Quality bar:
 Optimize for a safe, opt-in, git-gated provision that never forces a branch, never tears down, and records exactly one workspace section so downstream commands and `task-close` can find the worktree.
-
-<!-- cache-breakpoint -->

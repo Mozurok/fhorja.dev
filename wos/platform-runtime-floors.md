@@ -1,6 +1,6 @@
 ---
 activation: model_decision
-description: Platform runtime inline-close floors (Godot runtime-gate ADR-0085, Godot feel-verdict ADR-0089, Godot tier-declaration ADR-0118 and its fail-closed revision, mobile-runtime-gate ADR-0106), verbatim per-command variants for implement-approved-slice, slice-closure, and task-close. Load only when the active task matches the Godot or mobile platform signature.
+description: Platform runtime inline-close floors (Godot runtime-gate ADR-0085, Godot feel-verdict ADR-0089, Godot tier-declaration ADR-0118 and its fail-closed revision, mobile-runtime-gate ADR-0106, web-runtime-gate and backend-runtime-gate ADR-0127), verbatim per-command variants for implement-approved-slice, slice-closure, and task-close. Load only when the active task matches the Godot, mobile, web, or backend HTTP platform signature.
 ---
 
 # Platform runtime floors
@@ -10,9 +10,17 @@ Moved verbatim from the three closing commands (v3 wave1, item D) so a task with
 Signature detection (shared by all floors):
 - Godot task: a `project.godot` or `.gd` codebase signature, or `GODOT_SCENE_PLAN.md` / `GODOT_RUNTIME_VERIFY.md` in the task folder.
 - Mobile runtime target: the `mobile-runtime-target` tag on the slice or task, or the heuristic backstop (a `package.json` listing an `expo` or `react-native` dependency together with a generated `android/` or `ios/` folder).
+- Web runtime target: the `web-runtime-target` tag on the slice or task, or the heuristic backstop (the slice's declared scope touched a servable frontend surface, meaning a page, route, component, template, or style file, in a project whose manifest declares a web build or preview script).
+- Backend HTTP runtime target: the `http-runtime-target` tag on the slice or task, or the heuristic backstop (the slice's declared scope touched an HTTP route handler, controller, or router definition).
+
+The two heuristic backstops added by ADR-0127 are deliberately narrower than "the slice touched a file a browser could render". A repository with no web build or preview script never fires the web one; a docs-only, config-only, or asset-only slice fires neither. The tag stays the precise control and the heuristic exists only so a plan that assigns no tag does not silently disable the gate, which is the failure mode already recorded against the mobile floor.
 
 
 ## Godot runtime-gate floor (ADR-0085)
+
+**Criterion without the attester.** A `godot-runtime-verify` PASS is recorded for the slice's `.tscn` or `.gd` surface. The floor reads a record rather than running a scene, but producing that record needs a Godot runtime.
+
+Attester class: environment-bound
 
 ### implement-approved-slice variant (inline-close)
 
@@ -29,6 +37,10 @@ Signature detection (shared by all floors):
 
 ## Godot feel-verdict floor (D-4, ADR-0089)
 
+**Criterion without the attester.** A person played the build and recorded PASS. The erasure fails here: remove the person and only "a PASS block exists" survives, which the floor's own text refuses ("machine gates do not substitute for the human verdict").
+
+Attester class: human-bound
+
 ### implement-approved-slice variant (inline-close)
 
 **Godot feel-verdict floor (inline-close; D-4, ADR-0089).** WHILE the active task is a Godot task (same signature detection as the runtime-gate floor above) a slice whose completion claim includes first-playable or feature-complete SHALL NOT close inline unless a recorded human feel verdict with `Overall: PASS` (a `## Feel verdict` block per `wos/godot-mobile-interaction-and-feel.md ## Feel verdict checklist (D-4 gate)`) is cited in the slice notes OR an explicit one-line skip reason is present. IF neither THEN do NOT inline-close; run the feel-verdict checklist first and route the resulting notes to `pr-feedback-ingest --playtest`. Machine gates (a `godot-runtime-verify` PASS, lint, headless probes) do not substitute for the human verdict; this floor extends the runtime-gate floor above, never replaces it. It never fires on a non-Godot task or on a slice making no first-playable or feature-complete claim. **Bounded-vs-permanent skip (ADR-0098):** a skip reason stating no human is available in this environment, ever, does NOT by itself satisfy this floor; the slice stays not-ready-to-close pending a human session. A genuine bounded deferral (a real human will review shortly, or a throwaway/no-runtime-surface slice) still satisfies it at the same low ceremony.
@@ -43,6 +55,10 @@ Signature detection (shared by all floors):
 
 
 ## Godot tier-declaration floor (D-10, 2026-07-26 tier-gate task)
+
+**Criterion without the attester.** Every `GODOT_SCENE_PLAN` in the task carries a valid `wos-godot-declaration` block, with a renderer tier where it declares 3D.
+
+Attester class: agnostic
 
 Trigger note, read before the variants: this floor keys on the CANONICAL DECLARATION BLOCK inside a `GODOT_SCENE_PLAN` in the active task's folder. It never reads a plan in another project's folder, and it never keys on the mere presence of `GODOT_SCENE_PLAN.md`, which is itself the Godot signature (see the runtime-gate floor above).
 
@@ -76,6 +92,10 @@ No vintage is inferred and no date is read: the waiver is written by a person or
 
 ## Mobile-runtime-gate floor (generalized, ADR-0106)
 
+**Criterion without the attester.** An `app-runtime-verify` PASS is recorded for the slice's runtime-observable behavior. Producing that record needs a device or an emulator.
+
+Attester class: environment-bound
+
 ### implement-approved-slice variant (inline-close)
 
 **Mobile-runtime-gate floor (inline-close, generalized, ADR-0106).** WHEN the slice or its task carries the tag `mobile-runtime-target`, OR matches the heuristic backstop (a `package.json` listing an `expo` or `react-native` dependency together with a generated `android/` or `ios/` folder), the slice SHALL NOT close inline unless a real `app-runtime-verify` PASS is cited (in the slice notes or a runtime-verify record) OR an explicit one-line skip reason is recorded. IF neither is present THEN do NOT inline-close; route to `app-runtime-verify` first. **Bounded-vs-permanent skip (ADR-0098):** a skip reason stating no device or emulator is ever available in this environment does NOT by itself satisfy this floor; the slice stays not-ready-to-close pending a session where a run is possible. A genuine bounded deferral (a specific later checkpoint, a real device session shortly, or a slice with no runtime-observable behavior) still satisfies it at the same low ceremony. WHILE the Godot task signature is present this floor stands down in favor of the D-4 feel-verdict floor above. This mirrors the ADR-0085 Godot runtime-gate mechanism onto `app-runtime-verify` (ADR-0087): the 2026-07-14/15 rn-reference-app Face ID session shipped a fully broken biometric flow past `tsc --noEmit` and grep alone, with `app-runtime-verify` available but never required.
@@ -87,3 +107,41 @@ No vintage is inferred and no date is read: the waiver is written by a person or
 ### task-close variant (whole-task backstop)
 
 **Mobile-runtime-gate floor (generalized, ADR-0106).** WHEN the task carries the tag `mobile-runtime-target`, OR matches the heuristic backstop (a `package.json` listing an `expo` or `react-native` dependency together with a generated `android/` or `ios/` folder), closure requires that every runtime-observable slice has a real `app-runtime-verify` PASS cited (in the slice notes, a runtime-verify record, or the task record) OR an explicit one-line skip reason recorded in the final `TASK_STATE.md`. IF any such slice has neither THEN do NOT archive; return gate-blocked and route to `app-runtime-verify`. This is the whole-task backstop for the ADR-0106 enforcement. **Bounded-vs-permanent skip (ADR-0098):** a skip reason stating no device or emulator is ever available in this environment does NOT by itself satisfy this floor; the task stays open pending a session where a run is possible. A genuine bounded deferral (a specific later checkpoint, a real device session shortly, or a slice with no runtime-observable behavior) still satisfies it at the same low ceremony. WHILE the Godot task signature is present this floor stands down in favor of the D-4 feel-verdict floor above. This mirrors the ADR-0085 Godot runtime-gate mechanism onto `app-runtime-verify` (ADR-0087): the 2026-07-14/15 rn-reference-app Face ID session shipped a fully broken biometric flow past `tsc --noEmit` and grep alone, with `app-runtime-verify` available but never required.
+
+
+## Web-runtime-gate floor (generalized, ADR-0127)
+
+**Criterion without the attester.** A `web-runtime-verify` PASS is recorded for the slice's servable frontend surface. Producing that record needs a build that serves and a browser to drive.
+
+Attester class: environment-bound
+
+### implement-approved-slice variant (inline-close)
+
+**Web-runtime-gate floor (inline-close, generalized, ADR-0127).** WHEN the slice or its task carries the tag `web-runtime-target`, OR matches the heuristic backstop (the slice's declared scope touched a servable frontend surface, meaning a page, route, component, template, or style file, in a project whose manifest declares a web build or preview script), the slice SHALL NOT close inline unless a real `web-runtime-verify` PASS is cited (in `WEB_RUNTIME_VERIFY.md` or the slice notes) OR an explicit one-line skip reason is recorded. IF neither is present THEN do NOT inline-close; route to `web-runtime-verify` first. Hand-rolling the battery inside this command instead of running the gate does not satisfy this floor: the point of the floor is that one command owns the serving discipline (`wos/frontend-preview-and-experience-verdict.md ## Serving discipline (both consumers)`), and a per-session reimplementation is exactly what re-derives the wrong-page failure. `web-runtime-verify`'s gate decision is a real three-way verdict (PASS, FAIL, or BLOCKED): a cited BLOCKED verdict is neither a PASS nor an unrecorded skip, so treat it the same as an absent PASS and leave the slice open with the BLOCKED evidence quoted verbatim, worded distinctly from "never attempted." **Bounded-vs-permanent skip (ADR-0098):** a skip reason stating no browser is ever available in this environment does NOT by itself satisfy this floor; the slice stays not-ready-to-close pending a session where a run is possible. A genuine bounded deferral (a specific later checkpoint, or a change inside the slice's servable scope that cannot alter the served output, such as a comment or a doc string) still satisfies it at the same low ceremony. Note the deliberate difference from the mobile floor's escape: that floor's trigger is a PROJECT condition, so "a slice with no runtime-observable behavior" is reachable under it, while this floor's trigger already requires the slice to have touched a servable surface, which would make the same wording name a case that can never fire. This floor is Layer-1 only: it never substitutes for the ADR-0091 human experience verdict, which runs over the SAME served build. WHILE the Godot task signature is present this floor stands down in favor of the D-4 feel-verdict floor above.
+
+### slice-closure variant
+
+**Web-runtime-gate floor (generalized, ADR-0127).** WHEN the closing slice or its task carries the tag `web-runtime-target`, OR matches the heuristic backstop (the slice's declared scope touched a servable frontend surface in a project whose manifest declares a web build or preview script), the slice is not `ready to close` unless a real `web-runtime-verify` PASS is cited (in `WEB_RUNTIME_VERIFY.md` or the slice notes) OR an explicit one-line skip reason is recorded. IF neither is present THEN classify the slice `not ready to close` and route to `web-runtime-verify`. A battery hand-rolled inside the implementing command does not satisfy this floor, for the reason given in the inline-close variant above. A cited BLOCKED verdict is treated the same as an absent PASS, with the evidence quoted verbatim and worded distinctly from "never attempted." **Bounded-vs-permanent skip (ADR-0098):** a skip reason stating no browser is ever available in this environment does NOT by itself satisfy this floor. This floor is Layer-1 only and never substitutes for the ADR-0091 human experience verdict over the same served build. WHILE the Godot task signature is present this floor stands down in favor of the D-4 feel-verdict floor above.
+
+### task-close variant (whole-task backstop)
+
+**Web-runtime-gate floor (generalized, ADR-0127).** WHEN the task carries the tag `web-runtime-target`, OR matches the heuristic backstop above, closure requires that every slice with a servable frontend surface has a real `web-runtime-verify` PASS cited (in `WEB_RUNTIME_VERIFY.md`, the slice notes, or the task record) OR an explicit one-line skip reason recorded in the final `TASK_STATE.md`. IF any such slice has neither THEN do NOT archive; return gate-blocked and route to `web-runtime-verify`. This is the whole-task backstop for the ADR-0127 enforcement; it reads recorded evidence and does not serve a build. **Bounded-vs-permanent skip (ADR-0098)** applies as in the two variants above. WHILE the Godot task signature is present this floor stands down in favor of the D-4 feel-verdict floor above.
+
+
+## Backend-runtime-gate floor (generalized, ADR-0127)
+
+**Criterion without the attester.** An `api-runtime-verify` PASS is recorded for the slice's HTTP surface. Producing that record needs a running backend to probe.
+
+Attester class: environment-bound
+
+### implement-approved-slice variant (inline-close)
+
+**Backend-runtime-gate floor (inline-close, generalized, ADR-0127).** WHEN the slice or its task carries the tag `http-runtime-target`, OR matches the heuristic backstop (the slice's declared scope touched an HTTP route handler, controller, or router definition), the slice SHALL NOT close inline unless a real `api-runtime-verify` PASS is cited (in `API_RUNTIME_VERIFY.md` or the slice notes) OR an explicit one-line skip reason is recorded. IF neither is present THEN do NOT inline-close; route to `api-runtime-verify` first. A route whose response was reasoned about rather than probed is unverified, never PASS. A cited BLOCKED verdict is treated the same as an absent PASS, with the evidence quoted verbatim and worded distinctly from "never attempted." **Bounded-vs-permanent skip (ADR-0098):** a skip reason stating no backend can ever be run in this environment does NOT by itself satisfy this floor; the slice stays not-ready-to-close pending a session where a probe is possible. A genuine bounded deferral (a specific later checkpoint, or a change inside the slice's route scope that cannot alter any response, such as a comment or a doc string) still satisfies it at the same low ceremony. The same trigger-versus-escape note as the web floor above applies: this floor's trigger already requires the slice to have touched a route handler, so an escape worded as "a slice touching no request-handling path" would name a case that can never fire. WHILE the Godot task signature is present this floor stands down in favor of the D-4 feel-verdict floor above.
+
+### slice-closure variant
+
+**Backend-runtime-gate floor (generalized, ADR-0127).** WHEN the closing slice or its task carries the tag `http-runtime-target`, OR matches the heuristic backstop (the slice's declared scope touched an HTTP route handler, controller, or router definition), the slice is not `ready to close` unless a real `api-runtime-verify` PASS is cited (in `API_RUNTIME_VERIFY.md` or the slice notes) OR an explicit one-line skip reason is recorded. IF neither is present THEN classify the slice `not ready to close` and route to `api-runtime-verify`. A cited BLOCKED verdict is treated the same as an absent PASS, with the evidence quoted verbatim. **Bounded-vs-permanent skip (ADR-0098)** applies as in the inline-close variant above. WHILE the Godot task signature is present this floor stands down in favor of the D-4 feel-verdict floor above.
+
+### task-close variant (whole-task backstop)
+
+**Backend-runtime-gate floor (generalized, ADR-0127).** WHEN the task carries the tag `http-runtime-target`, OR matches the heuristic backstop above, closure requires that every slice touching an HTTP surface has a real `api-runtime-verify` PASS cited (in `API_RUNTIME_VERIFY.md`, the slice notes, or the task record) OR an explicit one-line skip reason recorded in the final `TASK_STATE.md`. IF any such slice has neither THEN do NOT archive; return gate-blocked and route to `api-runtime-verify`. This is the whole-task backstop for the ADR-0127 enforcement; it reads recorded evidence and does not probe a service. **Bounded-vs-permanent skip (ADR-0098)** applies as in the two variants above. WHILE the Godot task signature is present this floor stands down in favor of the D-4 feel-verdict floor above.

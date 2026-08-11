@@ -9,7 +9,10 @@
 #   - the Handoff block carries the fields Run now, Mode, Work complexity,
 #     Reason
 #   - the Work complexity value is exactly one of LOW, MEDIUM, HIGH, N/A
-#   - the "Run now: /<name>" basename resolves to a real commands/<name>.md
+#   - the "Run now: /<name>" basename resolves to a real command, in either
+#     shape: commands/<name>.md or commands/<name>/SKILL.md
+#   - the terminal form "Run now: none" (ADR-0126) names no command and is
+#     paired with "Mode: N/A", checked in both directions
 #   - NO_OP outputs (NO_OP_TRACE in the Command transcript) and Mode B
 #     handoffs (a Resume context: block) are conforming, not special cases:
 #     they pass the same checks as any other transcript, no extra branches
@@ -140,11 +143,32 @@ validate_transcript() {
       esac
       command_basename="$(printf '%s' "$command_basename" | tr -d '[:space:]')"
 
-      if [[ -z "$command_basename" ]]; then
+      # ADR-0126. `none` is the one value that names no command: it declares the
+      # chain ended. The pairing with `Mode: N/A` is checked in both directions,
+      # because this script does not otherwise validate the mode value, so the
+      # pairing is the only thing keeping `N/A` from becoming a general escape.
+      local mode_value=""
+      if [[ -n "$mode_line" ]]; then
+        mode_value="$(printf '%s' "$mode_line" | sed -E 's/^Mode:[[:space:]]*//')"
+      fi
+
+      if [[ "$command_basename" == "none" ]]; then
+        if [[ "$mode_value" != "N/A" ]]; then
+          printf '%s\n' "terminal Handoff (Run now: none) requires Mode: N/A, got: '${mode_value}'"
+          has_failure=1
+        fi
+      elif [[ -z "$command_basename" ]]; then
         printf '%s\n' "Handoff Run now field names no command: '${run_now_value}'"
         has_failure=1
-      elif [[ ! -f "${commands_dir}/${command_basename}.md" ]]; then
-        printf '%s\n' "Run now basename does not resolve to a real command: ${command_basename} (expected ${commands_dir}/${command_basename}.md)"
+      elif [[ ! -f "${commands_dir}/${command_basename}.md" \
+           && ! -f "${commands_dir}/${command_basename}/SKILL.md" ]]; then
+        # Nine commands ship folder-shaped as <name>/SKILL.md. Checking only the
+        # flat form rejected every one of them; the driver's own parser has
+        # always accepted both, so this script was the stricter of the two.
+        printf '%s\n' "Run now basename does not resolve to a real command: ${command_basename} (expected ${commands_dir}/${command_basename}.md or ${commands_dir}/${command_basename}/SKILL.md)"
+        has_failure=1
+      elif [[ "$mode_value" == "N/A" ]]; then
+        printf '%s\n' "Mode: N/A is valid only with 'Run now: none'; this Handoff routes to ${command_basename}"
         has_failure=1
       fi
     fi
@@ -289,13 +313,73 @@ Work complexity: LOW
 Reason: test.
 EOF
 
+  cat >"${self_test_dir}/terminal.md" <<'EOF'
+### Artifact changes
+None
+
+### Command transcript
+Nothing left that a following command could honestly do.
+
+### Handoff
+Run now: none
+Mode: N/A
+Work complexity: N/A
+Reason: three decisions need a maintainer and the rest needs an environment this session lacks.
+EOF
+
+  cat >"${self_test_dir}/mutation_terminal_routing_mode.md" <<'EOF'
+### Artifact changes
+None
+
+### Command transcript
+Some transcript text.
+
+### Handoff
+Run now: none
+Mode: Ask, when a maintainer is present
+Work complexity: N/A
+Reason: test.
+EOF
+
+  cat >"${self_test_dir}/mutation_na_mode_while_routing.md" <<'EOF'
+### Artifact changes
+None
+
+### Command transcript
+Some transcript text.
+
+### Handoff
+Run now: /task-init
+Mode: N/A
+Work complexity: LOW
+Reason: test.
+EOF
+
+  cat >"${self_test_dir}/folder_shaped_command.md" <<'EOF'
+### Artifact changes
+None
+
+### Command transcript
+Routing to a command that ships as <name>/SKILL.md rather than <name>.md.
+
+### Handoff
+Run now: /a11y-audit
+Mode: Ask
+Work complexity: LOW
+Reason: nine commands are folder-shaped and the Run now line must resolve for them too.
+EOF
+
   check_fixture "conforming (Mode A)" "${self_test_dir}/conforming.md" 0 "" "$self_test_commands_dir" || overall_rc=1
+  check_fixture "terminal form (ADR-0126)" "${self_test_dir}/terminal.md" 0 "" "$self_test_commands_dir" || overall_rc=1
+  check_fixture "folder-shaped command basename" "${self_test_dir}/folder_shaped_command.md" 0 "" "$self_test_commands_dir" || overall_rc=1
   check_fixture "NO_OP with NO_OP_TRACE" "${self_test_dir}/no_op.md" 0 "" "$self_test_commands_dir" || overall_rc=1
   check_fixture "Mode B with Resume context" "${self_test_dir}/mode_b.md" 0 "" "$self_test_commands_dir" || overall_rc=1
   check_fixture "mutation: missing Handoff" "${self_test_dir}/mutation_missing_handoff.md" 1 "### Handoff" "$self_test_commands_dir" || overall_rc=1
   check_fixture "mutation: swapped section order" "${self_test_dir}/mutation_swapped_order.md" 1 "out of order" "$self_test_commands_dir" || overall_rc=1
   check_fixture "mutation: invalid Work complexity value" "${self_test_dir}/mutation_invalid_complexity.md" 1 "invalid Work complexity value" "$self_test_commands_dir" || overall_rc=1
   check_fixture "mutation: invented command basename" "${self_test_dir}/mutation_invented_command.md" 1 "does not resolve to a real command" "$self_test_commands_dir" || overall_rc=1
+  check_fixture "mutation: terminal form with a routing mode" "${self_test_dir}/mutation_terminal_routing_mode.md" 1 "requires Mode: N/A" "$self_test_commands_dir" || overall_rc=1
+  check_fixture "mutation: Mode N/A on a routing handoff" "${self_test_dir}/mutation_na_mode_while_routing.md" 1 "valid only with" "$self_test_commands_dir" || overall_rc=1
 
   if [[ "$overall_rc" -eq 0 ]]; then
     printf 'self-test: all fixtures behaved as expected\n'

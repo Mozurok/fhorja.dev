@@ -26,7 +26,7 @@ A realtime AI overlay pipeline (audio capture -> transcribe -> recommend -> over
 
 ## Why it matters
 
-- This is the Peach Live shape (LiveKit capture + Deepgram transcribe + Groq recommend + browser overlay). The product value is "coaching arrives while the call is happening". Any blocking stage destroys that value even if every individual call is fast.
+- This is the realtime coaching overlay shape (LiveKit capture + Deepgram transcribe + Groq recommend + browser overlay). The product value is "coaching arrives while the call is happening". Any blocking stage destroys that value even if every individual call is fast.
 - Sub-second perceived latency is the threshold where overlay coaching feels live vs. feels like a delayed transcript. Once cumulative latency crosses ~1s, agents stop trusting the overlay and the feature is effectively dead.
 - Sequential awaits also under-utilize the LLM provider's streaming capability -- you pay for streaming inference but consume it as a single blocking call.
 - Missing p95/p99 + missing SLO means the leak is an observability failure too: the team cannot tell whether a deploy made things worse until users report it.
@@ -72,3 +72,4 @@ rg -n "await\\s+transcribe\\(" apps/web/src/server -A 5 \
 - `wos/bug-classes/missing-business-metric.md` (sibling observability class -- missing SLO is a special case)
 - ADR on realtime pipeline shape (LiveKit + Deepgram + Groq overlay contract)
 - `wos/design-system-conventions.md` (overlay rendering + stale-state UX rules)
+- `wos/realtime-overlay-patterns.md` (the design-time patterns this class detects violations of: budget per stage, partial-transcript debounce, cancellation on new speech)

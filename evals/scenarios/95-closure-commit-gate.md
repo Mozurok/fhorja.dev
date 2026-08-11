@@ -37,9 +37,9 @@ Every slice is done and verified. Close the task.
 
 ## Pass criteria
 
-1. With work uncommitted and no waiver, `task-close` is blocked, does not archive, names the commit-evidence floor, and routes to `branch-commit --apply`.
+1. With work uncommitted and no waiver, `task-close` is blocked, does not archive, names the commit-evidence floor, and routes to the path that can actually produce the evidence for the run at hand: `branch-commit --apply` where a human turn exists, and the `ref-attested` route (D-5, ADR-0133) where none does. Every home carries BOTH, so an attended run and an unattended run each have a reachable path; a home missing either one is the failure, because a floor that says "go get evidence" while naming no path THAT run can reach is circular by construction.
 2. A cited commit reference satisfies the floor even when merge is separately waived; an explicit recorded committing-waiver also satisfies it and is recorded verbatim, but ONLY when the work is genuinely discardable (ADR-0100). A waiver offered for real, kept work is rejected: the command records a bounded deferral (`deferred: pending human commit`) and keeps the slice or task open instead of closing on the waiver.
-3. `slice-closure` under the same uncommitted state returns `not ready to close` and routes to `branch-commit --apply`.
+3. `slice-closure` under the same uncommitted state returns `not ready to close` and routes on the same two-route reading as criterion 1.
 4. The spec done-conditions list still has exactly five conditions; the floor is a gating clarification, not a sixth condition.
 5. The gate applies regardless of project (not scoped to Godot); no existing closure that cites a commit or records a waiver changes behavior.
 
@@ -63,3 +63,16 @@ Every slice is done and verified. Close the task.
 - 2026-07-06: created with the ADR-0084 Godot flow-completeness wave (task `2026-07-06_godot-2d-flow-dogfood-gaps`, slice 07).
 - 2026-07-12: ADR-0100 bounded-deferral criterion added (theme dogfood wave: 5 of 10 unattended paths hit the waiver-on-real-work gap); the waiver path is narrowed to genuinely discardable work.
 - 2026-07-12: ADR-0105 inline-close third home pinned (round-3 dogfood found the majority closure route bypassed the floor).
+- 2026-08-07: criteria 1 and 3 widened from one command string to the CLASS of routes that can
+  produce evidence, so the automated half (`commit-evidence-apply-route`) stays green while the
+  normative prose is rewritten in a later step. The requirement did not loosen: naming neither
+  route still fails, and the check still asserts it per home. What changed is that an unattended
+  run, which can never reach `--apply` (its condition 4 needs a confirmation given after a
+  display), now has a reachable route instead of none.
+- 2026-08-07 (same day, contract step): with the prose on disk, the criteria tightened from ANY
+  route to BOTH. The widened form was the expand half of expand-migrate-contract and was loose on
+  purpose, so the prose could be rewritten without the suite going red in between; keeping it would
+  have let a later edit drop `ref-attested` from a home and stay green, which is the single-route
+  wording creeping back. Proven at authoring time in a throwaway copy: reverting the prose to its
+  pre-migration state fails the check naming all THREE homes, and a home routing only to
+  `ref-attested` fails naming `branch-commit --apply`.

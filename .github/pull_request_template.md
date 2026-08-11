@@ -23,7 +23,7 @@ Closes #<issue number>, or "no related issue" if standalone.
 ## Checklist
 
 - [ ] I have read [CONTRIBUTING.md](../CONTRIBUTING.md).
-- [ ] I have signed the CLA when prompted by CLA Assistant on this PR.
+- [ ] I signed off my commits with `git commit -s` (Developer Certificate of Origin; see CONTRIBUTING.md).
 - [ ] I ran `./scripts/lint-commands.sh` locally and it passes.
 - [ ] I followed the project's style guide (no em-dash, English for normative content, etc.).
 - [ ] If I added a new command, I registered it in all four registries (lint fails on any gap):

@@ -41,7 +41,7 @@ That is the install, and you do it once, in its own directory, not once per prod
 
 - **In an editor that reads `.claude/skills/`** (Cursor 2.4+, Claude Code, etc.), the fastest path is `--with-skills` below: it mirrors the commands to your user-level directories once, so any product repo you open in that editor picks them up automatically, no per-project step.
 - **For user-level slash commands in Cursor and Claude Code**: run `./scripts/sync-workflow-slash-commands.sh`. Defaults: `~/.cursor/commands/`, `~/.claude/commands/`. Override paths with `--cursor-dir=` and `--claude-dir=` or via env vars.
-- **For user-level skills mirroring** (so skills are available in every project you open, not just this one): run `./scripts/sync-workflow-slash-commands.sh --with-skills`. Defaults: `~/.claude/skills/`, `~/.cursor/skills/`, `~/.agents/skills/`. The default Codex sync removes matching Fhorja skills from the legacy `~/.codex/skills/` root to prevent duplicate names.
+- **For user-level skills mirroring** (so skills are available in every project you open, not just this one): run `./scripts/sync-workflow-slash-commands.sh --with-skills`. Defaults: `~/.claude/skills/`, `~/.cursor/skills/`, `~/.agents/skills/`. The default Codex sync removes matching Fhorja skills from the legacy `~/.codex/skills/` root to prevent duplicate names. Kimi Code CLI reads `~/.agents/skills/` natively, so the same run covers it; Kimi has no slash-command directory, so there the commands arrive as skills, invoked as `/skill:<name>`.
 - **To install into one specific product repo instead (or in addition)**: run `./scripts/sync-workflow-slash-commands.sh --project /path/to/your/repo`.
 
 See [`README.md`](../README.md) -> `## Quickstart` and `## Tool support` for the full distribution story.
@@ -70,11 +70,11 @@ Fhorja itself does not. It is markdown files and local shell scripts: no server,
 
 ## Why so many commands? What is the difference between them?
 
-The workflow has <!-- count:commands -->97<!-- /count --> commands organized in <!-- count:command-categories -->9<!-- /count --> categories, mapped to the engineering task lifecycle:
+The workflow has <!-- count:commands -->98<!-- /count --> commands organized in <!-- count:command-categories -->9<!-- /count --> categories, mapped to the engineering task lifecycle:
 
 The categories span the engineering task lifecycle: project initialization, state and navigation, discovery and scoping, database context, contract and decision hardening, planning and validation, execution and closure, delivery and communication, and prompt tooling. The per-command breakdown (every command with its description, an example, and metadata, grouped by category) lives in the generated catalog, not in this FAQ.
 
-The parallel `*-fleet` variants and the nine specialist persona commands round the catalog out to <!-- count:commands -->97<!-- /count -->. For the complete per-command list, see the generated catalog: open [`docs/command-catalog.html`](./command-catalog.html) (browsable, with examples and metadata) or the [README command catalog](../README.md#command-catalog). Both are generated from `commands/*.md` by `scripts/build-command-catalog.py`; this FAQ does not hand-maintain a command list.
+The parallel `*-fleet` variants and the nine specialist persona commands round the catalog out to <!-- count:commands -->98<!-- /count -->. For the complete per-command list, see the generated catalog: open [`docs/command-catalog.html`](./command-catalog.html) (browsable, with examples and metadata) or the [README command catalog](../README.md#command-catalog). Both are generated from `commands/*.md` by `scripts/build-command-catalog.py`; this FAQ does not hand-maintain a command list.
 
 Most tasks use only 4-6 of these in a typical run. The full count exists because each command captures a distinct **phase boundary** with explicit `Operating rules:` and a `### Definition of done`. Collapsing them into fewer commands would either lose the boundaries (one command does many phases poorly) or expand each command's responsibility surface (one command's `### Definition of done` becomes unreadable).
 
@@ -126,7 +126,7 @@ If you want to share project context across machines, copy `projects/<client>__<
 
 - **Bug reports**: open an issue using the [bug report template](../.github/ISSUE_TEMPLATE/bug_report.md).
 - **Feature requests**: open an issue using the [feature request template](../.github/ISSUE_TEMPLATE/feature_request.md).
-- **Pull requests**: see [`CONTRIBUTING.md`](../CONTRIBUTING.md) for the contribution flow, CLA requirements, and style guide.
+- **Pull requests**: see [`CONTRIBUTING.md`](../CONTRIBUTING.md) for the contribution flow, the DCO sign-off (`git commit -s`; there is no CLA), and the style guide.
 - **Security**: see [`SECURITY.md`](../SECURITY.md) for the reporting flow.
 - **Code of conduct**: see [`CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md) (Contributor Covenant 2.1).
 - **Roadmap and direction**: see [`ROADMAP.md`](../ROADMAP.md) for forward-looking plans.

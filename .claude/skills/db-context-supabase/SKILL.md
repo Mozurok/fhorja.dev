@@ -23,6 +23,16 @@ metadata:
   provenance: first-party
   suggested-model: claude-sonnet-4-6
 ---
+> **Output contract, in brief.** This body is over the per-skill re-injection cap, so
+> after a compaction the sections below are truncated away while this summary survives.
+> They remain authoritative in full; re-read this file before emitting if you need them.
+>
+> - `Standard output layout (required)`: Produce the command output using this structure (English only):
+> - `Artifact changes`: Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
+> - `Command transcript`: Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
+> - `Handoff`: Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per...
+> - `Definition of done (command output)`: The MCP precondition check is performed first and its result is reported. When it fails, the local CLI path is checked next; when...
+
 
 Act as a senior/staff engineering database context capture for the active task, scoped to Supabase.
 
@@ -210,5 +220,3 @@ Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global ou
 
 Quality bar:
 Optimize for fidelity to the live Supabase schema, point-in-time auditability, narrow scope (no full-DB dumps), credential hygiene (a service-role key never reaches a task artifact), and minimal disruption to whatever task-scoped work was in progress before this capture.
-
-<!-- cache-breakpoint -->

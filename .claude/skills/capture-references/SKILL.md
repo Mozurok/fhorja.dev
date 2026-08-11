@@ -25,6 +25,16 @@ metadata:
   provenance: first-party
   suggested-model: claude-sonnet-4-6
 ---
+> **Output contract, in brief.** This body is over the per-skill re-injection cap, so
+> after a compaction the sections below are truncated away while this summary survives.
+> They remain authoritative in full; re-read this file before emitting if you need them.
+>
+> - `Standard output layout (required)`: Produce the command output using this structure (English only):
+> - `Artifact changes`: List files in `my_work_tasks/` that would change, or `None`.
+> - `Command transcript`: Keep this section operational and brief; do not restate entry content already listed in `### Artifact changes`.
+> - `Handoff`: Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per...
+> - `Definition of done (command output)`: Each entry has all required fields: title, URL, accessed date in `YYYY-MM-DD`, summary, the `Context within project` clause (requi...
+
 
 Act as a senior/staff engineering reference capture for the active project context.
 
@@ -181,5 +191,3 @@ Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global ou
 
 Quality bar:
 Optimize for fidelity to the source, persistent project-level memory, fast deduplication, and minimal disruption to whatever task-scoped work was in progress before this capture.
-
-<!-- cache-breakpoint -->

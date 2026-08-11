@@ -12,6 +12,28 @@ A thin code-orchestrated dispatcher over the primitives that already exist. An a
 
 - Plan-approval gate (entry): a human approves the waved plan before any execution. The track reuses `approve-plan`; it does not re-implement approval.
 - Draft-diff merge gate (exit): a human approves the merged PROPOSED diff before any irreversible step (commit to an integration branch, merge, deploy). The track reuses `approve-proposed` and `review-hard`.
+  - Commit-evidence is a separate question from this gate, and ADR-0133 answers it: an unattended run satisfies the commit-evidence floor by routing to `ref-attested`, where the RUNNER points a quarantine ref at a git object holding the run's work, under `refs/fhorja/attested/<run-id>/<invocation-id>`. That ref is not an integration branch, and reaching it is not an irreversible step: `git update-ref -d <ref>` removes it, and nothing is merged, pushed or deployed. This gate is otherwise unchanged, and merge, push and draft-PR stay human-gated.
+
+## The autonomous commit route (driver-owned branch)
+
+`ref-attested` preserves an unattended run's work; it does not give that run the ordinary developer act of committing. Written down here because the omission had a cost: through 2026-08-10 the closure floors read as "an unattended run cannot commit", so a driver that committed was violating a floor while a driver that produced files and left them untracked was compliant, and the compliant outcome is the one a maintainer reads as failure.
+
+**The rule.** An unattended run MAY commit, and ONLY onto a branch it owns:
+
+1. The branch SHALL NOT be a default or integration branch. WHEN the target is on one, the runner SHALL create an owned branch from it and switch before the first invocation, so the run's work never lands on the default branch. WHERE the working tree is dirty the runner SHALL instead REFUSE to start, because switching would carry or strand changes the operator wrote and did not commit, and a run is never worth touching those.
+2. The runner SHALL create the branch when the target is not already on an owned one, naming it by convention (`fhorja/<run-id>`), and SHALL record the name it created. Where the target is already on a non-default branch the runner SHALL leave it alone: that branch is the operator's choice and is already outside condition 1's prohibition.
+
+   Written as a correction rather than silently: the first draft of this rule said a run on a default branch "SHALL refuse to start rather than switch away from it", which preserved the driver's existing refusal and contradicted condition 2 in the same breath, leaving it reachable only in an odd narrow case. Refusing does protect the default branch, and it protects it by making the operator do the work by hand; creating the branch protects it better. The refusal survives only where it is the safer act, which is a dirty tree.
+3. The run SHALL NOT merge, SHALL NOT push, SHALL NOT force-push, and SHALL NOT open or mark ready a pull request. Every one of those stays human-gated exactly as the exit gate above states.
+4. Commits SHALL name their paths explicitly. `git add -A` and `git commit -a` stage work nobody wrote down, which is the same objection the `branch-commit` conditions raise for a human turn and it does not weaken when the human is absent.
+
+With those four in place `commit-ref` becomes reachable unattended, and the slice notes cite the commit the same way a human turn would.
+
+**Why this is not a loosening.** The reversibility argument is the one this file already makes for the quarantine ref, with one verb changed: `git branch -D <branch>` removes the branch and everything on it, and nothing was merged, pushed or deployed. A commit on a branch no other work depends on is as recoverable as a ref under `refs/fhorja/attested/`, and strictly more useful, because it carries a tree, a message and a parent instead of a bare object.
+
+What makes it safe is condition 1, and that is enforcement rather than intention: the run refuses to start on a default branch, so an admitted commit has nowhere to land except a branch the run owns. A track that admitted commits without that refusal WOULD be a loosening, and this rule does not authorize one.
+
+**What stays exactly as it was.** The two gates. Merge, push and draft-PR as human acts. The bounded deferral for a run that can reach neither class. And `branch-commit --apply` as the only path for a HUMAN turn, with its confirmation-after-display conditions unchanged; this route does not relax that command, it names a second route that a human turn never uses.
 - Mid-run escalation: any boundary slice (schema, contract, migration, security) or any slice the classifier cannot prove safe escalates to the human mid-run. The wave stops at that slice; the run does not silently push past a boundary.
 
 The whole middle, the work between the two gates that is verifiable and low blast radius, runs with little supervision. The gates are where the human stays.

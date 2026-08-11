@@ -3,17 +3,19 @@ name: godot-monetization-integrity
 category: security
 default-severity: P0
 cwe: [CWE-602]
-languages: [gdscript]
-file-patterns: ["**/*.gd", "**/*.tres", "**/*.res", "project.godot", "export_presets.cfg"]
+languages: [gdscript, csharp]
+file-patterns: ["**/*.gd", "**/*.tres", "**/*.res", "project.godot", "export_presets.cfg", "**/*.cs", "ProjectSettings/ProjectSettings.asset"]
 perspectives: [security]
 reversibility-check: false
 ---
 
 # godot-monetization-integrity
 
+**Scope note (ADR-0130).** Despite the filename, this class is engine-agnostic store-integrity logic and covers Godot and Unity alike. The CWE-602 mechanism (a client-side entitlement decision the server never verified) and every store-rejection case below are store-level, not engine-level. The filename is retained because it is referenced by ADR-0078, by `CHANGELOG.md`, and by `evals/scenarios/89-godot-cluster-deepening.md`, and renaming it would mean rewriting an accepted ADR; the naming debt is recorded in ADR-0130 rather than paid that way. Per ADR-0130 D-3, an engine-agnostic mechanism is widened here, never forked into a per-engine sibling.
+
 ## Trigger
 
-Exported GDScript ships as bytecode inside the APK or IPA and decompiles cleanly, so any entitlement the client grants itself is forgeable. A modified client can call the grant path directly, replay a purchase token, or flip a saved flag. The defect is any client-side entitlement decision (unlocking a purchase, adding premium currency, marking an account premium, removing ads) that is not verified server-side against the store API before it takes effect. The same class covers store-rejection cases that block release or trigger refunds: a Play purchase never acknowledged or consumed within 3 days (auto-refunded by Google), a rewarded-ad reward granted on ad-show instead of on the user_earned_reward callback, a consumable that is granted but never consumed (so it cannot be bought again and is never acknowledged), a non-consumable with no Restore Purchases path (an iOS review rejection), and a bundled SDK not disclosed on the Google Play Data Safety form or in the iOS privacy manifest.
+Exported GDScript ships as bytecode inside the APK or IPA and decompiles cleanly, so any entitlement the client grants itself is forgeable. The Unity equivalent is the same defect with a different decompiler: Unity's own documentation states that "Local validation is less secure because a malicious user can more easily tamper with code on their own device to bypass the check", and recommends remote validation "for all transactions, and essential for server-delivered content such as granting virtual currency or downloadable items" (https://docs.unity.com/ugs/en-us/manual/iap/manual/receipt-validation). A modified client can call the grant path directly, replay a purchase token, or flip a saved flag. The defect is any client-side entitlement decision (unlocking a purchase, adding premium currency, marking an account premium, removing ads) that is not verified server-side against the store API before it takes effect. The same class covers store-rejection cases that block release or trigger refunds: a Play purchase never acknowledged or consumed within 3 days (auto-refunded by Google), a rewarded-ad reward granted on ad-show instead of on the user_earned_reward callback, a consumable that is granted but never consumed (so it cannot be bought again and is never acknowledged), a non-consumable with no Restore Purchases path (an iOS review rejection), and a bundled SDK not disclosed on the Google Play Data Safety form or in the iOS privacy manifest.
 
 ## Detection
 
@@ -24,6 +26,14 @@ Look for:
 - A consumable (coins, gems) granted but with no `consume_purchase(token)` call, or any Play purchase with no `acknowledge_purchase(token)` call inside the 3-day window.
 - Non-consumable products (remove-ads, premium unlock) with no Restore Purchases button and no `queryPurchases` path to recover entitlements after a reinstall.
 - A plugin added in `export_presets.cfg` or an SDK referenced in `.gd` (ads, analytics, attribution) that is absent from the Data Safety disclosure or from `PrivacyInfo.xcprivacy`, or an Android export not targeting API 35 or higher.
+
+On a Unity target (`**/*.cs`), the same mechanism with Unity call sites:
+- Entitlement state mutated directly inside the Unity In-App Purchasing purchase callback, with no network call: a premium flag set, currency added, or a feature unlocked before any backend response. The Unity-specific tell is a grant that runs on local validation alone, which Unity's own docs class as the weaker mode.
+- Receipt validation performed on-device only, with the receipt payload never sent to a backend that confirms it against the store's verification service. Unity ships local validation as a supported path, so its presence is not by itself the defect; the defect is a real-money entitlement granted on it with no server confirmation.
+- A rewarded-ad reward granted from an ad-loaded, ad-shown, or ad-closed handler rather than the SDK's earned-reward callback, the Unity Ads sibling of the `user_earned_reward` case above.
+- A consumable granted with no confirm-pending-purchase step, or a Play purchase left unacknowledged past the 3-day window, which auto-refunds regardless of engine.
+- Non-consumable products with no restore path to recover entitlements after a reinstall.
+- An SDK present in `Packages/manifest.json` or under `Assets/Plugins/` (ads, analytics, attribution) that is absent from the Google Play Data Safety form or the iOS privacy manifest.
 
 Exclude:
 - The grant fires only after a backend verification response returns valid, and the client treats server state as the source of truth.

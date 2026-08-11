@@ -22,7 +22,7 @@
 # permanent gap in the task's TEST_STRATEGY.md. Do not extend this script to
 # claim otherwise.
 #
-# Surfaces scanned (the doctrine's source-of-truth, not the 85 propagated copies):
+# Surfaces scanned (the doctrine's source-of-truth, not the 98 propagated copies):
 #   commands/_shared/claim-grounding.md
 #   wos/active-epistemic-humility.md
 #   the '### Claim status and abstention' H3 in WORKFLOW_OPERATING_SYSTEM.md

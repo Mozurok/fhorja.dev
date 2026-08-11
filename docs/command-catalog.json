@@ -1,5 +1,5 @@
 {
-  "command_count": 97,
+  "command_count": 98,
   "commands": [
     {
       "category": "planning-and-validation",
@@ -59,7 +59,7 @@
     },
     {
       "category": "execution-and-closure",
-      "description": "Verify a built mobile or app runtime at runtime: run the app (device, emulator, or headless), read the captured runtime output (native logcat, iOS device log, or the Metro/JS console), classify any runtime errors against a per-stack taxonomy, and decide a PASS/FAIL runtime gate for the slice's acceptance behavior. The run's real output IS the Layer-1 runtime evidence (ADR-0048); a claimed-but-not-shown run is unverified. Capability-routed and MCP-agnostic about how the app is run; React Native/Expo (logcat plus Metro) is the first documented adapter. It verifies and routes fixes, it does not apply them. Use after an app slice is implemented to gate runtime behavior the static checks (typecheck, lint) cannot catch. Do not use to plan a screen (use implementation-plan), to write or fix code (use implement-approved-slice), to triage a failure into a fix size (use incident-triage), to verify a Godot scene (use godot-runtime-verify), or with no implemented app to run.",
+      "description": "Verify a built mobile or app runtime at runtime: run the app (device, emulator, or headless), read the captured runtime output (native logcat, iOS device log, or the Metro/JS console), classify any runtime errors against a per-stack taxonomy, and decide a PASS/FAIL runtime gate for the slice's acceptance behavior. The run's real output IS the Layer-1 runtime evidence (ADR-0048); a claimed-but-not-shown run is unverified. Capability-routed and MCP-agnostic about how the app is run; React Native/Expo and Unity mobile are the documented adapters. It verifies and routes fixes, it does not apply them. Use after an app slice is implemented to gate runtime behavior the static checks (typecheck, lint) cannot catch. Do not use to plan a screen (use implementation-plan), to write or fix code (use implement-approved-slice), to triage a failure into a fix size (use incident-triage), to verify a Godot scene (use godot-runtime-verify), or with no implemented app to run.",
       "mode": "Agent",
       "model": "claude-sonnet-4-6",
       "multi_repo_aware": "false",
@@ -859,7 +859,7 @@
     },
     {
       "category": "execution-and-closure",
-      "description": "Proactive defect-class detection that handles the lower-value half of code review (per Bacchelli and Bird 2013) so human reviewers stay focused on design, intent, and knowledge transfer. Catches convention drift, ordering bugs, type-safety gaps, security and multi-tenant invariants (CWE-grounded), and operability issues against a curated bug-class library before PR packaging. Runs after review-hard, before pr-package. Reduces what external review systems (Greptile, CI) catch and grows its detection library from declined and applied user feedback over time. Use when at least one slice is implemented and you want a proactive codebase-consistency check before PR packaging. Do not use when no implementation has happened yet, the task is still in planning, or the goal is design review (use review-hard for that).",
+      "description": "Proactive defect-class detection that handles the lower-value half of code review (per Bacchelli and Bird 2013) so human reviewers stay focused on design, intent, and knowledge transfer. Catches convention drift, ordering bugs, type-safety gaps, security and multi-tenant invariants (CWE-grounded), and operability issues against a curated bug-class library before PR packaging. Runs after review-hard, before pr-package. Reduces what external review systems (Greptile, CI) catch, and suppresses findings the user declined until the file changes. The detection library itself grows through pr-feedback-ingest, which proposes new bug-class templates from real review findings for a human to accept. Use when at least one slice is implemented and you want a proactive codebase-consistency check before PR packaging. Do not use when no implementation has happened yet, the task is still in planning, or the goal is design review (use review-hard for that).",
       "mode": "Ask",
       "model": "claude-sonnet-4-6",
       "multi_repo_aware": "false",
@@ -1124,7 +1124,7 @@
     },
     {
       "category": "planning-and-validation",
-      "description": "Define the smallest set of meaningful tests that protects behavior and reduces regression risk for the active task, then persist as TEST_STRATEGY.md plus a TASK_STATE.md update. Avoids forcing a strategy artifact when it adds no material signal. Detects a Godot 2D or 3D target and routes to GUT or gdUnit4 headless, treating the godot-runtime-verify press-play gate as complementary to the headless suite. Use when the task has a valid implementation plan or a clearly understood behavior under change, the change affects important behavior or contracts or data flow or runtime risk or regression risk, or test choices should be decided before or alongside implementation. Use when scope is tagged or reads as auth, biometric, or runtime-risk with no TEST_STRATEGY.md, even if small. Do not use when the task is still too unclear to know what behavior is changing, the current need is broad discovery or contract resolution, or the task is too small to justify a dedicated test strategy artifact.",
+      "description": "Define the smallest set of meaningful tests that protects behavior and reduces regression risk for the active task, then persist as TEST_STRATEGY.md plus a TASK_STATE.md update. Avoids forcing a strategy artifact when it adds no material signal. Detects a Godot or Unity target and routes to the matching headless runner, treating the runtime gate as complementary to the headless suite. Use when the task has a valid implementation plan or a clearly understood behavior under change, the change affects important behavior or contracts or data flow or runtime risk or regression risk, or test choices should be decided before or alongside implementation. Use when scope is tagged or reads as auth, biometric, or runtime-risk with no TEST_STRATEGY.md, even if small. Do not use when the task is still too unclear to know what behavior is changing, the current need is broad discovery or contract resolution, or the task is too small to justify a dedicated test strategy artifact.",
       "mode": "Plan",
       "model": "claude-sonnet-4-6",
       "multi_repo_aware": "false",
@@ -1133,6 +1133,15 @@
         "sync-task-state",
         "implement-approved-slice"
       ]
+    },
+    {
+      "category": "discovery-and-scoping",
+      "description": "\"Plan the Unity GameObject hierarchy and component architecture for a 3D feature before any C# is written: the scene and prefab structure, what each MonoBehaviour owns, the input model, and, for a multiplayer feature, the networked-authority declarations. Produces UNITY_SCENE_PLAN.md, a design-time plan an MCP-driven editor or a human builds against. Capability-routed and MCP-agnostic. A 3D plan SHALL declare its render pipeline and a multiplayer plan SHALL declare its topology, or the plan is incomplete. Use when a Unity 3D feature needs its scene and component architecture decided before implementation. Do not use to frame whether the game idea is right (use problem-framing in its game-design mode), to slice an already-planned build (use implementation-plan), to analyze blast radius of an existing project (use impact-analysis), to verify a running build (use app-runtime-verify with its Unity adapter), or with no active task folder (run task-init first).\"",
+      "mode": "Agent",
+      "model": "claude-sonnet-4-6",
+      "multi_repo_aware": "false",
+      "name": "unity-scene-plan",
+      "next_commands": []
     },
     {
       "category": "planning-and-validation",

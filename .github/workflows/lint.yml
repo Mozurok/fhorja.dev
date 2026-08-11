@@ -83,6 +83,56 @@ jobs:
         # manual (evals/scripts/run-evals.sh). Exit 1 on any broken invariant.
         run: python3 ./evals/scripts/structural-evals.py
 
+  script-tests:
+    name: Script tests (substrate audit chain)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run script test suites
+        # The sha-chain and tip-check semantics of verify-log-validator.py gate a
+        # closure floor declared BLOCKING in wos/closure-floors.md, and the suite
+        # existed without ever running in CI (found 2026-08-11, ADR-0143). A
+        # regression test nothing executes is decoration. Exit 1 on any failure.
+        #
+        # Explicit allowlist rather than a glob, so adding a suite is a decision
+        # and the two exclusions stay visible instead of silently passing:
+        #   test-branch-commit-unchanged.sh  needs a <base-ref> argument; it is a
+        #     parameterized assertion, not a standalone suite.
+        #   test-install-payload.sh  FAILS today (a destination writes under HOME
+        #     instead of a named path). Real defect, tracked separately; wire it
+        #     here in the same commit that fixes it.
+        run: |
+          set -euo pipefail
+          fail=0
+          for t in \
+            ./scripts/tests/test-verify-log-chain.sh \
+            ./scripts/tests/test-emit-substrate-apply.sh \
+            ./scripts/tests/test-emit-substrate-derive.sh \
+            ./scripts/tests/test-initiative-blocked-by-column.sh \
+            ./scripts/tests/test-initiative-classifier.sh \
+            ./scripts/tests/test-mirror-codenames.sh \
+            ./scripts/tests/test-sync-shared-blocks.sh
+          do
+            echo "=== $t ==="
+            if bash "$t"; then
+              echo "PASS: $t"
+            else
+              echo "FAIL: $t"
+              fail=$((fail + 1))
+            fi
+          done
+          if [[ "$fail" -gt 0 ]]; then
+            echo "::error::$fail script test suite(s) failed"
+            exit 1
+          fi
+
   lint-shellcheck:
     name: Shellcheck on bash scripts
     runs-on: ubuntu-latest

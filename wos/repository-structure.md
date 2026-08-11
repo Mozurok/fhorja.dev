@@ -28,8 +28,8 @@ my_work_tasks/
   COMMAND_PROMPT_STUBS.md              # optional; minimal @commands/ prompts per phase (one row per command)
   CLAUDE.md                            # internal Phase 1 context (will be removed or restructured before public release)
   USER_MEMORY.md                       # gitignored; bootstrap from templates/USER_MEMORY.template.md; ADR-0016
-  LICENSE                              # AGPL-3.0
-  CONTRIBUTING.md                      # contribution flow, CLA, style guide
+  LICENSE                              # MIT
+  CONTRIBUTING.md                      # contribution flow, DCO sign-off, style guide
   SECURITY.md                          # security scope and reporting policy
   CODE_OF_CONDUCT.md                   # Contributor Covenant 2.1
   CHANGELOG.md                         # Keep a Changelog format
@@ -40,7 +40,7 @@ my_work_tasks/
     LEARNINGS.md                      # task-scoped reflexion log; locked 4-bullet entry shape (ADR-0017)
     USER_MEMORY.template.md           # bootstrap for /USER_MEMORY.md (ADR-0016)
   scripts/
-    sync-workflow-slash-commands.sh   # optional; copies commands/ to Cursor + Claude Code + Codex; --with-docs mirrors the spec/README/DEMO/stubs/templates to ~/.cursor/workflow-docs and ~/.claude/workflow-docs; --with-skills mirrors .claude/skills/ to ~/.claude/skills, ~/.cursor/skills, ~/.agents/skills
+    sync-workflow-slash-commands.sh   # optional; copies commands/ to Cursor + Claude Code + Codex (Kimi Code has no command dir, skills only); --with-docs mirrors the spec/README/DEMO/stubs/templates to ~/.cursor/workflow-docs and ~/.claude/workflow-docs; --with-skills mirrors .claude/skills/ to ~/.claude/skills, ~/.cursor/skills, ~/.agents/skills (the last shared with Kimi)
     lint-commands.sh                  # validates command file contract, shared-block drift, frontmatter, token-budget overrun, and skills drift (via build-agent-skills.sh --check)
     reconcile-counts.sh               # FIX side of the lint count-marker guard: sets every count:KIND marker across the lint scan-set to the live on-disk count in one pass; --check reports drift without writing; narrow scan-set (never touches _internal/ snapshots)
     sync-shared-blocks.sh             # propagates commands/_shared/<name>.md content into commands that declare the marker
@@ -119,11 +119,11 @@ my_work_tasks/
     maturity-ladder.md                # lazy: maturity ladder definitions
     substrate-peers.md                # lazy: substrate peer relationships
     workflow-patterns.md              # lazy: workflow patterns catalog
-    bug-classes/                      # lazy: <!-- count:bug-templates -->78<!-- /count --> bug-class files across <!-- count:bug-categories -->22<!-- /count --> categories
+    bug-classes/                      # lazy: <!-- count:bug-templates -->81<!-- /count --> bug-class files across <!-- count:bug-categories -->22<!-- /count --> categories
   docs/
     FAQ.md                            # user-facing entry point for common questions
     MIGRATION.md                      # adoption + forking + tool migration guide
-    adr/                              # Architecture Decision Records (<!-- count:adrs -->124<!-- /count --> ADR files; 0037 is an intentional gap; highest is 0121)
+    adr/                              # Architecture Decision Records (<!-- count:adrs -->143<!-- /count --> ADR files; 0037 is an intentional gap; highest is 0144)
       README.md                       # index + format + when to write
       template.md                     # ADR template
       0001-proposed-by-default.md     # example; full list under docs/adr/
@@ -131,7 +131,7 @@ my_work_tasks/
       0070-mcp-server-vet-command.md  # latest
   evals/
     README.md                         # eval harness overview + cadence + LLM-as-judge layer (ADR-0019)
-    scenarios/                        # <!-- count:scenarios -->124<!-- /count --> scenarios as of v0.2.x; one markdown file per scenario
+    scenarios/                        # <!-- count:scenarios -->133<!-- /count --> scenarios as of v0.2.x; one markdown file per scenario
       template.md                     # scenario template
       01-bootstrap-and-init.md        # example
       ...
@@ -186,8 +186,8 @@ my_work_tasks/
 
 The repository includes standard open-source governance files. They are not part of the runtime workflow contract, but they are part of the repository contract:
 
-- `LICENSE`: project is licensed under AGPL-3.0; see `## Final rule` in the spec for what this means for derivatives.
-- `CONTRIBUTING.md`: how to report issues, propose changes, submit PRs, and what the CLA requires. Source of truth for contribution policy.
+- `LICENSE`: project is licensed under MIT (relicensed from AGPL-3.0 on 2026-07-12), which permits commercial and closed-source use without a separate agreement.
+- `CONTRIBUTING.md`: how to report issues, propose changes, submit PRs, and how sign-off works. Contribution is certified with the Developer Certificate of Origin (`git commit -s`), not a CLA. Source of truth for contribution policy.
 - `SECURITY.md`: scope of "security" in a markdown-based workflow repo, plus reporting flow.
 - `CODE_OF_CONDUCT.md`: Contributor Covenant 2.1.
 - `CHANGELOG.md`: chronological record of changes following Keep a Changelog and SemVer.

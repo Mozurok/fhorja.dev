@@ -90,6 +90,12 @@ If all four answers are yes, delegate. If any answer is no, stay inline.
 
 The table is dated; tools evolve. Update via PR when a tool's sub-agent surface changes.
 
+## Monitor arming (worktree dogfood 2026-08-04)
+
+A `Monitor` is armed with an explicit stop condition (success, failure, or timeout), never with an open-ended progress pattern. Nine notifications saying an iOS build is still compiling are not signal, and each one interrupts the thread carrying a prompt to notify the human.
+
+Corollary for anyone reading a transcript: a queued message is NOT evidence that the human could not wait for the turn. Across a 2026-08 multi-worktree corpus, 40 queued lines contained 32 harness `task-notification` entries and only 8 real human messages. Count the class before reading intent into the volume.
+
 ## Harness equivalence (v3 wave1, item I)
 
 When a command or pattern in this repo assumes a Claude Code primitive, this table maps the equivalent or the explicit degradation on another harness, so a non-Claude session degrades deliberately instead of improvising. Evidence base: the av3 (Claude Code) vs bv3 (Codex CLI) cross-model dogfood, 2026-07-19/21. Operational quirks (sandbox write-root, approval timing, patch mechanics) live in `wos/editor-mode-mappings.md ## Harness operational quirks` (mutual cross-link); this section owns the primitive surface. Same maintenance rule as the primitives table above: dated, update via PR.

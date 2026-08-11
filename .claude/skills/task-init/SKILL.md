@@ -24,6 +24,16 @@ metadata:
   provenance: first-party
   suggested-model: claude-opus-4-7
 ---
+> **Output contract, in brief.** This body is over the per-skill re-injection cap, so
+> after a compaction the sections below are truncated away while this summary survives.
+> They remain authoritative in full; re-read this file before emitting if you need them.
+>
+> - `Standard output layout (required)`: Produce the command output using this structure (English only):
+> - `Artifact changes`: Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
+> - `Command transcript`: Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
+> - `Handoff`: Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per...
+> - `Definition of done (command output)`: All resolved paths are explicit (project + task folder) and naming rules are satisfied.
+
 
 Act as a senior/staff engineering workflow state initializer.
 
@@ -104,8 +114,11 @@ Project naming rules:
 - keep names lowercase and hyphenated when possible
 
 Operating rules:
-- **Repository-path preflight (before creating the task folder):** once the target repository path is resolved (from source-of-truth pointers, the current working directory, or a user-supplied path), confirm that path actually contains `commands/`, `scripts/`, and `wos/` before creating anything under `projects/<client>__<project>/active/`. A resolved path can silently land on a stale mirror or docs-only checkout that has none of these; do not create a task folder against the wrong repo. If any of the three directories is missing, STOP and name the missing directories explicitly, then ask the user to confirm or supply the correct repository path. Do not proceed to task-folder creation until the check passes.
-- **Git-authority preflight (after the repository-path preflight; detect and recommend only):** WHEN the active PRODUCT codebase path is known at init time (from source-of-truth pointers or a user-supplied path), run ONE Bash check on it (`git -C <path> rev-parse --is-inside-work-tree`); a missing path and a not-a-git-repo result are the same outcome. WHEN the path is not yet known, skip at zero cost and leave the standard placeholder. On a no-git-authority outcome, record a `Git status: no git authority at <path>` line plus `Recommended action: git init -b main (requires human authorization)` in `SOURCE_OF_TRUTH.md ## Active codebase / repo` and mirror the same recommended-action line into `TASK_STATE.md ## Risks to watch`, inside this run's substrate-write batch; the chat handoff cites the recommended action explicitly. Task creation NEVER blocks on this check, and `git init` itself always stays behind human authorization (deliberately conservative: this preflight detects and recommends, it never establishes authority on its own). Late-binding hook: any command that later promotes `## Active codebase / repo` from a vague pointer to a concrete path SHALL trigger this same one-call check at that moment. Rationale: without this, a missing repo surfaces only at `slice-closure` (commit gate blocked), which cost a dogfooded session two full turns before the human could even be asked.
+- **Two-root preflight (before creating the task folder; ADR-0129):** the **task repository** holds `projects/<client>__<project>/`; the **workflow root** is where `WORKFLOW_OPERATING_SYSTEM.md` and `wos/` resolved from for this run's own bootstrap (the canonical checkout, or an installed `workflow-docs/`). They coincide only in the maintainer's checkout, so NEVER require `commands/`, `scripts/`, or `wos/` inside the task repository. Resolve the task repository from source-of-truth pointers, the current working directory, or a user-supplied path; validate each root for what it should hold, then:
+  - **STOP 1:** neither the spec nor `wos/` is reachable anywhere. No command can honor its mandatory bootstrap; name what is missing, ask for the correct path, create nothing.
+  - **STOP 2:** the resolved TASK repository holds `commands/` and `wos/` but no `projects/`. That is the workflow checkout, not a task repository (the wrong-repo hazard this preflight exists for); name it, ask the user to confirm or supply the right path, create nothing there.
+  - Record which workflow root was used in one `### Command transcript` line. An installed docs tree is the NORMAL mode, never reported as a degradation; when it carries no `scripts/`, `commands/_shared/substrate-digest-fallback.md` applies and the run says so.
+- **Git-authority preflight (after the two-root preflight; detect and recommend only):** WHEN the active PRODUCT codebase path is known at init time (from source-of-truth pointers or a user-supplied path), run ONE Bash check on it (`git -C <path> rev-parse --is-inside-work-tree`); a missing path and a not-a-git-repo result are the same outcome. WHEN the path is not yet known, skip at zero cost and leave the standard placeholder. On a no-git-authority outcome, record a `Git status: no git authority at <path>` line plus `Recommended action: git init -b main (requires human authorization)` in `SOURCE_OF_TRUTH.md ## Active codebase / repo` and mirror the same recommended-action line into `TASK_STATE.md ## Risks to watch`, inside this run's substrate-write batch; the chat handoff cites the recommended action explicitly. Task creation NEVER blocks on this check, and `git init` itself always stays behind human authorization (deliberately conservative: this preflight detects and recommends, it never establishes authority on its own). Late-binding hook: any command that later promotes `## Active codebase / repo` from a vague pointer to a concrete path SHALL trigger this same one-call check at that moment. Rationale: without this, a missing repo surfaces only at `slice-closure` (commit gate blocked), which cost a dogfooded session two full turns before the human could even be asked.
 - **Sandbox write-root preflight (conditional; harnesses with a restricted write-root only):** WHEN the executing harness sandboxes writes to a restricted root (Codex CLI today), confirm at init that this task folder lives inside that writable root, or that both roots (product workspace and task-state repo) were declared to the harness; on a mismatch, surface the harness guidance in `wos/editor-mode-mappings.md ## Harness operational quirks` before the first substrate write. Inert (zero cost) on Claude Code and any harness without a restricted write-root.
 - Do not implement production code.
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full).
@@ -161,50 +174,38 @@ Must include:
 2. TASK_STATE.md
 Must use this exact structure:
 
+Section annotations (what each section is for, who owns it, how it is rebuilt) live in
+`templates/TASK_STATE.template.md`. Read that file when seeding the artifact. The
+20-section structure itself is below and is normative for the section names and order.
+
 # TASK_STATE
 
 ## Quick reanchor
-(Compaction-proof anchor, FIRST section by design, ADR-0111. Rebuilt mechanically by sync-task-state on every sync; decision-interview co-writes the Active decisions line in the same turn it locks a D-N in persist mode. Truncate each line at a clause boundary such as a comma or semicolon, never a fixed word count; cap Active decisions at 10 with an explicit overflow line pointing at DECISIONS.md; write `none locked yet` when empty.)
 - Active decisions: [D-N: one clause each | none locked yet]
 - Current slice: [from IMPLEMENTATION_PLAN.md ## Slices | none]
 - Phase: [current phase]
 - Next step: [command from ## Recommended next step]
 
 ## Task summary
-[Short description of the task]
 
 ## Current phase
 [discovery | planning | contract refinement | contract signoff | test design | implementation | review | debug | delivery]
 
 ## Objective
-[What success looks like for this task]
 
 ## Requested deliverables
-(One row per concrete deliverable the user named in the brief: an artifact to produce or an input to analyze, not every implied sub-task. Tag each: in-scope | de-scoped:<reason> | done; when the deliverable is user-facing product content or a new user-facing surface, also tag it user-facing-content or new-user-facing-surface (ADR-0091; tagging test per ADR-0103: the tag applies when a human end user experiences the content or reaches the surface through any client, visual or not, so an MCP prompt surface reached via chat tags and an MCP tool whose result a human end user consumes in the client tags, while a machine-to-machine API, a developer-facing CLI, or a tool consumed only by the model or another machine does not), for example `- session pack v2 [in-scope] [user-facing-content]`. Seeded here at task-init; reconciled at closure per ADR-0056. When the brief names no concrete deliverable, the single row is `- none named`.)
-- [deliverable 1] [in-scope]
-- [deliverable 2] [in-scope]
+- [deliverable 1] [in-scope | de-scoped:<reason> | done] [+ user-facing-content or new-user-facing-surface when a human end user experiences or reaches it]
 
 ## Recommended pipeline
-(Tier + ordered command sequence per the complexity assessment, ADR-0025. Owner: task-init; updated by what-next or sync-task-state as routing evolves.)
 - Tier: [Express | Standard | Disciplined | Strict]
-- [ordered next commands]
 
 ## Source of truth
-- [main plan markdown]
-- [decision markdown, if any]
-- [relevant code/docs/tickets]
 
 ## Current known facts
-- [fact 1]
-- [fact 2]
 
 ## Canonical decisions
-- [decision 1]
-- [decision 2]
 
 ## Open questions / blockers
-- [open item 1]
-- [open item 2]
 
 ## Last completed step
 - Command:
@@ -213,26 +214,16 @@ Must use this exact structure:
 
 ## Current status
 ### Completed
-- [completed item]
 
 ### In progress
-- [current item]
 
 ### Not started
-- [pending item]
 
 ## Active files in scope
-- [file 1]
-- [file 2]
-- [file 3]
 
 ## Constraints / things that must not change
-- [constraint 1]
-- [constraint 2]
 
 ## Risks to watch
-- [risk 1]
-- [risk 2]
 
 ## Recommended next step
 - Command: (official basename only, must match `commands/<name>.md` in this repo, e.g. `impact-analysis`, not `task-plan`)
@@ -244,13 +235,11 @@ LOW | MEDIUM | HIGH | N/A
 - Rationale (one line):
 
 ## Resume notes
-[Short practical note explaining how to continue from here in a new chat]
 
 ## Task scope level
 [full task | current phase | current slice | hotfix]
 
 ## Current closure target
-[exact thing we are trying to finish now]
 
 3. SOURCE_OF_TRUTH.md
 Must include (seed content under the exact canonical H2 names matching the `wos/substrate-peers.md` SOURCE_OF_TRUTH rows, so the sections task-init creates and the sections later commands own carry one name):
@@ -369,5 +358,3 @@ Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global ou
 
 Quality bar:
 Optimize for strong initialization, low ambiguity, resumability, and strict alignment with the official task repository structure.
-
-<!-- cache-breakpoint -->

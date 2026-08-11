@@ -93,8 +93,34 @@ fi
 # Strategy: copy lines verbatim until the second `---` (closing the
 # frontmatter), then on the first body line drop a `# <name>` H1 and copy
 # every subsequent line verbatim.
+# Per-skill re-injection cap documented for this harness: skill bodies are re-injected after
+# compaction capped at 5,000 tokens (20,000 chars at the repo's 4-chars/token rule), and
+# truncation KEEPS THE START. The output contract lives at the end of every command, so a
+# body over the cap silently loses `### Definition of done`, `### Handoff`, and the closure
+# gates exactly when the session has run longest. Measured 2026-08-10: 51 of 98 skills are
+# over the cap and 37 lose their Definition of done.
+#
+# The notice is emitted ONLY for bodies over the cap, and only into the GENERATED artifact:
+# the canonical commands/*.md keep their human reading order. It is a pointer, not a copy, so
+# it costs about 390 chars instead of duplicating the contract.
+REINJECTION_CAP_CHARS=20000
+
 render_skill() {
-  awk '
+  local body_chars notice
+  body_chars=$(wc -c < "$1" | tr -d ' ')
+  notice=0
+  [ "$body_chars" -gt "$REINJECTION_CAP_CHARS" ] && notice=1
+
+  # The summary is multi-line, and awk -v cannot carry a newline. Emit a placeholder and
+  # splice the real block in afterwards.
+  local summary_file=""
+  if (( notice )); then
+    summary_file="$(mktemp)"
+    python3 "${SCRIPT_DIR}/emit-skill-contract-summary.py" "$1" > "$summary_file"
+    [ -s "$summary_file" ] || { rm -f "$summary_file"; summary_file=""; notice=0; }
+  fi
+
+  awk -v notice="$notice" '
     BEGIN { fm_count = 0; first_body = 0 }
     {
       if (fm_count < 2) {
@@ -138,11 +164,24 @@ render_skill() {
       }
       if (!first_body) {
         first_body = 1
+        if (notice) { print "@@CONTRACT_SUMMARY@@" }
         if ($0 ~ /^# /) { next }
       }
       print
     }
-  ' "$1"
+  ' "$1" | {
+    if [[ -n "$summary_file" ]]; then
+      # Splice the block in place of the placeholder line.
+      awk -v f="$summary_file" '
+        $0 == "@@CONTRACT_SUMMARY@@" { while ((getline line < f) > 0) print line; next }
+        { print }
+      '
+    else
+      cat
+    fi
+  }
+  [[ -n "$summary_file" ]] && rm -f "$summary_file"
+  return 0
 }
 
 shopt -s nullglob

@@ -402,7 +402,7 @@ Typical next commands:
 
 ### repo-consistency-sweep
 Role:
-- proactive defect-class detection against the curated `wos/bug-classes/` library (<!-- count:bug-templates -->78<!-- /count --> templates across <!-- count:bug-categories -->22<!-- /count --> categories, CWE-grounded)
+- proactive defect-class detection against the curated `wos/bug-classes/` library (<!-- count:bug-templates -->81<!-- /count --> templates across <!-- count:bug-categories -->22<!-- /count --> categories, CWE-grounded)
 - handles convention drift, ordering bugs, type-safety gaps, security and multi-tenant invariants, and operability issues
 - scoped to defect detection (the lower-value half of code review per Bacchelli and Bird 2013); does not replace human design discussion, knowledge transfer, or `review-hard` (which does correctness/safety risk)
 - meta-learning loop via `pr-feedback-ingest` candidate templates output
@@ -887,6 +887,12 @@ Typical next commands:
 - `decision-interview` when the plan surfaced an architecture decision to lock
 - `targeted-questions` when a factual gap blocks the plan
 
+### unity-scene-plan
+
+- plans the Unity GameObject hierarchy and component architecture for a 3D feature before any C# exists: hierarchy, per-MonoBehaviour responsibility, prefab decisions, input model, test-assembly placement
+- REQUIRED declarations: the render pipeline for a 3D target (reasoned from HDRP's enumerated platform list and its compute-shader requirement, not from a blanket mobile claim), and the networked-authority set for a multiplayer feature (topology, per-object ownership, sync primitive per datum, tick rate, determinism posture)
+- names which steps are human-applied, because the Unity MCP surface vetted on 2026-08-07 had no tool for assembly definitions, project settings, or render-pipeline configuration
+- distinct from `godot-scene-plan` (a different engine sharing no vocabulary, deliberately not merged per ADR-0069 D-4), `implementation-plan` (slices an already-decided architecture), `impact-analysis` (blast radius of an existing project), and `app-runtime-verify` (verifies the built app at runtime via its Unity adapter)
 ### godot-runtime-verify
 Role:
 - verify a built Godot 2D scene at runtime: run it (press-play in the editor or a headless run), read the captured debugger output, classify any runtime errors against a Godot taxonomy, and decide a PASS/FAIL runtime gate for the slice's acceptance behavior

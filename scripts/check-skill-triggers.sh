@@ -51,8 +51,22 @@ if (( ${#EVAL_FILES[@]} > 0 )); then
   done
 fi
 
-echo "Skill-triggers: ${with} skill(s) with trigger evals, ${without} without (advisory)"
-if (( VERBOSE == 1 && without > 0 )); then
-  printf '%s\n' "${missing[@]}"
+# The denominator is every generated skill, NOT the set of evals.json files. Counting only
+# files that exist made the loop above blind to a skill with no evals.json at all, so the
+# line printed "N with, 0 without" and read as full coverage while 93 of 98 skills were
+# invisible to it. A guard that reports total coverage while measuring a fraction of the
+# corpus is worse than no guard.
+total=0
+for f in "${REPO_ROOT}"/.claude/skills/*/SKILL.md; do
+  [[ -f "$f" ]] && total=$((total+1))
+done
+uncovered=$(( total - with ))
+
+echo "Skill-triggers: ${with} of ${total} skill(s) with trigger evals, ${uncovered} without (advisory)"
+if (( VERBOSE == 1 )); then
+  (( without > 0 )) && printf '%s\n' "${missing[@]}"
+  if (( uncovered > without )); then
+    echo "  [skill-triggers] $(( uncovered - without )) skill(s) have no evals.json at all (invocation accuracy unmeasured)"
+  fi
 fi
 exit 0

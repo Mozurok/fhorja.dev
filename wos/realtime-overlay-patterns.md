@@ -1,11 +1,11 @@
 ---
 activation: model_decision
-description: Patterns for realtime AI overlays (audio capture + transcribe + LLM recommend + UI overlay). Load when designing or auditing a Peach-Live-style realtime coaching layer.
+description: Patterns for realtime AI overlays (audio capture + transcribe + LLM recommend + UI overlay). Load when designing or auditing a realtime coaching overlay.
 ---
 
 # Realtime Overlay Patterns
 
-Operational patterns for building sub-second AI coaching overlays that ingest live audio, transcribe it, run an LLM recommendation, and render guidance into a UI overlay while the user is still talking. Grounded in the Peach-Live shape: a sales/support agent gets next-best-action prompts while on a live call.
+Operational patterns for building sub-second AI coaching overlays that ingest live audio, transcribe it, run an LLM recommendation, and render guidance into a UI overlay while the user is still talking. Grounded in the coaching-overlay shape: a sales or support agent gets next-best-action prompts while on a live call.
 
 ## When this applies (sub-second coaching overlay; audio-driven AI)
 

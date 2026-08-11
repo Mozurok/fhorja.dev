@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sync workflow command markdown files to Cursor, Claude Code, and Codex CLI command directories.
+# Sync workflow command markdown files to Cursor, Claude Code, Codex, and Kimi Code CLI directories.
 # Source: <repo>/commands/*.md  →  same filenames (e.g. task-init.md → /task-init in Claude Code).
 #
 # Run it bare on a terminal for a guided wizard; pass any flag (or run in CI / a
@@ -10,6 +10,7 @@
 #   Cursor (legacy slash):  ~/.cursor/commands
 #   Claude  (legacy slash):  ~/.claude/commands
 #   Codex  (custom prompts): ~/.codex/prompts (invoked as /prompts:<name>)
+#   Kimi   (skills only):    no custom-command directory exists; see the Kimi note below
 #   Skills (open standard): ~/.claude/skills, ~/.cursor/skills, ~/.agents/skills (ON by default)
 #
 # Docs:
@@ -18,7 +19,17 @@
 #   Codex CLI: https://developers.openai.com/codex/custom-prompts
 #              Custom prompts are deprecated; prefer skills for reusable workflows.
 #              https://developers.openai.com/codex/skills
+#   Kimi Code CLI: https://www.kimi.com/code/docs/en/kimi-code-cli/customization/skills.html
+#                  https://www.kimi.com/code/docs/en/kimi-code-cli/configuration/data-locations.html
 #   Agent Skills (open standard): https://agentskills.io/specification
+#
+# Kimi note: Kimi Code CLI has no user-defined slash-command directory. Its entire
+# customization surface is Agent Skills, invoked as /skill:<name>. At user level it
+# scans $KIMI_CODE_HOME/skills (default ~/.kimi-code/skills) AND the generic
+# ~/.agents/skills, so this script targets the generic directory by default: it is
+# already written for Codex, both tools read it, and a second copy under the Kimi
+# brand directory would register every skill twice. Point --kimi-dir at
+# ~/.kimi-code/skills if you want a Kimi-owned copy instead.
 #
 set -euo pipefail
 
@@ -37,10 +48,30 @@ CODEX_SKILLS_DEST="${CODEX_SKILLS_DIR:-${HOME}/.agents/skills}"
 DEFAULT_CODEX_SKILLS_DEST="${HOME}/.agents/skills"
 LEGACY_CODEX_SKILLS_DEST="${HOME}/.codex/skills"
 
+# Kimi's home directory carries two names in the wild: the current Kimi Code CLI
+# uses ~/.kimi-code (relocatable via KIMI_CODE_HOME), while the older open-source
+# kimi-cli uses ~/.kimi. Detect whichever is actually installed instead of
+# guessing, and fall back to the current one when neither exists yet.
+resolve_kimi_home() {
+  if [[ -n "${KIMI_CODE_HOME:-}" ]]; then printf '%s' "${KIMI_CODE_HOME%/}"; return 0; fi
+  if [[ -d "${HOME}/.kimi-code" ]]; then printf '%s' "${HOME}/.kimi-code"; return 0; fi
+  if [[ -d "${HOME}/.kimi" ]]; then printf '%s' "${HOME}/.kimi"; return 0; fi
+  printf '%s' "${HOME}/.kimi-code"
+}
+KIMI_HOME="$(resolve_kimi_home)"
+# Project-level skills live under the same brand directory name Kimi uses at home
+# (.kimi-code/skills or .kimi/skills), so derive it rather than hardcoding one.
+KIMI_BRAND_DIRNAME="$(basename "$KIMI_HOME")"
+# Default to the generic cross-tool directory Kimi scans natively. See the Kimi
+# note in the header for why this is not the brand-owned ~/.kimi-code/skills.
+KIMI_SKILLS_DEST="${KIMI_SKILLS_DIR:-${HOME}/.agents/skills}"
+
 DRY_RUN=0
 DO_CURSOR=1
 DO_CLAUDE=1
 DO_CODEX=1
+DO_KIMI=1
+ONLY_MODE=0
 WITH_DOCS=0
 WITH_SKILLS=1          # skills ON by default (opt out with --no-skills)
 DO_CLEAN_ORPHANS=0
@@ -59,21 +90,24 @@ CLAUDE_WORKFLOW_DOCS_DEST="${CLAUDE_WORKFLOW_DOCS_DIR:-${HOME}/.claude/workflow-
 # Codex had no docs destination, so a --codex-only sync installed prompts whose wos/ loads
 # resolved nowhere: the payload was gated on the other two tools alone.
 CODEX_WORKFLOW_DOCS_DEST="${CODEX_WORKFLOW_DOCS_DIR:-${HOME}/.codex/workflow-docs}"
+# Kimi keeps its payload under its own home so it moves with KIMI_CODE_HOME, the
+# same way the other three destinations sit next to the config each tool reads.
+KIMI_WORKFLOW_DOCS_DEST="${KIMI_WORKFLOW_DOCS_DIR:-${KIMI_HOME}/workflow-docs}"
 
 usage() {
-  sed -n '1,120p' <<'EOF'
+  sed -n '1,160p' <<'EOF'
 Usage: sync-workflow-slash-commands.sh [options]
 
 Run with no options on a terminal to open an interactive wizard. Pass any option
 (or run in CI / a pipe) to take the non-interactive path and copy
 my_work_tasks/commands/*.md and, by default, the agent skills to Cursor, Claude
-Code, and/or Codex directories.
+Code, Codex, and/or Kimi Code directories.
 
 Options:
   --dry-run              Print actions only; do not write files.
   --profile=TIER         Which command set to install: minimal (the 12-command
                          everyday loop; the default), core (~50 commands), or full
-                         (all 85 flat commands). Passing --profile explicitly also
+                         (every flat command file). Passing --profile explicitly also
                          filters the skills mirror: core installs only core-tier
                          skills, full (or an empty --profile=) installs every
                          skill. minimal is REFUSED for skills (D-4, ADR-0059):
@@ -92,13 +126,22 @@ Options:
   --cursor-only          Update only the Cursor destination.
   --claude-only          Update only the Claude Code destination.
   --codex-only           Update only the Codex prompts destination.
+  --kimi-only            Update only the Kimi Code destination (skills + runtime payload;
+                         Kimi has no custom-command directory).
+                         The four --*-only flags compose: passing two of them selects
+                         both tools rather than cancelling each other out.
   --cursor-dir=PATH      Override Cursor commands directory (default: ~/.cursor/commands).
   --claude-dir=PATH      Override Claude commands directory (default: ~/.claude/commands).
   --codex-dir=PATH       Override Codex prompts directory (default: ~/.codex/prompts).
+  --kimi-dir=PATH        Override the Kimi skills directory (default: ~/.agents/skills,
+                         the generic directory Kimi scans natively). Use
+                         --kimi-dir=~/.kimi-code/skills for a Kimi-owned copy.
   --project=PATH         Also copy into PATH/.cursor/commands and PATH/.claude/commands.
                          Codex custom prompts are user-local only, so --project does not
-                         create project-level Codex prompts.
-  --with-docs            Also copy workflow reference docs (the spec, README, demo, stubs, templates/)
+                         create project-level Codex prompts. Kimi has no command
+                         directory at either level; its project skills go to
+                         PATH/.agents/skills (or PATH/.kimi-code/skills under --kimi-dir).
+  --with-docs            Also copy the optional reference docs (README, demo, stubs, templates/)
                          into WORKFLOW_DOCS_DIR (default: ~/.cursor/workflow-docs),
                          CLAUDE_WORKFLOW_DOCS_DIR (default: ~/.claude/workflow-docs), and, if
                          --project is set, into PATH/.cursor/workflow-docs/.
@@ -110,14 +153,21 @@ Environment:
   WORKFLOW_DOCS_DIR      Destination for --with-docs, Cursor-side copy (default: ~/.cursor/workflow-docs).
   CLAUDE_WORKFLOW_DOCS_DIR  Second copy for Claude Code (default: ~/.claude/workflow-docs).
   CODEX_WORKFLOW_DOCS_DIR   Third copy for Codex (default: ~/.codex/workflow-docs).
+  KIMI_WORKFLOW_DOCS_DIR    Fourth copy for Kimi (default: <kimi-home>/workflow-docs).
   CLAUDE_SKILLS_DIR      Skills destination, Claude Code (default: ~/.claude/skills).
   CURSOR_SKILLS_DIR      Skills destination, Cursor (default: ~/.cursor/skills).
   CODEX_SKILLS_DIR       Skills destination, OpenAI Codex (default: ~/.agents/skills).
+  KIMI_SKILLS_DIR        Skills destination, Kimi Code (default: ~/.agents/skills). Same as --kimi-dir.
+  KIMI_CODE_HOME         Kimi's own home directory. Read, never set, by this script; it
+                         picks the installed one (~/.kimi-code, then ~/.kimi) when unset.
 
-Note: EVERY sync, with or without --with-docs, also writes the runtime payload (wos/) into
-the three workflow-docs destinations above, for whichever tools the run targets. Commands
-cite wos/<topic>.md and several of those loads are MANDATORY, so the payload is a runtime
-dependency rather than the optional reading material --with-docs carries.
+Note: EVERY sync, with or without --with-docs, also writes the runtime payload
+(WORKFLOW_OPERATING_SYSTEM.md + wos/) into the four workflow-docs destinations above, for
+whichever tools the run targets. Every command's mandatory bootstrap reads four named
+sections of the spec, and commands cite wos/<topic>.md with several of those loads MANDATORY,
+so both are runtime dependencies rather than the optional reading material --with-docs
+carries. The spec moved into the payload in ADR-0129; before that it shipped only to the
+Cursor and Claude destinations, so a Codex- or Kimi-only machine could not bootstrap.
 
 Note: Command files reference WORKFLOW_OPERATING_SYSTEM.md and paths under this repo.
 For best results, open Claude Code/Codex from my_work_tasks as cwd, or add this
@@ -126,10 +176,46 @@ repo via your normal workflow so those paths resolve.
 Codex note: custom prompts load from ~/.codex/prompts and are invoked as
 /prompts:<name> (for example /prompts:task-init). They are deprecated in favor
 of skills, so the default skills sync is the recommended Codex workflow surface.
+
+Kimi note: Kimi Code CLI has no user-defined slash-command directory, so a Kimi
+sync writes skills and the runtime payload only, and --no-skills leaves it with
+the payload alone. Skills are invoked as /skill:<name> (for example
+/skill:task-init). Kimi scans both <kimi-home>/skills and the generic
+~/.agents/skills, and this script writes the generic one so a skill is not
+registered twice.
 EOF
 }
 
 PROFILE="${PROFILE:-minimal}"
+
+# --<tool>-only used to be spelled as "turn the other two off", which stopped
+# scaling at the fourth tool and made two such flags together cancel each other
+# out (every destination off, a silent no-op). Selecting additively keeps the
+# single-flag meaning identical and makes --claude-only --kimi-only mean those two.
+select_only() {
+  if [[ "$ONLY_MODE" -eq 0 ]]; then
+    DO_CURSOR=0; DO_CLAUDE=0; DO_CODEX=0; DO_KIMI=0
+    ONLY_MODE=1
+  fi
+  case "$1" in
+    cursor) DO_CURSOR=1 ;;
+    claude) DO_CLAUDE=1 ;;
+    codex)  DO_CODEX=1 ;;
+    kimi)   DO_KIMI=1 ;;
+  esac
+}
+
+# Bash does not tilde-expand a `~` that follows `=` inside an ordinary argument,
+# so --claude-dir=~/x used to create a literal directory named `~` under the CWD.
+# Expand a leading ~ or ~/ before it reaches mkdir.
+expand_tilde() {
+  local p="$1"
+  case "$p" in
+    "~") printf '%s' "$HOME" ;;
+    "~/"*) printf '%s' "${HOME}/${p#\~/}" ;;
+    *) printf '%s' "$p" ;;
+  esac
+}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -139,13 +225,15 @@ while [[ $# -gt 0 ]]; do
     --with-skills) WITH_SKILLS=1 ;;
     --clean-orphans) DO_CLEAN_ORPHANS=1 ;;
     --yes|-y) ASSUME_YES=1 ;;
-    --cursor-only) DO_CLAUDE=0; DO_CODEX=0 ;;
-    --claude-only) DO_CURSOR=0; DO_CODEX=0 ;;
-    --codex-only) DO_CURSOR=0; DO_CLAUDE=0 ;;
-    --cursor-dir=*) CURSOR_DEST="${1#*=}" ;;
-    --claude-dir=*) CLAUDE_DEST="${1#*=}" ;;
-    --codex-dir=*) CODEX_DEST="${1#*=}" ;;
-    --project=*) PROJECT="${1#*=}" ;;
+    --cursor-only) select_only cursor ;;
+    --claude-only) select_only claude ;;
+    --codex-only) select_only codex ;;
+    --kimi-only) select_only kimi ;;
+    --cursor-dir=*) CURSOR_DEST="$(expand_tilde "${1#*=}")" ;;
+    --claude-dir=*) CLAUDE_DEST="$(expand_tilde "${1#*=}")" ;;
+    --codex-dir=*) CODEX_DEST="$(expand_tilde "${1#*=}")" ;;
+    --kimi-dir=*) KIMI_SKILLS_DEST="$(expand_tilde "${1#*=}")" ;;
+    --project=*) PROJECT="$(expand_tilde "${1#*=}")" ;;
     --with-docs) WITH_DOCS=1 ;;
     -h|--help) usage; exit 0 ;;
     *)
@@ -161,6 +249,11 @@ if [[ ! -d "$SRC" ]]; then
   echo "Source directory not found: $SRC" >&2
   exit 1
 fi
+
+# Counted from the same glob sync_one_dest copies, so the number the wizard and
+# the summary quote cannot drift from what a full sync actually writes. It used
+# to be the hardcoded 85 of an older corpus, in three separate strings.
+FLAT_COMMAND_COUNT="$(find "$SRC" -maxdepth 1 -name '*.md' | wc -l | tr -d ' ')"
 
 # Profile filter (ADR-0059): the default profile is `minimal` (the 12-command
 # everyday loop). Include a command file when its metadata.x-wos-profiles inline
@@ -266,6 +359,21 @@ list_orphans() { # $1 = dest dir -> basenames present in dest but absent from SR
   shopt -u nullglob
 }
 
+# Two tools can legitimately resolve to the same directory: Kimi and Codex both
+# read ~/.agents/skills, and any *_DIR override can collide by hand. Writing the
+# same tree twice is wasted work at best and, on the skills side, a second
+# rm -rf plus re-copy of a directory a concurrent reader may be scanning. Record
+# what each phase already wrote and skip the repeat, out loud.
+SYNCED_SKILL_DESTS="|"
+SYNCED_PAYLOAD_DESTS="|"
+
+# dest_is_new <list-contents> <dest> -> 0 when unseen. Callers append themselves.
+dest_is_new() {
+  local list="$1" d="${2%/}"
+  [[ "$list" == *"|${d}|"* ]] && return 1
+  return 0
+}
+
 sync_one_dest() {
   local label="$1"
   local dest="$2"
@@ -320,37 +428,54 @@ sync_runtime_payload() {
   if [[ -z "$dest" ]]; then
     return 0
   fi
+  if ! dest_is_new "$SYNCED_PAYLOAD_DESTS" "$dest"; then
+    echo "==> ${label} (runtime payload): ${dest%/} already written this run; skipping duplicate copy"
+    return 0
+  fi
+  SYNCED_PAYLOAD_DESTS="${SYNCED_PAYLOAD_DESTS}${dest%/}|"
   echo "==> ${label} (runtime payload): ${dest}"
   local topics
   topics="$(find "${REPO_ROOT}/wos" -name '*.md' | wc -l | tr -d ' ')"
   if [[ "$DRY_RUN" -eq 1 ]]; then
     echo "    mkdir -p $(printf '%q' "${dest}/wos")"
+    echo "    cp WORKFLOW_OPERATING_SYSTEM.md -> $(printf '%q' "$dest")"
     echo "    cp -R wos/. -> $(printf '%q' "${dest}/wos")  (${topics} topics, recursive)"
     return 0
   fi
   mkdir -p "${dest}/wos"
+  # The spec ships with the payload, not behind --with-docs (ADR-0129). Same argument as
+  # wos/ above: the first item of EVERY command's mandatory context bootstrap is four named
+  # sections of this file, so a session bootstrapping from an installed copy without it
+  # resolves its first mandatory read against nothing. Before this, sync_workflow_docs was
+  # called for the Cursor and Claude destinations only, so a Codex- or Kimi-only machine got
+  # wos/ and no spec, and worked solely by falling back to a Claude install that happened to
+  # sit beside it. --with-docs keeps the genuinely optional material (README, DEMO, STUBS,
+  # templates/); the spec was never that.
+  cp "${REPO_ROOT}/WORKFLOW_OPERATING_SYSTEM.md" "${dest}/"
   # Recursive: wos/ has subdirectories (bug-classes/), and a flat copy would drop them.
   cp -R "${REPO_ROOT}/wos/." "${dest}/wos/"
-  echo "    copied wos/ (${topics} topics)"
+  echo "    copied WORKFLOW_OPERATING_SYSTEM.md + wos/ (${topics} topics)"
 }
 
+# The OPTIONAL reading material, behind --with-docs. The spec is deliberately NOT here
+# any more (ADR-0129): it moved into sync_runtime_payload, which runs on every sync to
+# every destination, because it is a runtime dependency rather than reading material.
 sync_workflow_docs() {
   local label="$1"
   local dest="$2"
   echo "==> ${label} (docs): ${dest}"
   if [[ "$DRY_RUN" -eq 1 ]]; then
     echo "    mkdir -p $(printf '%q' "$dest")"
-    echo "    cp WORKFLOW_OPERATING_SYSTEM.md README.md WORKFLOW_DEMO.md COMMAND_PROMPT_STUBS.md -> $(printf '%q' "$dest")"
+    echo "    cp README.md WORKFLOW_DEMO.md COMMAND_PROMPT_STUBS.md -> $(printf '%q' "$dest")"
     echo "    cp -R templates -> $(printf '%q' "$dest/templates")"
     return 0
   fi
   mkdir -p "${dest}/templates"
-  cp "${REPO_ROOT}/WORKFLOW_OPERATING_SYSTEM.md" "${dest}/"
   cp "${REPO_ROOT}/README.md" "${dest}/"
   cp "${REPO_ROOT}/WORKFLOW_DEMO.md" "${dest}/"
   cp "${REPO_ROOT}/COMMAND_PROMPT_STUBS.md" "${dest}/"
   cp -R "${REPO_ROOT}/templates/"* "${dest}/templates/"
-  echo "    copied the spec, README, DEMO, STUBS, and templates/"
+  echo "    copied README, DEMO, STUBS, and templates/ (the spec ships with the runtime payload)"
 }
 
 sync_skills_dest() {
@@ -363,6 +488,11 @@ sync_skills_dest() {
     echo "==> ${label}: skipped (source ${SKILLS_SRC} not present; run scripts/build-agent-skills.sh first)" >&2
     return 0
   fi
+  if ! dest_is_new "$SYNCED_SKILL_DESTS" "$dest"; then
+    echo "==> ${label}: ${dest%/} already written this run; skipping duplicate copy"
+    return 0
+  fi
+  SYNCED_SKILL_DESTS="${SYNCED_SKILL_DESTS}${dest%/}|"
   local sp
   sp="$(skills_effective_profile)"
   echo "==> ${label}: ${dest}"
@@ -480,18 +610,33 @@ clean_orphans() {
 
 # End-of-run summary: an honest line naming what was synced and how to get more.
 print_summary() {
-  local skills_txt cmd_txt sp
+  local skills_txt cmd_txt sp tools=""
   sp="$(skills_effective_profile)"
   if [[ "$WITH_SKILLS" -eq 1 ]]; then
     if [[ -n "$sp" ]]; then skills_txt="${sp}-tier skills"; else skills_txt="all skills"; fi
   else
     skills_txt="no skills"
   fi
-  cmd_txt="${PROFILE:-all} commands"
+  # Only claim a command install when a tool that HAS a command directory was
+  # targeted. --kimi-only used to report "minimal commands" for a run that, by
+  # Kimi's own design, installed no command file anywhere.
+  if [[ "$DO_CURSOR" -eq 1 || "$DO_CLAUDE" -eq 1 || "$DO_CODEX" -eq 1 ]]; then
+    cmd_txt=" + ${PROFILE:-all} commands"
+  else
+    cmd_txt=""
+  fi
+  [[ "$DO_CURSOR" -eq 1 ]] && tools="${tools}Cursor, "
+  [[ "$DO_CLAUDE" -eq 1 ]] && tools="${tools}Claude Code, "
+  [[ "$DO_CODEX" -eq 1 ]] && tools="${tools}Codex, "
+  [[ "$DO_KIMI" -eq 1 ]] && tools="${tools}Kimi Code, "
+  tools="${tools%, }"
   echo ""
-  echo "Summary: synced ${skills_txt} + ${cmd_txt} to the selected tools."
-  if [[ "$PROFILE" == "minimal" ]]; then
-    echo "  Only the 12 everyday commands are installed. For all 85, re-run with"
+  echo "Summary: synced ${skills_txt}${cmd_txt} to ${tools:-nothing (every destination was deselected)}."
+  if [[ "$DO_KIMI" -eq 1 ]]; then
+    echo "  Kimi Code got skills only (no custom-command directory exists); invoke them as /skill:<name>."
+  fi
+  if [[ "$PROFILE" == "minimal" && -n "$cmd_txt" ]]; then
+    echo "  Only the 12 everyday commands are installed. For all ${FLAT_COMMAND_COUNT}, re-run with"
     echo "  --profile=full, or pick 'Sync everything' in the wizard (run with no flags)."
   fi
 }
@@ -557,6 +702,7 @@ show_state_panel() {
   printf '    %-12s %s skills · %s commands\n' "Claude Code" "$(count_skills "$CLAUDE_SKILLS_DEST")" "$(count_md "$CLAUDE_DEST")"
   printf '    %-12s %s skills · %s commands\n' "Cursor" "$(count_skills "$CURSOR_SKILLS_DEST")" "$(count_md "$CURSOR_DEST")"
   printf '    %-12s %s skills · %s prompts\n' "Codex" "$(count_skills "$CODEX_SKILLS_DEST")" "$(count_md "$CODEX_DEST")"
+  printf '    %-12s %s skills · %s\n' "Kimi Code" "$(count_skills "$KIMI_SKILLS_DEST")" "no command dir"
   printf '    %-12s %s\n' "Source" "$(detect_source)"
   orphans="$(list_orphans "$CLAUDE_DEST" | tr '\n' ' ')"
   if [[ -n "${orphans// /}" ]]; then
@@ -569,7 +715,7 @@ wizard_custom() {
   menu_select "Which command set?" \
     "minimal|the 12 everyday commands" \
     "core|around 50 commands" \
-    "full|all 85 commands"
+    "full|all ${FLAT_COMMAND_COUNT} commands"
   case "$MENU_CHOICE" in 0) PROFILE="minimal" ;; 1) PROFILE="core" ;; 2) PROFILE="" ;; esac
   menu_select "Sync skills too?" "Yes|recommended, the surface models actually load" "No|commands only"
   case "$MENU_CHOICE" in 0) WITH_SKILLS=1 ;; 1) WITH_SKILLS=0 ;; esac
@@ -579,7 +725,7 @@ run_wizard() {
   show_header
   show_state_panel
   menu_select "What do you want to do?" \
-    "Sync everything|all skills + all 85 commands, every tool (recommended)" \
+    "Sync everything|all skills + all ${FLAT_COMMAND_COUNT} commands, every tool (recommended)" \
     "Everyday loop|all skills + the 12 core commands" \
     "Custom|choose the command set and skills" \
     "Health check|show what would change, write nothing" \
@@ -618,6 +764,15 @@ run_sync() {
   if [[ "$DO_CODEX" -eq 1 ]]; then
     sync_one_dest "OpenAI Codex prompts" "$CODEX_DEST"
   fi
+  if [[ "$DO_KIMI" -eq 1 ]]; then
+    # Stated rather than silently omitted: Kimi Code CLI exposes no user-defined
+    # slash-command directory, so there is nowhere for commands/*.md to land. Its
+    # customization surface is Agent Skills, synced below and invoked as /skill:<name>.
+    echo "==> Kimi Code commands: skipped (Kimi has no custom-command directory; its surface is skills, invoked as /skill:<name>)"
+    if [[ "$WITH_SKILLS" -eq 0 ]]; then
+      echo "    warning: with --no-skills, this run installs nothing for Kimi beyond the runtime payload." >&2
+    fi
+  fi
 
   if [[ -n "$PROJECT" ]]; then
     if [[ "$DO_CURSOR" -eq 1 ]]; then
@@ -644,6 +799,9 @@ run_sync() {
   if [[ "$DO_CODEX" -eq 1 ]]; then
     sync_runtime_payload "Runtime payload (Codex)" "$CODEX_WORKFLOW_DOCS_DEST"
   fi
+  if [[ "$DO_KIMI" -eq 1 ]]; then
+    sync_runtime_payload "Runtime payload (Kimi)" "$KIMI_WORKFLOW_DOCS_DEST"
+  fi
   if [[ -n "$PROJECT" ]] && [[ "$DO_CURSOR" -eq 1 ]]; then
     sync_runtime_payload "Runtime payload (project / Cursor)" "${PROJECT}/.cursor/workflow-docs"
   fi
@@ -667,6 +825,11 @@ run_sync() {
       sync_skills_dest "OpenAI Codex skills" "$CODEX_SKILLS_DEST"
       cleanup_legacy_codex_skills "$LEGACY_CODEX_SKILLS_DEST"
     fi
+    if [[ "$DO_KIMI" -eq 1 ]]; then
+      # Usually the same ~/.agents/skills Codex just wrote, in which case the
+      # dedup guard reports the skip instead of copying 98 trees a second time.
+      sync_skills_dest "Kimi Code skills" "$KIMI_SKILLS_DEST"
+    fi
     if [[ -n "$PROJECT" ]]; then
       if [[ "$DO_CLAUDE" -eq 1 ]]; then
         sync_skills_dest "Project Claude Code skills" "${PROJECT}/.claude/skills"
@@ -676,6 +839,17 @@ run_sync() {
       fi
       if [[ "$DO_CODEX" -eq 1 ]]; then
         sync_skills_dest "Project OpenAI Codex skills" "${PROJECT}/.agents/skills"
+      fi
+      if [[ "$DO_KIMI" -eq 1 ]]; then
+        # Project level, Kimi scans <project>/.kimi-code/skills and <project>/.agents/skills.
+        # Prefer the generic one for the same no-duplicate-registration reason as at
+        # user level, and fall back to the brand directory when a --kimi-dir override
+        # moved the user-level copy off the generic path.
+        if [[ "$KIMI_SKILLS_DEST" == "${HOME}/.agents/skills" ]]; then
+          sync_skills_dest "Project Kimi Code skills" "${PROJECT}/.agents/skills"
+        else
+          sync_skills_dest "Project Kimi Code skills" "${PROJECT}/${KIMI_BRAND_DIRNAME}/skills"
+        fi
       fi
     fi
   fi

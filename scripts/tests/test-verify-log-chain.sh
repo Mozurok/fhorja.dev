@@ -91,6 +91,35 @@ EOF
 python3 "$VALIDATOR" "$WORK/E/.wos/VERIFICATION_LOG.jsonl" --check-deletes --cutover-ts "$CUT" >/dev/null 2>&1
 check "proposed line does not enter the chain: exit 0" $?
 
+# ---------- 6b. event=propose masks the chain instead of breaking it ----------
+# ADR-0143. impact-analysis and decision-interview insert a PROPOSED block
+# INSIDE an existing section and emit NO transaction header, because ownership
+# stays with the section's owner. That moves the section's bytes, so the owner's
+# next applied write measures a sha_before the previous applied sha_after cannot
+# match. Before the fix this was a reported break: the writer obeyed a MANDATORY
+# rule and failed a BLOCKING floor for it. The propose entry now marks the
+# position indeterminate. Distinct from check 6, where a proposed line with a
+# non-propose event wrote nothing to disk and the applied chain still carries.
+mklog E2 <<EOF
+$(jline 2026-07-20T10:00:00.000Z write applied null "$SA")
+$(jline 2026-07-20T10:01:00.000Z propose proposed null null)
+$(jline 2026-07-20T10:02:00.000Z overwrite applied "$SC" "$SB")
+EOF
+python3 "$VALIDATOR" "$WORK/E2/.wos/VERIFICATION_LOG.jsonl" --check-deletes --cutover-ts "$CUT" >/dev/null 2>&1
+check "event=propose masks the chain, no false break: exit 0" $?
+
+# ---------- 6c. masking is scoped to the proposed section only ----------
+# The suppression must not become a blanket amnesty: a genuine break on a
+# section no proposal touched still fails. GHOST.md '## S' is the proposed one
+# here, so the break is asserted on '## T' via a hand-built line.
+mklog E3 <<EOF
+$(jline 2026-07-20T10:00:00.000Z propose proposed null null)
+{"ts":"2026-07-20T10:01:00.000Z","run_id":"01Jtest","owner":"t","owner_type":"command","invoked_by":null,"file":"GHOST.md","section":"## T","event":"write","mode":"applied","sha_before":null,"sha_after":"$SA","reason":"t","partials":null,"strategy":null}
+{"ts":"2026-07-20T10:02:00.000Z","run_id":"01Jtest","owner":"t","owner_type":"command","invoked_by":null,"file":"GHOST.md","section":"## T","event":"overwrite","mode":"applied","sha_before":"$SC","sha_after":"$SB","reason":"t","partials":null,"strategy":null}
+EOF
+python3 "$VALIDATOR" "$WORK/E3/.wos/VERIFICATION_LOG.jsonl" --check-deletes --cutover-ts "$CUT" >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then ok "unproposed section still breaks: nonzero exit"; else fail "unproposed section still breaks: nonzero exit"; fi
+
 # ---------- 7. pre-cutover breaks are grandfathered ----------
 mklog F <<EOF
 $(jline 2026-07-01T10:00:00.000Z write applied null "$SA")

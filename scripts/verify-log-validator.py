@@ -170,25 +170,71 @@ def validate_line(idx: int, raw: str) -> list[str]:
     return errors
 
 
-def sha_chain_advisories(applied_entries: list[tuple[int, dict]]) -> list[str]:
+#: A chain position whose current bytes cannot be known from the log alone.
+#: Not an error: comparing against it is skipped rather than reported.
+INDETERMINATE = object()
+
+
+def _is_owning_write(obj: dict) -> bool:
+    """True for an APPLIED write/overwrite, the only event class that asserts
+    'these are now the section's bytes' and can therefore be held to the chain.
+    Mode matters as much as event: the real logs carry two mode=proposed entries
+    whose event is `overwrite`, and checking those as if they owned the section
+    invents a break out of a proposal."""
+    return obj.get("mode") == "applied" and obj.get("event") in ("write", "overwrite")
+
+
+def _advance_chain(last_sha_after: dict, key: tuple, obj: dict) -> None:
+    """Advance the per-(file, section) chain position after visiting an entry.
+
+    A mode=proposed entry can change a section's bytes WITHOUT owning it: both
+    `impact-analysis` and `decision-interview` are told to insert a PROPOSED
+    block INSIDE an existing section and to emit no transaction header, because
+    ownership stays with the section's owner. Those entries carry event=propose
+    and are not required to record a sha_after, so the section's bytes moved by
+    an amount the log does not state: the position becomes INDETERMINATE and the
+    next applied write is not accused of breaking a chain it did not break.
+
+    The event is the discriminator, not the mode. A mode=proposed entry with any
+    OTHER event is a Plan-mode proposal that wrote nothing to disk, so it stays
+    fully outside the chain exactly as before and the applied chain continues
+    across it. Measured over all 357 real logs: 281 entries are propose, and 7
+    are proposed-but-not-propose.
+
+    Chaining THROUGH a proposal (trusting its recorded sha_after as the next
+    expected sha_before) was measured and flagged 23 line positions the blind
+    walk had not. Whether each is a real inconsistency or an artifact of how
+    promotion rewrites the block is a question this function cannot answer, and
+    this gate is BLOCKING per `wos/closure-floors.md`, so fixing a
+    false-positive class must not introduce a new failing class."""
+    if obj.get("mode") == "proposed":
+        if obj.get("event") == "propose":
+            last_sha_after[key] = INDETERMINATE
+        return
+    last_sha_after[key] = obj.get("sha_after")
+
+
+def sha_chain_advisories(chain_entries: list[tuple[int, dict]]) -> list[str]:
     """Warn-only sha-chain advisory: an applied write/overwrite whose sha_before
     differs from the previous sha_after recorded for the same (file, section)
-    in the log. Advisory text only; never flips the exit code."""
+    in the log. Advisory text only; never flips the exit code. Walks applied AND
+    proposed entries so a PROPOSED block inserted into a section is not
+    invisible to the chain (see _advance_chain)."""
     advisories: list[str] = []
     last_sha_after: dict[tuple[str, str], object] = {}
-    for idx, obj in applied_entries:
+    for idx, obj in chain_entries:
         file_ = obj.get("file")
         section = obj.get("section")
         if not isinstance(file_, str) or not isinstance(section, str):
             continue
         key = (file_, section)
-        if obj.get("event") in ("write", "overwrite") and key in last_sha_after:
+        if _is_owning_write(obj) and key in last_sha_after:
             prev = last_sha_after[key]
-            if obj.get("sha_before") != prev:
+            if prev is not INDETERMINATE and obj.get("sha_before") != prev:
                 advisories.append(
                     f"line {idx}: sha_before {obj.get('sha_before')!r} differs from previous sha_after {prev!r} for {file_} {section!r} (sha-chain advisory)"
                 )
-        last_sha_after[key] = obj.get("sha_after")
+        _advance_chain(last_sha_after, key, obj)
     return advisories
 
 
@@ -224,27 +270,34 @@ def _sha_of_section_port(path: Path, header: str) -> str:
     return hashlib.sha256(joined).hexdigest()
 
 
-def sha_chain_breaks(applied_entries: list[tuple[int, dict]], cutover_ts: str) -> list[str]:
+def sha_chain_breaks(chain_entries: list[tuple[int, dict]], cutover_ts: str) -> list[str]:
     """Post-cutover sha-chain break (S1, opt-in): same chain walk as
     sha_chain_advisories, but a break is REPORTED (not just advised) when the
     current applied write/overwrite is at or after cutover_ts. The chain is
-    built over ALL applied entries so 'previous sha_after' stays correct."""
+    built over ALL applied AND proposed entries so 'previous sha_after' stays
+    correct: a PROPOSED block inserted into a section moves its bytes, and a
+    walk blind to that reports a break where the writer obeyed its contract."""
     breaks: list[str] = []
     last_sha_after: dict[tuple[str, str], object] = {}
-    for idx, obj in applied_entries:
+    for idx, obj in chain_entries:
         file_ = obj.get("file")
         section = obj.get("section")
         if not isinstance(file_, str) or not isinstance(section, str):
             continue
         key = (file_, section)
-        if obj.get("event") in ("write", "overwrite") and key in last_sha_after:
+        if _is_owning_write(obj) and key in last_sha_after:
             prev = last_sha_after[key]
             ts = obj.get("ts")
-            if obj.get("sha_before") != prev and isinstance(ts, str) and ts >= cutover_ts:
+            if (
+                prev is not INDETERMINATE
+                and obj.get("sha_before") != prev
+                and isinstance(ts, str)
+                and ts >= cutover_ts
+            ):
                 breaks.append(
                     f"line {idx}: sha_before {obj.get('sha_before')!r} != previous sha_after {prev!r} for {file_} {section!r} (post-cutover sha-chain break)"
                 )
-        last_sha_after[key] = obj.get("sha_after")
+        _advance_chain(last_sha_after, key, obj)
     return breaks
 
 
@@ -281,13 +334,20 @@ def delete_orphan_findings(applied_entries: list[tuple[int, dict]], task_dir: Pa
     return findings
 
 
-def content_sha_findings(applied_entries: list[tuple[int, dict]], task_dir: Path, cutover_ts: str | None = None) -> list[str]:
+def content_sha_findings(chain_entries: list[tuple[int, dict]], task_dir: Path, cutover_ts: str | None = None) -> list[str]:
     """Content-vs-log SHA drift (S1, opt-in): for the last applied write/overwrite
     per (file, section) whose recorded sha_after is a real hash, recompute the
     section's current bytes on disk and flag when they disagree. Catches a stub
-    that keeps a header but gutted the body. Post-cutover only when cutover_ts set."""
+    that keeps a header but gutted the body. Post-cutover only when cutover_ts set.
+
+    Walks applied AND proposed entries. When the LAST entry for a section is a
+    PROPOSED block (event=propose), the section's bytes on disk legitimately
+    include content the owner never applied, so the event filter below skips the
+    key: disk cannot be compared against an applied sha while a proposal sits on
+    top of it. That is a deliberate loss of coverage for pending proposals, and
+    it is preferable to reporting drift against a writer that did as it was told."""
     last_write: dict[tuple[str, str], tuple[int, object, dict]] = {}
-    for idx, obj in applied_entries:
+    for idx, obj in chain_entries:
         file_ = obj.get("file")
         section = obj.get("section")
         if not isinstance(file_, str) or not isinstance(section, str):
@@ -296,7 +356,7 @@ def content_sha_findings(applied_entries: list[tuple[int, dict]], task_dir: Path
 
     findings: list[str] = []
     for (file_, section), (idx, event, obj) in last_write.items():
-        if event not in ("write", "overwrite"):
+        if not _is_owning_write(obj):
             continue
         recorded = obj.get("sha_after")
         if not isinstance(recorded, str):
@@ -362,6 +422,9 @@ def main() -> int:
     bad = 0
     all_errors: list[str] = []
     applied_entries: list[tuple[int, dict]] = []
+    # Applied AND proposed, in line order: the chain and content checks need
+    # every entry that can move a section's bytes, not only the owning writes.
+    chain_entries: list[tuple[int, dict]] = []
 
     with target.open("r", encoding="utf-8") as f:
         for i, line in enumerate(f, start=1):
@@ -381,8 +444,10 @@ def main() -> int:
                 continue
             if isinstance(obj, dict) and obj.get("mode") == "applied":
                 applied_entries.append((i, obj))
+            if isinstance(obj, dict) and obj.get("mode") in ("applied", "proposed"):
+                chain_entries.append((i, obj))
 
-    advisories = sha_chain_advisories(applied_entries)
+    advisories = sha_chain_advisories(chain_entries)
 
     delete_orphans: list[str] = []
     content_findings: list[str] = []
@@ -391,9 +456,9 @@ def main() -> int:
         task_dir = target.parent.parent
         delete_orphans = delete_orphan_findings(applied_entries, task_dir, cutover)
         if cutover:
-            content_findings = content_sha_findings(applied_entries, task_dir, cutover)
+            content_findings = content_sha_findings(chain_entries, task_dir, cutover)
     if cutover:
-        chain_breaks = sha_chain_breaks(applied_entries, cutover)
+        chain_breaks = sha_chain_breaks(chain_entries, cutover)
 
     print(f"file: {target}")
     print(f"lines: {total}")

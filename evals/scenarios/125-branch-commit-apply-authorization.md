@@ -119,6 +119,16 @@ separately.
   as the wave it originated in; ADR-0100 is the one that governs this mode.
 - Related commands: `commands/branch-commit.md`, `wos/closure-floors.md` (both commit-evidence
   variants route here), `commands/task-close.md` (the third home).
+- This mode's refusal conditions are NOT what widened when the commit-evidence floor gained its
+  second route (D-5, ADR-0133). The floor may now be satisfied by a `ref-attested` route that never
+  invokes this command; when this command IS invoked, all four conditions above hold unchanged. The
+  two facts are easy to conflate: a floor with an alternative route is not a command with a relaxed
+  gate, and nothing here becomes reachable without a human because a sibling route is.
+- The structural check `commit-evidence-apply-route` requires every floor home to route to BOTH
+  routes, not either. That is what keeps this command in the picture: a home offering only the
+  autonomous route would send an ATTENDED run to a quarantine ref where a commit belongs, and this
+  command is still the only path in the repository that can create one. The requirement runs in
+  both directions and the check fails naming whichever route a home dropped.
 - The ordering rule this mode mirrors is in `commands/_shared/mcp-capability-routing.md`: "an
   explicit user confirmation IN THAT TURN, given AFTER the command displays the exact payload and
   the destination." The words "given AFTER" are the ones under test.

@@ -231,5 +231,3 @@ Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global ou
 
 Quality bar:
 Optimize for clean project initialization, low ambiguity at the project level, durable memory shared across all future tasks, and strict alignment with the official task repository structure.
-
-<!-- cache-breakpoint -->

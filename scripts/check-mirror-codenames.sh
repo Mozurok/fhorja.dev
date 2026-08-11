@@ -148,6 +148,25 @@ if [ -n "$paths" ]; then
   printf '%s\n' "$paths" | sed 's/^/  /'
 fi
 
+# An issue-tracker ticket id (the ABC-nnnn shape). Structural, not name-based:
+# a ticket prefix cannot be expressed as a sidecar entry, because scan_word
+# requires a non-alphanumeric on the trailing side and a ticket carries a digit
+# there. The sidecar therefore reports clean over a ticket id no matter what it
+# lists (2026-08-05: a provenance line naming a ticket passed this gate, and the
+# ticket reached five files and three installs before a human caught it).
+# TICKET_PREFIX_ALLOW holds the prefixes this repository legitimately uses:
+# standards bodies and internal reference schemes, never a tracker. Case is
+# significant, so an ordinary lowercase word followed by digits never reaches
+# here. Extend the allowlist when a new legitimate prefix appears; do NOT widen
+# the shape, because the shape is what makes a client's tracker id detectable.
+TICKET_PREFIX_ALLOW="${TICKET_PREFIX_ALLOW:-ADR|CWE|CVE|SHA|ISO|RFC|UTF|AES|RSA|NIST|FIPS|WCAG|DEF|TF|BRAND|TEST|TYPE|ESIGN}"
+tickets="$(scan_ere '[A-Z]{2,5}-[0-9]{2,6}' | grep -vE "(${TICKET_PREFIX_ALLOW})-[0-9]" || true)"
+if [ -n "$tickets" ]; then
+  hits=$((hits + 1))
+  echo "LEAK: issue-tracker ticket id (use a generic provenance line: '<stack> dogfood <date>')"
+  printf '%s\n' "$tickets" | sed 's/^/  /'
+fi
+
 if [ "$hits" -eq 0 ]; then
   echo "check-mirror-codenames: clean (${TARGET})"
   exit 0

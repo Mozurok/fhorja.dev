@@ -151,6 +151,30 @@ rc=$(run_gate_no_list 'nothing sensitive here at all')
 [ "$rc" = "2" ] && pass "absent sidecar is a usage error (exit 2)" \
                  || fail "absent sidecar not reported (exit $rc, expected 2)"
 
+# 16. a ticket id is caught structurally, with a sidecar that does NOT list it.
+#     This is the 2026-08-05 leak: a provenance line naming a tracker ticket
+#     passed the gate, because a ticket prefix is unexpressible as an entry
+#     (scan_word needs a non-alphanumeric trailing side; a ticket has a digit).
+#     The id is assembled at runtime: written literally, this test file would
+#     itself trip the gate it is testing.
+SYNTH_TICKET="XYZ-$((8000 + 484))"
+rc=$(run_gate "Rule provenance (worktree dogfood 2026-08-04, ${SYNTH_TICKET}).")
+[ "$rc" = "1" ] && pass "ticket id detected structurally (exit 1)" \
+                 || fail "ticket id MISSED (exit $rc, expected 1)"
+
+# 17. the allowlisted prefixes must not flood: this repo carries thousands of
+#     ADR-NNNN and hundreds of CWE-NNN, so a shape check that flags them is
+#     unusable and would be switched off, which is worse than no check.
+rc=$(run_gate 'per ADR-0024 and CWE-089, hashed with SHA-256 under ISO-8601')
+[ "$rc" = "0" ] && pass "allowlisted prefixes not flagged (exit 0)" \
+                 || fail "allowlisted prefix FALSE POSITIVE (exit $rc, expected 0)"
+
+# 18. case is significant: an ordinary lowercase word before digits is not a
+#     ticket, or every `sync-2026` style string would trip the gate.
+rc=$(run_gate 'the file sync-2026 ran and func-12 returned')
+[ "$rc" = "0" ] && pass "lowercase word-digit pair not a ticket (exit 0)" \
+                 || fail "lowercase word-digit FALSE POSITIVE (exit $rc, expected 0)"
+
 echo
 if [ "$fails" -eq 0 ]; then echo "test-mirror-codenames: all $checks checks passed"; exit 0
 else echo "test-mirror-codenames: $fails of $checks check(s) FAILED"; exit 1; fi

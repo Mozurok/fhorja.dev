@@ -161,7 +161,7 @@ The Chroma `Context-Rot` report (2024-2025) showed that all models degrade as co
 
 Fhorja itself, command personas, and output contracts are tight already. The lazy-load spec pattern (ADR-0006) is the compaction strategy for this layer: load `wos/<topic>.md` only when needed. Slice 01 of the context-engineering uplift adds this file as a lazy topic; future topics (sub-agent orchestration, etc.) extend the same pattern.
 
-The `mandatory-context-bootstrap` shared block, inlined into 89 of the 95 command files, is the largest single piece of this layer. It is measured at 9610 tokens for the full tier (the four always-read `WORKFLOW_OPERATING_SYSTEM.md` sections it names), with a reduced tier for the light-weight and high-frequency commands listed in the block itself. Treat this floor as cache-amortized under ADR-0006, not as a per-invocation tax: it is written once per cache TTL window and read back at roughly 0.1x afterward. It is a separate accounting line from the `tools` layer's per-skill Load budget below; the two measure different things and do not sum into one number.
+The `mandatory-context-bootstrap` shared block, inlined into 92 of the 98 command files, is the largest single piece of this layer. It is measured at 10530 tokens for the full tier (the four always-read `WORKFLOW_OPERATING_SYSTEM.md` sections it names), with a reduced tier for the light-weight and high-frequency commands listed in the block itself. Treat this floor as cache-amortized under ADR-0006, not as a per-invocation tax: it is written once per cache TTL window and read back at roughly 0.1x afterward. It is a separate accounting line from the `tools` layer's per-skill Load budget below; the two measure different things and do not sum into one number.
 
 ### `memory`: compactable on growth
 
@@ -175,7 +175,7 @@ Project memory (`PROJECT_CHARTER.md`, `REFERENCES.md`) is less prone to bloat bu
 
 ### `tools`: bounded by Agent Skills progressive disclosure
 
-The <!-- count:commands -->97<!-- /count --> commands are surfaced as Agent Skills with `description:` fields used for relevance routing. The Agent Skills spec's progressive disclosure pattern means a tool's full body is only loaded when the description matches the active task. Tools the model does not need are out of the budget.
+The <!-- count:commands -->98<!-- /count --> commands are surfaced as Agent Skills with `description:` fields used for relevance routing. The Agent Skills spec's progressive disclosure pattern means a tool's full body is only loaded when the description matches the active task. Tools the model does not need are out of the budget.
 
 ### `history`: aggressively shrunk by the tool, in more than one way
 

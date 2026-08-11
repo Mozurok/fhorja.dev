@@ -200,5 +200,3 @@ Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global ou
 
 Quality bar:
 Optimize for fidelity to the live Supabase schema, point-in-time auditability, narrow scope (no full-DB dumps), credential hygiene (a service-role key never reaches a task artifact), and minimal disruption to whatever task-scoped work was in progress before this capture.
-
-<!-- cache-breakpoint -->

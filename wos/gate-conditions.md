@@ -36,6 +36,26 @@ Every generalized floor therefore ships as a pair: the version in `slice-closure
 
 This is a live failure mode, not a hypothetical: the 2026-07-29 mobile dogfood proposed the Layer-2 review floor for `slice-closure.md` alone, and the plan that motivated it had 5 LOW and 3 MEDIUM slices with zero HIGH, so the floor would have been unreachable on the exact run that produced it.
 
+### The attester-removed test
+
+A floor's criterion names a fact, and someone attests that fact. In most floors the two are separable; in a few they are not, and which kind a floor is decides whether the attester can ever change. The test that settles it:
+
+> Write the gate's criterion with whoever satisfies it erased.
+> If a checkable fact about an artifact or an execution survives, the criterion is core and the attester is track-level.
+> If the criterion evaporates or becomes a tautology, it names its attester from the inside. It is core in full, attester included, and never changes track.
+
+What survives the erasure puts the floor in exactly one of three classes:
+
+- `agnostic`: the surviving fact is checkable from the artifact itself with ordinary tooling, meaning a checkout and a shell. Having to RUN something to produce it does not move a floor out of this class WHERE the thing run ships in the repository: a script that exits 0 and a test suite in the tree are both ordinary tooling. A run that needs something the checkout cannot supply is not ordinary tooling and belongs to the next class. Nothing in the criterion constrains who attests it.
+- `environment-bound`: the surviving fact needs a runtime a checkout cannot supply (a device, an emulator, a running app or scene, a model endpoint). Whoever holds that runtime can attest and whoever lacks it cannot, which cuts the same way for a person without the device as for a runner without it.
+- `human-bound`: the criterion does not survive the erasure. It names human perception from the inside, and machine-green evidence never substitutes for it.
+
+Each floor declares its class ONCE, in its own section in `wos/closure-floors.md` or `wos/platform-runtime-floors.md`, on a line of exactly this form:
+
+    Attester class: <agnostic | environment-bound | human-bound>
+
+That line starts at COLUMN ZERO and carries no emphasis markers, because a machine reads it. It is indented above only so this page renders it as a sample; a copy that keeps the indentation is not a declaration. No leading whitespace is tolerated here, deliberately unlike the `wos-godot-declaration` block, which strips up to three spaces so it can sit under a numbered step: this line has no such host and buys the stricter grammar instead. The per-home variants do not repeat it: the two-homes rule above governs where a floor's enforcement lives, and this rule governs where its class is written. Each floor also carries the criterion restated with the attester erased, on the line above its class, so a reader can check the classification against the thing it was derived from instead of taking it on trust.
+
 ## Verification layering (the three-layer quality gate)
 Order the verification effort cheapest-first. Each layer must pass and be shown before the next runs; the existing no-op rules still let a layer be skipped when it genuinely adds no signal, but never silently.
 

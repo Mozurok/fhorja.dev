@@ -65,9 +65,16 @@ fi
 tasks_root="${WOS_TASKS_ROOT:-${CLAUDE_PROJECT_DIR:-.}/projects}"
 [[ -d "$tasks_root" ]] || exit 0   # no projects tree here; nothing to do
 
-# Portable mtime (epoch seconds) for macOS (stat -f) and GNU (stat -c).
+# Portable mtime (epoch seconds), detected ONCE. The chained fallback this replaces was
+# broken on GNU: `stat -f %m` exits 1 there but writes the filesystem report to STDOUT
+# before failing, and `2>/dev/null` silences only stderr, so the substitution captured the
+# dump concatenated with the real epoch from the second branch.
+if stat -f '%m' "$0" >/dev/null 2>&1; then STAT_MTIME=(stat -f '%m'); else STAT_MTIME=(stat -c '%Y'); fi
 mtime() {
-  stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null || echo 0
+  local v
+  v=$("${STAT_MTIME[@]}" "$1" 2>/dev/null || echo 0)
+  case "$v" in ''|*[!0-9]*) v=0 ;; esac
+  echo "$v"
 }
 
 active_state=""

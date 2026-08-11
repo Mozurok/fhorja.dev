@@ -8,16 +8,16 @@
 # across several files; this script finds every home and sets it right in one pass,
 # so you do not hunt them file-by-file. Run `lint-commands.sh` after to confirm.
 #
-# By default it reconciles ONLY the count markers. The command catalog and the Agent
-# Skills are separate generated surfaces; pass --all to also regenerate them (or, with
-# --check, drift-check them) in the same pass, so one command covers every surface a
-# command-add drifts.
+# By default it reconciles ONLY the count markers. The command catalog, the Agent Skills,
+# and the skill-description baseline are separate generated surfaces; pass --all to also
+# regenerate them (or, with --check, drift-check them) in the same pass, so one command
+# covers every surface a command-add drifts.
 #
 # Usage:
 #   scripts/reconcile-counts.sh                # fix every drifted count marker in place
 #   scripts/reconcile-counts.sh --check        # report count drift only, write nothing; exit 1 if any
-#   scripts/reconcile-counts.sh --all          # fix counts AND regenerate the command catalog + Agent Skills
-#   scripts/reconcile-counts.sh --check --all  # report drift across counts, catalog, and skills; write nothing
+#   scripts/reconcile-counts.sh --all          # fix counts AND regenerate the catalog, Skills, and description baseline
+#   scripts/reconcile-counts.sh --check --all  # report drift across counts, catalog, Skills, and baseline; write nothing
 #
 # The KIND -> on-disk-count formulas mirror `lint-commands.sh` disk_count(); if the
 # two ever disagree, lint (the authority) will still fail after a reconcile, which
@@ -124,15 +124,29 @@ else
   [[ "$unknown" -eq 0 ]] || rc=1
 fi
 
-# --all: also cover the two other surfaces a command-add drifts (the command catalog
-# and the Agent Skills), each with its own tool. Counts were handled above first,
-# so the catalog/skills regen never re-introduces a count drift.
+# --all: also cover the three other surfaces a command-add drifts (the command catalog,
+# the Agent Skills, and the skill-description baseline), each with its own tool.
+#
+# Counts run first, above. That ordering is NOT what keeps a regen from re-drifting a
+# count, and the comment here used to say it was. What keeps it safe is that no count
+# marker currently derives from a surface these regens rewrite: `disk_count()` carries a
+# `skills` kind, but the scan-set holds zero `count:skills` markers. IF such a marker is
+# ever added THEN the counts pass would read `.claude/skills/` before the regen updates it
+# and leave the marker stale, and this block would need the counts pass to run again after
+# the regens. Stated as the real condition rather than as an ordering guarantee, because a
+# reader who trusts the ordering will not notice when the condition stops holding.
+#
+# ORDER MATTERS for the third one. The description baseline is derived FROM
+# .claude/skills/, so it must regenerate AFTER the skills, never before: running it first
+# would record the pre-regen descriptions and leave the baseline stale in exactly the way
+# check_description_reference_preservation exists to catch.
 if [[ "$ALL_MODE" == "1" ]]; then
   echo "----"
   CATALOG="${REPO_ROOT}/scripts/build-command-catalog.py"
   SKILLS="${REPO_ROOT}/scripts/build-agent-skills.sh"
+  DESC_BASELINE="${REPO_ROOT}/evals/scripts/build-description-baseline.py"
   if [[ "$CHECK_ONLY" == "1" ]]; then
-    echo "checking command catalog + Agent Skills drift (--all)"
+    echo "checking command catalog + Agent Skills + description baseline drift (--all)"
     if python3 "$CATALOG" --check >/dev/null 2>&1; then
       echo "OK     command catalog in sync"
     else
@@ -143,8 +157,13 @@ if [[ "$ALL_MODE" == "1" ]]; then
     else
       echo "DRIFT  Agent Skills out of sync (run: bash scripts/build-agent-skills.sh)"; rc=1
     fi
+    if python3 "$DESC_BASELINE" --check >/dev/null 2>&1; then
+      echo "OK     skill-description baseline in sync"
+    else
+      echo "DRIFT  skill-description baseline out of sync (run: python3 evals/scripts/build-description-baseline.py)"; rc=1
+    fi
   else
-    echo "regenerating command catalog + Agent Skills (--all)"
+    echo "regenerating command catalog + Agent Skills + description baseline (--all)"
     if python3 "$CATALOG" >/dev/null 2>&1; then
       echo "OK     command catalog regenerated"
     else
@@ -154,6 +173,11 @@ if [[ "$ALL_MODE" == "1" ]]; then
       echo "OK     Agent Skills regenerated"
     else
       echo "FAIL   build-agent-skills.sh errored"; rc=1
+    fi
+    if python3 "$DESC_BASELINE" >/dev/null 2>&1; then
+      echo "OK     skill-description baseline regenerated"
+    else
+      echo "FAIL   build-description-baseline.py errored"; rc=1
     fi
   fi
 fi

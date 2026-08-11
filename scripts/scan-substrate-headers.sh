@@ -64,6 +64,18 @@ fi
 TASK_DIR="$(cd "$TASK_DIR" && pwd)"
 PROJECT_DIR="$(cd "$TASK_DIR/../.." && pwd)"  # active/<task>/.. -> active/ then .. -> project root
 
+# Portable mtime, detected ONCE, same idiom as scripts/portfolio-review.sh.
+#
+# The `stat -f %m || stat -c %Y` fallback this replaces was silently broken on GNU, and
+# the failure mode is worth naming because it is not the obvious one. On Linux
+# `stat -f %m` exits 1, so the `||` does fire, but it writes the FILESYSTEM report to
+# STDOUT before failing, and `2>/dev/null` only silences stderr. The command substitution
+# therefore captured the filesystem dump AND the epoch from the second branch,
+# concatenated, and the arithmetic comparison that consumed it aborted the script under
+# `set -u`. macOS never saw it because there the first branch succeeds and the second
+# never runs. Detecting once with stdout redirected is what makes the probe a probe.
+if stat -f '%m' "$0" >/dev/null 2>&1; then STAT_MTIME=(stat -f '%m'); else STAT_MTIME=(stat -c '%Y'); fi
+
 # Resolve Fhorja repo root (substrate lives inside; for git log we need the repo root)
 WOS_ROOT="$(cd "$TASK_DIR" && git rev-parse --show-toplevel 2>/dev/null || true)"
 if [[ -z "$WOS_ROOT" ]]; then
@@ -224,7 +236,10 @@ for file in "${SUBSTRATE_FILES[@]}"; do
     fi
   else
     # Untracked / gitignored: fall back to mtime.
-    mtime_epoch=$(stat -f %m "$file" 2>/dev/null || stat -c %Y "$file" 2>/dev/null || echo 0)
+    mtime_epoch=$("${STAT_MTIME[@]}" "$file" 2>/dev/null || echo 0)
+    # Numeric guard, because the value feeds an arithmetic comparison under `set -u` and a
+    # non-numeric one aborts the whole scan rather than skipping one file.
+    case "$mtime_epoch" in ''|*[!0-9]*) mtime_epoch=0 ;; esac
     cutoff_epoch=$(date -j -u -f "%Y-%m-%dT%H:%M:%SZ" "$CUTOFF" "+%s" 2>/dev/null || date -u -d "$CUTOFF" "+%s" 2>/dev/null || echo 0)
     if [[ "$mtime_epoch" -lt "$cutoff_epoch" ]]; then
       [[ $VERBOSE -eq 1 ]] && echo "skip (untracked, mtime pre-cutover): $file" >&2

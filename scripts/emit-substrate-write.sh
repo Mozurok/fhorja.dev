@@ -201,6 +201,19 @@ Subcommands:
         [--task-root DIR] [--run-id ID]
         Emit one JSONL line for every H2 section preceded by a wos:write
         header with owner=O.
+  apply --owner O --file F --section '## X' --reason R --body-file B
+        [--sha-before H] [--mode M] [--event E] [--task-root DIR] [--run-id ID]
+        The whole write cycle in one call (ADR-0110), and the path
+        commands/_shared/substrate-write-protocol.md prescribes: measure
+        sha_before, splice B in as the section body, write the transaction
+        header, compute sha_after, append the JSONL line.
+        LIMITS: the section must ALREADY EXIST and match exactly one line in F;
+        apply never creates a section. B must contain no H2 heading and no
+        wos:write line (header lines are excluded from the section hash and
+        would break the self-check). To create a section, write it by hand and
+        emit the header plus the log line yourself, which
+        substrate-write-protocol.md sanctions for the case where the helper
+        does not fit.
 
 Combined flow example:
   SHA_BEFORE=$(scripts/emit-substrate-write.sh sha --file F --section '## X')
