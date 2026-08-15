@@ -758,6 +758,7 @@ If rerunning the command would **not** produce a material change:
 - return an explicit **no-op** outcome
 - still emit a short **NO_OP trace note** in the command output (not necessarily a file rewrite) so reruns are auditable
 - recommend the smallest next official command with the standard ending format
+- **enumerate every unmet prerequisite, never just the first** (ADR-0148): WHEN the no-op is caused by unmet upstream prerequisites, the `NO_OP_TRACE` SHALL list EVERY one of them and name the single command that resolves the most at once. Stopping at the first blocker turns one unblock into a serial round-trip per blocker; the rule is unconditional and applies to any command that can no-op this way, not only to planning.
 
 ### Proposal vs approved persistence
 - Do not silently change semantic intent in `DECISIONS.md` without explicit user approval in-chat or authoritative artifact approval.
@@ -1047,7 +1048,7 @@ Next: `slice-closure`, `task-close`, `sync-task-state`, or the prior in-progress
 
 ### review-hard
 Role: focused pre-PR engineering risk check; not a replacement for external review systems.
-Next: `slice-closure`, `repo-consistency-sweep`, `where-we-at`, `pr-package`.
+Next: `slice-closure`, `repo-consistency-sweep`, `where-we-at`, `pr-package`, `verify-against-rubric` (mandatory on a zero-finding verdict over a product-code diff, per ADR-0145).
 
 ### repo-consistency-sweep
 Role: proactive defect-class detection against a curated bug-class library; handles convention drift, ordering bugs, type-safety gaps, and CWE-grounded patterns before PR packaging. Distinct from `review-hard` (which does design/correctness/safety risk) and `pr-feedback-ingest` (which consumes external feedback after PR open).

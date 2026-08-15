@@ -1276,6 +1276,20 @@ if [[ -x "$CG_SCRIPT" ]]; then
   [[ -n "$CG_LINE" ]] && echo "Claim-grounding: ${CG_LINE#claim-grounding: } (informational; per ADR-0109 D-2 guard)"
 fi
 
+# --- Gate-provenance advisory (ADR-0147 D-2) --------------------------------
+# Delegates to scripts/check-gate-provenance.sh. INFORMATIONAL: warn-only,
+# never flips the exit code (mirrors the claim-grounding advisory tier).
+# Flags a conditional gate (a WHEN trigger plus SHALL/MUST) in a command body
+# that cites no ADR. Provenance is the checkable proxy: a gate whose scope
+# boundary was never argued where the ADR template forces the argument is a
+# prompt to re-read its trigger. It does NOT judge whether a trigger is
+# mechanism-shaped; that stays human. See scripts/check-gate-provenance.sh.
+GP_SCRIPT="${SCRIPT_DIR}/check-gate-provenance.sh"
+if [[ -x "$GP_SCRIPT" ]]; then
+  GP_LINE="$("$GP_SCRIPT" 2>/dev/null | grep -iE '^gate-provenance:' | tail -n1 || true)"
+  [[ -n "$GP_LINE" ]] && echo "Gate-provenance: ${GP_LINE#gate-provenance: } (informational; per ADR-0147 D-2)"
+fi
+
 # --- Skill-triggers advisory (W-19) -----------------------------------------
 # Delegates to scripts/check-skill-triggers.sh. INFORMATIONAL: warn-only,
 # never flips the exit code (mirrors the instruction-budget advisory tier).
@@ -1302,6 +1316,34 @@ if command -v python3 >/dev/null 2>&1 && [[ -f "$FA_SCRIPT" ]]; then
     echo "Flow-orphans: ${FA_ZERO} command(s) with 0 inbound reference(s) in the command graph (informational; per scripts/flow-audit.py)"
     if [[ $VERBOSE -eq 1 ]] || [[ $STRICT -eq 1 ]]; then
       printf '%s\n' "$FA_OUT" | sed -n '2,$p' | sed 's/^/  /'
+    fi
+  fi
+fi
+
+# --- Bug-class schema advisory (template shape) -----------------------------
+# Delegates to scripts/validate-bug-class-schema.sh. INFORMATIONAL: warn-only,
+# never flips the exit code (mirrors the flow-orphans advisory tier above).
+# Reports templates missing any of the 7 required sections, or carrying an empty
+# `## Retrieval` / `## Analysis prompt` (the two repo-consistency-sweep Step 5
+# reads to build its dispatch, so an empty one is dispatchable and silently
+# useless). A missing validator degrades to a skipped advisory, never a lint
+# failure. See scripts/validate-bug-class-schema.sh.
+#
+# Guards on -f and invokes through `bash`, not -x with a direct call: this
+# repository has lost execute bits before (commit 8912dfb, "restore +x on the
+# three files every mirror flattens"), and under -x that loss would delete this
+# advisory from the lint output without a word. The sibling above guards the
+# same way for the same reason. One invocation with --verbose feeds both the
+# summary line and the detail, so the two cannot disagree and the catalog is
+# scanned once rather than twice.
+BCS_SCRIPT="${SCRIPT_DIR}/validate-bug-class-schema.sh"
+if [[ -f "$BCS_SCRIPT" ]]; then
+  BCS_OUT="$(bash "$BCS_SCRIPT" --verbose 2>/dev/null || true)"
+  BCS_HEAD="$(printf '%s\n' "$BCS_OUT" | grep -iE '^BUG-CLASS-SCHEMA:' | tail -n1 || true)"
+  if [[ -n "$BCS_HEAD" ]]; then
+    echo "Bug-class-schema: ${BCS_HEAD#BUG-CLASS-SCHEMA: } (informational; per scripts/validate-bug-class-schema.sh)"
+    if [[ $VERBOSE -eq 1 ]] || [[ $STRICT -eq 1 ]]; then
+      printf '%s\n' "$BCS_OUT" | grep -v '^BUG-CLASS-SCHEMA:' | sed 's/^/  /' || true
     fi
   fi
 fi

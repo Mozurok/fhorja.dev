@@ -904,7 +904,8 @@
         "slice-closure",
         "repo-consistency-sweep",
         "where-we-at",
-        "pr-package"
+        "pr-package",
+        "verify-against-rubric"
       ]
     },
     {

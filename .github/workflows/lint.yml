@@ -118,7 +118,8 @@ jobs:
             ./scripts/tests/test-initiative-blocked-by-column.sh \
             ./scripts/tests/test-initiative-classifier.sh \
             ./scripts/tests/test-mirror-codenames.sh \
-            ./scripts/tests/test-sync-shared-blocks.sh
+            ./scripts/tests/test-sync-shared-blocks.sh \
+            ./scripts/tests/test-validate-bug-class-schema.sh
           do
             echo "=== $t ==="
             if bash "$t"; then

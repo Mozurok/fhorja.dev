@@ -399,6 +399,7 @@ Typical next commands:
 - `repo-consistency-sweep`
 - `where-we-at`
 - `pr-package`
+- `verify-against-rubric` (mandatory, not typical, on a zero-finding verdict over a product-code diff, per ADR-0145)
 
 ### repo-consistency-sweep
 Role:

@@ -51,6 +51,7 @@ my_work_tasks/
     bootstrap-user-setup.sh           # first-time setup helper; bootstraps USER_MEMORY.md from template, runs lint sanity check, prints next-steps hints
     measure-tokens.py                 # optional; estimates spec / commands / shared / TASK_STATE token footprint and projects cache scenarios; --per-command emits per-command table
     measure-task-cost.py              # optional; simulates a canonical 9-phase task lifecycle and reports per-phase token cost under uncached vs cached models (ADR-0020)
+    measure-grounding-shape.py        # ADR-0146 forward instrument; counts `Grounded in:` cite shape in task artifacts (internal file:line vs external REFERENCES entry) and window-vs-whole read shape in harness transcripts; baseline snapshot at scripts/baseline-grounding-shape-2026-08-13.md
     check-doc-sync.sh                 # doc-drift detector; greps cited counts vs on-disk artifacts; companion to monthly audit cadence
     check-natural-voice.sh            # natural-voice advisory scanner; flags AI tells in prose (warn-only, never fails build); companion to wos/natural-voice.md
     check-instruction-budget.sh       # warn-only guard for always-loaded files (CLAUDE.md, USER_MEMORY.md) over a soft size/line budget; advisory line in lint (W-15, ADR-0023 idea)
@@ -114,7 +115,6 @@ my_work_tasks/
     editor-mode-mappings.md           # lazy: Ask/Plan/Agent/Debug mapping to other tools
     external-integration-patterns.md  # lazy: outbound webhook + 3rd-party API conventions
     insurance-compliance.md           # lazy: insurance vertical compliance constraints
-    realtime-overlay-patterns.md      # lazy: realtime overlay UX + sync patterns
     l4-review-gate.md                 # lazy: L4 review gate criteria
     maturity-ladder.md                # lazy: maturity ladder definitions
     substrate-peers.md                # lazy: substrate peer relationships
@@ -123,7 +123,7 @@ my_work_tasks/
   docs/
     FAQ.md                            # user-facing entry point for common questions
     MIGRATION.md                      # adoption + forking + tool migration guide
-    adr/                              # Architecture Decision Records (<!-- count:adrs -->143<!-- /count --> ADR files; 0037 is an intentional gap; highest is 0144)
+    adr/                              # Architecture Decision Records (<!-- count:adrs -->149<!-- /count --> ADR files; 0037 is an intentional gap; highest is 0150)
       README.md                       # index + format + when to write
       template.md                     # ADR template
       0001-proposed-by-default.md     # example; full list under docs/adr/
@@ -131,7 +131,7 @@ my_work_tasks/
       0070-mcp-server-vet-command.md  # latest
   evals/
     README.md                         # eval harness overview + cadence + LLM-as-judge layer (ADR-0019)
-    scenarios/                        # <!-- count:scenarios -->133<!-- /count --> scenarios as of v0.2.x; one markdown file per scenario
+    scenarios/                        # <!-- count:scenarios -->135<!-- /count --> scenarios as of v0.2.x; one markdown file per scenario
       template.md                     # scenario template
       01-bootstrap-and-init.md        # example
       ...

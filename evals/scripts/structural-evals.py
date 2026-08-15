@@ -2640,6 +2640,316 @@ def check_unity_scene_plan_gates():
     return (not fails, fails)
 
 
+# evals/fixtures/bug-class-dispatch: the sweep dispatch fixture family.
+#
+# D-3 of the 2026-08-12 bug-class-validator task says the family carries one expectation
+# entry PER VARIANT and that the consumer fails when the on-disk variant set and the
+# expectation set differ. "Variant" is the SIBLING families' word: description-gutted/
+# and godot-tier-artifact/ put one variant per directory, so for them the on-disk set is
+# a directory listing.
+#
+# This family has no such listing, deliberately. Its unit is a seeded CASE inside ONE
+# synthetic repository, because the audit-log case IS a cross-file pair (0002 grants
+# SELECT, INSERT and 0005 later grants UPDATE, DELETE) and splitting it into per-variant
+# directories deletes the only thing that case tests; the fixture README carries that
+# reasoning under "Why one tree instead of per-variant directories". So D-3's intent is
+# implemented KEYED TO THE CASE ID, and the manifest that stands in for the directory
+# listing is the README's own case table. Restructuring the fixture to match the literal
+# wording would trade a real test for a matching noun.
+#
+# The case table is prose, so on its own it would only ever assert prose against prose.
+# Three anchors keep it tied to bytes: every expectation names the tree-relative files
+# its case is seeded in and they must exist, every class resolves to a real
+# wos/bug-classes/ file, and every file in tree/ is either named by a case or declared
+# context below. That last one is the same rule the tier gate applies one level down (a
+# plan file no expectation names is a FAILURE).
+
+# The case table writes a SHORT class label; the expected-findings table and the library
+# write the full name. Neither is derivable from the other (`skill-poisoning` is not a
+# prefix of `skill-context-poisoning`), so the mapping is written once and both tables
+# are read through it.
+_DISPATCH_CLASS_LABELS = {
+    "multi-tenant": "multi-tenant-cross-agency-leak",
+    "pii-encryption": "pii-encryption-boundary-leak",
+    "pii-last-4": "pii-last-4-only-rule-violation",
+    "skill-poisoning": "skill-context-poisoning",
+    "audit-log": "audit-log-missing-append-only",
+}
+
+# One entry per seeded case. `finding` is None where the case is a control that should
+# produce nothing, and a (severity, confidence) pair where the README predicts a finding.
+# AL-C1 is the row that makes the distinction worth encoding: it is a CONTROL that
+# correctly produces a P2, so "control" and "predicts no finding" are not the same
+# predicate and a consumer that conflated them would grade a correct run as a false
+# positive.
+#
+# `files` is written here rather than parsed out of the README's File column: that column
+# is prose ("`repo-helper` pair", "`serializers/account.ts` vs `serializers/base.ts`",
+# a `**` glob), and a parser for it would be inventing a grammar the fixture never
+# promised. Paths are tree-relative and carry the full prefixes the README shortens.
+_DISPATCH_EXPECTATIONS = {
+    "MT-1": {"class": "multi-tenant-cross-agency-leak", "kind": "defect",
+             "files": ("apps/web/src/server/api/orders.ts",), "finding": ("P0", "HIGH")},
+    "MT-2": {"class": "multi-tenant-cross-agency-leak", "kind": "defect",
+             "files": ("apps/web/src/server/api/orders.ts",), "finding": ("P0", "HIGH")},
+    "MT-3": {"class": "multi-tenant-cross-agency-leak", "kind": "defect",
+             "files": ("apps/web/src/models/base.ts", "apps/web/src/models/invoice.ts"),
+             "finding": ("P1", "HIGH")},
+    "MT-4": {"class": "multi-tenant-cross-agency-leak", "kind": "defect",
+             "files": ("supabase/migrations/0001_core.sql",), "finding": ("P0", "MEDIUM")},
+    "PE-1": {"class": "pii-encryption-boundary-leak", "kind": "defect",
+             "files": ("apps/web/src/server/db/customers.ts",), "finding": ("P0", "HIGH")},
+    "PE-2": {"class": "pii-encryption-boundary-leak", "kind": "defect",
+             "files": ("apps/web/src/server/db/customers.ts",), "finding": ("P0", "HIGH")},
+    "PE-3": {"class": "pii-encryption-boundary-leak", "kind": "defect",
+             "files": ("supabase/migrations/0003_customers.sql",), "finding": ("P0", "HIGH")},
+    "L4-1": {"class": "pii-last-4-only-rule-violation", "kind": "defect",
+             "files": ("packages/api-contracts/serializers/account.ts",), "finding": ("P0", "HIGH")},
+    "L4-2": {"class": "pii-last-4-only-rule-violation", "kind": "defect",
+             "files": ("packages/api-contracts/serializers/account.ts",), "finding": ("P0", "HIGH")},
+    "L4-3": {"class": "pii-last-4-only-rule-violation", "kind": "defect",
+             "files": ("packages/api-contracts/serializers/account.ts",), "finding": ("P0", "HIGH")},
+    "L4-4": {"class": "pii-last-4-only-rule-violation", "kind": "defect",
+             "files": ("apps/web/src/components/checkout-review.tsx",), "finding": ("P0", "HIGH")},
+    "L4-5": {"class": "pii-last-4-only-rule-violation", "kind": "defect",
+             "files": ("apps/web/src/components/checkout-review.tsx",), "finding": ("P0", "HIGH")},
+    "L4-6": {"class": "pii-last-4-only-rule-violation", "kind": "defect",
+             "files": ("apps/web/src/server/routes/order-confirm.ts",), "finding": ("P0", "HIGH")},
+    "L4-7": {"class": "pii-last-4-only-rule-violation", "kind": "defect",
+             "files": ("packages/api-contracts/serializers/account.ts",
+                       "packages/api-contracts/serializers/base.ts"), "finding": ("P1", "HIGH")},
+    "SP-1": {"class": "skill-context-poisoning", "kind": "defect",
+             "files": (".claude/skills/repo-helper/SKILL.md",), "finding": ("P0", "HIGH")},
+    "SP-2": {"class": "skill-context-poisoning", "kind": "defect",
+             "files": (".claude/skills/repo-helper/SKILL.md",), "finding": ("P0", "HIGH")},
+    "SP-3": {"class": "skill-context-poisoning", "kind": "defect",
+             "files": (".claude/skills/repo-helper/setup.js",), "finding": ("P0", "HIGH")},
+    "SP-4": {"class": "skill-context-poisoning", "kind": "defect",
+             "files": (".claude/skills/repo-helper/SKILL.md", ".claude/skills/repo-helper/setup.js"),
+             "finding": ("P1", "MEDIUM")},
+    "AL-1": {"class": "audit-log-missing-append-only", "kind": "defect",
+             "files": ("supabase/migrations/0002_audit_log.sql",
+                       "supabase/migrations/0005_audit_backfill.sql"), "finding": ("P0", "HIGH")},
+    "AL-2": {"class": "audit-log-missing-append-only", "kind": "defect",
+             "files": ("supabase/migrations/0005_audit_backfill.sql",), "finding": ("P0", "HIGH")},
+    "AL-3": {"class": "audit-log-missing-append-only", "kind": "defect",
+             "files": ("apps/web/src/server/db/audit-log.ts",), "finding": ("P0", "HIGH")},
+    "AL-4": {"class": "audit-log-missing-append-only", "kind": "defect",
+             "files": ("supabase/migrations/0002_audit_log.sql",), "finding": ("P1", "HIGH")},
+    "MT-C1": {"class": "multi-tenant-cross-agency-leak", "kind": "control",
+              "files": ("apps/web/src/models/invoice.ts",), "finding": None},
+    "MT-C2": {"class": "multi-tenant-cross-agency-leak", "kind": "control",
+              "files": ("apps/web/src/server/routes/order-confirm.ts",), "finding": None},
+    "MT-C3": {"class": "multi-tenant-cross-agency-leak", "kind": "control",
+              "files": ("supabase/migrations/0003_customers.sql",
+                        "supabase/migrations/0004_beneficiaries.sql"), "finding": None},
+    "PE-C1": {"class": "pii-encryption-boundary-leak", "kind": "control",
+              "files": ("supabase/migrations/0004_beneficiaries.sql",), "finding": None},
+    "PE-C2": {"class": "pii-encryption-boundary-leak", "kind": "control",
+              "files": ("packages/api-contracts/serializers/beneficiary.ts",), "finding": None},
+    "L4-C1": {"class": "pii-last-4-only-rule-violation", "kind": "control",
+              "files": ("apps/web/src/components/payment-confirmation.tsx",), "finding": None},
+    "L4-C2": {"class": "pii-last-4-only-rule-violation", "kind": "control",
+              "files": ("packages/api-contracts/serializers/base.ts",), "finding": None},
+    "SP-C1": {"class": "skill-context-poisoning", "kind": "control",
+              "files": (".claude/skills/table-formatter/SKILL.md",
+                        ".claude/skills/table-formatter/reference/columns.md"), "finding": None},
+    "AL-C1": {"class": "audit-log-missing-append-only", "kind": "control",
+              "files": ("supabase/migrations/0006_compliance_log.sql",), "finding": ("P2", "MEDIUM")},
+}
+
+# Files the fixture repository needs but that no case is seeded in: the tree's own label,
+# the display rule a `## Retrieval` step reads so the required digit count is read rather
+# than assumed, and three modules the analysis prompts pull in as context. Declared so
+# that a file added to tree/ without a decision about what it is for FAILS instead of
+# sitting there asserting nothing.
+_DISPATCH_CONTEXT_FILES = (
+    "README.md",
+    "docs/pii-display-rule.md",
+    "apps/web/src/server/db/client.ts",
+    "apps/web/src/server/session.ts",
+    "packages/api-contracts/serializers/types.ts",
+)
+
+
+def _md_section(text, heading):
+    """Body of one `## ` section, or None when the heading is absent.
+
+    Bounded at the next `## ` so a table in a later section cannot be read as this
+    section's. Returning None rather than "" keeps a MISSING heading distinguishable from
+    a section that exists and is empty; the caller reports those differently.
+    """
+    if heading not in text:
+        return None
+    return text.split(heading, 1)[1].split("\n## ", 1)[0]
+
+
+def _md_rows(section):
+    """Cell lists for every content row of the markdown tables in `section`.
+
+    Header and separator rows are the caller's problem except for the separator, which
+    carries no cells worth returning. A row is content when at least one cell holds
+    something other than the `-`, `:` and space a separator is made of.
+    """
+    rows = []
+    for line in section.split("\n"):
+        line = line.strip()
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip("|").split("|")]
+        if all(set(c) <= set("-: ") for c in cells):
+            continue
+        rows.append(cells)
+    return rows
+
+
+def check_bug_class_dispatch_cases(root=None):
+    """[dispatch fixture D-3] Every seeded case in bug-class-dispatch has an expectation.
+
+    Path-parameterized like check_godot_tier_artifact_gate(root=...), and fail-closed the
+    same way: a missing fixture is a FAILURE, not an inapplicable check, because the
+    fixture is what the consumer exists to execute.
+
+    The two directions are reported separately on purpose. A case on disk with no
+    expectation asserts nothing, which is the failure mode an unexecuted fixture already
+    has. An expectation with no case is a prediction about something that no longer
+    exists, and reads as coverage while covering nothing.
+
+    What this check does NOT do: run repo-consistency-sweep. The severity and confidence
+    columns are the fixture author's reading of the five templates, and the README says so
+    plainly; nothing here upgrades them into measured behavior. What is asserted is that
+    the answer key, the seeded tree, and the bug-class library still describe the same
+    fixture, so the blind validation run has something coherent to grade against.
+    """
+    base = root or p("evals", "fixtures", "bug-class-dispatch")
+    rel = os.path.relpath(base, REPO)
+    readme_path = os.path.join(base, "README.md")
+    tree = os.path.join(base, "tree")
+    if not os.path.isdir(base):
+        return (False, [f"fixture directory missing: {base}"])
+    if not os.path.isfile(readme_path):
+        return (False, [f"{rel}/README.md: absent, so the fixture carries no case manifest to check against"])
+    if not os.path.isdir(tree):
+        return (False, [f"{rel}/tree: absent, so every case below is anchored to nothing"])
+    readme = read(readme_path)
+    fails = []
+
+    cases_section = _md_section(readme, "## Seeded cases")
+    findings_section = _md_section(readme, "## Expected findings")
+    for heading, section in (("## Seeded cases", cases_section), ("## Expected findings", findings_section)):
+        if section is None:
+            fails.append(f"{rel}/README.md: no '{heading}' section, so the expectation set has nothing to agree with")
+    if fails:
+        return (False, fails)
+
+    seeded = {}
+    for cells in _md_rows(cases_section):
+        if cells[0] == "Case":
+            continue
+        if len(cells) < 4:
+            fails.append(f"{rel}/README.md: case row {cells[0]!r} has {len(cells)} columns, expected Case, File, "
+                         f"Class, Kind and a note")
+            continue
+        if cells[0] in seeded:
+            fails.append(f"case {cells[0]}: seeded twice in the case table, so one of the two rows is unreachable")
+            continue
+        seeded[cells[0]] = (cells[2], cells[3])
+
+    expected = set(_DISPATCH_EXPECTATIONS)
+    for extra in sorted(set(seeded) - expected):
+        fails.append(f"case {extra}: seeded in {rel}/README.md but absent from the expectation set (asserts nothing)")
+    for missing in sorted(expected - set(seeded)):
+        fails.append(f"case {missing}: in the expectation set but no longer seeded in {rel}/README.md")
+
+    for cid in sorted(set(seeded) & expected):
+        want = _DISPATCH_EXPECTATIONS[cid]
+        label, kind = seeded[cid]
+        full = _DISPATCH_CLASS_LABELS.get(label)
+        if full is None:
+            fails.append(f"case {cid}: class label {label!r} resolves to no full class name, so it names no "
+                         f"wos/bug-classes/ file")
+        elif full != want["class"]:
+            fails.append(f"case {cid}: seeded under {full}, the expectation set says {want['class']}")
+        if kind != want["kind"]:
+            fails.append(f"case {cid}: the case table calls it a {kind}, the expectation set says a {want['kind']}")
+        for path in want["files"]:
+            if not os.path.isfile(os.path.join(tree, path)):
+                fails.append(f"case {cid}: anchor file tree/{path} does not exist, so the case is seeded in nothing")
+
+    for label, full in sorted(_DISPATCH_CLASS_LABELS.items()):
+        if not os.path.isfile(p("wos", "bug-classes", f"{full}.md")):
+            fails.append(f"wos/bug-classes/{full}.md: named by the fixture as {label!r} but absent from the library, "
+                         f"so Step 4 would never dispatch that class over the tree")
+
+    predicted = {}
+    for cells in _md_rows(findings_section):
+        if cells[0] == "Case":
+            continue
+        if len(cells) < 4:
+            fails.append(f"{rel}/README.md: expected-findings row {cells[0]!r} has {len(cells)} columns, expected "
+                         f"Case, Class, severity, confidence and a note")
+            continue
+        predicted[cells[0]] = (cells[1], cells[2], cells[3])
+
+    want_finding = {cid: v for cid, v in _DISPATCH_EXPECTATIONS.items() if v["finding"] is not None}
+    # Three distinct shapes, worded apart because they need different fixes: a real
+    # disagreement about the prediction, an expectation entry that was dropped, and a
+    # prediction about a case nothing seeds. Collapsing the middle one into the last
+    # accuses a seeded case of not existing, which sends a reader to the wrong table.
+    for extra in sorted(set(predicted) - set(want_finding)):
+        if extra in _DISPATCH_EXPECTATIONS:
+            fails.append(f"case {extra}: the expected-findings table predicts a finding, the expectation set "
+                         f"predicts none")
+        elif extra in seeded:
+            fails.append(f"case {extra}: predicted in the expected-findings table but absent from the expectation set")
+        else:
+            fails.append(f"case {extra}: predicted in the expected-findings table but seeded by no case row")
+    for missing in sorted(set(want_finding) - set(predicted)):
+        fails.append(f"case {missing}: the expectation set predicts a finding, the expected-findings table has no "
+                     f"row for it")
+    for cid in sorted(set(predicted) & set(want_finding)):
+        cls, severity, confidence = predicted[cid]
+        want = _DISPATCH_EXPECTATIONS[cid]
+        if cls != want["class"]:
+            fails.append(f"case {cid}: the expected-findings table files it under {cls}, the expectation set says "
+                         f"{want['class']}")
+        if (severity, confidence) != want["finding"]:
+            fails.append(f"case {cid}: the expected-findings table predicts severity {severity} confidence "
+                         f"{confidence}, the expectation set predicts severity {want['finding'][0]} confidence "
+                         f"{want['finding'][1]}")
+
+    # The one number the README states in prose rather than in a table. A case added to
+    # the table and to this dict would otherwise leave the sentence a grader reads
+    # ("fewer than the N defect rows has a miss") quietly wrong.
+    defects = sum(1 for v in _DISPATCH_EXPECTATIONS.values() if v["kind"] == "defect")
+    stated = re.search(r"fewer than the (\d+) defect rows", readme)
+    if stated is None:
+        fails.append(f"{rel}/README.md: the sentence stating how many defect rows a run must report is gone, so a "
+                     f"grader has no miss threshold")
+    elif int(stated.group(1)) != defects:
+        fails.append(f"{rel}/README.md: prose says {stated.group(1)} defect rows, the expectation set carries "
+                     f"{defects}")
+
+    named = {f for v in _DISPATCH_EXPECTATIONS.values() for f in v["files"]} | set(_DISPATCH_CONTEXT_FILES)
+    on_disk_files = set()
+    for dirpath, _dirs, filenames in os.walk(tree):
+        for filename in filenames:
+            # .DS_Store is a Finder artifact, never fixture content; it appears from
+            # merely opening the directory and would fail the check on the machine that
+            # looked rather than on the change that broke something. Nothing else hidden
+            # is skipped: a hidden file IS a shape this fixture's poisoning class covers.
+            if filename == ".DS_Store":
+                continue
+            on_disk_files.add(os.path.relpath(os.path.join(dirpath, filename), tree))
+    for extra in sorted(on_disk_files - named):
+        fails.append(f"tree/{extra}: in the fixture repository but named by no case and not declared context, so "
+                     f"nothing says what it is there to do")
+    for missing in sorted(set(_DISPATCH_CONTEXT_FILES) - on_disk_files):
+        fails.append(f"tree/{missing}: declared as fixture context but absent, so the case that reads it for context "
+                     f"reads nothing")
+    return (not fails, fails)
+
+
 CHECKS = [
     ("corpus-wellformed", "scenario corpus", "every scenario has a goal, criteria, and a FAIL section", check_corpus_wellformed),
     ("corpus-indexed", "scenario corpus", "every scenario is linked from evals/README.md", check_corpus_indexed),
@@ -2675,6 +2985,7 @@ CHECKS = [
     ("commit-evidence-apply-route", "ADR-0084", "every commit-evidence floor home routes to BOTH evidence routes: branch-commit --apply, the only path that can commit, and the ref-attested route an unattended run can reach (D-5, ADR-0133)", check_commit_evidence_routes_to_apply),
     ("floor-attester-class", "scenario 127", "every closure floor declares exactly one attester class, scanned structurally rather than by header text", check_floor_attester_class),
     ("godot-tier-artifact-gate", "ADR-0119", "the tier floor fails closed on every fixture directory on disk, decoy and near misses included", check_godot_tier_artifact_gate),
+    ("bug-class-dispatch-cases", "dispatch fixture D-3", "every case seeded in evals/fixtures/bug-class-dispatch has one expectation entry, anchored to the files it is seeded in and to a real bug-class file; both directions fail", check_bug_class_dispatch_cases),
     ("godot-tier-floor-variants", "ADR-0119", "the tier floor keeps its variants and every command it names a variant for cites it", check_godot_tier_floor_variants),
     ("godot-tier-gate", "scenario 117", "godot-scene-plan requires a declared renderer tier on a 3D plan (ADR-0117 D-9)", check_godot_tier_gate),
     ("godot-dimension-routing", "scenario 117", "no command names 2D as a default dimension", check_godot_dimension_routing),

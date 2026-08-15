@@ -2,8 +2,6 @@
 name: pii-last-4-only-rule-violation
 category: security
 default-severity: P0
-priority: P0
-pillars: [security, data-integrity]
 cwe: [CWE-200]
 languages: [typescript, python, ruby, java, sql]
 file-patterns: ["**/serializers/**", "**/api/**", "apps/**/src/server/**", "apps/**/src/components/**confirmation**", "apps/**/src/components/**review**", "**/routes/**confirm**"]
@@ -13,35 +11,25 @@ reversibility-check: true
 
 # pii-last-4-only-rule-violation
 
-A confirmation screen, API response, log line, or webhook payload exposes more than the last 4 digits of a sensitive identifier (SSN, bank account, routing+account combo, card PAN, government ID) when an explicit business rule mandates last-4-only display. Even though the data is "partially masked" in intent, the actual rendered or serialized value carries 5+ digits, which is treated by regulators and audit reviewers as equivalent to a full PII leak.
+## Trigger
 
-## What it looks like
+A confirmation screen, API response, log line, or webhook payload exposes more than the last 4 digits of a sensitive identifier (government identifier, bank account, routing and account combination, card number, tax id) where an explicit business rule mandates last-4-only display. The value looks partially masked, but the rendered or serialized string carries 5 or more digits, which regulators and audit reviewers treat as equivalent to a full leak.
 
-- A quote/checkout/account confirmation screen renders `***-**-12345` (5 digits) instead of `***-**-1234` (4 digits).
-- An API response field like `account_last4: "12345"` or `ssn_masked: "***-**-12345"` contains more digits than the rule allows.
-- A serializer field that was temporarily switched to "show full for debugging" was never reverted, so production responses now ship the cleartext identifier.
-- A new field is added (e.g. `routing_number`) and the developer masked only `account_number`, leaving the sibling field unmasked on the same payload.
-- Logs, error reports, or analytics events include the full identifier even when the UI is correctly masked -- the rule violation lives in the side channel.
-- A serializer base class exists but a new endpoint bypasses it and hand-builds the response dict.
+This class is usually a regression rather than a greenfield defect, which is what makes it easy to miss: the diff looks like a small tweak to a field that was already masked.
 
-## Why it matters
+CWE-200 (Exposure of Sensitive Information to an Unauthorized Actor). Confirmation screens, API responses, and logs are unauthorized-actor surfaces relative to the last-4-only contract; any digit beyond the fourth is unauthorized exposure.
 
-- Last-4-only is usually an explicit, written business rule tied to a regulatory or partner contract (e.g. Right Quote: "customer sees only the last 4 on confirmation"). Violation is not a UX nit -- it is the same audit and regulatory exposure as a full leak.
-- Confirmation screens are high-trust surfaces: users assume the displayed value has already been masked correctly, so they will screenshot, email, or share it. A 5-digit "mask" propagates faster than raw cleartext would.
-- Side-channel leaks (logs, error traces, webhooks) survive UI fixes and create long-tail liability: a fix that only patches the React component does not stop the backend log line.
-- This class is typically a regression, not a greenfield bug. That makes it easy to miss in review because the diff looks like a small "tweak" to an already-masked field.
-
-## How to detect
+## Detection
 
 Response-shape checks:
 
 - For any field whose name matches `(ssn|tin|ein|account|routing|card|pan|iban|govt|tax_id)` and ends in `_last4`, `_masked`, or similar: assert the digit count in the serialized value is exactly 4.
-- For confirmation-screen integration tests, snapshot the rendered text and regex-match `\*{2,}\d{4}(?!\d)` (exactly 4 trailing digits, no 5th digit).
+- For confirmation-screen integration tests, snapshot the rendered text and regex-match `\*{2,}\d{4}(?!\d)`, which requires exactly 4 trailing digits with no fifth.
 
-Static / lint:
+Static and lint heuristics:
 
-- Serializer base class must expose a `last4(value)` helper; lint rule flags any sensitive field that does not call it.
-- Grep heuristic for direct field assignment without mask helper:
+- The serializer base class exposes a `last4(value)` helper; a lint rule flags any sensitive field that does not call it.
+- Grep for direct field assignment that bypasses the mask helper:
 
 ```
 rg -n "(ssn|account_number|routing_number|tax_id)" --type ts --type py \
@@ -49,30 +37,100 @@ rg -n "(ssn|account_number|routing_number|tax_id)" --type ts --type py \
   | rg -v "last4\\(|mask\\(|redact\\("
 ```
 
-Runtime / log scan:
+Runtime and log scan:
 
-- Log aggregator alert on any line matching `\b\d{5,}\b` within a field tagged as sensitive.
-- Webhook replay test: send a real payload through the production serializer pipeline and assert the outbound JSON contains no >4-digit run inside sensitive fields.
+- Log aggregator alert on any line matching `\b\d{5,}\b` within a field tagged sensitive.
+- Webhook replay test: send a real payload through the production serializer pipeline and assert the outbound JSON contains no run of more than 4 digits inside sensitive fields.
+
+Shapes to look for by reading:
+
+- A quote, checkout, or account confirmation screen rendering `***-**-12345` (5 digits) instead of `***-**-1234`.
+- An API response field such as `account_last4: "12345"` or `ssn_masked: "***-**-12345"` carrying more digits than the rule allows.
+- A serializer field switched to show the full value for debugging and never reverted, so production responses ship the cleartext identifier.
+- A new field added (for example `routing_number`) where the author masked only `account_number`, leaving the sibling unmasked on the same payload.
+- Logs, error reports, or analytics events including the full identifier while the UI is correctly masked. The violation lives in the side channel.
+- A serializer base class that exists while a new endpoint bypasses it and hand-builds the response object.
 
 UI verification:
 
-- Manual walk-through of every confirmation, review, and receipt screen after any change to a serializer, form, or PII-adjacent field. Confirm visible digit count is exactly 4.
+- Manual walk-through of every confirmation, review, and receipt screen after any change to a serializer, a form, or a PII-adjacent field. Confirm the visible digit count is exactly 4.
 
-## How to fix
+## Retrieval
 
-1. Add or reuse a single `last4(value)` helper that returns `"****" + value.slice(-4)` (or locale-appropriate mask) and rejects inputs shorter than 4 digits.
-2. Enforce the helper inside a shared serializer base class so every sensitive field routes through it; remove any per-endpoint hand-rolled masking.
-3. Add an integration test per confirmation screen that asserts the rendered DOM contains exactly 4 trailing digits for each sensitive field.
-4. Add a response-shape contract test (schema-level) for every API endpoint that returns a sensitive field: digit count == 4.
-5. Audit logs, error reporters, and webhook payloads for the same fields; route them through the same helper or redact entirely.
-6. If the violation already shipped to production, treat as a security incident: rotate any exposed identifiers where possible, notify per regulatory obligation, and record the incident in the audit log.
-7. Add a regression test that re-asserts the rule for every sensitive field; wire it into CI so a future "show full for debugging" toggle cannot ship.
+- The serializer base class and the `last4` or mask helper it exposes, to establish whether a single enforcement point exists at all.
+- Every serializer or response builder in the diff that touches a field matching the sensitive-name pattern, including any that hand-build a response object instead of routing through the base class.
+- The confirmation, review, and receipt components in scope (`apps/**/src/components/**confirmation**`, `**review**`, `**/routes/**confirm**`), because the rendered string is the surface the rule is written about.
+- The side channels for the same fields: log statements, error reporters, analytics events, and webhook payload builders. A UI-only fix leaves these leaking.
+- The written rule itself when it exists in the repo (a contract doc, a policy file, or a decision record), so the required digit count is read rather than assumed.
 
-## CWE / standard refs
+## Analysis prompt
 
-- CWE-200: Exposure of Sensitive Information to an Unauthorized Actor. Confirmation screens, API responses, and logs are unauthorized-actor surfaces relative to the last-4-only contract; any digit beyond the 4th is unauthorized exposure.
+Given the retrieved serializers, components, and side-channel emitters:
 
-## See also
+1. For every sensitive field in the diff, count the digits that actually reach the surface. Four is the contract. Five is a violation of the same severity class as emitting the full value, not a smaller version of it.
+2. Does the value route through a single masking helper, or is the masking hand-rolled at this call site? A hand-rolled mask is a finding even when its current output is correct, because the rule is then re-implemented per endpoint and drifts one endpoint at a time.
+3. Where is the truncation performed: server-side before serialization, or client-side at render? A client-side truncation means the full value already crossed the boundary and is present in the network response, the browser cache, and any client log.
+4. Check the sibling fields on the same payload. This class recurs when a new identifier field is added next to an already-masked one and inherits none of its handling. Enumerate every sensitive field on the payload, not only the one the diff touched.
+5. Check the side channels for the same fields: log lines, error payloads, analytics events, webhook bodies. A fix that patches only the rendering component leaves the backend emitting the full value, and side-channel exposure outlives UI fixes.
+6. Look specifically for a debugging toggle that shows the full value. If one exists in the diff or in the file, it is a finding regardless of its current default, because nothing prevents it shipping enabled.
+7. Recommend fixes in this order: one shared `last4(value)` helper that returns a mask plus the final 4 characters and rejects inputs shorter than 4 digits; enforcement of that helper inside the serializer base class with per-endpoint hand-rolled masking removed; an integration test per confirmation screen asserting exactly 4 trailing digits in the rendered output; a schema-level response-shape contract test per endpoint asserting the digit count; the same helper or outright redaction applied to logs, error reporters, and webhook payloads; and a CI regression test so a future show-full-for-debugging toggle cannot ship.
+8. This class carries `reversibility-check: true`. A confirmation screen is a high-trust surface: users assume the value was already masked, so they screenshot, email, and forward it, and a 5-digit mask propagates faster than raw cleartext would. If the violation already reached production, the recommendation is incident handling (rotate the exposed identifiers where possible, notify per regulatory obligation, record the exposure window), not a quiet patch.
 
-- `wos/bug-classes/pii-encryption-boundary-leak.md` (sibling class: PII crossing an encryption boundary unmasked)
-- `wos/bug-classes/input-not-validated-at-boundary.md` (sibling class: missing boundary validation that often co-occurs with output-side leaks)
+## Severity rubric
+
+- **P0**: a surface reachable by a user or an external system emits more than 4 digits of a sensitive identifier, on any channel including logs and webhooks. Justification for the ceiling: last-4-only is normally an explicit written rule tied to a regulatory or partner contract, so violating it carries the same audit and regulatory exposure as a full leak, and the high-trust nature of confirmation surfaces means the over-exposed value spreads further than raw cleartext.
+- **P1**: every current surface emits exactly 4 digits, but the masking is hand-rolled per call site with no shared helper and no schema-level test, so the rule holds by convention and the next added field will not inherit it.
+- **P2**: the UI and API are correct while a side channel (an analytics event, a debug log behind a disabled flag) carries the full value, currently unreachable but one flag flip away.
+
+## Confidence factors
+
+- **HIGH**: a serialized value or rendered string in the diff contains 5 or more digits in a field matching the sensitive-name pattern; or a sensitive field is assigned directly with no call to the mask helper and the grep exclusion for `last4(`, `mask(`, `redact(` returns nothing on that line.
+- **MEDIUM**: the field routes through a helper whose digit count cannot be confirmed from the retrieved files, so the emitted length is unresolved. Reading the helper settles it.
+- **LOW**: the match is in a test fixture, a seed, or the mask helper's own implementation, where a longer digit run is the input rather than the output.
+
+## Examples
+
+### Positive (five digits reach the surface)
+
+```typescript
+// serializers/account.ts
+export function serializeAccount(row: AccountRow) {
+  return {
+    id: row.id,
+    // off-by-one: five digits, which is a rule violation, not a smaller mask
+    account_last4: row.account_number.slice(-5),
+    // sibling field added later, inherited none of the masking
+    routing_number: row.routing_number,
+  };
+}
+```
+
+### Negative (one helper, enforced at the base, tested at the schema)
+
+```typescript
+// serializers/base.ts
+export function last4(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length < 4) throw new Error("last4: value shorter than 4 digits");
+  return `****${digits.slice(-4)}`;
+}
+
+// serializers/account.ts
+export function serializeAccount(row: AccountRow) {
+  return {
+    id: row.id,
+    account_last4: last4(row.account_number),
+    routing_last4: last4(row.routing_number), // every sensitive sibling routes through the same helper
+  };
+}
+```
+
+```typescript
+// api/__tests__/account.contract.test.ts
+it("emits exactly four digits for every sensitive field", async () => {
+  const body = await getAccount(id);
+  for (const field of ["account_last4", "routing_last4"]) {
+    expect(body[field].replace(/\D/g, "")).toHaveLength(4);
+  }
+});
+```
