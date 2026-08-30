@@ -8,7 +8,7 @@
 
 ADR-0038 makes the Workflow tool the canonical primitive for parallel subagent dispatch. ADR-0039 fixes the empirical batch sweet spot (15-25 agents, 300-500 word prompts, an explicit StructuredOutput reminder). ADR-0040 carves out a single-writer-per-folder exception for `task-init-fleet`, where each worker owns a disjoint task folder under `projects/<client>__<project>/active/...` and the worker IS the apply step for its own folder.
 
-All three target either discovery (research fan-out) or substrate (task-folder creation). Execution of product-code slices has stayed strictly sequential: `implement-approved-slice` is "the single official execution path," one approved slice at a time. A 2026-06-09 review of a lived client-pilot session confirmed the gap empirically: the workflow fanned out research into a 9-agent `external-research-fleet` batch, but implemented all 8 product slices in a single linear pass. The plan for that task already carried per-slice `Scope` and `Order safety` lines, so the dependency information needed to parallelize independent slices was being produced and then ignored.
+All three target either discovery (research fan-out) or substrate (task-folder creation). Execution of product-code slices has stayed strictly sequential: `implement-approved-slice` is "the single official execution path," one approved slice at a time. A 2026-06-09 review of a lived private-project session confirmed the gap empirically: the workflow fanned out research into a 9-agent `external-research-fleet` batch, but implemented all 8 product slices in a single linear pass. The plan for that task already carried per-slice `Scope` and `Order safety` lines, so the dependency information needed to parallelize independent slices was being produced and then ignored.
 
 The instinct to parallelize independent slices is sound, but product code differs from substrate in one load-bearing way. `task-init-fleet` workers write disjoint NEW folders, so the cross-worker merge is a no-op and there is nothing to compile. Product-code slices write into a SHARED repository with a shared build, type, and test surface. Two slices can touch entirely disjoint files and still fail to integrate: one slice adds a symbol or type that another imports, a shared barrel export changes, or a generated artifact (migration, lockfile, codegen output) is implicitly shared. File-scope disjointness guarantees a conflict-free file merge; it does NOT guarantee semantic integration.
 
@@ -62,7 +62,7 @@ Neutral:
 - ADR-0040 (parent): single-writer-per-folder exception for `task-init-fleet`.
 - ADR-0026: APPLIED-by-default for `implement-approved-slice` in Agent mode.
 - `commands/implement-fleet.md` (orchestrator), `commands/implement-approved-slice.md` (worker unit), `commands/implementation-plan.md` (`Scope` / `Depends-on` / `## Execution waves` source).
-- 2026-06-09 client-pilot session review (the empirical motivation; research was fanned out, execution was not).
+- 2026-06-09 private-project session review (the empirical motivation; research was fanned out, execution was not).
 
 ## Notes
 

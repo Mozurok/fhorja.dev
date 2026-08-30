@@ -123,7 +123,7 @@ my_work_tasks/
   docs/
     FAQ.md                            # user-facing entry point for common questions
     MIGRATION.md                      # adoption + forking + tool migration guide
-    adr/                              # Architecture Decision Records (<!-- count:adrs -->149<!-- /count --> ADR files; 0037 is an intentional gap; highest is 0150)
+    adr/                              # Architecture Decision Records (<!-- count:adrs -->150<!-- /count --> ADR files; 0037 is an intentional gap; highest is 0164)
       README.md                       # index + format + when to write
       template.md                     # ADR template
       0001-proposed-by-default.md     # example; full list under docs/adr/

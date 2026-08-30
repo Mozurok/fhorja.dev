@@ -67,7 +67,7 @@ and no command pays for it twice.
 
 **D-3. Retire `wos/realtime-overlay-patterns.md`.** It has been orphaned since it was written: no
 command, scenario, ADR, sibling topic, or read-map entry references it, and the structural check has
-been failing on it. It originated in a 25-agent mega-batch described in the changelog as client-pilot
+been failing on it. It originated in a 25-agent mega-batch described in the changelog as catalog
 coverage preparation, which is content authored ahead of demand, and the demand never arrived. That is
 the ADR-0033 pattern (a harness built ahead of use, deprecated on 17 days and zero invocations)
 applied to a reference topic. It also names three vendor products in a normative section heading,

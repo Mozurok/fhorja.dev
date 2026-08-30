@@ -135,11 +135,11 @@ This is exploratory and depends on adoption signals from Phases 3-4.
 
 ## Phase 6 (Wave 2.8 design subsystem)
 
-**Status (2026-06-05):** First lived test completed. screen-spec-fleet ran on the client driver-app (5 Figma URLs, 26 parallel agents, 1.3M subagent tokens, 12min wall-clock). Produced 5 SCREEN_SPECs, ATOM_INVENTORY (53 atoms), routes (24), SCREEN_MAP, JOURNEY_AND_OPEN_QUESTIONS. Foundations seeded via extract-foundations-from-screens. Phase 6 milestone reached.
+**Status (2026-06-05):** First lived test completed. screen-spec-fleet ran on a private design handoff (5 Figma frames, 26 parallel agents, 1.3M subagent tokens, 12min wall-clock). Produced 5 SCREEN_SPECs, ATOM_INVENTORY (53 atoms), routes (24), SCREEN_MAP, JOURNEY_AND_OPEN_QUESTIONS. Foundations seeded via extract-foundations-from-screens. Phase 6 milestone reached.
 
 This phase tracks the maturation of the Wave 2.8 WOS-UI design system governance subsystem from documented capability to lived-tested workflow. The subsystem combines Workflow commands (screen-spec, component-spec, design-bootstrap, journey-map, pattern-doc, design-spec-review, foundation-audit) with Figma MCP tools (get_design_context, get_screenshot, get_variable_defs) to extract structured design documentation directly from Figma frames.
 
-The first lived test on the client driver-app validated the parallel-dispatch model (26 subagents fanned out across 5 Figma URLs), the atom-inventory aggregation pattern (53 atoms catalogued across 5 screens), and the foundations-seed flow (extract-foundations-from-screens consumed the SCREEN_SPECs and produced canonical token candidates).
+The first lived test on that handoff validated the parallel-dispatch model (26 subagents fanned out across 5 Figma frames), the atom-inventory aggregation pattern (53 atoms catalogued across 5 screens), and the foundations-seed flow (extract-foundations-from-screens consumed the SCREEN_SPECs and produced canonical token candidates).
 
 ## How to influence the roadmap
 
@@ -155,7 +155,7 @@ The maintainer makes final decisions on roadmap priorities. There is no SLA on c
 
 **Status:** partially superseded. The K.8 persona objective below is done; the fleet ADR-0038 lived-run and cost-model objectives were last checked 2026-06-05 and have not been re-verified since.
 
-This phase takes the empirical baseline produced by the Phase 6 lived test (the client driver-app screen-spec-fleet: 26 parallel agents at 100% success, plus the additional batches that aggregated to 14 batches end-of-day) and hardens it into a repeatable, monitorable, multi-tool, cost-aware multi-agent capability. Phase 6 proved the parallel-dispatch model and atom-inventory aggregation pattern work in real product context; Phase 7 closes the residual ADR-0038 PARTIAL compliance gaps, promotes the remaining K.8 personas through Path B (ADR-0036), and gives the operator production-grade telemetry, retry/escalation, and cost guidance for routine use.
+This phase takes the empirical baseline produced by the Phase 6 lived test (the design-handoff screen-spec-fleet run: 26 parallel agents at 100% success, plus the additional batches that aggregated to 14 batches end-of-day) and hardens it into a repeatable, monitorable, multi-tool, cost-aware multi-agent capability. Phase 6 proved the parallel-dispatch model and atom-inventory aggregation pattern work in real product context; Phase 7 closes the residual ADR-0038 PARTIAL compliance gaps, promotes the remaining K.8 personas through Path B (ADR-0036), and gives the operator production-grade telemetry, retry/escalation, and cost guidance for routine use.
 
 **Objectives:**
 
@@ -165,4 +165,4 @@ This phase takes the empirical baseline produced by the Phase 6 lived test (the 
 - Multi-tool support: today the fleet path is Claude Code only. Investigate equivalent Workflow primitives in Cursor and OpenAI Codex (sub-agent dispatch, parallel run isolation, structured-output return path), document the gap per tool, and decide which primitives to wrap behind a tool-neutral adapter vs. leave tool-specific.
 - Quantitative cost models per batch size: extend ADR-0039 with token and dollar estimates per batch size (small / medium / large) grounded in the 14-batch end-of-day dataset, so operators can pick a batch size with a real cost expectation instead of a qualitative guess. [Open follow-up: confirm whether ADR-0040 extends ADR-0039 with the cost/telemetry model; if yes, wire it in here.]
 
-**Dependencies on Phase 6:** Phase 6's lived test is the empirical baseline this phase builds on. The 14-batch end-of-day dispatch set, anchored on the 26-agent screen-spec-fleet baseline at 100% success, plus the client screen-spec-fleet artifact set (SCREEN_SPECs, ATOM_INVENTORY, JOURNEY_AND_OPEN_QUESTIONS, foundations seed), are what ADR-0038 (fleet compliance) and ADR-0039 (cost model) codify; without that baseline neither ADR has the numbers Phase 7 needs to extend.
+**Dependencies on Phase 6:** Phase 6's lived test is the empirical baseline this phase builds on. The 14-batch end-of-day dispatch set, anchored on the 26-agent screen-spec-fleet baseline at 100% success, plus the screen-spec-fleet artifact set (SCREEN_SPECs, ATOM_INVENTORY, JOURNEY_AND_OPEN_QUESTIONS, foundations seed), are what ADR-0038 (fleet compliance) and ADR-0039 (cost model) codify; without that baseline neither ADR has the numbers Phase 7 needs to extend.
