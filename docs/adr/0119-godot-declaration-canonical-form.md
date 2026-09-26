@@ -1,6 +1,6 @@
 # ADR-0119: the Godot declaration is one canonical fenced block, read fail-closed
 
-- **Status**: Accepted
+- **Status**: Accepted Superseded in part by [ADR-0209](./0209-floors-do-what-they-declare.md): the tier-declaration floor no longer fails closed and a malformed block is no longer unwaivable, because that floor now records. The canonical-form rules here (one fenced block, two permitted keys, the exact tier strings) are unchanged.
 - **Date**: 2026-07-26
 - **Tags**: godot, 3d, renderer-tier, artifact-contract, closure-floor, structural-check, fail-closed, supersedes-adr-0118-form
 

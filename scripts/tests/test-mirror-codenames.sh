@@ -146,10 +146,30 @@ rc=$(run_gate 'the roastery Acme-café is listed' 'Acme-café|public-alias')
 [ "$rc" = "1" ] && pass "non-ASCII token matches accented string (exit 1)" \
                   || fail "non-ASCII token MISSED accented string (exit $rc, expected 1)"
 
-# 15. no sidecar at all is a usage error, never a clean pass
+# 15. an absent sidecar disables ONLY the codename scan. The absolute-path and ticket-id scans read no
+#     sidecar, so they must still run and must still be able to fail the gate. Before 2026-08-21 this
+#     pinned "exit 2", and because the sidecar is gitignored CI never had one: the whole guard was
+#     inert on every runner, including the two scans that never consume it.
+#     Both fixtures are assembled at runtime for the same reason check 16 gives: written literally,
+#     this tracked file would trip the gate it is testing. HEAD was verified clean before this check
+#     was added, so a hit here is this file's own doing, not a pre-existing leak.
+#     This assertion used to pin exit 0 and to call the outcome "clean". That WAS the defect:
+#     with no sidecar the codename scan never ran, so "clean" claimed a result nobody measured,
+#     and lint-commands.sh printed "clean (tracked tree)" on every CI runner because 0 was all it
+#     could see. The contract now separates the two, so the assertion pins the separation.
 rc=$(run_gate_no_list 'nothing sensitive here at all')
-[ "$rc" = "2" ] && pass "absent sidecar is a usage error (exit 2)" \
-                 || fail "absent sidecar not reported (exit $rc, expected 2)"
+[ "$rc" = "3" ] && pass "absent sidecar with a clean body reports not-measured (exit 3)" \
+                 || fail "absent sidecar on a clean body did not exit 3 (exit $rc)"
+
+SYNTH_HOME="/Users/${SYNTH_NAME:-probe}$(printf 'user')/clients/plan.md"
+rc=$(run_gate_no_list "the plan lives at ${SYNTH_HOME}")
+[ "$rc" = "1" ] && pass "absent sidecar still catches an absolute home path (exit 1)" \
+                 || fail "absolute path MISSED with no sidecar (exit $rc, expected 1)"
+
+SYNTH_TICKET_15="ACME-$((4000 + 421))"
+rc=$(run_gate_no_list "tracked under ${SYNTH_TICKET_15} on the vendor board")
+[ "$rc" = "1" ] && pass "absent sidecar still catches a ticket id (exit 1)" \
+                 || fail "ticket id MISSED with no sidecar (exit $rc, expected 1)"
 
 # 16. a ticket id is caught structurally, with a sidecar that does NOT list it.
 #     This is the 2026-08-05 leak: a provenance line naming a tracker ticket
@@ -174,6 +194,45 @@ rc=$(run_gate 'per ADR-0024 and CWE-089, hashed with SHA-256 under ISO-8601')
 rc=$(run_gate 'the file sync-2026 ran and func-12 returned')
 [ "$rc" = "0" ] && pass "lowercase word-digit pair not a ticket (exit 0)" \
                  || fail "lowercase word-digit FALSE POSITIVE (exit $rc, expected 0)"
+
+# 21-25. the engagement-provenance scan (2026-08-29, ADR-0164). Structural like the two
+#     above, so it must fire with NO sidecar: the class it covers shipped to the public tree,
+#     where the sidecar does not exist. The three positive fixtures are assembled at runtime
+#     for the reason check 16 gives: written literally, this tracked file would trip the very
+#     gate it tests, and so would an assertion MESSAGE naming the form. The two negative
+#     fixtures are safe literals on purpose: proving the bare vendor token is NOT a hit is the
+#     point of those two checks.
+SYNTH_ENG_PILOT="client$(printf -- '-')pilot coverage prep"
+rc=$(run_gate_no_list "$SYNTH_ENG_PILOT")
+[ "$rc" = "1" ] && pass "engagement: the pilot form detected with no sidecar (exit 1)" \
+                 || fail "engagement: the pilot form MISSED (exit $rc, expected 1)"
+
+SYNTH_ENG_UPPER="Client$(printf -- '-')pilot coverage prep"
+rc=$(run_gate_no_list "$SYNTH_ENG_UPPER")
+[ "$rc" = "1" ] && pass "engagement: the capitalised pilot form detected (exit 1)" \
+                 || fail "engagement: the capitalised pilot form MISSED (exit $rc, expected 1)"
+
+SYNTH_ENG_APP="the client $(printf 'driver')-app shipped"
+rc=$(run_gate_no_list "$SYNTH_ENG_APP")
+[ "$rc" = "1" ] && pass "engagement: the product-app form detected (exit 1)" \
+                 || fail "engagement: the product-app form MISSED (exit $rc, expected 1)"
+
+rc=$(run_gate_no_list 'the Supabase client reports an error in the response object')
+[ "$rc" = "3" ] && pass "engagement: the bare vendor token is not a hit (exit 3, no sidecar)" \
+                 || fail "engagement: FALSE POSITIVE on ordinary technical English (exit $rc, expected 3)"
+
+rc=$(run_gate_no_list 'an HTTP client and a client library')
+[ "$rc" = "3" ] && pass "engagement: two bare vendor tokens are not a hit (exit 3, no sidecar)" \
+                 || fail "engagement: FALSE POSITIVE on two bare tokens (exit $rc, expected 3)"
+
+# The property this exit code exists for: the same clean body must report DIFFERENTLY depending on
+# whether the codename scan could run. Asserting each code separately does not catch a future change
+# that collapses them back into one, which is the shape the guard shipped with.
+rc_with=$(run_gate 'nothing sensitive here at all')
+rc_without=$(run_gate_no_list 'nothing sensitive here at all')
+[ "$rc_with" = "0" ] && [ "$rc_without" = "3" ] && [ "$rc_with" != "$rc_without" ] \
+  && pass "a clean body reports 0 with a sidecar and 3 without: the two states are distinguishable" \
+  || fail "clean body did not separate the two states (with=$rc_with without=$rc_without, want 0 and 3)"
 
 echo
 if [ "$fails" -eq 0 ]; then echo "test-mirror-codenames: all $checks checks passed"; exit 0

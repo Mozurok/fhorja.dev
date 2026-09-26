@@ -4,7 +4,7 @@
 >
 > Comprehensive audit of all atom components against `COMPONENT_GUIDELINES.md` plus relevant platform/library standards (Apple HIG, Material 3, React Native, Reanimated, etc.).
 >
-> Produced by the `atom-audit` command (or `foundation-audit --tier=atoms`). The table is the deliverable; fixes flow through normal slice pipeline.
+> Produced by the `atom-audit` command (or `atom-audit-fleet` for 6 or more atoms). The table is the deliverable; fixes flow through the default slice pipeline.
 
 ---
 
@@ -38,7 +38,7 @@ Audit produces this table; fixes are NOT applied here.
 
 1. Triage the table: group fixes by guideline (e.g., "5 atoms missing reduced motion") → one slice per group.
 2. Open a task for each group via `task-init`.
-3. Run normal pipeline: `impact-analysis` → `implementation-plan` → `implement-approved-slice`.
+3. Run the default pipeline: `implementation-plan` → `approve-plan` → `implement-approved-slice` (add `impact-analysis` first when the fix group touches 5 or more files).
 4. Update the audit table after each closed slice (re-run `atom-audit` or manual edit).
 
 ## Audit history

@@ -10,44 +10,51 @@ You maintain a small invoicing app (Next.js, Supabase for auth and data). A cust
 
 ## Before the first command
 
-Three things are worth knowing before you read turn one:
+A few things are worth knowing before you read turn one:
 
 - Every command ends the same way: an `### Artifact changes` block, a short `### Command transcript`, and a `### Handoff` that names the next command, the editor mode, and why. That shape repeats below for every turn. Once you have seen it twice, you can skim the rest.
-- This walkthrough follows one shape among several. The [Other task shapes](#other-task-shapes) section below covers small tasks, docs-only tasks, refactors, and incident response, each with its own shortcut through the chain.
-- The task also runs under one of three [Operating modes](#operating-modes): `minimal`, `strict`, or `teaching`. This walkthrough uses the default (no named mode), which is closest to `minimal` in ceremony.
+- Every command writes its task files as it runs and marks them `APPLIED`, in every editor mode (ADR-0199, ADR-0215). The one place you will see `PROPOSED` is a block a command stages inside a section another command owns, for that owner to promote (ADR-0034). Turn 2 shows one.
+- This walkthrough follows one shape among several. The [Other task shapes](#other-task-shapes) section below points to the others: small tasks, docs-only tasks, refactors, and incident response, each with its own route through the chain.
+- The task runs under the `strict` [operating mode](#operating-modes), because the export reads a tenant-scoped table. Turn 1 shows `task-init` adding the strict-surface commands on its own; the mode line in the request only declares what `task-init` would have suggested.
+- **One command per turn is how this document is written, not how a session runs.** Each turn below shows what a command receives and what it emits, side by side, because that is the clearest way to learn the shape. A real attended session does not work that way: the `Run now:` line at the end of each turn is what the session does NEXT, by itself, without you typing the `Run @commands/...` line that opens the following turn. Read those lines as "this is what the next command received", not as "this is what you must send". A chained session also emits ONE `### Handoff` for the whole turn rather than one per command (ADR-0192), so the per-command record you see repeated below lives in the task folder on disk. What still needs you is the small set of stops each command names, marking the draft PR ready for review, and the merge.
 
 ## The command chain
+
+The default chain is five commands: `task-init -> implementation-plan -> approve-plan -> implement-approved-slice -> branch-commit --apply` (ADR-0184, ADR-0208). A command joins it only when `task-init` can name the disqualifier that adds it, and a one-sentence change to at most two named files skips `implementation-plan` and `approve-plan` on the one-slice route (ADR-0225). This task trips three: the scope needs more than one sentence to state (adds `impact-analysis`), the row cap is a decision the request does not contain (adds `decision-interview`), and the surface is multi-tenant isolation (adds `invariants-and-non-goals`, `test-strategy` and `review-hard`). The diagram shows this task's chain with those additions.
 
 ```mermaid
 flowchart LR
   subgraph discover ["Discovery"]
     taskInit["task-init"]
     impact["impact-analysis"]
+    invariants["invariants-and-non-goals"]
     decide["decision-interview"]
   end
   subgraph plan ["Plan"]
     planCmd["implementation-plan"]
+    testStrat["test-strategy"]
     approve["approve-plan"]
   end
   subgraph run ["Execute"]
     impl["implement-approved-slice"]
     fleetCmd["implement-fleet"]
+    commit["branch-commit --apply"]
     closeSlice["slice-closure"]
     review["review-hard"]
     sweep["repo-consistency-sweep"]
   end
   subgraph ship ["Deliver and close"]
-    pkg["pr-package"]
+    pkg["pr-package --apply"]
     feedback["pr-feedback-ingest"]
     pivot["post-review-pivot"]
     taskClose["task-close"]
   end
 
-  taskInit --> impact --> decide --> planCmd --> approve
+  taskInit --> impact --> invariants --> decide --> planCmd --> testStrat --> approve
   approve -->|"the common case: a sequential chain of slices"| impl
   approve -.->|"ADR-0042: when 2+ approved slices are independent, route here instead"| fleetCmd
   fleetCmd --> closeSlice
-  impl --> closeSlice --> review --> sweep --> pkg --> taskClose
+  impl --> commit --> closeSlice --> review --> sweep --> pkg --> taskClose
   pkg -.->|"a reviewer or bot comments on the PR"| feedback
   feedback -->|"corrective: fix under the existing contract"| impl
   feedback -.->|"the feedback changes the contract itself"| pivot
@@ -67,7 +74,7 @@ Four more commands are not in the diagram because they are opt-in: you reach for
 | `capture-observation` | A small thing worth remembering surfaces mid-implementation, but it is not a decision and does not need a full state sync. | During slice 1 |
 | `direction-adjust` | A small course correction gets realized mid-implementation: the export button needs a disabled state. | During slice 2 |
 
-Two more commands sit outside that table for a different reason: they are not opt-in for this task, they are required by a closure floor. Slice 01 touches an HTTP route handler and Slice 02 touches a servable frontend component, in a project whose `package.json` declares a web build script; the backend-runtime-gate and web-runtime-gate floors (ADR-0127) fire on exactly that shape and block closure until `api-runtime-verify` and `web-runtime-verify` each return a real PASS. Turns 6 through 9 below show both.
+Two more commands sit outside that table for a different reason: a closure floor asks for them. Slice 01 touches an HTTP route handler and Slice 02 touches a servable frontend component, in a project whose `package.json` declares a web build script. The backend-runtime-gate and web-runtime-gate floors (ADR-0127) fire on exactly that shape and ask for a real `api-runtime-verify` and `web-runtime-verify` PASS. The floors record rather than block (ADR-0203): a slice closed without its PASS carries `unverified: no api-runtime-verify PASS` (or the web equivalent) in its closing notes, and `task-close` lists it under `### Unverified floors`. Running the verify is how that list stays empty. Turns 6 through 9 below show both.
 
 ## The task folder
 
@@ -75,13 +82,13 @@ Everything below lives under:
 
 `projects/acme__invoicer/active/2026-07-08_csv-export-for-invoices/`
 
-`task-init` creates the five required files. Optional files (`IMPACT_ANALYSIS.md`, `DB_CONTEXT.md`, `SLICES/`) appear as the phases that produce them run.
+`task-init` creates the five required files. Optional files (`IMPACT_ANALYSIS.md`, `DB_CONTEXT.md`, `INVARIANTS_AND_NON_GOALS.md`, `TEST_STRATEGY.md`, `SLICES/`) appear as the commands that produce them run.
 
 ---
 
 ## Turn 1: start the task (`task-init`)
 
-The objective is specific enough to skip `problem-framing` (that command exists for fuzzy or possibly mis-scoped objectives; "add a CSV export button" is not one).
+The objective is specific enough to skip `problem-framing` (that command exists for fuzzy or possibly mis-scoped objectives; "add a CSV export button" is not one). It is not small enough for the default chain, and `task-init` says why rather than leaving it to judgment.
 
 ### What you send
 
@@ -91,6 +98,7 @@ Project folder: acme__invoicer
 Task slug: csv-export-for-invoices
 One-line goal: Add a CSV export button to the invoices list that downloads the currently filtered invoices.
 Product repo: ~/code/invoicer (Next.js + Supabase)
+Operating mode: strict
 ```
 
 ### What you get back (abbreviated)
@@ -98,7 +106,7 @@ Product repo: ~/code/invoicer (Next.js + Supabase)
 ```markdown
 ### Artifact changes
 - `projects/acme__invoicer/active/2026-07-08_csv-export-for-invoices/README.md`: `APPLIED` (created)
-- `.../TASK_STATE.md`: `APPLIED` (created; phase: discovery; Requested deliverables: "CSV export button on invoices list" [in-scope], "Export respects tenant row-level security" [in-scope])
+- `.../TASK_STATE.md`: `APPLIED` (created; phase: discovery; Requested deliverables: "CSV export button on invoices list" [in-scope], "Export respects tenant row-level security" [in-scope]; Recommended pipeline with the escalations below; Resume notes: `Operating mode: strict`)
 - `.../SOURCE_OF_TRUTH.md`: `APPLIED` (created)
 - `.../DECISIONS.md`: `APPLIED` (created, empty)
 - `.../IMPLEMENTATION_PLAN.md`: `APPLIED` (skeleton)
@@ -106,13 +114,24 @@ Product repo: ~/code/invoicer (Next.js + Supabase)
 ### Command transcript
 - Initialized the task folder and the five required files.
 - Seeded `## Requested deliverables` with the two things the user named.
+- Escalations: `impact-analysis` (the scope needs more than one sentence: a tenant-scoped export route and a toolbar button); `decision-interview` (the row cap for a large export is a decision the request does not contain); `invariants-and-non-goals`, `test-strategy` and `review-hard` (multi-tenant isolation surface, which suggests `Operating mode: strict`; declared in the request).
 
 ### Handoff
 Run now: /impact-analysis
 Mode: Ask
 Work complexity: LOW
-Reason: Bounded feature; need the touch surfaces confirmed before deciding anything.
+Reason: Three disqualifiers fired; impact-analysis comes first to confirm the touch surfaces.
 ```
+
+The `## Recommended pipeline` section `task-init` wrote into `TASK_STATE.md`:
+
+```text
+## Recommended pipeline
+- Escalations: impact-analysis (scope > 1 sentence), decision-interview (row-cap decision not in the request), invariants-and-non-goals, test-strategy and review-hard (multi-tenant isolation)
+- task-init -> impact-analysis -> invariants-and-non-goals -> decision-interview -> implementation-plan -> test-strategy -> approve-plan -> per slice: implement-approved-slice, branch-commit --apply, slice-closure -> review-hard -> pr-package
+```
+
+Without the tenant-scoped table this task would still take `impact-analysis` and `decision-interview`, but not the strict three. Leave the `Operating mode:` line out of the request and `task-init` still adds those three commands and suggests `strict`; the suggestion alone does not declare the mode ([`wos/operating-modes.md`](./wos/operating-modes.md)).
 
 ---
 
@@ -128,8 +147,9 @@ Run @commands/impact-analysis.md for the same task folder.
 
 ```markdown
 ### Artifact changes
-- `IMPACT_ANALYSIS.md`: `PROPOSED` (full draft)
-- `TASK_STATE.md`: `PROPOSED` (Active files in scope, Risks to watch)
+- `IMPACT_ANALYSIS.md`: `APPLIED` (created)
+- `TASK_STATE.md`: `APPLIED` (Active files in scope, Risks to watch)
+- `IMPLEMENTATION_PLAN.md`: one `<!-- PROPOSED by impact-analysis -->` block in `## Current gaps` (implementation-plan owns that section and promotes the block when it runs, ADR-0034)
 
 ### Command transcript
 - Touch surfaces: the invoices list page, a new export API route, the `public.invoices` table (tenant-scoped via RLS).
@@ -161,18 +181,18 @@ Depth: tables+rls
 
 ```markdown
 ### Artifact changes
-- `DB_CONTEXT.md`: `PROPOSED` (create)
-- `SOURCE_OF_TRUTH.md`: `PROPOSED` (append `## DB context` pointer)
+- `DB_CONTEXT.md`: `APPLIED` (created)
+- `SOURCE_OF_TRUTH.md`: `APPLIED` (appended `## DB context` pointer)
 
 ### Command transcript
 - MCP precondition check: Supabase MCP reachable.
 - Introspected `public.invoices`: 9 columns, RLS enabled, one policy.
 
 ### Handoff
-Run now: /capture-references
+Run now: /invariants-and-non-goals
 Mode: Ask
 Work complexity: LOW
-Reason: Ground the CSV library choice before the row-cap decision.
+Reason: The tenant boundary is now a verified fact; lock it as an invariant before any decision builds on it.
 ```
 
 The relevant excerpt from `DB_CONTEXT.md`:
@@ -186,6 +206,38 @@ The relevant excerpt from `DB_CONTEXT.md`:
 ```
 
 This one fact (`tenant_isolation` filters on `tenant_id`) is what `implementation-plan` and `implement-approved-slice` build against later instead of assuming the export query is safe.
+
+---
+
+### Aside: lock the boundaries (`invariants-and-non-goals`, strict surface)
+
+Not opt-in here: `task-init` added it in Turn 1 because the surface is multi-tenant isolation, and `approve-plan` reviews the plan against this file in Turn 5.
+
+**What you send:**
+
+```text
+Run @commands/invariants-and-non-goals.md for the same task folder.
+```
+
+**What you get back (abbreviated):**
+
+```markdown
+### Artifact changes
+- `INVARIANTS_AND_NON_GOALS.md`: `APPLIED` (created)
+- `TASK_STATE.md`: `APPLIED` (Constraints / things that must not change)
+- `IMPLEMENTATION_PLAN.md`: `APPLIED` (`## Constraints`)
+
+### Command transcript
+- Invariant I-1: every exported row belongs to the requesting session's tenant; the `tenant_isolation` policy from DB_CONTEXT.md applies unchanged.
+- Invariant I-2: no service-role client on the export path.
+- Non-goals: background export jobs, formats other than CSV.
+
+### Handoff
+Run now: /capture-references
+Mode: Ask
+Work complexity: LOW
+Reason: Boundaries are locked; ground the CSV library before the row-cap decision.
+```
 
 ---
 
@@ -204,7 +256,7 @@ Tags: csv-export
 
 ```markdown
 ### Artifact changes
-- `REFERENCES.md`: `PROPOSED` (new entry under `## csv-export`)
+- `REFERENCES.md`: `APPLIED` (new entry under `## csv-export`)
 
 ### Command transcript
 - Fetched and summarized 1 source; 0 duplicates.
@@ -250,12 +302,13 @@ Open questions: row cap for a synchronous export, CSV format details, filename c
 
 ```markdown
 ### Artifact changes
-- `DECISIONS.md`: `PROPOSED` (three new entries)
-- `TASK_STATE.md`: `PROPOSED` (Canonical decisions)
+- `DECISIONS.md`: `APPLIED` (three new entries)
+- `TASK_STATE.md`: `APPLIED` (Canonical decisions)
 
 ### Command transcript
 - Asked three targeted questions; user answered all three.
-- No conflict with existing invariants (none locked yet for this task).
+- No conflict with I-1 or I-2 in INVARIANTS_AND_NON_GOALS.md.
+- Strict mode: each decision carries an unwind note.
 
 ### Handoff
 Run now: /implementation-plan
@@ -269,12 +322,15 @@ The three entries added to `DECISIONS.md`:
 ```text
 D-1: Row cap for synchronous export
 Exports above 5,000 filtered rows are rejected with a message asking the user to narrow the filter. No background job in this pass; YAGNI until a real customer hits the cap.
+Unwind: raise or remove the cap in one constant; no data changes.
 
 D-2: CSV format
 Comma-delimited, UTF-8 with a BOM (so Excel opens it without a mangled first column), one header row matching the visible list columns.
+Unwind: the format lives in one builder function; files already downloaded are unaffected.
 
 D-3: Filename convention
 `invoices-<tenant-slug>-<YYYY-MM-DD>.csv`, generated at request time.
+Unwind: rename at request time; nothing stores the name.
 ```
 
 ---
@@ -291,18 +347,18 @@ Run @commands/implementation-plan.md for the same task folder.
 
 ```markdown
 ### Artifact changes
-- `IMPLEMENTATION_PLAN.md`: `PROPOSED` (2 slices + Execution waves)
-- `TASK_STATE.md`: `PROPOSED` (phase -> planning)
+- `IMPLEMENTATION_PLAN.md`: `APPLIED` (2 slices + Execution waves; promoted the impact-analysis block in `## Current gaps`)
+- `TASK_STATE.md`: `APPLIED` (phase -> planning)
 
 ### Command transcript
 - Sliced into an API-side export and a UI-side button, in that order (the button needs a real endpoint to call).
 - Execution waves: Wave 1 [Slice 01]; Wave 2 [Slice 02]. A pure chain, not a fan-out.
 
 ### Handoff
-Run now: /approve-plan
-Mode: Agent
+Run now: /test-strategy
+Mode: Plan
 Work complexity: LOW
-Reason: Plan is complete with no open clarification markers; lock it before execution begins.
+Reason: Strict mode: test-strategy is the next missing step before approve-plan (ADR-0162).
 ```
 
 The two slices, abbreviated:
@@ -311,18 +367,48 @@ The two slices, abbreviated:
 ### Slice 01: CSV export API route
 Scope: app/api/invoices/export/route.ts, lib/csv/build-invoice-export.ts
 Depends-on: none
+Decision-ref: D-1, D-2, D-3
 Work complexity: MEDIUM (touches the RLS-scoped query and a new dependency)
-Exit criteria: WHEN a request is made with an authenticated tenant session and a filter under 5,000 rows the API SHALL stream back a CSV matching D-2 and D-3, scoped to that tenant's invoices only.
+Exit criteria: WHEN a request is made with an authenticated tenant session and a filter under 5,000 rows the API SHALL stream back a CSV matching D-2 and D-3, scoped to that tenant's invoices only (I-1), through the tenant-scoped client with no service-role bypass (I-2).
 
 ### Slice 02: Export button on the invoices list
 Scope: app/invoices/InvoiceListToolbar.tsx
 Depends-on: Slice 01
+Decision-ref: D-1
 Work complexity: LOW (UI wiring against an already-tested endpoint)
 Exit criteria: WHEN the user clicks "Export CSV" on a filtered list the UI SHALL call the Slice 01 endpoint with the active filters and trigger a file download, or SHALL show the row-cap message when the API rejects the request.
 
 ## Execution waves
 Wave 1: [01]
 Wave 2: [02]
+```
+
+---
+
+### Aside: pick the tests that matter (`test-strategy`, strict surface)
+
+**What you send:**
+
+```text
+Run @commands/test-strategy.md for the same task folder.
+```
+
+**What you get back (abbreviated):**
+
+```markdown
+### Artifact changes
+- `TEST_STRATEGY.md`: `APPLIED` (created)
+- `IMPLEMENTATION_PLAN.md`: `APPLIED` (`## Validation expectations`)
+
+### Command transcript
+- Stack read from package.json: Vitest for the route and the CSV builder (already a dev dependency), React Testing Library for the toolbar.
+- Critical: a second tenant's session gets only its own rows (I-1). Regression: the 5,001st row is rejected before streaming starts (D-1).
+
+### Handoff
+Run now: /approve-plan
+Mode: Agent
+Work complexity: LOW
+Reason: Plan, invariants and test strategy are on disk; lock the baseline before execution begins.
 ```
 
 ---
@@ -339,11 +425,15 @@ Run @commands/approve-plan.md for the same task folder.
 
 ```markdown
 ### Artifact changes
-- `IMPLEMENTATION_PLAN.md`: `APPLIED` (status: approved)
+- `IMPLEMENTATION_PLAN.md`: `APPLIED` (`## Approval log`: APPROVED)
 - `TASK_STATE.md`: `APPLIED` (approval stamp; recommended next step: Slice 01)
+- `projects/acme__invoicer/OUTCOMES.jsonl`: `APPLIED` (two `plan_review` lines, one per pass)
 
 ### Command transcript
-- Cross-checked slices against DECISIONS.md: no gap.
+- Cross-checked slices against DECISIONS.md and INVARIANTS_AND_NON_GOALS.md: no gap.
+- Blinded review, pass 1 (one `verify-against-rubric` pass carrying the plan path and the locked-decisions rubric, nothing else): RESOLVED, every slice traces to a locked decision.
+- Blinded review, pass 2 (multi-tenant isolation is a strict surface, so a second pass runs against INVARIANTS_AND_NON_GOALS.md as its rubric): RESOLVED, Slice 01 carries I-1 and I-2 in its exit criteria and no slice reaches a non-goal.
+- No human turn; ESCALATED is the only exit that would have reached you (ADR-0208).
 - Execution waves are a pure chain (max wave size 1), so routing goes to implement-approved-slice, not implement-fleet.
 
 ### Handoff
@@ -374,15 +464,16 @@ Approved slice only: Slice 01 (CSV export API route).
 
 ### Command transcript
 - Grounded in: REFERENCES.md `csv-stream-lite streaming API` entry (the streaming Transform signature).
-- Query reuses the existing tenant-scoped Supabase client, so the `tenant_isolation` RLS policy from DB_CONTEXT.md applies unchanged; no service-role bypass added.
+- Query reuses the existing tenant-scoped Supabase client, so the `tenant_isolation` RLS policy from DB_CONTEXT.md applies unchanged; no service-role bypass added (I-2).
 - Ran the route against a local seed with 3 tenants; each request returned only its own tenant's rows.
 - Row-cap (D-1) enforced with a 5,001st-row check before streaming starts, so a large export fails fast instead of after downloading most of it.
+- The critical and regression tests from TEST_STRATEGY.md pass.
 
 ### Handoff
 Run now: /api-runtime-verify
 Mode: Agent
 Work complexity: LOW
-Reason: Slice 01 touched an HTTP route handler; the backend-runtime-gate floor (ADR-0127) requires a real PASS before the slice can close.
+Reason: Slice 01 touched an HTTP route handler; the backend-runtime-gate floor (ADR-0127) asks for a real PASS.
 ```
 
 ---
@@ -403,7 +494,7 @@ Tag: concern
 
 ```markdown
 ### Artifact changes
-- `TASK_STATE.md`: `PROPOSED` (one line appended to `## Observations`)
+- `TASK_STATE.md`: `APPLIED` (one line appended to `## Observations`)
 
 ### Command transcript
 - Appended verbatim; no other section touched.
@@ -426,7 +517,7 @@ The line added to `TASK_STATE.md`:
 
 ### Aside: verify the route at runtime (`api-runtime-verify`, floor-required)
 
-Slice 01 touched an HTTP route handler, so the backend-runtime-gate floor (ADR-0127) requires a real `api-runtime-verify` PASS before `slice-closure` can close it. Unlike the four opt-in commands above, skipping this one is not an option for this task shape.
+Slice 01 touched an HTTP route handler, so the backend-runtime-gate floor (ADR-0127) asks for a real `api-runtime-verify` PASS. Without one, `slice-closure` still closes the slice and records `unverified: no api-runtime-verify PASS` in its closing notes (ADR-0203). On a tenant-scoped route that is a debt worth not taking: this run is the only runtime evidence that the isolation holds.
 
 **What you send:**
 
@@ -441,8 +532,8 @@ Routes: GET /api/invoices/export (authenticated, tenant-scoped)
 
 ```markdown
 ### Artifact changes
-- `API_RUNTIME_VERIFY.md`: `PROPOSED` (create)
-- `TASK_STATE.md`: `PROPOSED` (one line: backend-runtime-gate floor PASS)
+- `API_RUNTIME_VERIFY.md`: `APPLIED` (created)
+- `TASK_STATE.md`: `APPLIED` (one line: backend-runtime-gate floor PASS)
 
 ### Command transcript
 - Probed GET /api/invoices/export as an authenticated tenant session under the 5,000-row cap: 200, `text/csv`, streamed body matches D-2 and D-3.
@@ -454,17 +545,41 @@ Routes: GET /api/invoices/export (authenticated, tenant-scoped)
 PASS. Every route in scope was reached and every acceptance behavior is `observed`.
 
 ### Handoff
+Run now: /branch-commit --apply
+Mode: Agent
+Work complexity: LOW
+Reason: Gate PASS. The commit-evidence floor needs Slice 01 committed before slice-closure can close it.
+```
+
+---
+
+### Aside: commit the slice (`branch-commit --apply`, commit-evidence floor)
+
+`slice-closure` refuses to close a slice with no commit behind it, so each slice is committed before its closure. `--apply` shows the staged content first and then creates the local commit in the same turn. A local commit reaches nobody outside this checkout, so it needs no second confirmation (ADR-0163, ADR-0200).
+
+**What you get back (abbreviated):**
+
+```markdown
+### Artifact changes
+- Commit a1b2c3d on `task/csv-export-for-invoices` (HEAD before: 7e0d4c1; tree shown and tree committed: 5b9e2f0, equal)
+
+### Command transcript
+- Branch read from `git branch --show-current`: `task/csv-export-for-invoices`, not the default branch.
+- Displayed the commit message, `git status --porcelain`, and the full staged diff before committing (two new files, both staged).
+- Commit message: `feat(invoices): add tenant-scoped CSV export route`.
+
+### Handoff
 Run now: /slice-closure
 Mode: Ask
 Work complexity: LOW
-Reason: Backend-runtime-gate floor satisfied with a real PASS; ready for a closure judgment.
+Reason: Slice 01 has its commit; ready for a closure judgment.
 ```
 
 ---
 
 ## Turn 7: close slice 01 (`slice-closure`)
 
-Imagine a day passes here. The Handoff below switches to **Mode B** (cross-session) because the next command opens in a new chat tomorrow.
+Imagine a day passes here, and tomorrow's work opens in a new chat. The Handoff below is still **Mode A**. Mode B, the form with a `Resume context:` block, is for context that was actually lost: after auto-compaction, or when the next command is `resume-from-state`. A new chat needs no pasted summary, because `resume-from-state` reads it back from `TASK_STATE.md`.
 
 ### What you send
 
@@ -481,7 +596,7 @@ Run @commands/slice-closure.md for the same task folder.
 ### Command transcript
 - Exit criteria for Slice 01 verified against the recorded test run; all met.
 - Backend-runtime-gate floor (ADR-0127): `api-runtime-verify` PASS cited (`API_RUNTIME_VERIFY.md`).
-- Commit-evidence floor (ADR-0084, ADR-0100): work is committed on `task/csv-export-for-invoices` (commit a1b2c3d); classified ready to close.
+- Commit-evidence floor (ADR-0084, ADR-0100): commit a1b2c3d cited on `task/csv-export-for-invoices`; classified ready to close.
 
 ### Deliverable status (per ADR-0056)
 - "Export respects tenant row-level security": done (Slice 01 evidence above).
@@ -492,23 +607,19 @@ Run now: /implement-approved-slice
 Mode: Agent
 Work complexity: LOW
 Reason: Slice 02 is UI wiring against an already-verified endpoint.
-Resume context:
-- Task: projects/acme__invoicer/active/2026-07-08_csv-export-for-invoices/
-- Workspace: ~/code/invoicer, branch task/csv-export-for-invoices
-- Current slice: Slice 02, Export button on the invoices list
-- Key decisions: D-1 (5,000-row cap), D-2 (CSV format), D-3 (filename)
 ```
 
 ---
 
 ## Turn 8: execute slice 02 (`implement-approved-slice`)
 
-### What you send (new session, pasted from the Resume context above)
+### What you send (new session)
 
 ```text
-Run @commands/implement-approved-slice.md for the same task folder.
-Approved slice only: Slice 02 (Export button on the invoices list).
+Run @commands/resume-from-state.md for projects/acme__invoicer/active/2026-07-08_csv-export-for-invoices/.
 ```
+
+`resume-from-state` reads `TASK_STATE.md`, finds Slice 02 as the recommended next step, and continues into `implement-approved-slice` in the same turn. What comes back is that command's output.
 
 ### What you get back (abbreviated)
 
@@ -525,7 +636,7 @@ Approved slice only: Slice 02 (Export button on the invoices list).
 Run now: /web-runtime-verify
 Mode: Agent
 Work complexity: LOW
-Reason: Slice 02 touched a servable frontend component; the web-runtime-gate floor (ADR-0127) requires a real PASS before the slice can close.
+Reason: Slice 02 touched a servable frontend component; the web-runtime-gate floor (ADR-0127) asks for a real PASS.
 ```
 
 ---
@@ -545,11 +656,11 @@ Realization: double-clicking "Export CSV" fires two overlapping requests. The bu
 
 ```markdown
 ### Artifact changes
-- `DECISIONS.md`: `PROPOSED` (D-4)
-- `TASK_STATE.md`: `PROPOSED` (Recommended next step unchanged: still implement-approved-slice, same slice)
+- `DECISIONS.md`: `APPLIED` (D-4)
+- `TASK_STATE.md`: `APPLIED` (Recommended next step unchanged: still implement-approved-slice, same slice)
 
 ### Command transcript
-- Validated against D-1 through D-3: compatible, no conflict. (No `INVARIANTS_AND_NON_GOALS.md` exists for this task; minimal mode never creates one unless a slice actually needs it.)
+- Validated against D-1 through D-3 and against I-1 and I-2 in INVARIANTS_AND_NON_GOALS.md: compatible, no conflict.
 - Small enough for Slice 02 to absorb without re-planning.
 
 ### Handoff
@@ -564,6 +675,7 @@ The entry added to `DECISIONS.md`:
 ```text
 D-4: mid-task adjustment, disable the export button while a request is in flight
 Before: the button had no loading state. Now: it disables and shows a spinner from click until the response resolves, to prevent duplicate downloads on a double-click. Trigger: observed during manual testing of Slice 02.
+Unwind: remove the loading state; no data effect.
 ```
 
 Slice 02 is then re-run with the same command shown above. The abbreviated output looks the same shape, with one more line in `### Command transcript`: "Added disabled and loading state per D-4."
@@ -572,7 +684,7 @@ Slice 02 is then re-run with the same command shown above. The abbreviated outpu
 
 ### Aside: verify the button at runtime (`web-runtime-verify`, floor-required)
 
-Slice 02 touched a servable frontend component in a project with `next build` and `next dev` scripts, so the web-runtime-gate floor (ADR-0127) requires a real `web-runtime-verify` PASS before `slice-closure` can close it.
+Slice 02 touched a servable frontend component in a project with `next build` and `next dev` scripts, so the web-runtime-gate floor (ADR-0127) asks for a real `web-runtime-verify` PASS. As with Slice 01, a closure without it would record `unverified: no web-runtime-verify PASS` rather than stop.
 
 **What you send:**
 
@@ -587,8 +699,8 @@ Page: /invoices
 
 ```markdown
 ### Artifact changes
-- `WEB_RUNTIME_VERIFY.md`: `PROPOSED` (create)
-- `TASK_STATE.md`: `PROPOSED` (one line: web-runtime-gate floor PASS)
+- `WEB_RUNTIME_VERIFY.md`: `APPLIED` (created)
+- `TASK_STATE.md`: `APPLIED` (one line: web-runtime-gate floor PASS)
 
 ### Command transcript
 - Served the build on an ephemeral port; page identity confirmed against `/invoices` before any other check.
@@ -600,11 +712,13 @@ Page: /invoices
 PASS. Every acceptance behavior is `observed`.
 
 ### Handoff
-Run now: /slice-closure
-Mode: Ask
+Run now: /branch-commit --apply
+Mode: Agent
 Work complexity: LOW
-Reason: Web-runtime-gate floor satisfied with a real PASS; ready for a closure judgment.
+Reason: Gate PASS. The commit-evidence floor needs Slice 02 committed before slice-closure can close it.
 ```
+
+`branch-commit --apply` commits Slice 02 the same way it committed Slice 01 (commit e4f5a6b). The output has the same shape, so it is not repeated.
 
 ---
 
@@ -625,7 +739,7 @@ Run @commands/slice-closure.md for the same task folder.
 ### Command transcript
 - Both slices verified against recorded exit-criteria evidence.
 - Web-runtime-gate floor (ADR-0127): `web-runtime-verify` PASS cited (`WEB_RUNTIME_VERIFY.md`).
-- Commit-evidence floor (ADR-0084, ADR-0100): committed on task/csv-export-for-invoices (commit e4f5a6b).
+- Commit-evidence floor (ADR-0084, ADR-0100): commit e4f5a6b cited on `task/csv-export-for-invoices`.
 
 ### Deliverable status (per ADR-0056)
 - "Export respects tenant row-level security": done.
@@ -635,7 +749,7 @@ Run @commands/slice-closure.md for the same task folder.
 Run now: /review-hard
 Mode: Ask
 Work complexity: MEDIUM
-Reason: Both slices are closed; a pre-PR risk pass is due before packaging.
+Reason: Both slices are closed; strict mode requires a review-hard pass before packaging.
 ```
 
 ---
@@ -652,7 +766,7 @@ Run @commands/review-hard.md for the same task folder.
 
 ```markdown
 ### Artifact changes
-- `TASK_STATE.md`: `PROPOSED` (note the review verdict)
+- `TASK_STATE.md`: `APPLIED` (review verdict noted under Risks to watch)
 
 ### Command transcript
 - Reviewed both slices against the real diff, not just the plan.
@@ -681,7 +795,7 @@ Not opt-in in the sense of the four commands above, but light enough here to sho
 
 ```markdown
 ### Artifact changes
-- `TASK_STATE.md`: `PROPOSED` (one-line pointer to the sweep result)
+- `TASK_STATE.md`: `APPLIED` (`## Latest sweep` pointer to the sweep result)
 
 ### Command transcript
 - Diff touches 3 files; 4 bug-class templates matched by file pattern.
@@ -696,16 +810,16 @@ Work complexity: LOW
 Reason: No P0 or P1 findings; the two should-fix items are cheap enough to note as reviewer attention points rather than blocking packaging.
 ```
 
-The should-fix from `review-hard` and the P2 from the sweep both get folded into Slice 02's implementation as a quick follow-up (`implement-slice-complement`, not shown in full here since it repeats the same three-block shape as Turn 8) before packaging.
+The should-fix from `review-hard` and the P2 from the sweep both get folded in as a quick follow-up (`implement-slice-complement`, committed with `branch-commit --apply`; not shown in full here since it repeats the same three-block shape as Turn 8) before packaging.
 
 ---
 
-## Turn 11: package the PR (`pr-package`)
+## Turn 11: package the PR (`pr-package --apply`)
 
 ### What you send
 
 ```text
-Run @commands/pr-package.md for the same task folder.
+Run @commands/pr-package.md --apply for the same task folder.
 Product repo: ~/code/invoicer
 Git base branch for diff: main
 PR title: Add CSV export for filtered invoices
@@ -715,16 +829,19 @@ PR title: Add CSV export for filtered invoices
 
 ```markdown
 ### Artifact changes
-- `PR_PACKAGE.md`: `PROPOSED` (full package)
+- `PR_PACKAGE.md`: `APPLIED` (full package)
+- Pushed `task/csv-export-for-invoices` to `origin`; opened draft PR #128
 
 ### Command transcript
 - Diff computed vs `main`: 4 files changed, 187 insertions.
+- Displayed before acting: the remote `origin` with its URL, the branch, the base, the PR title and the full PR body.
+- Read `.github/workflows/`: no workflow triggered on `pull_request: opened` reaches anyone outside the repository, so the draft opens on the `--apply` authorization alone (ADR-0185, ADR-0200).
 
 ### Handoff
-Run now: /team-update
+Run now: /pr-feedback-ingest
 Mode: Ask
 Work complexity: N/A
-Reason: Optional: let the team know the PR is open, otherwise wait for review.
+Reason: Stopping here: marking the draft ready for review notifies reviewers, an audience that is not bounded. That step and the merge are yours; run this once review comments land.
 ```
 
 The relevant excerpt from `PR_PACKAGE.md`:
@@ -747,7 +864,7 @@ Reviewer attention points:
 
 ## Turn 12: PR feedback (`pr-feedback-ingest`)
 
-A teammate reviews the PR and leaves two comments.
+You mark the draft ready for review. A teammate reviews it and leaves two comments.
 
 ### What you send
 
@@ -771,7 +888,7 @@ Feedback (paste):
 | F1 | human | filename should reflect the active filter, not just the date | should-fix | yes | app/api/invoices/export/route.ts | fix |
 | F2 | human | wrong import style for csv-stream-lite | nit | yes | lib/csv/build-invoice-export.ts | fix |
 
-- `TASK_STATE.md`: `PROPOSED` (note both items as pending micro-deltas)
+- `TASK_STATE.md`: `APPLIED` (both items noted as pending micro-deltas)
 
 ### Command transcript
 - Both items are corrective under the existing contract; neither reopens D-1 through D-4.
@@ -811,7 +928,11 @@ Merge evidence: PR #128 merged into main, commit 9f1c2ab.
 ### Command transcript
 - Done-conditions: implementation complete (met), review complete (met, review-hard + sweep), team approval (met, PR review), merge (met, commit 9f1c2ab).
 - Platform runtime floors (ADR-0127): web-runtime-gate and backend-runtime-gate both satisfied by the PASSes cited at Slice 01 and Slice 02 closure.
+- Test-strategy consumption: the critical and regression rows in TEST_STRATEGY.md each map to a test file.
 - Commit-evidence floor (ADR-0084, ADR-0100): satisfied by the merge commit.
+
+### Unverified floors
+none
 
 ### Deliverable reconcile (per ADR-0056)
 - Both requested deliverables are done; nothing unreconciled.
@@ -828,9 +949,9 @@ Reason: Task is closed and archived; nothing to run next unless new scope shows 
 ## How to use this walkthrough
 
 1. Read [`WORKFLOW_OPERATING_SYSTEM.md`](./WORKFLOW_OPERATING_SYSTEM.md) once for the mode policy and the output contract. Everything above follows it.
-2. Pick a starting command from the [README.md](./README.md) command catalog, or a one-liner from [`COMMAND_PROMPT_STUBS.md`](./COMMAND_PROMPT_STUBS.md).
-3. Follow each Handoff. Same session: paste the compact Mode A block. New session or after a long break: paste the full `Resume context:` from Mode B, the way Turn 7 to Turn 8 does above.
-4. Persist a `PROPOSED` artifact when you agree with it. A wrong plan is discarded by ignoring the response, not by reverting a commit.
+2. Pick a starting command from the [command catalog](./docs/command-catalog.html), or a one-liner from [`COMMAND_PROMPT_STUBS.md`](./COMMAND_PROMPT_STUBS.md).
+3. Follow each Handoff. In the same attended session you do not paste anything: the model continues into the `Run now:` command in the same turn, and stops only for a reason it names (ADR-0186). In a new session, start with `resume-from-state`, the way Turn 8 does above: it reads `TASK_STATE.md` and continues from the recorded next step.
+4. Nothing waits for you to persist it. Each command writes its task files as it runs and lists them in `### Artifact changes`. To correct a file that came out wrong, run the owning command again with the right facts, or run `state-reconcile` when several files disagree.
 5. If you lose the thread, run `resume-from-state` (new session) or `what-next` (same session). Both read `TASK_STATE.md` first.
 
 ## Optional shortcuts (same contracts)
@@ -838,7 +959,7 @@ Reason: Task is closed and archived; nothing to run next unless new scope shows 
 | Situation | Command |
 |-----------|---------|
 | Lost the thread mid-task | `resume-from-state` |
-| Unsure which command fits | `what-next` (or `workflow-guide` for phase context on the next few steps) |
+| Unsure which command fits | `what-next` (declare `Operating mode: teaching` for phase context and ranked candidates) |
 | Several artifacts disagree with each other | `state-reconcile` |
 | Small `TASK_STATE.md` catch-up only | `sync-task-state` |
 | Review changes the product direction, not just the code | `post-review-pivot` |
@@ -850,24 +971,8 @@ Routing authority stays in `WORKFLOW_OPERATING_SYSTEM.md` under `## Command role
 
 ## Other task shapes
 
-The 13-turn flow above is one shape among several. `WORKFLOW_OPERATING_SYSTEM.md` under `## Recommended workflows by task shape` defines shapes for other kinds of work:
-
-- **Small but disciplined task**: skip broad discovery, one slice, close cleanly.
-- **Contract-sensitive task**: adds explicit `resolve-contract-gaps` and `contract-signoff` gates.
-- **Docs-only task**: no production code change; skip impact-analysis, invariants, and test-strategy.
-- **Test-only task**: test additions only; mandatory test-strategy; no behavior change.
-- **Refactor task**: mandatory test-strategy and review-hard, with an explicit stop rule for inadequate coverage.
-- **Concrete observed failure**: start with `incident-triage`, then branch on the recommended fix size.
-- **Resume after interruption**, **recovery from confusion**, **near delivery**, **after PR review (corrective)**, **after review requests a real pivot**: each has its own short sequence.
-
-Each shape names its mandatory commands and its re-classification rule (when to abandon the shape for a different one). See [ADR-0009](./docs/adr/0009-task-shape-system.md) for the reasoning behind the system.
+This walkthrough is one shape among several. [`wos/workflow-shapes.md`](./wos/workflow-shapes.md) defines the others (small tasks, docs-only, test-only, refactors, incident response, resuming after an interruption, review pivots), each with the commands it needs and the rule for switching to a different shape. [ADR-0009](./docs/adr/0009-task-shape-system.md) has the reasoning.
 
 ## Operating modes
 
-The same task can run under one of three operating modes, orthogonal to editor mode and to the task shape above:
-
-- **`minimal`**: trims optional ceremony for small tasks. Optional files (impact-analysis, invariants-and-non-goals, test-strategy) are never created unless the task later needs them. The Handoff contract is unchanged.
-- **`strict`**: adds ceremony for high-risk tasks. `invariants-and-non-goals`, `test-strategy`, and `review-hard` become mandatory; decisions include rollback notes.
-- **`teaching`**: prefaces responses with a short phase explanation, for a user still learning the workflow. Routes through `workflow-guide` on ambiguity instead of `what-next`.
-
-Mode is declared at `task-init` time and recorded in `TASK_STATE.md` under `## Resume notes` as `Operating mode: <name>`. This walkthrough used no named mode, which behaves closest to `minimal`. See [ADR-0008](./docs/adr/0008-operating-modes.md) for the reasoning behind the design.
+The three operating modes are `minimal`, `strict` and `teaching`, declared at `task-init` and recorded in `TASK_STATE.md` under `## Resume notes`. [`wos/operating-modes.md`](./wos/operating-modes.md) defines each one, and [ADR-0008](./docs/adr/0008-operating-modes.md) has the reasoning. This walkthrough runs `strict`, because the export reads a tenant-scoped table.

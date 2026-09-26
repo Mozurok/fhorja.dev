@@ -15,6 +15,8 @@ WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 cd "$WORK"
 mkdir -p .wos
+# The emitter refuses a --task-root that is not a task folder (ADR-0224), so the fixture is one.
+printf '# TASK_STATE\n' > TASK_STATE.md
 
 cat > DOC.md <<'FIX_EOF'
 # DOC

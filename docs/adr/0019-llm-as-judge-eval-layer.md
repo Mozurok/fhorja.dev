@@ -1,6 +1,6 @@
 # ADR-0019: LLM-as-judge eval layer
 
-- **Status**: Accepted (the `judge.py` Python implementation is superseded by [ADR-0033](./0033-verify-against-rubric-stateless-subagent.md); the eval-scenario concept and locked-rubric layer remain in force)
+- **Status**: Accepted (the `judge.py` Python implementation is superseded by [ADR-0033](./0033-verify-against-rubric-stateless-subagent.md); the eval-scenario concept and locked-rubric layer remain in force); the mechanism is superseded by [ADR-0170](./0170-retire-the-judge-py-eval-layer.md), which retired `judge.py` itself.
 - **Date**: 2026-05-18
 - **Tags**: evals, observability, llm-as-judge, optional-second-pass, locked-rubric
 

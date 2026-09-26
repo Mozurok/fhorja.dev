@@ -129,7 +129,9 @@ fi
 
 reasons=()
 for f in "${files[@]}"; do
-  if [[ "$f" =~ [[:space:]] ]]; then
+  if [[ -z "$f" ]]; then
+    reasons+=("empty argument -> escalate (pass one non-empty path per argument)")
+  elif [[ "$f" =~ [[:space:]] ]]; then
     reasons+=("malformed argument -> escalate (pass one path per argument): $f")
   elif [[ "$f" =~ $TEST_RE ]]; then
     reasons+=("test-or-eval path -> escalate (D12): $f")

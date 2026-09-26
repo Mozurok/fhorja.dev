@@ -1,0 +1,74 @@
+[
+  {
+    "index": 0,
+    "refuted": false,
+    "reason": "Verified the exact citation at commands/design-spec-review.md:54 outside the shared blocks. Independent grep confirms the four section references at lines 48, 54, 56 and 57. COMPONENT_SPEC sections 3, 9, 12 and 14 have the referenced meanings, but SCREEN_SPEC sections 3, 9 and 12 are Spacing observed, Error states and Decisions, and SCREEN_SPEC has no section 14. The command explicitly accepts screens and requires all checks. Directory searches of commands, wos, docs/adr and evals found no screen-specific mapping that repairs these references. The screen template is also deliberately preserved by eval scenario 86.",
+    "corrected_claim": ""
+  },
+  {
+    "index": 1,
+    "refuted": true,
+    "reason": "The citation at commands/design-spec-review.md:58 is accurate and outside shared blocks, but it does not say Check 11 applies ONLY to HIGH-complexity or heavily styled targets. Lines 60, 66 and 105 explicitly require the check whenever a source is available. These instructions can all be followed: compare any source-backed target, including the HIGH-complexity case emphasized at line 58. Eval scenario 66 tests the HIGH-complexity case without declaring LOW-complexity targets ineligible. The claim turns a sufficient trigger into an exclusive restriction; inconsistent emphasis is not a verified contradictory gate.",
+    "corrected_claim": ""
+  },
+  {
+    "index": 2,
+    "refuted": false,
+    "reason": "Verified commands/verify-against-rubric.md:3, 20 and 37 accept post-signoff contract verification, and ADR-0033 explicitly includes that use at line 37. Independent grep confirms the unconditional needs_revision route at command lines 57 and 112. commands/implement-slice-complement.md:40 and 43 require an existing anchor slice and IMPLEMENTATION_PLAN.md, and line 57 prohibits inventing slice ids. The pre-planning contract-signoff stage is established in the spec's phase gates and default workflow. Thus an accepted contract verification can return needs_revision before the target command's prerequisites exist. Directory searches found no artifact-specific exception to this route.",
+    "corrected_claim": ""
+  },
+  {
+    "index": 3,
+    "refuted": true,
+    "reason": "The short worker instruction and fleet reason field are present, but the alleged missing evidence requirement exists in a higher-priority contract. WORKFLOW_OPERATING_SYSTEM.md:726 requires every orchestrator-dispatched worker to conform to commands/_shared/worker-contract.md. That contract's output shape at line 46 requires evidence entries containing file:line, a URL or a transcript excerpt, one per claim affecting substrate. ADR-0034:28 likewise mandates the canonical worker shape. The fleet explicitly references this contract at line 18. The spec at lines 511-515 and the command's grounding block also govern persisted claims. Isolation from task history does not waive these output requirements, and the local instruction cannot narrow away the spec's requirement.",
+    "corrected_claim": ""
+  },
+  {
+    "index": 4,
+    "refuted": false,
+    "reason": "Verified the exact citation at commands/inventory-snapshot.md:48 outside shared blocks and independently found the related use at commands/design-bootstrap.md:47. Opened the exact official source supplied: https://developers.figma.com/docs/figma-mcp-server/tools-and-prompts/#get_libraries. Its get_libraries section states that the result contains subscribed and available libraries with library metadata; its separate search_design_system section describes component discovery, and get_metadata describes layer metadata. get_libraries alone therefore cannot provide every component name, node id and variant set required by this step and the inventory DoD. Directory searches found the same assumption repeated in wos/command-roles.md, not an intervening component-enumeration step.",
+    "corrected_claim": ""
+  },
+  {
+    "index": 5,
+    "refuted": true,
+    "reason": "The cited paths and input at commands/inventory-snapshot.md:39 are present outside shared blocks. However, line 39 explicitly establishes the inventory path as an input and labels the named location a default. ADR-0030:19 describes the canonical WOS-UI structure as produced by default, with the inventory among those artifacts at line 24. Reading the later canonical filename as shorthand for that input is consistent with both declarations; neither Step 1 nor Step 8 explicitly says to ignore a supplied path or create a second inventory. The proposed resolved-variable wording could clarify this, but the claimed unconditional override is not established. Refuted under the required uncertainty default.",
+    "corrected_claim": ""
+  },
+  {
+    "index": 6,
+    "refuted": false,
+    "reason": "Verified commands/atom-audit.md:50 outside shared blocks and templates/COMPONENT_GUIDELINES.md:17: memoization is required for at least five props OR list rendering. The command's explicit sufficient pass condition, memoed OR below the prop threshold, admits an un-memoized list row with fewer than five props even though the same line quotes the list-rendered condition. The required guideline read does not make those two explicit predicates consistent. Independent grep also verified the fleet's prop-count shorthand at commands/atom-audit-fleet.md:104. Directory searches of evals found no dependency on retaining the incorrect sufficient pass condition.",
+    "corrected_claim": "The single-command pass predicate at atom-audit.md:50 contradicts G-01 for un-memoized list-rendered atoms below five props. The fleet also has a shortened prop-count checklist, but it requires reading guidelines_path, so omission there alone does not prove the same false-pass predicate."
+  },
+  {
+    "index": 7,
+    "refuted": false,
+    "reason": "Verified commands/atom-audit.md:52 outside shared blocks. templates/COMPONENT_GUIDELINES.md:45 explicitly permits dynamic styles derived from a Reanimated shared value or a memoized runtime value. Counting all object-literal style occurrences and using zero as the pass condition does not apply that exception. Step 1 requires reading the guideline, leaving a real conflict between the local counting instruction and its source rule. Independent grep verified the same raw count at commands/atom-audit-fleet.md:104. Directory searches of evals found no check requiring the exception to be ignored.",
+    "corrected_claim": ""
+  },
+  {
+    "index": 8,
+    "refuted": true,
+    "reason": "The 44pt shorthand and claimed family sites are present, but the command does not state that this is the sole sufficient pass condition for every platform. commands/atom-audit.md:20 and 47 require checking and parsing the project's COMPONENT_GUIDELINES.md, whose canonical G-04 at templates/COMPONENT_GUIDELINES.md:53 includes both platform floors. The audit template's legend at templates/ATOM_AUDIT.md:30 also explicitly requires 44pt iOS and 48dp Android despite its shortened column name. The design topic loaded for design work repeats both floors at wos/design-system-conventions.md:262. A source-compliant audit cannot pass a 44dp Android target merely because the short checklist mentions 44pt. The supposedly missing platform rule is already supplied by the required sources.",
+    "corrected_claim": ""
+  },
+  {
+    "index": 9,
+    "refuted": true,
+    "reason": "The short a11y checklist and fleet counterpart were independently verified. However, commands/atom-audit.md:47 explicitly requires reading and parsing COMPONENT_GUIDELINES.md, Step 3 says to check each rule, and the quality bar at line 113 requires decisions traceable to that source rule. G-06 at templates/COMPONENT_GUIDELINES.md:73 contains the complete interactive/decorative distinction and both hiding properties. The fleet also starts by reading guidelines_path at line 104. The command's abbreviated question does not explicitly forbid that branch or define role presence as sufficient for passing. The claimed missing decorative check is present in the required guideline, so a local restatement is not necessary to establish the obligation.",
+    "corrected_claim": ""
+  },
+  {
+    "index": 10,
+    "refuted": true,
+    "reason": "The cited line at commands/contract-signoff.md:120 exists outside shared blocks and itself explicitly instructs the model to show current/proposed pairs with a rationale. A Definition of done bullet is an instruction, not an external test unknown to the producer. WORKFLOW_OPERATING_SYSTEM.md:634-636 expressly makes command-specific DoD bullets part of the mandatory output contract. Required output item 2, Exact wording changes recommended, is compatible with that more specific format. Moving or repeating the instruction under Required output is organizational preference, not a missing requirement.",
+    "corrected_claim": ""
+  },
+  {
+    "index": 11,
+    "refuted": true,
+    "reason": "Verified the citation at commands/targeted-questions.md:74 outside shared blocks and independently confirmed the single family hit. The line reinforces the Goal and filtering rules, but the finding identifies no contradictory behavior, unavailable action or unmet output contract. Keeping a concise reminder versus deleting it is an editorial preference. Directory searches of commands and evals did not establish a functional defect caused by the repetition. Refuted as taste under the supplied verification rules.",
+    "corrected_claim": ""
+  }
+]

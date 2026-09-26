@@ -11,7 +11,7 @@ Lazy reference for external integration patterns where the failure modes are rar
 
 Generic resilience patterns assume the failure mode is "the call sometimes fails." External integrations in regulated and quoting contexts have a different failure shape: the call succeeds, returns plausible data, and the data is silently stale, throttled into a degraded path, or detached from the human action that should have authorized it. The blast radius shows up weeks later as a mis-quoted policy, a regulatory finding, or a portal submission with no provable audit trail. Each pattern below names the integration shape, the canonical mitigation, and the bug-class that fires when the mitigation is skipped.
 
-## Pattern 1: CSV cache freshness (FEX Quotes-style ~monthly refresh)
+## Pattern 1: CSV cache freshness (carrier rate sheet, refreshed about monthly)
 
 **Integration shape:** vendor publishes a snapshot file (CSV, XLSX, fixed-width) on a roughly monthly cadence; the app imports the snapshot and quotes off the cached rows until the next refresh.
 

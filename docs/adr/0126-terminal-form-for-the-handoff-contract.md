@@ -61,4 +61,4 @@ The original wording is preserved above rather than rewritten, because the mista
 
 ## Provenance
 
-The run behind this decision is preserved at `projects/bmazurok__fhorja-full-cycle/active/2026-07-30_driver-loop-to-draft-pr/DOGFOOD/run-13/` (gitignored, local), including the driver report and the agent's task memory. The corresponding locked decision is D-72 in that task's `DECISIONS.md`.
+The run behind this decision is preserved in a gitignored local dogfood record, including the driver report and the agent's task memory. Its corresponding locked decision is D-72. The identifying project path is omitted under ADR-0169.

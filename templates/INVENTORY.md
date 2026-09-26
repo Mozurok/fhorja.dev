@@ -28,7 +28,7 @@
 |---|---|---|---|---|---|
 | `Avatar/Default` | atom | `docs/research/components/atoms/avatar.md` | `packages/design-system/src/atoms/Avatar/` | `apps/storybook/stories/atoms/Avatar.stories.tsx` | full traceable |
 | `Button/Primary` | atom | `docs/research/components/atoms/button.md` | `packages/design-system/src/atoms/Button/` | `apps/storybook/stories/atoms/Button.stories.tsx` | full traceable |
-| `Chip/Filter` | atom (proposed) | — | — | — | NEW since last snapshot |
+| `Chip/Filter` | atom (proposed) | - | - | - | NEW since last snapshot |
 | ... | ... | ... | ... | ... | ... |
 
 ## Molecules inventory
@@ -77,5 +77,5 @@ Ordered list of components to document next, derived from inventory delta + prod
 2. Add to Priority queue (above).
 3. Open task: `task-init` with subject `chip-filter__atom-bootstrap`.
 4. `component-spec` writes `docs/research/components/atoms/chip-filter.md`.
-5. `implementation-plan` → `implement-approved-slice` builds code + story.
+5. `implementation-plan` → `approve-plan` → `implement-approved-slice` builds code + story.
 6. Re-run `inventory-snapshot`; row updates from blank → full traceable.

@@ -1,6 +1,6 @@
 # ADR-0014: Cache-friendly command structure (cache-breakpoint marker)
 
-- **Status**: Accepted
+- **Status**: Accepted; the `<!-- cache-breakpoint -->` marker and its lint gate are superseded by [ADR-0139](./0139-retire-the-cache-breakpoint-marker.md); the cache-friendly structure advice stands
 - **Date**: 2026-05-15
 - **Tags**: context-engineering, prompt-caching, cache-breakpoint, lint-enforced-contract, tool-integration-signal
 

@@ -92,11 +92,22 @@ def main(argv):
     strict = "--strict" in argv
     files = [a for a in argv if not a.startswith("--")]
     if files:
-        text = open(files[0], encoding="utf-8", errors="replace").read()
+        try:
+            text = open(files[0], encoding="utf-8", errors="replace").read()
+        except OSError as exc:
+            sys.stderr.write(f"ingest-scan: cannot read {files[0]}: {exc.strerror}\n")
+            return 2
         src = files[0]
     else:
         text = sys.stdin.read()
         src = "(stdin)"
+
+    # Nothing to scan is not a clean scan. Until 2026-09-22 empty input printed
+    # "VERDICT: CLEAN" with exit 0, so a caller whose fetch returned nothing, or whose
+    # pipe broke, recorded the content as scanned. Refuse by name instead.
+    if not text.strip():
+        sys.stderr.write(f"ingest-scan: no content to scan in {src}; nothing was checked\n")
+        return 2
 
     det, adv = scan(text)
 

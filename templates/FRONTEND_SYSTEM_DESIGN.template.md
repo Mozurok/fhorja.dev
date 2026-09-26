@@ -1,6 +1,6 @@
 # FRONTEND_SYSTEM_DESIGN
 
-Template for the `frontend-system-design` command. Fill every section; mark a section `not applicable` with a one-line reason rather than deleting it. Cover web and mobile where the surface spans both. Cite a source for every number or mark it `PROPOSED-pending-baseline`. For `--interview` mode, the same sections map to RADIO (Requirements, Architecture, Data, Interface, Optimizations); write to `FRONTEND_SYSTEM_DESIGN_INTERVIEW.md` instead.
+Template for the `frontend-system-design` command, which writes it as `FRONTEND_SYSTEM_DESIGN.md` in the active task folder. A decision the design needs that `DECISIONS.md` has not locked is labelled `PROPOSED` and routed to `decision-interview`, never asserted. Fill every section; mark a section `not applicable` with a one-line reason rather than deleting it. Cover web and mobile where the surface spans both. Cite a source for every number or mark it `PROPOSED-pending-baseline`. For `--interview` mode, the same sections map to RADIO (Requirements, Architecture, Data, Interface, Optimizations); write to `FRONTEND_SYSTEM_DESIGN_INTERVIEW.md` instead.
 
 - Surface: [feature or screen being designed]
 - Platforms: [web | mobile | both]
@@ -36,7 +36,7 @@ Success metrics:
 [Local vs global vs server-cache state. Real-time sync transport when relevant. Optimistic updates.]
 
 ## 8. Performance
-[Numeric budget. Web: Core Web Vitals (LCP, INP, CLS) + bundle size. Mobile: startup/TTI, frame budget, list performance. State the percentile and the measurement source. Mark unmeasured thresholds PROPOSED-pending-baseline. Reference PERFORMANCE_BUDGET.md when it exists.]
+[Numeric budget. Web: Core Web Vitals (LCP, INP, CLS) + bundle size. Mobile: startup/TTI, frame budget, list performance. State the metric-specific statistic and measurement source: distributions name their percentile, population, and window; rates and ratios name their aggregation window; fixed and snapshot metrics name a concrete maximum, total, per-build, per-frame, configured constant, or binary invariant. Mark unmeasured thresholds PROPOSED-pending-baseline. Reference PERFORMANCE_BUDGET.md when it exists.]
 
 ## 9. Accessibility and i18n
 [Conformance target. Keyboard and focus handling. Localization needs. Reference ACCESSIBILITY_AUDIT.md when it exists.]

@@ -2,7 +2,7 @@
 name: stale-doc-sync-reference
 category: meta
 default-severity: P2
-cwe: [CWE-1059]
+cwe: []  # CWE-1059 removed 2026-09-21: MITRE marks it Prohibited for mapping, "primarily a quality issue with no direct security implications", which is exactly what this class is. No CWE fits, and 37 templates already carry an empty list.
 languages: [markdown]
 file-patterns: ["packages/wos-engine/internal/wos/**/*.md", "packages/wos-engine/internal/commands/**/*.md", "packages/wos-engine/internal/docs/**/*.md"]
 perspectives: [maintainer, operator]

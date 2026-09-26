@@ -14,7 +14,7 @@ Duration scale, easing curves, semantic role aliases (enter/exit/microinteractio
 
 Animation library (Reanimated vs Animated core vs CSS transitions), duration scale (linear/exponential), how reduced-motion is honored (instant snap vs cross-fade fallback).
 
-## 3. Tokens — Duration
+## 3. Tokens: Duration
 
 | Token | Value (ms) | Use |
 |---|---|---|
@@ -24,7 +24,7 @@ Animation library (Reanimated vs Animated core vs CSS transitions), duration sca
 | `motion.duration.slow` | 400 | page transition |
 | `motion.duration.deliberate` | 600 | onboarding moments |
 
-## 4. Tokens — Easing
+## 4. Tokens: Easing
 
 | Token | Curve | Use |
 |---|---|---|
@@ -66,7 +66,7 @@ const scale = withTiming(0.97, {
 
 ## 9. Do not
 
-- Hardcode duration (`duration: 200`) — use `tokens.motion.duration.*`
+- Hardcode duration (`duration: 200`); use `tokens.motion.duration.*`
 - Animate without reduced-motion check on transforms/translates
 - Use `LayoutAnimation` for anything more than container resize (not configurable on Reanimated path)
 - Run animations on JS thread when Reanimated UI-thread variants exist

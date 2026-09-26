@@ -1,0 +1,50 @@
+[
+  {
+    "index": 0,
+    "refuted": false,
+    "reason": "The exact line is commands/graphql-contract-review.md:49, outside every matched shared-block extent. The supplied official September 2025 specification explicitly requires request errors, including parse, validation, and variable-input failures, in the top-level errors entry with no data entry; it also requires execution errors there. The command's reference-grounding rule and ADR-0066 do not supply an exception to its system-or-500-only restriction. Sources checked: https://spec.graphql.org/September2025/#sec-Errors and https://spec.graphql.org/September2025/#sec-Request-Error-Result.",
+    "corrected_claim": "Step 4 incorrectly restricts the GraphQL protocol errors entry to system or 500-class faults. Preserve the business-result modeling guidance while explicitly respecting GraphQL request-error and execution-error responses. This concerns GraphQL response semantics; the supplied specification does not establish HTTP status-code mappings."
+  },
+  {
+    "index": 1,
+    "refuted": false,
+    "reason": "commands/self-critique-and-revise.md:38 and :48 require the hyphenated slice pattern, while commands/implementation-plan.md:67 and commands/implement-approved-slice.md:50,70 name underscore-separated slice files. The latter explicitly creates that form. Directory searches confirmed the two command sites; the broad SLICES/*.md description and rubric do not reconcile the detector's explicit rejection instruction. ADR-0021 repeats the older hyphen form rather than providing underscore compatibility.",
+    "corrected_claim": "The required-input and artifact-detector patterns exclude the underscore-separated slice filenames produced by the current workflow. Verified command sites are self-critique-and-revise.md:38,48. The same older pattern also appears in wos/command-roles.md:898 and accepted ADR-0021:23; the ADR is historical decision text, not an editable command fix target."
+  },
+  {
+    "index": 2,
+    "refuted": false,
+    "reason": "The current-cache rules at commands/stack-currency-check.md:63,156 test framework coverage and age, while :71 and :87-89 expressly permit dated unverified entries. Neither rule requires Status: verified. Version discovery occurs at :65 after the early no-op rule. ADR-0056 confirms unverified rows are intentional output, and the spec's general verification requirement does not resolve this contradictory local cache predicate. A directory search also found the same age-only decision in commands/impact-analysis.md:85.",
+    "corrected_claim": "Fresh unverified cache entries are not excluded from the no-op predicate, and matching the active framework version is not an explicit cache-hit requirement. Verified family scope: stack-currency-check.md:63,111,156 expresses the early-return rule, and impact-analysis.md:85 triggers verification only for absent or older-than-30-day framework cache entries, without checking verification status or version. Both decisions must distinguish usable verified entries from merely recent records."
+  },
+  {
+    "index": 3,
+    "refuted": false,
+    "reason": "commands/stack-currency-check.md:71 explicitly allows all requested frameworks to be unverified, but :74 still directs removal of the blocker after caching. The same removal appears at :45 and :114; a commands-directory search confirmed those three sites. No result-dependent condition accompanies them. WORKFLOW_OPERATING_SYSTEM.md:433 requires verification before planning, which makes the local unconditional removal and routing inconsistent with the normative prerequisite.",
+    "corrected_claim": "The command's local state-update contract removes Currency check required and routes to implementation-plan without conditioning those actions on the recorded verification results. Confirmed sites are stack-currency-check.md:45,74,114. This is a contradictory state-update instruction, not evidence that downstream execution gates have actually been bypassed."
+  },
+  {
+    "index": 4,
+    "refuted": false,
+    "reason": "commands/extract-foundations-from-screens.md:39 accepts a selected foundation subset, but :63 explicitly renders each of the four areas and :112 requires accounting for every raw value. Steps 2 and 4 likewise enumerate all four without applying selection. Reading the complete command and searching the spec, wos topics, ADRs, and evals found no rule reconciling those explicit scope instructions; eval 29 only exercises the default extraction.",
+    "corrected_claim": "The command has contradictory extraction scope: its optional input selects foundations, while its rendering and completeness rules unconditionally cover all four. Resolve the selected set and apply it to the affected steps and output requirements. The verified defect is the written contract conflict; no executable extractor was run to claim an observed extra file write."
+  },
+  {
+    "index": 5,
+    "refuted": true,
+    "reason": "The finding assumes existing locked rows must be refreshed with every new screen's counts and provenance. Step 3 locks existing mappings, Step 5 skips foundations with no new entries or review items, and Required output item 3 and the definition of done specifically require provenance for new tokens. More decisively, evals/scenarios/29-extract-foundations-from-screens.md:55,65,69 requires additive changes only and explicitly treats re-sourcing locked rows as failure. The proposed metadata-refresh behavior would violate that existing eval contract.",
+    "corrected_claim": ""
+  },
+  {
+    "index": 6,
+    "refuted": true,
+    "reason": "The line at commands/extract-foundations-from-screens.md:66 is command-owned and does repeat Step 3's locked-mapping invariant. Both instructions agree, and no incorrect behavior or broken contract follows from the repetition. Choosing whether a short protective rule should also appear after the procedure is editorial preference, not a checkable functional defect under this verification rubric.",
+    "corrected_claim": ""
+  },
+  {
+    "index": 7,
+    "refuted": false,
+    "reason": "templates/OUTCOMES.schema.md:65 requires a latest reopen event to yield reopened, and commands/task-close.md:84 produces that event. scripts/portfolio-review.sh:245,288-295 recognizes only revert before falling back to the previous outcome's merge_status. Executing its unchanged embedded Python with an in-memory merged outcome followed by reopen printed merged=1 and reverted=0; the revert control printed merged=0 and reverted=1. The unchanged load_outcomes function from scripts/build-portfolio-board.py produced the same incorrect reopened-case counts. No repository ledger or board was written.",
+    "corrected_claim": "The reopen-status defect is a verified family: commands/portfolio-review.md:51 omits reopened; scripts/portfolio-review.sh:245,288-295,312-316 misclassifies and omits it; scripts/build-portfolio-board.py:48,155-162,283-289 repeats the same classification and display omission. Both readers retain the preceding outcome's status for a later reopen, contrary to the schema. Preserve the existing latest-revert behavior while adding reopen handling and reporting."
+  }
+]

@@ -22,7 +22,7 @@ An active task whose session produced at least one hard-won lesson outside a sli
 
 ## Expected behavior
 
-- WHEN the session produced a reusable, generalizable lesson not already captured, the command appends exactly that entry to `LEARNINGS.md`, anchored per `templates/LEARNINGS.md` `## Entry shape`, marked PROPOSED (Ask) or APPLIED (Agent).
+- WHEN the session produced a reusable, generalizable lesson not already captured, the command appends exactly that entry to `LEARNINGS.md`, anchored per `templates/LEARNINGS.md` `## Entry shape`, marked APPLIED in every mode (ADR-0199).
 - WHEN a candidate matches an existing entry (same anchor and lesson), it is reported as "already captured" and not re-appended.
 - WHEN a candidate is one-off task status, a plan restatement, or a decision already in `DECISIONS.md`, it is dropped with a one-line reason.
 - WHEN a lesson is genuinely cross-project, it is flagged as a pointer to `USER_MEMORY.md` and is NOT written by this command.

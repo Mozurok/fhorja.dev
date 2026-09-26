@@ -25,6 +25,16 @@ An implemented web slice with an acceptance behavior and a built `dist/`. Three 
 
 The command serves on an ephemeral port, asserts identity first (recovering through variation (a) with the re-bind quoted), quotes each battery check's real output, classifies with the 8-code taxonomy, and returns PASS only when identity held, no blocking finding exists, and every acceptance behavior is `observed`; variation (b) returns FAIL routing the fix; variation (c) shows `n/a (tool absent)` for Lighthouse without inventing a score.
 
+## Pass criteria
+
+1. The command serves on an ephemeral port, never a fixed one, and asserts identity before running any battery check.
+2. In variation (a) it recovers from the port collision and quotes the re-bind, rather than failing dry.
+3. Each battery check quotes its real output; no PASS is asserted without shown output (ADR-0048).
+4. Findings are classified with the 8-code taxonomy.
+5. PASS is returned only when identity held, no blocking finding exists, and every acceptance behavior is `observed`; variation (b) returns FAIL and routes the fix.
+6. In variation (c) an absent Lighthouse reports `n/a (tool absent)` rather than a fabricated score.
+7. The command routes the fix instead of editing product code.
+
 ## Failure modes caught
 
 - A PASS asserted without shown output (ADR-0048 violation).

@@ -12,7 +12,7 @@ Load this file when:
 - a contributor is reviewing locked decisions, invariants, or non-goals of the multi-repo design
 - the spec stub for `## Multi-repo support (v1)` is not enough to resolve a multi-repo question (rare for single-repo tasks)
 
-Single-repo tasks (the default, no `## Repositories` section in `SOURCE_OF_TRUTH.md`) do not need this file. The 7 deferred commands listed in the spec stub also do not need it: they ignore the `## Repositories` section in v1.
+Single-repo tasks (the default, no `## Repositories` section in `SOURCE_OF_TRUTH.md`) do not need this file. The 4 deferred commands listed in the spec stub also do not need it: they ignore the `## Repositories` section in v1.
 
 ---
 
@@ -50,7 +50,7 @@ Example:
   role: frontend
 ```
 
-The presence of this section is the discriminator between single-repo and multi-repo task modes. Commands that support multi-repo branch their behavior on it; commands that do not support multi-repo (the 7 deferred commands listed in the spec stub) ignore it and operate single-repo-default.
+The presence of this section is the discriminator between single-repo and multi-repo task modes. Commands that support multi-repo branch their behavior on it; commands that do not support multi-repo (the 4 deferred commands listed in the spec stub) ignore it and operate single-repo-default.
 
 ### Schema: `## Workspace` section in SOURCE_OF_TRUTH.md (opt-in, ADR-0074)
 
@@ -85,7 +85,7 @@ The presence of this section marks a task as worktree-isolated. It is written by
 
 ### Invariants (I1 to I4)
 
-- **I1**: Single-repo task contract is preserved. Existing `SOURCE_OF_TRUTH.md` without a `Repositories` section continues working unchanged in all 53 commands.
+- **I1**: Single-repo task contract is preserved. Existing `SOURCE_OF_TRUTH.md` without a `Repositories` section continues working unchanged in all <!-- count:commands -->98<!-- /count --> commands.
 - **I2**: Slice atomicity per workspace. `implement-approved-slice` operates on exactly one repo per invocation. No concurrent multi-workspace execution.
 - **I3**: GitHub PR atomicity. One PR per repo. No cross-repo PR fiction.
 - **I4**: One `TASK_STATE.md` per task folder, even when multi-repo. No per-repo TASK_STATE files. Same applies to `DECISIONS.md` and `IMPLEMENTATION_PLAN.md`.
@@ -95,7 +95,7 @@ The presence of this section marks a task as worktree-isolated. It is written by
 - **NG1**: Concurrent `implement-approved-slice` invocations across repos. Sequential per-repo execution only.
 - **NG2**: Cross-repo refactor automation. The user coordinates manually.
 - **NG3**: Repository discovery or auto-detection. The user explicitly lists repos in `SOURCE_OF_TRUTH.md`.
-- **NG4**: Multi-repo support in the 7 deferred commands. Punted to G4 v2.
+- **NG4**: Multi-repo support in the 4 deferred commands. Punted to G4 v3.
 - **NG5**: Per-repo `TASK_STATE.md`, `DECISIONS.md`, or `IMPLEMENTATION_PLAN.md`. Task-level memory is shared.
 
 ### Decision table (runtime behavior)

@@ -1,0 +1,62 @@
+[
+ {
+  "expect": "what-next",
+  "prompt": "Qual o proximo comando? Responde rapido, sem analise longa, so me diz o que rodar agora."
+ },
+ {
+  "expect": "where-we-at",
+  "prompt": "Tenho 5 slices no plano, algumas feitas outras nao. Quero um balanco do que ja esta pronto, do que falta e do que sobra para terminar o trabalho proposto."
+ },
+ {
+  "expect": "workflow-guide",
+  "prompt": "Sou novo nesse fluxo de trabalho. Explica por que esse e o passo certo agora e quais sao os proximos dois ou tres, quero entender a logica das fases."
+ },
+ {
+  "expect": "im-stuck",
+  "prompt": "Ja rodei revisao tres vezes e fico voltando para as mesmas perguntas. Acho que estou em loop e nem sei se o problema e tecnico, de processo ou de escopo."
+ },
+ {
+  "expect": "resume-from-state",
+  "prompt": "Voltei depois de duas semanas parado, estou em um chat novo e nao lembro onde parei. Reconstroi o contexto da task."
+ },
+ {
+  "expect": "sync-task-state",
+  "prompt": "Acabei de terminar e fechar a slice 3. Atualiza a memoria operacional da task para refletir isso."
+ },
+ {
+  "expect": "state-reconcile",
+  "prompt": "O TASK_STATE diz que a slice 2 esta aberta, o plano diz que fechou, e os arquivos mostram que foi implementada. Os artefatos estao se contradizendo."
+ },
+ {
+  "expect": "compact-task-memory",
+  "prompt": "O TASK_STATE ficou enorme depois de 6 slices e esta pesado para carregar toda sessao. Quero enxugar mantendo as decisoes canonicas."
+ },
+ {
+  "expect": "review-hard",
+  "prompt": "Implementei a feature. Antes de fechar, quero uma revisao de risco real de correcao e manutencao, nao comentario cosmetico."
+ },
+ {
+  "expect": "security-review",
+  "prompt": "Essa mudanca mexe em autenticacao e em um endpoint publico que trafega PII. Quero uma passada focada em ameaca, authz e dependencia."
+ },
+ {
+  "expect": "repo-consistency-sweep",
+  "prompt": "Antes de empacotar o PR, quero varrer o codigo atras de desvio de convencao e classes de bug conhecidas que a revisao humana costuma perder."
+ },
+ {
+  "expect": "design-spec-review",
+  "prompt": "Implementei o componente Button do design system. Quero conferir se bate com o spec documentado: variantes, estados, tokens e acessibilidade."
+ },
+ {
+  "expect": "task-init",
+  "prompt": "Vou comecar um trabalho novo do zero. Cria a pasta oficial da task e a memoria base."
+ },
+ {
+  "expect": "problem-framing",
+  "prompt": "Tenho uma ideia meio vaga de melhorar o onboarding. Nao sei se e o problema certo nem por onde comecar, e nem criei task ainda."
+ },
+ {
+  "expect": "impact-analysis",
+  "prompt": "Preciso entender o raio de impacto dessa mudanca antes de planejar: o que ela toca, que contratos afeta e onde estao os riscos de runtime."
+ }
+]

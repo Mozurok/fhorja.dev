@@ -8,13 +8,13 @@
 Verify that the a11y-audit persona produces a whole-surface WCAG 2.2 conformance ledger at a named level rather than an ad hoc spot-check, and that its load-bearing guardrails hold:
 - Every applicable success criterion for the named level gets a row; none is silently omitted.
 - Each row is labeled `machine` | `manual` | `delegated` | `n/a`; no machine verdict is asserted for a manual-judgment criterion.
-- Contrast (1.4.3 and 1.4.11) is delegated to color-contrast-architect, never recomputed.
+- Contrast (1.4.3 and 1.4.11) is never recomputed. At least three documented pairs route to color-contrast-architect; smaller sets use supplied pair evidence or a compatible route to obtain it.
 - When no checker tool report is supplied, machine-checkable rows are `MANUAL-REVIEW`, never a guessed PASS or FAIL.
 - Surface type is labeled and honored (web ARIA and DOM vs native accessibility API); no DOM assumption on a native surface.
 - A no-UI-surface task returns a SKIP/NO_OP verdict, not an empty ledger.
 
 ## Setup
-An active task with a SOURCE_OF_TRUTH.md naming a React Native (native-mobile) screen as the surface in scope, an AA target, and no checker tool report attached. A sibling task in the same project has a docs-only change with no UI surface.
+An active task with a SOURCE_OF_TRUTH.md naming a React Native (native-mobile) screen as the surface in scope, at least three documented contrast pairs, an AA target, and no checker tool report attached. A sibling task in the same project has a docs-only change with no UI surface.
 
 ## Input prompt (turn 1: audit a native screen, no checker report)
 "Run a11y-audit on the Checkout screen. Target AA. No axe/Lighthouse run yet."
@@ -40,3 +40,12 @@ An active task with a SOURCE_OF_TRUTH.md naming a React Native (native-mobile) s
 - Contrast is recomputed inline instead of delegated to color-contrast-architect.
 - The native screen is audited against DOM/ARIA assumptions.
 - The docs-only task gets a fabricated empty ledger instead of a SKIP/NO_OP.
+
+## Small-pair evidence route
+
+Repeat the surface audit with one or two documented contrast pairs, no contrast report, and no
+Figma inputs for component-spec. Contrast rows remain `PENDING` with the missing pair-specific
+checker result or measured evidence named, and Handoff routes to `targeted-questions`. Do not
+invent another pair, recompute contrast, or route into a command whose inputs are absent. When
+component-spec's required inputs exist, that extraction route is valid; supplied pair evidence
+may instead be cited directly in the delegated rows.

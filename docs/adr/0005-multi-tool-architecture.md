@@ -1,6 +1,6 @@
 # ADR-0005: Multi-tool architecture (canonical commands → generated skills)
 
-- **Status**: Accepted
+- **Status**: Accepted; the user-level mirror destinations are superseded in part by [ADR-0228](./0228-skills-install-where-each-tool-reads-them.md), which makes `~/.cursor/skills/` opt-in. The canonical-source rule and the generator stand.
 - **Date**: 2026-05-08
 - **Tags**: multi-tool, agent-skills, canonical-source, code-generation, distribution
 

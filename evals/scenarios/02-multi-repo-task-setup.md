@@ -51,7 +51,7 @@ Repositories:
 - All identifiers are lowercase, hyphenated, and unique (the prompt provides valid identifiers; the task should preserve them, not transform them).
 - Roles use the canonical vocabulary from the spec's multi-repo schema: `backend`, `frontend`, `shared`, `infra`, `mobile`, `other`. No invented roles like `api`, `ui`, `lib`.
 - The proposed `SOURCE_OF_TRUTH.md` does **not** also have an "active codebase / repo" single-repo field replicating one of the entries (in multi-repo mode, the per-repo schema replaces the single-repo field for those 3 repos).
-- `### Handoff` block ends the response. `Run now:` is one of `impact-analysis`, `targeted-questions`, or `decision-interview` (typical post-init). adaptive handoff block starts with `Run @commands/<next>.md` and includes the active task folder path on its own line.
+- `### Handoff` block ends the response. `Run now:` names a real `commands/` basename and matches the recorded `Escalations:` line: `implementation-plan` when it reads `none` (the default per ADR-0184 and ADR-0207), or the first command an escalation adds. In Mode B the `Resume context:` body carries the active task folder path.
 
 ## Pass criteria
 

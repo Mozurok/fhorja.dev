@@ -8,7 +8,7 @@
 
 Validates that the `human-in-the-loop-audit-missing` bug class fires when an agentic workflow contains a human-in-the-loop step (e.g. an operator manually submitting a form via a third-party carrier portal) but the surrounding code emits neither an intent log ("agent is about to take action X at timestamp T") nor an outcome log ("action X completed with result Y at timestamp T'"). Without both legs of the audit pair, the workflow is unauditable: there is no way to reconstruct who did what, when, or whether the manual step succeeded.
 
-This exercises the bug-class detector against a Right-Quote-style workflow where a human-shaped agent manually submits a quote through a carrier portal and a confirmation number is returned out-of-band.
+This exercises the bug-class detector against a quote-submission workflow where a human-shaped agent manually submits a quote through a carrier portal and a confirmation number is returned out-of-band.
 
 ## Setup
 
@@ -29,8 +29,8 @@ Run @commands/repo-consistency-sweep.md
 
 Focus: bug-classes/human-in-the-loop-audit-missing
 Fixtures:
-  - app/workflows/right-quote-submit.fixtureA.ts
-  - app/workflows/right-quote-submit.fixtureB.ts
+  - app/workflows/quote-submit.fixtureA.ts
+  - app/workflows/quote-submit.fixtureB.ts
 ```
 
 ## Expected response shape
@@ -60,7 +60,7 @@ Fixtures:
 
 ## Notes
 
-- The Right-Quote shape -- agent prepares the request, human submits via carrier portal, confirmation comes back out-of-band -- is the canonical pattern for this bug class. Any workflow where a non-deterministic human action sits between two code regions needs the same intent+outcome pair.
+- The quote-submission shape -- agent prepares the request, human submits via carrier portal, confirmation comes back out-of-band -- is the canonical pattern for this bug class. Any workflow where a non-deterministic human action sits between two code regions needs the same intent+outcome pair.
 - The intent log MUST be emitted before the manual step, not after, so that crashes during the manual step still leave a forensic record of what the agent was about to do.
 - The outcome log MUST carry the externally-returned identifier (confirmation number, ticket ID, transaction reference) so reconciliation against the third-party system is possible without screen-scraping.
 

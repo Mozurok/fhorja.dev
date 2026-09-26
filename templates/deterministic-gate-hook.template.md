@@ -44,21 +44,21 @@ When this gate is wired and passing, `implement-approved-slice` may record "dete
 
 ## 4. Bounded retry cap (required for a Stop-hook hold-until-pass loop)
 
-A `Stop` hook that blocks until the gate passes MUST bound its retries, or a persistently failing gate loops forever. Cap consecutive blocks and escalate to the human on the cap (the same block-then-escalate rule the autonomous-run governor enforces, `wos/autonomous-track.md` D11, generalized to a normal interactive turn per `wos/gate-conditions.md`). Claude Code already overrides a Stop hook after 8 consecutive blocks; make the cap explicit so the escalation is deliberate and visible:
+A `Stop` hook that blocks until the gate passes MUST bound its retries, or a persistently failing gate loops forever. Cap consecutive blocks. On the cap, record the failure with the captured output and stop blocking; the next command routes the fix. A ceiling records its state and proceeds, and does not ask for human input (ADR-0201). Claude Code already overrides a Stop hook after 8 consecutive blocks; make the cap explicit so the stop is deliberate and visible:
 
 ```bash
-# Bounded retry: count consecutive blocks; escalate (stop blocking) on the cap.
+# Bounded retry: count consecutive blocks; record the failure and stop blocking on the cap.
 GATE_CAP="${WOS_GATE_CAP:-5}"
 COUNT_FILE=".wos-gate-retries"
 n=$(cat "$COUNT_FILE" 2>/dev/null || echo 0)
 if scripts/wos-gate.sh; then rm -f "$COUNT_FILE"; exit 0; fi   # passed: clear and allow stop
 n=$((n + 1)); echo "$n" > "$COUNT_FILE"
 if [ "$n" -ge "$GATE_CAP" ]; then
-  echo "Gate failed $n times (cap $GATE_CAP). Escalating to human; not blocking further." >&2
-  rm -f "$COUNT_FILE"; exit 0   # stop blocking; hand the decision to the human
+  echo "Gate failed $n times (cap $GATE_CAP). Recording the failure; not blocking further. Route the fix from the output above." >&2
+  rm -f "$COUNT_FILE"; exit 0   # stop blocking; the failure and its output are the record
 fi
 echo "Gate failed (attempt $n/$GATE_CAP); blocking turn until it passes." >&2
 exit 2
 ```
 
-Without the cap, a hook that always exits 2 on failure spins until the host's hard limit. The cap makes the escalation a deliberate, surfaced decision instead of a silent runaway.
+Without the cap, a hook that always exits 2 on failure spins until the host's hard limit. The cap makes the stop a deliberate, recorded outcome instead of a silent runaway.

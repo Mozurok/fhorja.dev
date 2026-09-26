@@ -14,7 +14,7 @@ Icon library source, supported sizes, stroke/fill convention, semantic-to-icon m
 
 Library chosen (Lucide / Phosphor / custom set), stroke vs filled default, default size, naming convention (Figma name vs library name).
 
-## 3. Tokens — Size scale
+## 3. Tokens: Size scale
 
 | Token | Value | Use |
 |---|---|---|
@@ -36,7 +36,7 @@ Library chosen (Lucide / Phosphor / custom set), stroke vs filled default, defau
 | `danger` | `AlertOctagon` | paired with `color.state.danger` |
 | `info` | `Info` | paired with `color.text.secondary` |
 
-Extend per product. Every icon used in UI must have a semantic entry; ad-hoc icon imports are flagged by the `icon-not-semantic` bug class.
+Extend per product. Every icon used in UI must have a semantic entry; no global bug class flags ad-hoc icon imports, so `icon-not-semantic` is a candidate project-local class (`projects/<client>__<project>/bug-classes/`, see `wos/bug-classes/_index.md`).
 
 ## 5. Stroke / fill convention
 

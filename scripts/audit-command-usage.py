@@ -7,7 +7,9 @@ Counts mentions of each command in:
   - git log of Fhorja repo (commit messages)
   - projects/*/active|archive/*/TASK_STATE.md mentions
 
-Output: CSV at _internal/command-usage-audit-2026-06.csv
+Output: CSV at _internal/command-usage-audit-2026-06.csv when _internal/ exists; otherwise
+.local/command-usage-audit-2026-06.csv. Both are maintainer-local and gitignored, and the
+script says on stderr which one it wrote. Pass a path as argv[1] to override.
 Per Epic C.1 of Fhorja improvement plan 2026-06-03.
 
 Usage:
@@ -24,7 +26,14 @@ import csv
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-OUTPUT = sys.argv[1] if len(sys.argv) > 1 else str(REPO_ROOT / "_internal" / "command-usage-audit-2026-06.csv")
+if len(sys.argv) > 1:
+    OUTPUT = sys.argv[1]
+elif (REPO_ROOT / "_internal").is_dir():
+    OUTPUT = str(REPO_ROOT / "_internal" / "command-usage-audit-2026-06.csv")
+else:
+    OUTPUT = str(REPO_ROOT / ".local" / "command-usage-audit-2026-06.csv")
+    print(f"note: _internal/ is absent; writing to {OUTPUT} instead (maintainer-local, gitignored)", file=sys.stderr)
+os.makedirs(os.path.dirname(OUTPUT) or ".", exist_ok=True)
 LOOKBACK_DAYS = int(sys.argv[2]) if len(sys.argv) > 2 else 60
 CONFIG_DIR = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
 PROJECTS_DIR = CONFIG_DIR / "projects"

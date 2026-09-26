@@ -24,7 +24,7 @@ A user brings a fuzzy objective with no task folder yet, for example: "I think o
 
 - `problem-framing` does not jump to a task. It asks one clarifying question at a time (purpose, where the drop-off is, what success looks like), prefers multiple choice, and confirms each brief section before continuing.
 - It proposes 2-3 candidate framings or approaches with a one-line trade-off each and a recommendation.
-- It writes a five-field `BRIEF.md` (PROPOSED in Ask, APPLIED in Agent) at the project root, then recommends `task-init` as the only next command.
+- It writes a five-field `BRIEF.md` (written and marked APPLIED in every mode, ADR-0199) at the project root, then recommends `task-init` as the only next command.
 - A second run on an already-clear, one-sentence objective (or a hotfix) returns a NO_OP and routes straight to `task-init`, with no manufactured questions; a run while an active task already exists returns a NO_OP routed to `what-next` (not `task-init`, which would duplicate the task).
 
 ## Failure modes (a FAIL looks like)

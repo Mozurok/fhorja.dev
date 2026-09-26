@@ -9,7 +9,8 @@ appending the printed line to a project's OUTCOMES.jsonl is the caller's job
 Two modes:
 
 1. Outcome mode (default): derive a task's cycle-time phases, merge status,
-   sweep counts, and deliverable counts from its task-folder artifacts.
+   sweep counts, deliverable counts, and fired escalations from its
+   task-folder artifacts.
 
        compute-task-outcome.py <task-folder> --merge-status merged|waived|not-merged \
            [--evidence "..."] [--close-ts ISO]
@@ -279,6 +280,153 @@ def compute_deliverables(task_state_text):
     return {"done": done, "de_scoped": de_scoped}
 
 
+ESCALATIONS_LINE = re.compile(r"^\s*[-*]?\s*(?:\*\*)?Escalations(?:\*\*)?\s*:",
+                              re.IGNORECASE | re.MULTILINE)
+
+
+def read_pipeline_tier(task_state_text):
+    """The ADR-0025 complexity tier from '## Recommended pipeline'. None when
+    the section is absent or names no single tier. Read-only: this never asks
+    for a new field in TASK_STATE.md, it reads what task-init already writes."""
+    lines = task_state_text.splitlines()
+    section = extract_section(lines, "## Recommended pipeline")
+    if section is None:
+        return None
+    canonical = {"express": "Express", "standard": "Standard",
+                 "disciplined": "Disciplined", "strict": "Strict"}
+
+    def only_tier(text):
+        """The single tier named in text, or None when it names none or more
+        than one. The template ships the unfilled menu
+        '[Express | Standard | Disciplined | Strict]', so taking the first word
+        would read every untouched template as Express and bias the very
+        measurement this field exists to produce."""
+        found = {canonical[w.lower()] for w in re.findall(r"[A-Za-z]+", text)
+                 if w.lower() in canonical}
+        return found.pop() if len(found) == 1 else None
+
+    labelled = re.compile(r"^\s*[-*]?\s*(?:\*\*)?Tier(?:\*\*)?\s*:\s*(.+)$",
+                          re.IGNORECASE)
+    for line in section:
+        m = labelled.match(line)
+        if m:
+            tier = only_tier(m.group(1))
+            if tier is not None:
+                return tier
+    body = "\n".join(section)
+    # B1, 2026-09-17. The body scan reads a tier name out of prose that DENIES it.
+    # Measured: the sentence "the strict-surface disqualifier does not fire" returns
+    # 'Strict', and it wrote that into OUTCOMES.jsonl twice on 2026-09-16 before
+    # anyone noticed. A denial naming TWO labels escapes by accident, because the
+    # single-tier rule needs exactly one; a denial naming one does not.
+    # The guard uses a signal that already exists rather than a new field. ADR-0207
+    # retired the tier labels and replaced them with the escalation count, so a
+    # section carrying an `Escalations:` line was written after the labels stopped
+    # meaning anything. Any tier word in such a section is prose, not a declaration,
+    # and the honest answer is that the field is absent.
+    # Blast radius, measured over 422 sections carrying this heading: 6 carry an
+    # `Escalations:` line and 0 of those 6 currently resolve to a tier, so no
+    # existing record changes. The guard is prospective, which is the point: the
+    # defect it stops was authored twice in one day.
+    # A LABELLED `Tier:` line still wins above, because that IS a declaration.
+    if ESCALATIONS_LINE.search(body):
+        return None
+    # 129 of the 380 task files carrying the section have no labelled line, so
+    # fall back to the section body, under the same single-tier rule.
+    return only_tier(body)
+
+
+# The commands task-init may add as an escalation (commands/task-init.md,
+# Escalation assessment, ADR-0184). The vocabulary is closed, so a name outside it
+# is prose, not an escalation: a freeform line such as "Bounded analysis,
+# single-slice plan" must not record `single-slice`. The script ships in the
+# install payload, where no commands/ tree sits beside it, so the set is fixed
+# here rather than read from disk (the D-3 rule test-install-payload.sh enforces);
+# test-compute-task-outcome-tier.sh checks it against task-init.
+ESCALATION_COMMANDS = {
+    "impact-analysis",
+    "decision-interview",
+    "invariants-and-non-goals",
+    "test-strategy",
+    "review-hard",
+}
+# A task-init line may open with a count ("2.") or a verb ("Adding"); neither
+# is a command, and skipping them keeps the name in command position.
+ESCALATION_LEAD_WORDS = {"add", "adds", "adding", "added"}
+
+
+def strip_parenthesized(text):
+    """Drop every parenthesized span, nested or not. An unclosed '(' drops the
+    rest of the text: a reason that wraps past what was read is still a reason,
+    never a command list."""
+    out = []
+    depth = 0
+    for ch in text:
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            if depth:
+                depth -= 1
+        elif depth == 0:
+            out.append(ch)
+    return "".join(out)
+
+
+def read_escalations(task_state_text):
+    """The fired escalation commands from the `Escalations:` line of
+    '## Recommended pipeline' (ADR-0184, ADR-0207), as a list in written order.
+
+    [] for `Escalations: none`. None when the section or the line is absent,
+    when the line is still the unfilled template menu, or when it names neither
+    `none` nor any command (the degradation rule: unreadable is null, never a
+    guess). Command names only; the parenthesized reasons are dropped.
+
+    A wrapped line is read with its continuation lines (indented, or unbroken
+    prose after a line that is not a list item), up to the next list item,
+    blank line, heading, or header comment. Only the first word of each clause
+    counts as a command, so prose that names a command it did NOT add (`would
+    normally add impact-analysis`) does not read as a fired escalation."""
+    try:
+        lines = task_state_text.splitlines()
+        section = extract_section(lines, "## Recommended pipeline")
+        if section is None:
+            return None
+        start = None
+        for i, line in enumerate(section):
+            if ESCALATIONS_LINE.match(line):
+                start = i
+                break
+        if start is None:
+            return None
+        parts = [section[start].split(":", 1)[1]]
+        for line in section[start + 1:]:
+            s = line.strip()
+            if (not s or s.startswith("#") or s.startswith("<!--")
+                    or re.match(r"^[-*]\s", s)):
+                break
+            parts.append(s)
+        value = " ".join(p.strip() for p in parts).strip()
+        plain = re.sub(r"[`*_]", "", value).strip()
+        if not plain or plain.startswith("["):
+            return None  # empty, or the unfilled template menu
+        if re.match(r"^none\b", plain, re.IGNORECASE):
+            return []
+        fired = []
+        for clause in re.split(r"[,;.:]|\s+(?:and|plus)\s+", strip_parenthesized(plain)):
+            words = clause.split()
+            while words and (words[0].isdigit() or words[0].lower() in ESCALATION_LEAD_WORDS):
+                words = words[1:]
+            if not words:
+                continue
+            name = words[0].lower()
+            ok = name in ESCALATION_COMMANDS
+            if ok and name not in fired:
+                fired.append(name)
+        return fired if fired else None
+    except Exception:
+        return None
+
+
 def build_outcome_record(task_folder, merge_status, evidence, close_ts_arg):
     project, project_root, task = derive_project_task(task_folder)
 
@@ -339,6 +487,8 @@ def build_outcome_record(task_folder, merge_status, evidence, close_ts_arg):
         "merge_evidence": evidence if evidence else None,
         "sweep": sweep,
         "deliverables": deliverables,
+        "tier": read_pipeline_tier(task_state_text),
+        "escalations": read_escalations(task_state_text),
         "source": SOURCE_NAME,
         "run_id": generate_run_id(),
     }
@@ -353,6 +503,93 @@ def build_revert_record(task_slug, project, reason, evidence):
         "task": task_slug,
         "reason": reason,
         "evidence": evidence if evidence else None,
+    }
+
+
+VALID_EXITS = ("RESOLVED", "NO_PROGRESS", "BUDGET", "ESCALATED", "ENVIRONMENT")
+
+
+def build_plan_review_record(task_slug, project, exit_label, rubric, escalated_on):
+    """One `plan_review` line, appended by approve-plan at every approval (ADR-0208).
+
+    This exists because D-1 of the 2026-09-16 plan-approval task ACCEPTED the
+    measured 39-percent plan-rejection rate and replaced the control rather than
+    disputing the number, which moves the burden of proof onto the replacement.
+    A replacement that leaves no trail cannot discharge it. The record carries
+    what was decided and on what, never how certain anything sounded: a
+    confidence value here would be the exact shape ADR-0109 D-2 forbids.
+    """
+    if exit_label not in VALID_EXITS:
+        raise ValueError(
+            "exit must be one of %s (the five in commands/_shared/"
+            "grounded-residue-termination.md), got %r" % (", ".join(VALID_EXITS), exit_label)
+        )
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "event": "plan_review",
+        "ts": now_iso_ms(),
+        "project": project,
+        "task": task_slug,
+        "exit": exit_label,
+        "rubric": rubric,
+        # Bound to the exit that produces it. The schema promises non-null only on
+        # ESCALATED, and a reader sampling this trail filters on that field first: a
+        # residue attached to an exit that continued the chain would read as a stop
+        # that never happened. Found 2026-09-16 by test-plan-review-record.sh check 4.
+        "escalated_on": escalated_on if (escalated_on and exit_label == "ESCALATED") else None,
+        "source": "compute-task-outcome.py",
+        "run_id": generate_run_id(),
+    }
+
+
+def build_review_coverage_record(task_slug, project, units_declared, units_checked,
+                                 criteria, residual, findings):
+    """One `review_coverage` line, appended by review-hard at every verdict (B22).
+
+    WHY THIS EXISTS. A verdict that does not say what it looked at makes a claim
+    about the COMPLEMENT of what it checked, and nothing grounds that. An unbounded
+    claim is falsifiable by one more look, forever, which is how "are you sure?"
+    became an unbounded number of rounds: each one found something real, so no round
+    was ever trustworthy. Measured 2026-09-17 against this session and against the
+    literature: re-asking is repeated sampling, and coverage from repeated sampling
+    keeps rising, so the loop has no natural end. What ends it is a declared scope
+    plus a named residual, because then a challenge has to NAME a unit or a criterion
+    rather than just ask again.
+
+    The rule is the one `commands/_shared/deliverable-reconcile.md` already applies
+    to the deliverable ledger, moved to a second object: a de-scope is allowed,
+    silence is not. So `residual` is REQUIRED and may not be empty. A pass that
+    reached everything writes why that is credible; it does not write nothing.
+
+    No confidence field, deliberately, per ADR-0109 D-2. Coverage is not certainty:
+    it says what was looked at, never how sure the looking felt.
+    """
+    if units_declared < 0 or units_checked < 0:
+        raise ValueError("unit counts must not be negative")
+    if units_checked > units_declared:
+        raise ValueError(
+            "units_checked (%d) exceeds units_declared (%d): a pass cannot check more "
+            "units than it declared, and a scope that grew mid-pass is a scope that was "
+            "never declared" % (units_checked, units_declared)
+        )
+    if not (residual or "").strip():
+        raise ValueError(
+            "residual is required and may not be empty. A de-scope is allowed; silence "
+            "is not. Name what was not checked and why, or state why nothing was left."
+        )
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "event": "review_coverage",
+        "ts": now_iso_ms(),
+        "project": project,
+        "task": task_slug,
+        "units_declared": units_declared,
+        "units_checked": units_checked,
+        "criteria": criteria,
+        "residual": residual.strip(),
+        "findings": findings,
+        "source": SOURCE_NAME,
+        "run_id": generate_run_id(),
     }
 
 
@@ -383,6 +620,27 @@ def build_arg_parser():
     parser.add_argument("--evidence", default=None, help="Citation for the verdict or the revert.")
     parser.add_argument("--reason", default=None, help="Why the revert happened (revert mode).")
     parser.add_argument(
+        "--plan-review",
+        default=None,
+        metavar="TASK_SLUG",
+        help="Switch to plan-review mode; the task whose plan was just reviewed (ADR-0208).",
+    )
+    parser.add_argument("--exit", dest="exit_label", default=None, help="The exit the review took (plan-review mode).")
+    parser.add_argument("--rubric", default=None, help="The locked rubric the review ran against (plan-review mode).")
+    parser.add_argument(
+        "--review-coverage",
+        dest="review_coverage",
+        default=None,
+        metavar="TASK_SLUG",
+        help="Switch to review-coverage mode; the task whose verdict declared this scope (B22).",
+    )
+    parser.add_argument("--units-declared", type=int, default=None, help="Units in the declared scan set.")
+    parser.add_argument("--units-checked", type=int, default=None, help="Units actually read.")
+    parser.add_argument("--criteria", default=None, help="The criterion set applied, named.")
+    parser.add_argument("--residual", default=None, help="What was NOT checked and why. Required; empty is refused.")
+    parser.add_argument("--findings", type=int, default=0, help="How many findings the pass produced.")
+    parser.add_argument("--escalated-on", default=None, help="What the review could not ground; only on ESCALATED.")
+    parser.add_argument(
         "--close-ts",
         dest="close_ts",
         default=None,
@@ -394,6 +652,41 @@ def build_arg_parser():
 def main(argv=None):
     parser = build_arg_parser()
     args = parser.parse_args(argv)
+
+    if args.plan_review is not None:
+        if not args.project or not args.exit_label or not args.rubric:
+            parser.error("--plan-review mode requires --project, --exit and --rubric")
+        try:
+            record = build_plan_review_record(
+                args.plan_review, args.project, args.exit_label, args.rubric, args.escalated_on
+            )
+        except ValueError as exc:
+            parser.error(str(exc))
+        print(json.dumps(record))
+        return 0
+
+    if args.review_coverage is not None:
+        if (not args.project or args.units_declared is None
+                or args.units_checked is None or not args.criteria):
+            parser.error(
+                "--review-coverage mode requires --project, --units-declared, "
+                "--units-checked and --criteria"
+            )
+        try:
+            record = build_review_coverage_record(
+                args.review_coverage, args.project, args.units_declared,
+                args.units_checked, args.criteria, args.residual, args.findings,
+            )
+        except ValueError as exc:
+            # NOT the degradation rule. Every other mode here degrades a bad input to
+            # a null field and exits 0, because a missing cycle-time is better absent
+            # than absent-and-fatal. This mode refuses, because the whole point of the
+            # record is that a verdict with no stated residual does not get written.
+            # Degrading it to a null residual would reproduce the silence it exists to
+            # forbid, in the ledger meant to prove the silence did not happen.
+            parser.error(str(exc))
+        print(json.dumps(record))
+        return 0
 
     if args.revert is not None:
         if not args.project or not args.reason:
@@ -416,6 +709,12 @@ def main(argv=None):
 
     if not args.task_folder or not args.merge_status:
         parser.error("outcome mode requires <task-folder> and --merge-status")
+    # A folder that does not exist is a wrong path, not missing data. Degrading it printed a
+    # well-formed line with project null and exit 0 (measured 2026-09-22), which a caller
+    # appends as a real outcome. The degradation rule below covers a folder that EXISTS and
+    # lacks a field; this refuses the case where there is nothing to read at all.
+    if not os.path.isdir(args.task_folder):
+        parser.error(f"task folder not found: {args.task_folder}")
 
     try:
         record = build_outcome_record(args.task_folder, args.merge_status, args.evidence, args.close_ts)
@@ -434,6 +733,8 @@ def main(argv=None):
             "merge_evidence": args.evidence if args.evidence else None,
             "sweep": None,
             "deliverables": None,
+            "tier": None,
+            "escalations": None,
             "source": SOURCE_NAME,
             "run_id": generate_run_id(),
         }

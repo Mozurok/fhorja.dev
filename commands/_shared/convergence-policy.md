@@ -15,7 +15,6 @@ metadata:
     needs_revision_max_attempts: 1   # default 1; second `needs_revision` -> `max_iterations_reached`
     failed_recoverable_retries: 0    # default 0; only retry when worker emits `recoverable: true`
     timeout_retries: 0               # default 0; timed-out workers do NOT retry by default
-  per_worker_timeout_ms: <integer>   # per-worker cap (separate from run total)
 ```
 
 ## Pattern semantics

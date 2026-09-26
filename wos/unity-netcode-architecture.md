@@ -15,7 +15,7 @@ Multiplayer has no analogue elsewhere in Fhorja on any engine. Nothing here is r
 
 Unity's stated default is unambiguous: "A good way to think about your game architecture at first is to have your game server authoritative by default and make exceptions for reactivity when security and consistency allows it" (https://docs.unity3d.com/Packages/com.unity.netcode.gameobjects@2.7/manual/learn/dealing-with-latency.html).
 
-The published trade-off, verbatim, is a three-way choice rather than a binary:
+Unity publishes a two-row table and a four-row one. Three of those rows, verbatim:
 
 | Model | Unity's stated trade-off |
 | --- | --- |
@@ -63,14 +63,14 @@ Two secondary properties: NetworkVariables "save on bandwidth for you, making su
 
 ## Determinism cannot be assumed
 
-A lockstep or deterministic-rollback design built on Unity's built-in physics is unsound. The practitioner thread at https://discussions.unity.com/t/why-unity-physics-is-not-deterministic/1667389 names four independent causes:
+A lockstep or deterministic-rollback design built on Unity physics is unsound. The practitioner thread at https://discussions.unity.com/t/why-unity-physics-is-not-deterministic/1667389 names four independent causes:
 
 - Floating point: "Floating-point precision issues are not specific to Unity. They stem from fundamental limitations in hardware and software architecture." (ysshetty96)
 - Input ordering: "There is one other source of nondeterminism at play, and that is input ordering for any given simulation step." (DreamingImLatios)
-- Entity order: "Entity order in chunks is fairly easy to break determinism on, and because Unity Physics reads the data in based on chunk order, the calculations are all dependent on this order." (DreamingImLatios)
-- The verification burden of guaranteeing every step.
+- Entity order, in the DOTS Unity Physics package and not built-in PhysX (https://docs.unity3d.com/Packages/com.unity.physics@1.3/manual/index.html): "Entity order in chunks is fairly easy to break determinism on, and because Unity Physics reads the data in based on chunk order, the calculations are all dependent on this order." (DreamingImLatios)
+- The verification burden: "you are now on the hook to verify every single step of the way." (Kurt-Dekker)
 
-The thread's conclusion is that cross-platform determinism is next to impossible without centralized server-side physics simulation, which is the named workaround.
+The thread's conclusion, from meredoth ("next to impossible") and ysshetty96 (run all physics on a single machine and stream the data), is that cross-platform determinism is next to impossible without centralized server-side physics simulation, which is the named workaround.
 
 Provenance caveat, because it changes how much weight this carries: that is a community thread, not Unity documentation, and the quotes are individual participants. It is recorded because no official page in this pass addressed the question and because the consequence is a plan-level constraint. A plan that depends on determinism states which mechanism supplies it (centralized simulation, or a deterministic physics library) rather than assuming the engine does.
 
@@ -78,7 +78,7 @@ Provenance caveat, because it changes how much weight this carries: that is a co
 
 A plan that omits any of these has deferred a decision rather than made one:
 
-1. **Topology and authority model**, chosen against the four-way table above, with the exceptions to server authority named individually rather than as a policy.
+1. **Topology and authority model**, chosen against the authority and latency tables above, with the exceptions to server authority named individually rather than as a policy.
 2. **Framework**, and explicitly whether the feature needs prediction, reconciliation, or lag compensation that the chosen framework does not ship, plus who builds it.
 3. **Per-object ownership** for each networked object: who owns it at spawn, whether ownership transfers, and under which permission.
 4. **Sync primitive per piece of data**, decided by the late-joiner test, not by bandwidth intuition.

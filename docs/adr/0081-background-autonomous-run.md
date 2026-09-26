@@ -1,6 +1,6 @@
 # ADR-0081: Background mode for autonomous-run: detachment without touching the gates
 
-- **Status**: Accepted
+- **Status**: Accepted; timeout guarantee, admission, lifecycle producer and manual fallback superseded by [ADR-0196](./0196-supervised-background-run-lifetime.md)
 - **Date**: 2026-07-04
 - **Tags**: autonomy, background-run, runs-feed-producer, detachment, allowlist-only, measurement-only-notification, additive
 

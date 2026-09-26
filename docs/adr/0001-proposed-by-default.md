@@ -1,6 +1,6 @@
 # ADR-0001: PROPOSED-by-default for task-memory writes
 
-- **Status**: Accepted
+- **Status**: Accepted. Superseded by ADR-0199: the write gate is removed and task-memory is written and marked APPLIED.
 - **Date**: 2026-05-08
 - **Tags**: task-memory, mode-policy, ask-mode, plan-mode, agent-mode, reviewability
 

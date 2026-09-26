@@ -1,6 +1,8 @@
 # BRIEF
 
-Transient, task-scoped intake brief written by `problem-framing` before the task exists. `task-init` reads this file, seeds `SOURCE_OF_TRUTH.md` and the `## Requested deliverables` ledger from it, then moves it into the new task folder. Five fields, one page. Per ADR-0058.
+Transient, task-scoped intake brief written by `problem-framing` at `projects/<client>__<project>/BRIEF.md` before the task exists. `task-init` reads this file, seeds `SOURCE_OF_TRUTH.md` and the `## Requested deliverables` ledger from it, then moves it into the new task folder. Five fields, one page. Per ADR-0058.
+
+A field pre-filled from a supplied spec names its source (file plus section) beside the value. A field filled from a dispatching brief in an unattended run carries the note "from the dispatching brief"; a field nobody supplied stays `[NEEDS CLARIFICATION: <the question>]` rather than a guess.
 
 ## Problem statement
 [One present-tense sentence naming what goes wrong without this work. Not a solution.]

@@ -19,12 +19,12 @@
 |---|---|---|---|---|---|
 | `/` | Splash | shared | no | no | redirects to `/auth/login` if unauthed |
 | `/auth/login` | Login | auth | no | yes | universal entry |
-| `/auth/signup` | Signup | auth | no | yes | — |
+| `/auth/signup` | Signup | auth | no | yes | - |
 | `/auth/onboarding/1` | Onboarding Step 1 | auth | post-signup | no | sequential, no direct link |
 | `/home` | Home | operative | yes | yes | tab default |
-| `/tasks` | Tasks | operative | yes | yes | — |
+| `/tasks` | Tasks | operative | yes | yes | - |
 | `/order/[id]` | Order Detail | operative | yes | yes | id is order UUID |
-| `/settings` | Settings | shared | yes | yes | — |
+| `/settings` | Settings | shared | yes | yes | - |
 | `/super/users` | User Admin | super-admin | super-admin role | no | role-gated |
 
 ## Auth requirement legend
@@ -51,4 +51,4 @@ For each route, the Notes column should reference `SCREEN_MAP.md` for the spec d
 4. Update `navigation.md` if the route enters a navigator (tab, modal stack, drawer).
 5. Implement in code (e.g., Expo Router file structure).
 
-All four edits happen in the same slice. The `route-doc-drift` bug class (if exists) flags when one of the four lags.
+All four edits happen in the same slice. No global bug class flags one of the four lagging; `route-doc-drift` is a candidate project-local class (`projects/<client>__<project>/bug-classes/`, see `wos/bug-classes/_index.md`).

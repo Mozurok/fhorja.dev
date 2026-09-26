@@ -1,6 +1,6 @@
 # ADR-0026: APPLIED-by-default for implement-approved-slice in Agent mode
 
-Status: Accepted (2026-05-26)
+Status: Accepted (2026-05-26). Superseded by ADR-0199: an exception to a removed rule is dead text.
 
 Addendum to: ADR-0001 (PROPOSED-by-default)
 

@@ -1,6 +1,6 @@
 # ADR-0134: task-close's whole-task floor variants join the lazy topic
 
-- **Status**: Accepted
+- **Status**: Accepted; superseded in part by [ADR-0138](./0138-per-consumer-closure-floor-views.md) (the lazy-topic move stands; the topic is no longer loaded whole)
 - **Date**: 2026-08-09
 - **Tags**: closure-floors, context-budget, lazy-loading, task-close, supersedes-part-of-adr-0124, extends-adr-0116
 

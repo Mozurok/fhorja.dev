@@ -1,6 +1,6 @@
 # ADR-0015: Working-memory compaction via `compact-task-memory`
 
-- **Status**: Accepted
+- **Status**: Accepted; decision 4 (`Reversible via git only`) is superseded by [ADR-0141](./0141-pre-compaction-snapshot-replaces-git-reversibility.md); the rest of the compaction contract stands
 - **Date**: 2026-05-15
 - **Tags**: context-engineering, working-memory, compaction, memory-layer, command-introduction
 

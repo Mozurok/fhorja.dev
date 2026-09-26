@@ -3,33 +3,22 @@ name: security-review
 description: |-
   Dedicated security review of the current task changes covering threat modeling, OWASP ASVS L1 checklist pass, auth/authz flow tracing, and dependency/secret scanning reminders. Distinct from review-hard (general risk) and repo-consistency-sweep (pattern matching). Activates when DECISIONS.md, IMPLEMENTATION_PLAN.md, or TASK_STATE.md's Active files in scope names an auth or biometric-scoped change without a completed security-review for that scope. Use when the task touches authentication, authorization, public endpoints, PII handling, crypto, or external integrations. Do not use when no implementation has happened yet or the task has no security surface (pure documentation, internal tooling with no user data). Supports an opt-in `--consistency N` consensus mode (off by default) that runs N independent review passes over the same diff and merges them by consensus, per ADR-0073.
 metadata:
-  category: execution-and-closure
-  primary-cursor-mode: Ask
-  multi-repo-aware: false
-  context-layers-consumed:
-    - memory
-    - retrieved
-  context-layers-produced:
-    - memory
-  tools:
-    - Read
-    - Write
-    - Edit
-    - Bash
-    - Glob
-    - Grep
-  x-wos-profiles:
-    - core
-    - full
-  provenance: first-party
-  suggested-model: claude-opus-4-7
+  category: "audit-and-sweep"
+  primary-cursor-mode: "Ask"
+  multi-repo-aware: "false"
+  context-layers-consumed: "memory, retrieved"
+  context-layers-produced: "memory"
+  tools: "Read, Write, Edit, Bash, Glob, Grep"
+  x-wos-profiles: "core, full"
+  provenance: "first-party"
+  suggested-model: "claude-opus-5-5"
 ---
 > **Output contract, in brief.** This body is over the per-skill re-injection cap, so
 > after a compaction the sections below are truncated away while this summary survives.
 > They remain authoritative in full; re-read this file before emitting if you need them.
 >
 > - `Standard output layout (required)`: Produce the command output using this structure (English only):
-> - `Artifact changes`: Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
+> - `Artifact changes`: Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules. Every listed file...
 > - `Command transcript`: Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
 > - `Handoff`: Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per...
 > - `Definition of done (command output)`: Security surface is explicitly identified (which domains the diff touches).
@@ -45,20 +34,17 @@ This command is distinct from:
 - `repo-consistency-sweep`: which does pattern matching against bug-class templates (does not reason about attack surfaces or auth flows)
 
 Mandatory context bootstrap (before any output):
-<!-- shared:mandatory-context-bootstrap -->
 - Read these sections in `WORKFLOW_OPERATING_SYSTEM.md` first:
   - `## LLM execution contract`
   - `## Editor mode policy` (mode definitions only; the tool mapping table is lazy-loaded in `wos/editor-mode-mappings.md` and needed only for non-Claude-Code tools)
   - `## Global output contract` (including **Adaptive handoff** and **Mode selection rule**)
   - `## Cross-cutting workflow guardrails`
-- **Bootstrap tiers (ADR-0025):** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) may skip `## Editor mode policy` good-fits lists and `## Cross-cutting workflow guardrails` sequencing heuristics, reading only the mode definitions and the core guardrail rules (routing memory, command-less input triage, official command names, material change, no-op). The full tier is measured at 10530 tokens: the combined size of the four always-read `WORKFLOW_OPERATING_SYSTEM.md` sections listed above. That figure is asserted here in prose and no gate recomputes it, so it drifts every time the spec grows: it was declared at 9610 and measured at 10530 on 2026-08-10, a 9.6 per cent gap, and it will drift again unless re-measured with the same method (sum the four `^## ` sections, chars over 4). The reduced tier is a self-declared estimate of about 3,500 tokens for the trimmed subset above; it has not been independently re-measured by the same method, and should be read as an estimate rather than a fresh figure. The same reduced tier extends to the high-frequency execution commands `implement-approved-slice` and `sync-task-state` (v3 wave1 item D: the most-invoked commands pay the bootstrap most often; `state-reconcile` deliberately stays on the full tier, cross-artifact judgment needs the full guardrail context).
-- **Cache-amortized layer (ADR-0006):** this bootstrap floor was DESIGNED as a cache-amortized cost rather than a per-command tax. ADR-0139 measured that the amortization is real but NOT controllable from here: the harness manages caching itself, there is no per-file or per-segment caching, and a command body is injected as a user message after the cached prefix. Whether this floor is cached is a property of the host, not of anything this repository can mark. Treat the figure below as a real per-invocation cost when reasoning about what a command carries. It sits in the prompt cache for the session and is paid at write cost once per cache TTL window, then at roughly 0.1x on cached reads inside that window. Account for it separately from any per-skill Load budget (the generated `.claude/skills/<name>/SKILL.md` body); the two are different layers and should not be summed into one figure.
-- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this same conversation already performed this bootstrap read in an earlier turn that is still VISIBLE in the current context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one instead, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. This is a scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), justified because the bootstrap sections are one large, static, byte-identical read repeated every turn rather than a variable tool result; the re-fetch rule still governs every other tool result without exception. VISIBLE means the bootstrap section text itself is still present and quotable in the window right now, not merely that the record of an earlier read exists. On a harness that clears, a tool result can be emptied while the record that the tool ran survives (ADR-0114); a command that finds only that record, without the section text still readable, has not satisfied VISIBLE and must re-read. Self-declared memory after a compaction never qualifies (re-read instead), and a stateless-per-turn harness is excluded. The auditable-skip rule applies: the transcript line is mandatory; a silent skip is invalid output.
-- **Resolving a relative `wos/<topic>.md`.** Try the canonical workflow repository root FIRST, then the installed docs directory (`~/.claude/workflow-docs/wos/` or `~/.cursor/workflow-docs/wos/`). Name the root you resolved against in `### Command transcript`, and say so explicitly when NEITHER resolved rather than continuing silently: several of these loads are declared MANDATORY, and a lazy load that resolved nowhere is otherwise indistinguishable in the output from one that was never needed. Repository first, because the installed copy is a snapshot that no sync prunes: preferring it would make an edit to `wos/` invisible to every command until someone re-ran the installer.
+- **Bootstrap tiers:** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) plus the high-frequency `implement-approved-slice` and `sync-task-state` (v3 wave1 item D) read the four sections above with two subsections of `## Cross-cutting workflow guardrails` skipped: `### External web access (centralized)` and `### Sequencing heuristics (by phase)`. Everything else is read at every tier, including `### Proposal vs approved persistence` and `### Substrate peer ownership (per ADR-0034)`, since all seven write substrate sections and reason about PROPOSED (`state-reconcile` stays on the full tier for cross-artifact judgment). The full tier is measured at 11678 tokens, the four always-read sections combined; the two skipped subsections are 1,035 of those (measured 2026-09-24), so the reduced tier is about 10,643. The leaf-reviewer tier (`verify-against-rubric`, ADR-0226) reads only `## Global output contract`, measured at 4841 tokens, plus its rubric.
+- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this conversation already read the bootstrap sections in an earlier turn still VISIBLE in the context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. Scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), because these sections are one large, static, byte-identical read repeated every turn; every other tool result still re-fetches. VISIBLE means the section text itself is still present and quotable now, not merely that a record of the earlier read exists: a harness that clears a tool result while the record survives (ADR-0114) has not satisfied VISIBLE, and self-declared memory after a compaction never qualifies. A stateless-per-turn harness is excluded. The transcript line is mandatory; a silent skip is invalid output.
+- **Resolving `WORKFLOW_OPERATING_SYSTEM.md` and a relative `wos/<topic>.md`.** Both resolve the same way: try the canonical workflow repository root FIRST, then the installed docs directory (`~/.claude/workflow-docs/` or `~/.cursor/workflow-docs/`, the spec at that root and topics under its `wos/`). Repository first, because the installed copy is a snapshot no sync prunes; preferring it would hide a `wos/` edit from every command until a reinstall. Name the resolved root in `### Command transcript`, and say so explicitly when NEITHER resolved rather than continuing silently, since several of these loads are MANDATORY.
 - Read additional sections only when relevant to this command's role.
-- Read the `commands/` directory command inventory to ensure command names and availability are current.
 - Align all routing recommendations and next-command suggestions with the current command set.
-- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares that the chain has ended and no following command would be honest, defined in `## Global output contract` (ADR-0126); use it only when nothing honest remains, never to end a chain that has a real next step.
+- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares the chain ended with no honest next step, defined under `### Official command names (routing integrity)` (ADR-0126); use it only then, never to end a chain that has a real next step.
 
 Required inputs:
 - active task folder path
@@ -74,7 +60,7 @@ Operating rules:
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full).
 - **Step 1: Identify security surface.** Read the diff. List which security domains are touched: authentication, authorization, session management, input validation, output encoding, cryptography, PII handling, external integrations, public endpoints, file upload, email/SMS dispatch, and agent, tool, or MCP surfaces (an LLM agent, a tool or function it can call, or a third-party MCP server).
 - **Step 2: Threat model (mini).** For each security domain touched, enumerate: (a) assets at risk, (b) plausible attackers (unauthenticated user, authenticated user of another tenant, insider, bot/scanner, MITM), (c) top 3 attack vectors for this specific change. Keep this concise (not a full formal threat model; just enough to ground the review).
-- **Step 3: OWASP ASVS L1 checklist.** For each relevant ASVS category (from the 17 chapters of ASVS 5.0), check whether the diff satisfies the L1 requirements. Report only FAILED or UNCLEAR items; skip PASSED items. Key categories to always check: V1 (Architecture), V2 (Authentication), V3 (Session), V4 (Access Control), V5 (Validation), V7 (Error Handling and Logging), V8 (Data Protection), V13 (API and Web Service).
+- **Step 3: OWASP ASVS L1 checklist.** For each relevant ASVS category (from the 17 chapters of ASVS 5.0), check whether the diff satisfies the L1 requirements. Report only FAILED or UNCLEAR items; skip PASSED items. Key categories to always check: V15 (Secure Coding and Architecture), V6 (Authentication), V7 (Session Management), V8 (Authorization), V2 (Validation and Business Logic), V16 (Security Logging and Error Handling), V14 (Data Protection), V4 (API and Web Service).
 - **Step 3c: Networked-multiplayer trust-boundary lens (only when Step 1 flagged a networked multiplayer surface; skip entirely otherwise; ADR-0131).** In a multiplayer game the client is an untrusted input source in the same sense a browser is, and the trust boundary is drawn per networked object rather than per endpoint, which is what makes it easy to miss. Check: (1) **Authority per object.** For each networked object the change touches, is the authority server-side, client-side, or owner-side, and was that chosen or inherited? A client-authoritative object is a cheat surface by construction, which the engine documentation states plainly, so it needs a stated reason, not a default. (2) **Ownership transfer.** Can a client initiate a transfer it should not, and does a non-authoritative attempt fail closed with an observable callback rather than silently succeeding? (3) **Server-side validation of client-supplied state.** Position, velocity, score, currency, and inventory arriving from a client are claims; name where each is validated, and treat "the client would not send that" as an unvalidated assumption. (4) **State sync primitive.** Does any security-relevant state ride on a transient event rather than replicated state, so a late joiner or a reconnecting client observes a stale or absent value? (5) **Determinism assumptions.** Does any anti-cheat or reconciliation logic assume the simulation is reproducible across machines? Consult `wos/unity-netcode-architecture.md` for the Unity-specific mechanisms behind each of these. This lens supplements, and does not replace, the OWASP ASVS L1 pass in Step 3.
 - **Step 3b: Agentic lens (only when Step 1 flagged an agent, tool, or MCP surface; skip entirely otherwise).** Check the change against the OWASP Top 10 for Agentic Applications 2026: ASI01 Agent Goal Hijack (can external content steer the agent's plan past its authorized intent), ASI02 Tool Misuse (can a legitimate tool be bent into a destructive call), ASI04 Agentic Supply Chain (is a third-party MCP server or skill trusted without vetting; route to `mcp-server-vet` or `skill-vet`), ASI06 Memory and Context Poisoning (can poisoned context persist across turns; the `scripts/ingest-scan.py` first pass and ADR-0096 cover the ingest boundary). Report only the categories the change actually exposes. This lens supplements, and does not replace, the OWASP ASVS L1 pass in Step 3. Consult `docs/security/owasp-agentic-coverage.md` for the WOS's own posture per ASI01-ASI10 category (what the workflow already defends, where the residuals are), so a finding here is framed against known coverage rather than re-derived.
 - **Step 4: Auth/authz flow trace.** For each new or modified endpoint, trace the auth flow from request entry to data access: (a) how is the caller authenticated (JWT, API key, cookie, none)? (b) how is the caller authorized (role check, scope check, tenant filter, none)? (c) does the data query respect tenant boundaries? (d) is the auth check bypassable (timing, parameter pollution, type confusion)?
@@ -110,7 +96,6 @@ Required output:
 9. Recommended next command
 
 ### Claim grounding (active epistemic humility)
-<!-- shared:claim-grounding -->
 **Claim grounding (active epistemic humility).** This block governs what you may assert and how you record it. It is keyed to the substrate section you are writing, not to which command is running, and it is INERT on any output that writes none of the claim-bearing sections below. Full contract and rationale: `wos/active-epistemic-humility.md`.
 
 1. When this applies. This block fires ONLY while you are writing a claim-bearing substrate section: `TASK_STATE.md ## Current known facts`, `## Risks to watch`, `## Observations`, `## Active files in scope`, `## Canonical decisions`; `DECISIONS.md ## Locked decisions`; `IMPLEMENTATION_PLAN.md ## Current gaps`, `## Risks and mitigations`; `IMPACT_ANALYSIS.md`; `EXTERNAL_RESEARCH.md`; `REFERENCES.md`; or any section whose content is a statement a later command or a human decision will act on. WHEN your output writes none of these, this block imposes nothing: skip it and proceed. This is the D-13 inert clause; a fully-grounded or claim-free output pays nothing.
@@ -127,20 +112,16 @@ Required output:
 
 7. An unfired gate is not evidence. The absence of a fired check does not mean grounding existed. Do not read silence here as a pass.
 ### Standard output layout (required)
-<!-- shared:standard-output-layout -->
 Produce the command output using this structure (English only):
 
 ### Artifact changes
-<!-- shared:artifact-changes-default -->
-Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
+Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules. Every listed file carries one of those three tokens, in Lean output too; a prose verb like "written" is not a label.
 
 ### Command transcript
-<!-- shared:command-transcript-standard -->
 Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
 
 ### Handoff
-<!-- shared:handoff-body -->
-Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state).
+Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state). Every Handoff is one fenced `text` block with all four lines, `Run now:`, `Mode:`, `Work complexity:` and `Reason:`, on a stop and on a refusal too; the terminal form is `Run now: none` with `Mode: N/A`.
 
 ### Definition of done (command output)
 - Security surface is explicitly identified (which domains the diff touches).

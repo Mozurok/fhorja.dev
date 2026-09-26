@@ -3,37 +3,16 @@ name: sync-task-state
 description: |-
   Update TASK_STATE.md so it reflects the latest operational truth of the task and can be resumed safely in this or another session. Lighter-weight than state-reconcile (no cross-artifact drift detection); preferred when the update is incremental and trusted. Use when a meaningful planning, decision, implementation, or closure step just happened, a slice was completed or closed, canonical decisions changed, the task is about to be paused or handed off, or TASK_STATE.md is stale relative to current progress. Do not use when no meaningful progress or decision change occurred, the task should first be initialized with task-init, or the current need is broad discovery rather than state synchronization.
 metadata:
-  category: state-and-navigation
-  primary-cursor-mode: Ask
-  multi-repo-aware: false
-  context-layers-consumed:
-    - memory
-  context-layers-produced:
-    - memory
-  tools:
-    - Read
-    - Write
-    - Edit
-    - Bash
-    - Glob
-    - Grep
-  x-wos-profiles:
-    - minimal
-    - core
-    - full
-  provenance: first-party
-  suggested-model: claude-haiku-4-5
+  category: "state-and-navigation"
+  primary-cursor-mode: "Ask"
+  multi-repo-aware: "false"
+  context-layers-consumed: "memory"
+  context-layers-produced: "memory"
+  tools: "Read, Write, Edit, Bash, Glob, Grep"
+  x-wos-profiles: "minimal, core, full"
+  provenance: "first-party"
+  suggested-model: "claude-haiku-4-5"
 ---
-> **Output contract, in brief.** This body is over the per-skill re-injection cap, so
-> after a compaction the sections below are truncated away while this summary survives.
-> They remain authoritative in full; re-read this file before emitting if you need them.
->
-> - `Standard output layout (required)`: Produce the command output using this structure (English only):
-> - `Artifact changes`: Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
-> - `Command transcript`: Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
-> - `Handoff`: Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per...
-> - `Definition of done (command output)`: `TASK_STATE.md` reflects the latest approved truth without inventing decisions.
-
 
 Act as a senior/staff engineering workflow state manager for the active engineering task.
 
@@ -41,20 +20,17 @@ Goal:
 Update TASK_STATE.md so it reflects the latest operational truth of the task and can be resumed safely in this or another session.
 
 Mandatory context bootstrap (before any output):
-<!-- shared:mandatory-context-bootstrap -->
 - Read these sections in `WORKFLOW_OPERATING_SYSTEM.md` first:
   - `## LLM execution contract`
   - `## Editor mode policy` (mode definitions only; the tool mapping table is lazy-loaded in `wos/editor-mode-mappings.md` and needed only for non-Claude-Code tools)
   - `## Global output contract` (including **Adaptive handoff** and **Mode selection rule**)
   - `## Cross-cutting workflow guardrails`
-- **Bootstrap tiers (ADR-0025):** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) may skip `## Editor mode policy` good-fits lists and `## Cross-cutting workflow guardrails` sequencing heuristics, reading only the mode definitions and the core guardrail rules (routing memory, command-less input triage, official command names, material change, no-op). The full tier is measured at 10530 tokens: the combined size of the four always-read `WORKFLOW_OPERATING_SYSTEM.md` sections listed above. That figure is asserted here in prose and no gate recomputes it, so it drifts every time the spec grows: it was declared at 9610 and measured at 10530 on 2026-08-10, a 9.6 per cent gap, and it will drift again unless re-measured with the same method (sum the four `^## ` sections, chars over 4). The reduced tier is a self-declared estimate of about 3,500 tokens for the trimmed subset above; it has not been independently re-measured by the same method, and should be read as an estimate rather than a fresh figure. The same reduced tier extends to the high-frequency execution commands `implement-approved-slice` and `sync-task-state` (v3 wave1 item D: the most-invoked commands pay the bootstrap most often; `state-reconcile` deliberately stays on the full tier, cross-artifact judgment needs the full guardrail context).
-- **Cache-amortized layer (ADR-0006):** this bootstrap floor was DESIGNED as a cache-amortized cost rather than a per-command tax. ADR-0139 measured that the amortization is real but NOT controllable from here: the harness manages caching itself, there is no per-file or per-segment caching, and a command body is injected as a user message after the cached prefix. Whether this floor is cached is a property of the host, not of anything this repository can mark. Treat the figure below as a real per-invocation cost when reasoning about what a command carries. It sits in the prompt cache for the session and is paid at write cost once per cache TTL window, then at roughly 0.1x on cached reads inside that window. Account for it separately from any per-skill Load budget (the generated `.claude/skills/<name>/SKILL.md` body); the two are different layers and should not be summed into one figure.
-- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this same conversation already performed this bootstrap read in an earlier turn that is still VISIBLE in the current context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one instead, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. This is a scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), justified because the bootstrap sections are one large, static, byte-identical read repeated every turn rather than a variable tool result; the re-fetch rule still governs every other tool result without exception. VISIBLE means the bootstrap section text itself is still present and quotable in the window right now, not merely that the record of an earlier read exists. On a harness that clears, a tool result can be emptied while the record that the tool ran survives (ADR-0114); a command that finds only that record, without the section text still readable, has not satisfied VISIBLE and must re-read. Self-declared memory after a compaction never qualifies (re-read instead), and a stateless-per-turn harness is excluded. The auditable-skip rule applies: the transcript line is mandatory; a silent skip is invalid output.
-- **Resolving a relative `wos/<topic>.md`.** Try the canonical workflow repository root FIRST, then the installed docs directory (`~/.claude/workflow-docs/wos/` or `~/.cursor/workflow-docs/wos/`). Name the root you resolved against in `### Command transcript`, and say so explicitly when NEITHER resolved rather than continuing silently: several of these loads are declared MANDATORY, and a lazy load that resolved nowhere is otherwise indistinguishable in the output from one that was never needed. Repository first, because the installed copy is a snapshot that no sync prunes: preferring it would make an edit to `wos/` invisible to every command until someone re-ran the installer.
+- **Bootstrap tiers:** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) plus the high-frequency `implement-approved-slice` and `sync-task-state` (v3 wave1 item D) read the four sections above with two subsections of `## Cross-cutting workflow guardrails` skipped: `### External web access (centralized)` and `### Sequencing heuristics (by phase)`. Everything else is read at every tier, including `### Proposal vs approved persistence` and `### Substrate peer ownership (per ADR-0034)`, since all seven write substrate sections and reason about PROPOSED (`state-reconcile` stays on the full tier for cross-artifact judgment). The full tier is measured at 11678 tokens, the four always-read sections combined; the two skipped subsections are 1,035 of those (measured 2026-09-24), so the reduced tier is about 10,643. The leaf-reviewer tier (`verify-against-rubric`, ADR-0226) reads only `## Global output contract`, measured at 4841 tokens, plus its rubric.
+- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this conversation already read the bootstrap sections in an earlier turn still VISIBLE in the context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. Scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), because these sections are one large, static, byte-identical read repeated every turn; every other tool result still re-fetches. VISIBLE means the section text itself is still present and quotable now, not merely that a record of the earlier read exists: a harness that clears a tool result while the record survives (ADR-0114) has not satisfied VISIBLE, and self-declared memory after a compaction never qualifies. A stateless-per-turn harness is excluded. The transcript line is mandatory; a silent skip is invalid output.
+- **Resolving `WORKFLOW_OPERATING_SYSTEM.md` and a relative `wos/<topic>.md`.** Both resolve the same way: try the canonical workflow repository root FIRST, then the installed docs directory (`~/.claude/workflow-docs/` or `~/.cursor/workflow-docs/`, the spec at that root and topics under its `wos/`). Repository first, because the installed copy is a snapshot no sync prunes; preferring it would hide a `wos/` edit from every command until a reinstall. Name the resolved root in `### Command transcript`, and say so explicitly when NEITHER resolved rather than continuing silently, since several of these loads are MANDATORY.
 - Read additional sections only when relevant to this command's role.
-- Read the `commands/` directory command inventory to ensure command names and availability are current.
 - Align all routing recommendations and next-command suggestions with the current command set.
-- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares that the chain has ended and no following command would be honest, defined in `## Global output contract` (ADR-0126); use it only when nothing honest remains, never to end a chain that has a real next step.
+- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares the chain ended with no honest next step, defined under `### Official command names (routing integrity)` (ADR-0126); use it only then, never to end a chain that has a real next step.
 
 Required inputs:
 - active task folder path
@@ -71,11 +47,11 @@ Task repository files to update:
 Operating rules:
 - Do not implement production code.
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full).
-- **Substrate write protocol (per ADR-0034, K.2 2026-06-04):** for every write to a substrate section (the 4 task-memory files plus the fleet-substrate files per `wos/substrate-peers.md ## Fleet-substrate files`), emit the transaction header AND append one `.wos/VERIFICATION_LOG.jsonl` line per `commands/_shared/substrate-write-protocol.md`. Shadow mode at launch -- writers emit, no reader enforces.
+- **Operating mode (ADR-0008, ADR-0162).** WHEN `TASK_STATE.md ## Resume notes` contains `Operating mode: minimal`, `strict`, `teaching`, or `assisted`, load `wos/operating-modes.md` and apply that mode. WHEN the line is absent, use this command's native rules. Auto-suggestion is not a declaration.
+- **Substrate write protocol (per ADR-0034, K.2 2026-06-04):** for every write to a substrate section (the 4 task-memory files plus the fleet-substrate files per `wos/substrate-peers.md ## Fleet-substrate files`), emit the transaction header AND append one `.wos/VERIFICATION_LOG.jsonl` line per `commands/_shared/substrate-write-protocol.md`. Enforced, not shadow mode: `scripts/verify-substrate-batch.sh` blocks closure at `slice-closure` and `task-close` (`wos/closure-floors.md`).
 - **Bounded slice-status propagation (opt-in, Slice-08 P2).** DEFAULT = OFF: with no propagation scope declared, this command writes ONLY `TASK_STATE.md` (its stated update scope above) and nothing else changes. Propagation fires ONLY when the run declares the bounded scope `propagate-slice-status=<subset of {IMPLEMENTATION_PLAN, SOURCE_OF_TRUTH, README, TEST_STRATEGY}>`; it is a bounded set of named siblings, never a global flag. For each named target write the bounded slice-status field (closed enum: `in-progress | implemented-pending-closure | closed | closed-with-followups | not-ready`) honoring its write regime:
   - Regime 1 (SUBSTRATE -- inline `<!-- wos:write owner=sync-task-state ... -->` header + one `.wos/VERIFICATION_LOG.jsonl` line reusing THIS run's run_id/ts): `IMPLEMENTATION_PLAN.md` sets the field on the `### Slice N` `Status:` line and LOGS the H3-scoped co-write at the owning `## Slices` H2; `SOURCE_OF_TRUTH.md` writes/extends the `## Slice status` H2 pointer with a header above that H2 and one JSONL line naming `section='## Slice status'` (`sha_after` a real 64-hex, never null on the applied write).
   - Regime 2 (PLAIN -- direct Edit only, NO wos:write header, NO JSONL line): `README.md` and `TEST_STRATEGY.md` are outside the substrate set and outside `scan-substrate-headers.sh`; a header there would be pointless drift.
-  G5 state-reconcile drift detection stays intact: every Regime-1 write still emits its header + JSONL line, and the Regime-2 files stay out of the substrate scan.
 - **Context-rot guardrail (ADR-0023):** before producing the output, estimate the current TASK_STATE.md token count (excluding the `## Compaction history` section). Compare against the phase threshold from `wos/context-budget.md ## Context-rot thresholds` (discovery: 3000; planning: 5000; implementation: 8000; review/closure/delivery: 6000). If current count exceeds the threshold, emit a single-line warning in `### Command transcript`: `WARN: TASK_STATE.md is ~Ntokens (phase threshold: Mthreshold). Consider running compact-task-memory before continuing.` The warning is INFORMATIONAL; proceed with the normal output. Suppress the warning if the immediately prior step was `compact-task-memory`.
 - Treat TASK_STATE.md as the operational memory for the current task.
 - Keep it concise, structured, and implementation-oriented.
@@ -90,7 +66,7 @@ Operating rules:
 - If TASK_STATE.md conflicts with newer approved artifacts, correct it explicitly.
 - If the task state is unclear, say what evidence is missing instead of inventing it.
 - Set **Work complexity** from current phase, blast radius, and the **next** recommended command (not from bravado). Use `N/A` only when the next step has no meaningful capability tradeoff. Never name model SKUs.
-- **Post-commit delivery sync is handled by `branch-commit`:** when all slices are complete and committed, `branch-commit` auto-updates TASK_STATE.md phase to "delivered". A separate `sync-task-state` call solely to mark "delivered" after commit is unnecessary and should be skipped (see anti-pattern: redundant post-commit sync).
+- **Post-commit delivery sync is handled by `branch-commit`:** when all slices are complete and committed, `branch-commit` auto-updates TASK_STATE.md phase to "delivered". A separate `sync-task-state` call solely to mark "delivered" after commit is unnecessary and should be skipped.
 - **Quick reanchor maintenance (ADR-0111):** rebuild the `## Quick reanchor` block mechanically on every sync: Active decisions from the non-superseded D-N entries (one line each, truncated at a clause boundary such as a comma or semicolon, never a fixed word count; cap 10 with an explicit overflow line pointing at DECISIONS.md; `none locked yet` when empty), current slice from `IMPLEMENTATION_PLAN.md ## Slices`, phase and next step mirroring their own sections. Backfill: when a legacy task lacks the block, add it as the first H2 on this sync (same precedent as the Work complexity backfill below).
 - Prefix each `## Canonical decisions` bullet with its D-N id, so reanchoring survives truncation and cross-checks stay mechanical (ADR-0111 free-rider).
 - If **Work complexity (for next execution step)** is missing from `TASK_STATE.md` (for example older tasks created before that subsection existed), add the full subsection in this run using the same structure as `task-init` (heading, `LOW | MEDIUM | HIGH | N/A` line, and one-line rationale).
@@ -112,10 +88,10 @@ TASK_STATE.md must contain (template order, 20 sections per ADR-0111):
 14. Constraints / things that must not change
 15. Risks to watch
 16. Recommended next step
-17. Resume notes
-18. Task scope level
-19. Current closure target
-20. Work complexity (for next execution step): one of `LOW`, `MEDIUM`, `HIGH`, or `N/A`, plus a one-line rationale (definitions in `WORKFLOW_OPERATING_SYSTEM.md`)
+17. Work complexity (for next execution step): one of `LOW`, `MEDIUM`, `HIGH`, or `N/A`, plus a one-line rationale (definitions in `WORKFLOW_OPERATING_SYSTEM.md`)
+18. Resume notes
+19. Task scope level
+20. Current closure target
 
 Required output:
 1. Whether TASK_STATE.md should be updated and why
@@ -126,7 +102,6 @@ Required output:
 6. What should explicitly not be done yet
 
 ### Substrate digest fallback
-<!-- shared:substrate-digest-fallback -->
 **Digest fallback when the canonical helper is unreachable.** `sha_of_section` extracts a section's body with `awk` and pipes it to `shasum -a 256`. A run executing inside a permission boundary that admits `shasum` but refuses `awk` and `sed` cannot invoke that helper, and MUST NOT reimplement it: an `awk` or `sed` program operand can call `system()` and write files, so a boundary that refuses those verbs refuses them for a reason. Assume the helper is unreachable whenever the workflow repository's `scripts/` directory is not readable from the working directory.
 
 WHERE the canonical per-section digest helper is unreachable, the write SHALL use a whole-file SHA-256 and SHALL declare the reduced scope:
@@ -144,7 +119,6 @@ Do NOT rebuild the helper by writing each section out as its own file so it can 
 
 What the fallback costs, stated so the trade is explicit rather than discovered later: the digest chain exists to detect an unlogged change to a SECTION. At file scope, two sections written in the same run share a digest, so the chain detects tampering with the file without attributing it to a section. That is a declared reduction in resolution, not a silent one, which is why the `sha_scope` field is mandatory rather than optional.
 ### Claim grounding (active epistemic humility)
-<!-- shared:claim-grounding -->
 **Claim grounding (active epistemic humility).** This block governs what you may assert and how you record it. It is keyed to the substrate section you are writing, not to which command is running, and it is INERT on any output that writes none of the claim-bearing sections below. Full contract and rationale: `wos/active-epistemic-humility.md`.
 
 1. When this applies. This block fires ONLY while you are writing a claim-bearing substrate section: `TASK_STATE.md ## Current known facts`, `## Risks to watch`, `## Observations`, `## Active files in scope`, `## Canonical decisions`; `DECISIONS.md ## Locked decisions`; `IMPLEMENTATION_PLAN.md ## Current gaps`, `## Risks and mitigations`; `IMPACT_ANALYSIS.md`; `EXTERNAL_RESEARCH.md`; `REFERENCES.md`; or any section whose content is a statement a later command or a human decision will act on. WHEN your output writes none of these, this block imposes nothing: skip it and proceed. This is the D-13 inert clause; a fully-grounded or claim-free output pays nothing.
@@ -161,25 +135,21 @@ What the fallback costs, stated so the trade is explicit rather than discovered 
 
 7. An unfired gate is not evidence. The absence of a fired check does not mean grounding existed. Do not read silence here as a pass.
 ### Standard output layout (required)
-<!-- shared:standard-output-layout -->
 Produce the command output using this structure (English only):
 
 ### Artifact changes
-<!-- shared:artifact-changes-default -->
-Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
+Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules. Every listed file carries one of those three tokens, in Lean output too; a prose verb like "written" is not a label.
 
 ### Command transcript
-<!-- shared:command-transcript-standard -->
 Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
 
 ### Handoff
-<!-- shared:handoff-body -->
-Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state).
+Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state). Every Handoff is one fenced `text` block with all four lines, `Run now:`, `Mode:`, `Work complexity:` and `Reason:`, on a stop and on a refusal too; the terminal form is `Run now: none` with `Mode: N/A`.
 
 ### Definition of done (command output)
 - `TASK_STATE.md` reflects the latest approved truth without inventing decisions.
 - Any stale/contradictory state is called out explicitly with evidence pointers.
-- `### Artifact changes` marks `TASK_STATE.md` as `APPLIED` only when persisting; otherwise `PROPOSED`.
+- `### Artifact changes` marks task-memory writes `APPLIED` in every mode (ADR-0199). A section this command does not own gets a `<!-- PROPOSED by <command>: ... -->` block for its owner instead (ADR-0034): that is ownership, not a mode gate, and it holds in Agent mode too.
 - Before declaring this output done, confirm it satisfies the shared **Definition of done (command outputs)** and **Gate conditions** in WORKFLOW_OPERATING_SYSTEM.md.
 
 Quality bar:

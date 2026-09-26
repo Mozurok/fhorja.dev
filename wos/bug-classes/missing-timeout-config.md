@@ -2,7 +2,7 @@
 name: missing-timeout-config
 category: resilience
 default-severity: P1
-cwe: [CWE-400]
+cwe: [CWE-770]  # CWE-400 is Discouraged; CWE-770 Allocation of Resources Without Limits or Throttling names the mechanism, a connection held open with no bound (2026-09-21)
 languages: [typescript, javascript, python, go]
 file-patterns: ["controllers/**", "services/**", "consumers/**", "lib/**", "api/**"]
 perspectives: [operator]
@@ -33,7 +33,7 @@ Look for:
 
 Given the call:
 1. Is there an explicit timeout at the call level or at the client/SDK initialization level?
-2. If no timeout: what is the default behavior? (fetch: no timeout; axios: no timeout; node-postgres: no timeout)
+2. If no timeout: what is the default behavior? (browser fetch: none; Node fetch: undici defaults, 10s connect and 300s headers; axios: none, read off `timeout: 0` rather than a current doc statement; node-postgres: none)
 3. What is a reasonable timeout for this call? (API calls: 5-30s; file uploads: 60-120s; health checks: 3-5s)
 4. What happens if the call hangs for 5 minutes without timeout? (blocked worker, connection leak, user-visible hang)
 

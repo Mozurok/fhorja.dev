@@ -199,7 +199,7 @@ def render_per_command_markdown(rows, suggest_budget=True):
     out.append(f"- Largest: `{rows[0][0]}` ({fmt_int(rows[0][4])} tokens)")
     out.append(f"- Smallest: `{rows[-1][0]}` ({fmt_int(rows[-1][4])} tokens)")
     out.append("")
-    out.append("Suggested budget formula: `ceil(current * 1.2 / 100) * 100`. 20% headroom for routine edits; rounded to nearest 100 for human readability. This per-command figure is informational only: ADR-0116 enforces one hard ceiling at the Load stage instead, 10000 tokens (40000 chars) measured on the generated `.claude/skills/<name>/SKILL.md`, not a per-command budget seeded from this column.")
+    out.append("Suggested budget formula: `ceil(current * 1.2 / 100) * 100`. 20% headroom for routine edits; rounded to nearest 100 for human readability. This per-command figure is informational only: ADR-0116 enforces one hard ceiling at the Load stage instead, held in `LOAD_CEILING_CHARS` in `evals/scripts/structural-evals.py` (ADR-0227) and measured on the generated `.claude/skills/<name>/SKILL.md`, not a per-command budget seeded from this column.")
     return "\n".join(out)
 
 

@@ -33,7 +33,7 @@ Anti-pattern: letting parallel agents each run K.2 on shared substrate. Always f
 
 ## 3. Structured-output-schema pattern
 
-Pass `schema` to Workflow so every sub-agent returns a typed payload (StructuredOutput tool call) instead of free-form text. Benefits:
+On the dynamic-workflow path, pass `schema` to `agent(prompt, {schema})` so the runtime supplies the typed result; never ask the worker to call StructuredOutput. On the `Agent` path, assign `fleet_inbox_artifact` to the resolved run-inbox `<worker_id>.json`; the worker writes the typed payload there and the parent validates it (ADR-0158 D-1). Benefits:
 - The orchestrator can iterate over results without re-parsing prose.
 - Schema validation catches half-formed agent runs at the boundary.
 - Downstream `apply` logic is mechanical, not interpretive.
@@ -79,11 +79,25 @@ The expensive judgment work (understanding, planning, reviewing) and the cheaper
 
 The per-command `suggested-model` frontmatter already encodes this split per command (ADR-0025); this pattern names the end-to-end run so it is used deliberately, not rediscovered. STOP conditions (implementation-plan) and the show-the-evidence rule (implement-approved-slice) are what make a cheaper executor safe: it halts and escalates on drift instead of improvising, and it proves each exit criterion with real command output. The split pays off most on plans with many mechanical slices; for a short plan the model-switch overhead is not worth it.
 
-This stays human-first: the auditor model proposes, the executor model implements the approved slice, and the human still approves the plan (`approve-plan`) and the merge. It does not introduce autonomy or auto-merge.
+This stays human-first where a person adds something: the auditor model proposes, the executor model implements the approved slice, and the human still approves the merge. Plan approval self-runs on a blinded review (ADR-0208); the merge does not, because its audience is not bounded. It does not introduce autonomy or auto-merge.
+
+## Fan-out floor
+
+The fan-out floor is 3.
+
+Three is the number of independent items below which dispatching a fleet costs more than it saves. It is derived from what the commands already declare rather than picked: two of the <!-- count:fleet-commands -->7<!-- /count --> fleet commands sit exactly there, and no command sits below it except the one registered below. Per-command thresholds MAY be higher (`verify-against-rubric-fleet` is 4, `atom-audit-fleet` and `screen-spec-fleet` are 6), never lower.
+
+The spec names the same number in `### When to use` and `### When NOT to use`, and `check_fanout_floor_consistency` in `evals/scripts/structural-evals.py` fails the build if those two sentences, this line, and the commands stop agreeing. See [ADR-0173](../docs/adr/0173-one-fan-out-floor.md).
+
+### Registered exceptions
+
+- `implement-fleet`, wave of 2. A worker there carries a whole slice, so dispatch overhead is negligible against the payload. That is the opposite of a fleet whose worker reads one file, which is what the floor is calibrated for. The wave-of-2 trigger is contract, per [ADR-0042](../docs/adr/0042-waves-aware-routing-and-progress-visibility.md).
+
+A number below the floor belongs in this list with its reason, not alone in a command file.
 
 ## Evidence
 
-2026-06-05 session: 14 Workflow batches dispatched 2026-06-05, parallel agents per batch, all returning StructuredOutput payloads. Confirmed: parallel reads + sequential K.2 apply held; no substrate corruption; per-batch failure isolation worked as designed.
+2026-06-05 session: 14 Workflow batches dispatched 2026-06-05, parallel agents per batch, all returning typed payloads (through the `StructuredOutput` call that ADR-0158 later replaced on the `Agent` path). Confirmed: parallel reads + sequential K.2 apply held; no substrate corruption; per-batch failure isolation worked as designed.
 
 ## Related
 
@@ -91,9 +105,10 @@ This stays human-first: the auditor model proposes, the executor model implement
 - Epic J multi-agent foundation
 - K.8 parallel dispatch learnings (2026-06-04)
 - sub-agent-orchestration.md (sibling topic; tier-aware dispatch protocol)
-- ADR-0038 (substrate-bullet ownership)
-- ADR-0039 (workflow prompt length budget)
-- ADR-0040 (tier-aware dispatch)
+- ADR-0038 (the Workflow tool as the parallel-orchestration primitive; Rule 3 is substrate-bullet ownership)
+- ADR-0039 (the empirical batch-dispatch sweet spot)
+- ADR-0040 (the single-writer-per-folder exception to ADR-0038)
+- tier-aware dispatch (J.3 under ADR-0034; `wos/sub-agent-orchestration.md ## Tier-aware dispatch protocol`)
 - scan-substrate-orphans.py (post-apply orphan gate)
 - ADR-0041 (parallel slice execution via worktree isolation + file-scope disjointness gate)
 - implement-fleet.md (orchestrator command for the write-fleet pattern)
@@ -102,87 +117,29 @@ This stays human-first: the auditor model proposes, the executor model implement
 - bug-classes/schema-skip-on-structured-output.md
 - bug-classes/workflow-prompt-too-long.md
 - bug-classes/substrate-bullet-orphan.md
-- K.8 personas (5 total): rls-auth-boundary-auditor (L3), post-deploy-verifier (L3), jtbd-switch-interviewer (L2), migration-safety-steward (L2), color-contrast-architect (L2)
+- personas and their current levels: the canonical table in `wos/maturity-ladder.md ## Per-persona current-level tracking` (<!-- count:personas-gated -->5<!-- /count --> personas are at L3 and <!-- count:personas-shadow -->4<!-- /count --> at L1)
 
+## Parallel dispatch failures: schema-skip and substrate orphans
 
-## Empirical evidence from 2026-06-05
+Moved here from `docs/FAQ.md` on 2026-09-23: this is operator material for anyone writing or running a fleet dispatch, not a newcomer's question.
 
-This section records empirical observations from a high-volume parallel subagent dispatch session run on 2026-06-05, where ~165+ subagents across 14 batches executed and consumed roughly 5M subagent tokens. These observations are not theoretical -- every claim below is grounded in a lived batch from that session.
+### Schema-skip
 
-### 1. Schema-skip failure mode (StructuredOutput)
+Schema-skip is when a dispatched subagent finishes its work but returns prose instead of the typed payload, so the orchestrator gets no parseable artifact. The mitigation is the canonical worker contract in `commands/_shared/worker-contract.md` (ADR-0038 Rule 1, carrier decided in ADR-0158 D-1), which requires every dispatched worker to return a payload matching `worker_output_schema` and forbids prose either way; the `templates/ORCHESTRATOR_COMMAND.template.md` reinforces it on the dispatch side.
 
-When subagents are dispatched with long, multi-section "do everything" prompts, they frequently end their turn without ever calling `StructuredOutput`, returning their answer as free-text assistant content instead. The orchestrator script then cannot parse a result, and the slot is wasted.
+The failure has two shapes because the carrier depends on the dispatch path, and knowing which one you are on is half the fix. On the dynamic-workflow path the script declares the shape via `agent(prompt, {schema})` and the runtime performs a `StructuredOutput` call, so schema-skip there is the worker answering in prose anyway. On the `Agent`-tool path there is no typed-return primitive at all (`Agent` takes no schema), so the worker writes `fleet-inbox/<run_id>/<worker_id>.json` and schema-skip is a missing or unparseable file. A dispatch prompt that mandates `StructuredOutput` while dispatching through `Agent` is instructing a worker to call a tool it does not have, which reads as a skip and is not one. `## Empirical dispatch evidence (2026-06-05)` below, and ADR-0039, record how prompt shape moved the schema-skip rate in the session that set these numbers. If you write a custom dispatch prompt, copy the explicit typed-return reminder verbatim and name the path it applies to; paraphrasing it has historically degraded compliance.
 
-Measured rate in this session:
+### Checking a batch for dropped or corrupted substrate writes
 
-- **Complex-prompt batch (multi-page, exploratory, mixed objectives):** 10 of 12 agents skipped `StructuredOutput` (~83% failure rate).
-- **Focused-prompt batch (single objective, 300-500 words, explicit schema reminder at the end):** 0 of 8 agents skipped (~0% failure rate).
+ADR-0040 (`docs/adr/0040-single-writer-per-folder-exception.md`) requires every parallel batch to honor single-writer-per-folder discipline; run `python3 scripts/scan-substrate-orphans.py <task-folder>` after the batch settles, or pass the exact files the batch wrote (`python3 scripts/scan-substrate-orphans.py <file-1> <file-2> ...`), which is the form the fleet apply-step gate uses to catch substrate-bullet-orphan instances (`wos/bug-classes/substrate-bullet-orphan.md`). The failure mode it catches is the `substrate-bullet-orphan` bug-class, where two workers race on the same parent and one bullet ends up dangling. If the scan reports any orphans, do not advance phases: re-dispatch the affected workers individually with the orphan IDs passed as input, and re-run the scan until it returns clean.
 
-**Validated mitigation:** Keep dispatch prompts to **300-500 words**, single-objective, and terminate the prompt with an explicit instruction of the exact shape:
+## Empirical dispatch evidence (2026-06-05)
 
-> IMPORTANT: Call StructuredOutput tool with `artifact='<artifact-name>'`, `content=<...>`.
+One session on 2026-06-05 dispatched 14 Workflow batches (125 agents in the batch log, about 165 counting re-dispatches) and set the numbers ADR-0039 ratified. Long multi-objective prompts lost the typed return in 10 of 12 agents; focused prompts of 300 to 500 words with the return instruction as the final line lost it in 0 of 8, and every later batch that day came back clean. Parallel reads with a sequential apply step gated by `scan-substrate-orphans.py` left no substrate orphan. The dynamic-workflow runtime caps real concurrency at `min(16, cpu-2)` and queues the rest, so batches of 16 to 20 agents are the sweet spot and a batch past 25 should be split, because the queueing tail eats the wall-clock gain. That queueing does not transfer to the `Agent`-tool path the fleet commands dispatch on: there the 21st concurrent sub-agent fails with `Concurrent subagent limit reached` and the error instructs no retry. The operational rules that survived the session:
 
-Placing the schema reminder as the **final** instruction (not buried mid-prompt) is what makes the difference. The model treats the last instruction as the action to take when it stops reasoning.
+1. Dispatch prompts are 300 to 500 words with a single objective, and the last line is the return instruction of ADR-0158: `Return one payload matching worker_output_schema and nothing else` on the dynamic-workflow path, `Write one JSON payload matching worker_output_schema to fleet_inbox_artifact and nothing else` on the `Agent` path. Never instruct a worker to call `StructuredOutput`.
+2. Parallel reads and proposals are safe; serialize all substrate writes through an apply step gated by `scan-substrate-orphans.py`.
+3. Mega-batch (15 to 25 agents) is the right shape for broad read-only discovery.
+4. Target batches of 16 to 20 agents to stay within the effective concurrency cap.
 
-### 2. Parallel-then-sequential-apply pattern validated at scale
-
-Across 14 batches in this session, the pattern of "fan out reads and proposals in parallel, then serialize all substrate writes through a single apply step" held up:
-
-- ~165+ parallel subagents across 14 batches total
-- ~5M subagent tokens consumed
-- **Zero substrate corruption** after two specific fixes landed:
-  - K.2 apply-script bug fix in commit `dc8e7e9`
-  - `scan-substrate-orphans.py` (commit `5840755`) as a post-apply sanity check
-
-The lesson is operational, not theoretical: parallel reads and parallel proposals are safe, but **writes must remain sequential and gated by an apply step that scans for orphans**. Without `scan-substrate-orphans.py`, silent partial-apply states were possible; with it, orphans are detected before the next batch dispatches.
-
-### 3. Mega-batch intel-gathering pattern
-
-A new pattern was validated: dispatching a single workflow with **15-25 agents in one batch** purely for broad discovery (codebase mapping, cross-cutting audits, contract surveys), where every agent returns a structured output that the orchestrator merges.
-
-Measured impact in this session: **~5-7x wall-clock speedup** vs. dispatching the same agents sequentially. The pattern works because discovery tasks are read-only, embarrassingly parallel, and produce small structured outputs that merge cheaply.
-
-Use when: you need broad situational awareness fast (e.g., "what does X look like across the repo", "find all callers of Y", "audit Z surface"). Do not use when agents must coordinate or write -- those still go through the parallel-then-sequential-apply pattern above.
-
-### 4. Concurrency cap behavior
-
-The workflow tool caps real concurrency at `min(16, cpu-2)`. Larger batches do not fail -- they queue. Observed in this session:
-
-- An **18-agent batch** completed in **~6 minutes wall-clock**, vs. an estimated ~30 minutes if dispatched sequentially.
-- The two agents above the cap simply waited in queue and dispatched as earlier slots freed.
-
-Practical implication: there is **no penalty for over-batching slightly past the cap**, only diminishing returns. Batches of 16-20 agents are the current sweet spot. Beyond ~25 agents the queueing tail starts to dominate and you lose the wall-clock advantage that motivated mega-batching in the first place.
-
-### Summary of operational rules added by this session
-
-1. Dispatch prompts: 300-500 words, single objective, explicit `StructuredOutput` reminder as the final line.
-2. Parallel reads/proposals are safe; serialize all substrate writes through an apply step gated by `scan-substrate-orphans.py`.
-3. Mega-batch (15-25 agents) is the right shape for broad read-only discovery.
-4. Target batches of 16-20 agents to stay within the effective concurrency cap.
-
-
-
-## Empirical dispatch outcomes (2026-06-05)
-
-The table below records measured outcomes from all 14 Workflow batches dispatched during the 2026-06-05 session. Each row is grounded in a real batch ID (or its mitigation re-dispatch), with counts taken from the orchestrator log and the post-apply substrate scan.
-
-| Batch ID | Agents | Schema-skip | Orphans | Apply success | Notes |
-| --- | --- | --- | --- | --- | --- |
-| w59uu3zym | 8 | 2 (re-dispatched) | 0 | 8/8 | first batch; some agents wrote prose without StructuredOutput |
-| (re-dispatch batch) | 8 | 0 | 0 | 8/8 | focused-prompt mitigation validated |
-| w6jozlzky | 10 | 0 | 0 | 10/10 | applied to disk; lint clean |
-| wgmt8m2gt | 10 | 0 | 0 | 10/10 | doc-audit batch |
-| w5uxqr73l | 8 | 0 | 0 | 8/8 | doc-audit batch |
-| w3wne4tm3 | 10 | 0 | 0 | 10/10 | doc-audit batch |
-| w47d4om9y | 10 | 0 | 0 | 10/10 | doc-audit batch |
-| w6uazb55a | 10 | 0 | 0 | 10/10 | doc-audit batch |
-| wq3i1x12h | 6 | 0 | 0 | 6/6 | doc-audit batch |
-| w4culd93t | 7 | 0 | 0 | 7/7 | doc-audit batch |
-| wra5hqaw2 | 7 | 0 | 0 | 7/7 | doc-audit batch |
-| w8anmjon6 | 8 | 0 | 0 | 8/8 | doc-audit batch |
-| wzj5du7g8 | 5 | 0 | 0 | 5/5 | K.8 persona / fleet batch |
-| wmse5fdnk | 5 | 0 | 0 | 5/5 | K.8 persona / fleet batch |
-| wwx9s24te | 4 | 0 | 0 | 4/4 | K.8 persona / fleet batch |
-| wv98roai4 | 25 | 0 | 0 | 25/25 | EPIC A-F bug-classes batch; ~9 new bug-class outputs |
-
-The mitigation pattern that drove the schema-skip rate from 25% to 0% has three components working together. First, dispatch prompts are kept to 300-500 words and scoped to a single objective, so the model never has to choose between competing instructions when it stops reasoning. Second, every prompt terminates with an explicit StructuredOutput reminder as its final line, naming the exact artifact and field shape expected; placing the reminder last (not buried mid-prompt) is what makes the model treat the tool call as the final action. Third, scan-substrate-orphans.py runs as a post-apply gate after every batch, catching any partial-write state before the next batch dispatches. Together these three controls turned a noisy, prose-leaking dispatch surface into a clean parallel-read / sequential-apply pipeline with zero orphans across 125 agents dispatched today (100% apply success, 0 schema-skip across all 14 batches).
+The per-batch table and the full narrative stay in the repository history at commit `052440cb`; ADR-0039 is the decision they support.

@@ -1,0 +1,140 @@
+[
+  {
+    "index": 0,
+    "refuted": false,
+    "reason": "The exact quote is at commands/a11y-audit/SKILL.md:60. The fetched [WCAG 2.2 recommendation](https://www.w3.org/TR/WCAG22/#meaningful-sequence) identifies Meaningful Sequence as 1.3.2 and Info and Relationships as 1.3.1. An independent commands/ and wos/ grep found this incorrect number-name combination only here. All 23 cited lines were matched exactly, and source-length comparisons of every shared block in the nine commands confirmed that none of these citations is shared text.",
+    "corrected_claim": "Correct the WCAG criterion number in this command-owned example from 1.3.1 to 1.3.2. This is a factual correction, not an accessibility policy change."
+  },
+  {
+    "index": 1,
+    "refuted": false,
+    "reason": "The a11y-audit Step 3 route is unconditional, while color-contrast-architect:3 excludes one pair and :60 requires expansion to at least three. A whole UI surface needing other WCAG checks can still contain fewer than three contrast pairs. Directory searches also found the delegation in a11y-audit:3,26,71,111,119 and wos/command-roles.md:1320,1325. However, component-spec is a Figma-based extractor; its Step 8 computes contrast but its required inputs and Steps 1-3 are not universally available for an implemented surface. Eval 68 also expects the existing contrast delegation.",
+    "corrected_claim": "The contrast delegation lacks a compatible path for an otherwise eligible surface whose documented pair set remains below color-contrast-architect's minimum. Resolve the one- and two-pair cases without removing the existing multi-pair delegation. The proposed component-spec route is valid only when that command's inputs exist; coordinate any routing change with eval 68 and the role reference."
+  },
+  {
+    "index": 2,
+    "refuted": false,
+    "reason": "The literal existence check at a11y-audit:73 excludes the actual commands/color-contrast-architect/SKILL.md file. Independent directory enumeration confirmed its folder layout, and reading build-agent-skills.sh:159-187 and sync-shared-blocks.sh:129-140 confirmed both layouts are discovered. The exact command-owned check occurs in 22 commands: a11y-audit, ai-feature-eval-harness, code-context-map, color-contrast-architect, db-context-postgres, db-context-supabase, delivery-asset, external-research, feature-library-scout, jtbd-switch-interviewer, migration-safety-steward, performance-budget, post-deploy-verifier, post-review-pivot, postmortem-author, pr-feedback-ingest, release-plan, rls-auth-boundary-auditor, slo-define, stack-recommend, state-reconcile, and task-init. This matches the submitted family. The shared bootstrap and spec also retain flat-only wording, separately from these owned lines.",
+    "corrected_claim": "The 22 command-owned validation sentences contain stale layout references. Recognize commands/<name>.md and commands/<name>/SKILL.md, consistent with the existing K.3 implementation and wos/repository-structure.md:64-68. Reconcile the shared bootstrap at its canonical source separately; do not edit its copies. No command rename or new routing policy is needed."
+  },
+  {
+    "index": 3,
+    "refuted": false,
+    "reason": "The exact single-theme fallback is at color-contrast-architect:48, and the no-theme-variants exclusion is at :3. The theme-coverage DoD at :114 follows the supplied theme list and does not require two themes. Independent directory grep found the conflicting exclusion and fallback only in this command; the role reference adds no exception resolving them.",
+    "corrected_claim": "The command's advertised eligibility excludes a design system with one theme, while its input and coverage rules accommodate one documented theme. Align the trigger with that existing single-theme contract, retaining all supplied-theme coverage and the separate pair-count prerequisite."
+  },
+  {
+    "index": 4,
+    "refuted": false,
+    "reason": "The blanket interior-and-surrounding requirement is at color-contrast-architect:63 and was unique in the independent directory grep. The fetched [W3C non-text contrast guidance](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html#relationship-with-focus-visible) explicitly distinguishes external, internal, border, and mixed indicators; its external green-indicator example passes without contrasting with the button interior. ADR-0036 mentions double-adjacency test evidence in its historical context, but does not decide that every geometry has two relevant sides.",
+    "corrected_claim": "The purported universal WCAG AA rule is overbroad. Determine relevant adjacent colors from the actual indicator geometry and preserve any separately declared stronger project policy. Correcting the WCAG attribution does not reverse ADR-0036's promotion decision."
+  },
+  {
+    "index": 5,
+    "refuted": true,
+    "reason": "Step 6 and the DoD explicitly guarantee remediation for FAIL-AA, but neither says remediation is forbidden or unnecessary for other failures. The same file's Required output item 2 requires the failing-pair list with per-pair remediation, and its Quality bar requires every failing pair to have actionable remediation. The target input at :49 names AAA when locked. These existing universal requirements defeat the claim that the complete contract requires action only for FAIL-AA. Directory grep found the narrower FAIL-AA phrasing at :65 and :112 only.",
+    "corrected_claim": "An explicit target-relative clarification could improve consistency between Step 6 and the broader failing-pair output rule, but missing AAA remediation is not established when the whole command is read."
+  },
+  {
+    "index": 6,
+    "refuted": false,
+    "reason": "jtbd-switch-interviewer:59 expressly orders interview questions backward from SWITCH through STRUGGLE to TRIGGER, whereas Required output item 1 at :70 expressly orders that same script trigger -> struggle -> switch. Item 2 separately covers timeline reconstruction. Independent grep also found chronological timeline terminology at :23 and wos/command-roles.md:1199, but those describe the reconstructed timeline and do not resolve the conflicting script requirement. ADR-0036 does not lock the opposing question order.",
+    "corrected_claim": "Align the required script order with Step 2's backward questioning. Preserve chronological terminology for the reconstructed timeline; it is not itself defective."
+  },
+  {
+    "index": 7,
+    "refuted": false,
+    "reason": "migration-safety-steward:50 states the unqualified PG11+ shortcut. The fetched [PostgreSQL 11 adding-column documentation](https://www.postgresql.org/docs/11/ddl-alter.html#DDL-ALTER-ADDING-A-COLUMN) specifically distinguishes a constant default from a volatile clock_timestamp() default that updates existing rows. The [current ALTER TABLE notes](https://www.postgresql.org/docs/current/sql-altertable.html#SQL-ALTERTABLE-NOTES) identify non-volatile defaults as the metadata case and volatile defaults as a rewrite case. Directory grep found the erroneous version shortcut only here.",
+    "corrected_claim": "Qualify the PG11+ default optimization as applying to non-volatile defaults, with volatile defaults retaining rewrite risk. Do not imply that this also removes locks or other independent rewrite causes. This corrects database behavior without weakening the command's conservative phasing rules."
+  },
+  {
+    "index": 8,
+    "refuted": false,
+    "reason": "The ADD-FK explanation at migration-safety-steward:63 attributes its scan to AccessExclusiveLock. The fetched [PostgreSQL ALTER TABLE documentation](https://www.postgresql.org/docs/current/sql-altertable.html) specifies SHARE ROW EXCLUSIVE on both referencing and referenced tables for ADD FOREIGN KEY, then SHARE UPDATE EXCLUSIVE on the altered table and ROW SHARE on the referenced table for separate validation. Independent directory grep found the incorrect FK explanation only here; :64 lists lock examples without SHARE ROW EXCLUSIVE.",
+    "corrected_claim": "Correct the FK lock explanation and make the evidence examples support the actual lock classes. Keep NOT VALID followed by separate VALIDATE and retain the stronger lock requirements of other constraint operations; this is a factual correction, not a reversal of the phasing policy."
+  },
+  {
+    "index": 9,
+    "refuted": true,
+    "reason": "There is a real tension between performance-budget:59's p50/p95/p99 metric choices, :60's p75-or-p95 rule, and the supported size and constant budgets. However, the proposed replacement removes a requirement that evals/scenarios/69-performance-budget.md explicitly depends on: its goal names p75/p95, its expected output requires every row to state a percentile, and its failure rules reject omitted percentiles. The command DoD at :142 repeats explicit percentiles. Under the mandated refutation rule, this is not an admissible isolated cut. Directory searches found the exact p75-or-p95 sentence only in this command, plus the dependent eval and DoD wording.",
+    "corrected_claim": "Treat metric-specific percentile semantics as a coordinated contract-and-eval change, not the proposed command-only relaxation. Preserve existing p75 web and p95 endpoint expectations while explicitly deciding how snapshot metrics and other latency percentiles are represented. The submitted fix is refuted because it leaves a live eval dependency unsatisfied."
+  },
+  {
+    "index": 10,
+    "refuted": false,
+    "reason": "post-deploy-verifier:27 says exactly one named signal. Its Step 3 at :66 explicitly permits multiple signals for one AC, and the DoD and Quality bar require at least one. Independent directory grep found the exact-one restriction only in this Goal; wos/command-roles.md:1410 also uses at least one. No shared block contains the cited line.",
+    "corrected_claim": "Replace the Goal's exact-one cardinality with at least one, preserving the Step 8 requirement to keep only signals tied to an AC or tracked risk."
+  },
+  {
+    "index": 11,
+    "refuted": true,
+    "reason": "The supposedly missing exception is explicit in the same command at Step 2 (:65): when the inventory is empty, author the plan only from available infra-free signal classes, record the observability gap, and stop only if nothing can be verified. ADR-0102's Decision states that same fallback. Thus the blanket output list is already qualified by a specific operating branch; the command does not require inventing dashboard infrastructure for that branch. Directory inspection confirmed output items 3 and 4 in this command and the resolving Step 2 rule.",
+    "corrected_claim": "Conditional labels on output items 3 and 4 would restate an existing ADR-0102 exception. Missing fallback behavior or required fabrication is not established; do not reverse or weaken the existing degrade-with-floor decision."
+  },
+  {
+    "index": 12,
+    "refuted": false,
+    "reason": "post-deploy-verifier:125 unconditionally labels its report PROPOSED, while :55 authorizes direct writing of its L3-owned report and :126 repeats that ownership boundary. wos/substrate-peers.md:209 and eval scenario 37 confirm whole-file ownership. The defect is narrower than claiming L3 automatically overrides every mode: ADR-0001 and WORKFLOW_OPERATING_SYSTEM.md:505-509 preserve PROPOSED defaults in Ask/Plan unless explicitly overridden. Independent grep found the report's unconditional PROPOSED DoD only here.",
+    "corrected_claim": "The DoD should reflect the report persistence actually authorized for the run while leaving the non-owned slice section PROPOSED. Do not apply the proposed unqualified direct-write requirement as a new all-mode default. Application must stop if it depends on overriding ADR-0001 rather than reconciling this stale DoD with existing ownership and mode rules."
+  },
+  {
+    "index": 13,
+    "refuted": false,
+    "reason": "wos/multi-repo-support.md:32-35 defines repository identifiers separately from role tags, and D6 at :82 uses the actual identifier in per-repo filenames. post-deploy-verifier:70 instead prescribes two fixed role-named files. Its :57 already advertises POST_DEPLOY_PLAN.<repo>.md, while :58,72,82 link only the unsuffixed report even when :83 permits variants instead. Independent directory grep confirms the hardcoded backend/frontend split also occurs in wos/command-roles.md:1406.",
+    "corrected_claim": "Use actual identifiers for the affected repositories and link the report files actually produced. Do not create empty plans for unrelated inventory entries or change the existing one-repository-per-slice decision D2. Correcting the fixed filenames implements the established D6 convention rather than changing repository identity policy."
+  },
+  {
+    "index": 14,
+    "refuted": false,
+    "reason": "The execution assignment is explicit at post-deploy-verifier:73. verify-against-rubric's Goal and Step 2 give its isolated reviewer only an artifact path and locked rubric, and ADR-0033's Decision defines that artifact-grading contract. Neither establishes a live-query or smoke-walkthrough execution step. Independent directory grep found this explicit assignment of query execution only in post-deploy-verifier; its Goal already correctly distinguishes captured-artifact grading.",
+    "corrected_claim": "Assign live evidence collection to an authorized human or applicable runtime verifier, and reserve verify-against-rubric for grading captured evidence. This corrects the caller's description. Extending verify-against-rubric itself into a runtime executor would alter ADR-0033's isolation contract and must stop for an explicit decision."
+  },
+  {
+    "index": 15,
+    "refuted": true,
+    "reason": "Read in context, the sentence concerns personal blame for contributing causes. Step 3 explicitly says never attribute individual fault; Steps 5 and 6 separately require action owners. Eval scenario 72 confirms that distinction: it rejects naming a person as the cause, while requiring an owner and tracking pointer for each action. The file does not require action owners to be anonymized. Independent grep found the broad rhetorical sentence in postmortem-author:116 and wos/command-roles.md:1242, so the submitted one-file family is incomplete as well.",
+    "corrected_claim": "The isolated sentence could be clarified to say naming a person as at fault, consistently in both locations, but a conflicting ban on named action owners is not established by the complete command and its eval."
+  },
+  {
+    "index": 16,
+    "refuted": false,
+    "reason": "rls-auth-boundary-auditor:63 gives the automatic missing-WITH-CHECK P1 rule. The fetched [PostgreSQL CREATE POLICY documentation](https://www.postgresql.org/docs/current/sql-createpolicy.html) specifies USING fallback for UPDATE and ALL, and forbids USING on INSERT-only policies. The output columns and example at :74-75 are therefore also misleading; an ALL-policy reading of the example still does not demonstrate the claimed bypass. Independent grep confirms related wording in the description (:3), Quality bar (:128), and wos/command-roles.md:1363. ADR-0157 records preserving the detection list during trimming, not a different PostgreSQL execution model.",
+    "corrected_claim": "Audit effective predicates and applicable-policy combinations before assigning a security finding. Preserve inspection of missing explicit clauses while distinguishing implicit USING fallback, INSERT-only syntax, and actual unauthorized writes. Correct the description, example, table terminology, Quality bar, and role summary without deleting the tenant-write audit protected by ADR-0157."
+  },
+  {
+    "index": 17,
+    "refuted": false,
+    "reason": "The purported safe literal search_path occurs at rls-auth-boundary-auditor:66, uniquely in the independent commands/ and wos/ grep. The fetched [PostgreSQL SECURITY DEFINER guidance](https://www.postgresql.org/docs/current/sql-createfunction.html#SQL-CREATEFUNCTION-SECURITY) requires excluding schemas writable by untrusted users and explains that the temporary relation schema is searched first unless positioned explicitly; its safe example puts pg_temp last. No local rule establishes public as trusted or all referenced relations as qualified.",
+    "corrected_claim": "Do not accept SET search_path = pg_catalog, public alone as proof against name hijacking. Verify trusted schema privileges and actual object resolution, with pg_temp placed last when relying on unqualified relations, or appropriately qualified references in a locked-down function. This corrects the security check rather than relaxing it."
+  },
+  {
+    "index": 18,
+    "refuted": false,
+    "reason": "Step 7 at rls-auth-boundary-auditor:67 audits application service_role callers and server-side identifier validation, but Step 8 (:68), output item 4 (:76), DoD (:120), and Quality bar (:128) require SQL remediation for every gap. The fetched [PostgreSQL row-security documentation](https://www.postgresql.org/docs/current/ddl-rowsecurity.html) confirms that BYPASSRLS roles bypass policies; adding an RLS policy cannot repair an unchecked application request executing as such a role. Independent grep also found the SQL-only requirement in wos/command-roles.md:1364,1368, beyond the submitted family.",
+    "corrected_claim": "Keep migration-shaped remedies for database defects, but permit precise application file-and-symbol changes for the application call-site defects already in Step 7's scope. Include the role reference in the correction and preserve the analysis-only boundary."
+  },
+  {
+    "index": 19,
+    "refuted": false,
+    "reason": "slo-define:58-59 permits latency and freshness indicators and a latency-bound target, but :60 supplies only a percentage-subtraction formula with a downtime example. Neither the rest of this command nor the independently searched wos/ topics defines the normalization needed to apply that formula to the supported latency target. The fetched [Google SRE SLO formulation](https://sre.google/workbook/implementing-slos/) makes the good-event ratio explicit before deriving a percentage error budget and distinguishes event counts from time. Eval 71 exercises a latency SLI but provides only the availability arithmetic example.",
+    "corrected_claim": "Clarify the required error-budget representation for non-availability targets: define eligible events, what meets the bound, and the required success fraction before subtracting. A p95 latency objective provides a 5% out-of-bound allowance for its defined population; downtime is appropriate only for a time-based availability measure. Preserve source grounding and the existing availability example."
+  },
+  {
+    "index": 20,
+    "refuted": true,
+    "reason": "The paragraph is present at a11y-audit:119 and outside every verified shared span, but declaring its rationale and repetition valueless is a taste judgment, not a demonstrated defect. Eval 68 depends on the same whole-surface coverage, delegation, and evidence discipline. The normative example-classification section at WORKFLOW_OPERATING_SYSTEM.md:310-314 does not license stripping judgment-illustrating content merely because no parser needs its bytes. Independent grep confirms the claimed three-file Quality bar family at a11y-audit:119, performance-budget:153, and slo-define:117; those paragraphs have different content and cannot inherit one deletion verdict.",
+    "corrected_claim": "No checkable defect supports deleting this Quality bar. Preserve its rationale and guardrails unless a separate, evidenced editing objective justifies a narrower change."
+  },
+  {
+    "index": 21,
+    "refuted": true,
+    "reason": "The paragraph is present at performance-budget:153 and outside shared text. Its concrete regression example and explanation of ungrounded gates provide calibration; the finding supplies no evidence that this repeated emphasis causes a defect. Eval 69 explicitly depends on the grounded-budget and external-execution boundaries, while the structural multiplayer check protects other content in the same command. Independent grep confirms the three cited Quality bars, but they are not identical boilerplate. The proposed full deletion is a taste-based cut.",
+    "corrected_claim": "No confirmed defect justifies deleting the performance Quality bar. Any separately justified percentile-contract repair must retain the meaningful source-grounding and execution boundaries and coordinate eval 69."
+  },
+  {
+    "index": 22,
+    "refuted": true,
+    "reason": "The paragraph is present at slo-define:117 and outside shared text. It explains why the reliability contract exists, why an invented target is harmful, and how the consumers use it. That rationale is not shown to be faulty or to impair behavior merely because operating rules repeat the same safeguards. Eval 71 depends on the measurable, grounded, non-executing contract and named consumers. Independent grep confirmed only the three listed Quality bars for this claimed family, with distinct subject-specific text.",
+    "corrected_claim": "The proposed deletion is an editorial preference, not a verified defect. Preserve the Quality bar; any targeted error-budget clarification can be made without removing its consumer and grounding rationale."
+  }
+]

@@ -1,18 +1,18 @@
 # Eval scenario 87: per-task git worktree isolation (task-workspace provision + task-close teardown)
 
 - **Tags**: ADR-0074, task-workspace, task-close, git-worktree, workspace-isolation, opt-in, git-gated, additive
-- **Last reviewed**: 2026-07-01
+- **Last reviewed**: 2026-09-24
 - **Status**: active
 
 ## Goal
 
-Validates **ADR-0074** as delivered by `task-workspace` (provision) and `task-close` (teardown). Given a git-backed project and a task that opts in, `task-workspace` must provision exactly one durable git worktree and a `task/<task-slug>` branch off the base, record them in a `## Workspace` section in `SOURCE_OF_TRUTH.md`, and never tear down. On a non-git project, or when isolation is not requested, it must be a no-op with a trace. At closure, `task-close` must remove and prune the worktree when the tree is clean and merged, and halt (never `--force`) when it is unclean or unmerged. The feature is additive: a task that does not opt in behaves exactly as today.
+Validates **ADR-0074** as delivered by `task-workspace` (provision) and `task-close` (teardown). Given a git-backed project and a task that opts in, `task-workspace` must provision exactly one durable git worktree and a `task/<task-dir>` branch off the base, record them in a `## Workspace` section in `SOURCE_OF_TRUTH.md`, and never tear down. On a non-git project, or when isolation is not requested, it must be a no-op with a trace. At closure, `task-close` must remove and prune the worktree when the tree is clean and merged, and halt (never `--force`) when it is unclean or unmerged. The feature is additive: a task that does not opt in behaves exactly as today.
 
 This exercises:
 
 - The git-gate: a non-git project returns `NO_OP_TRACE` and no worktree is created.
 - The opt-in rule: a worktree is provisioned only on an explicit request, never as a side effect.
-- The naming conventions: branch `task/<task-slug>`, worktree `../<repo-basename>-worktrees/<task-slug>`.
+- The naming conventions: branch `task/<task-dir>`, worktree `../<repo-basename>-worktrees/<task-dir>`, where `<task-dir>` is the full `YYYY-MM-DD_<task-slug>` folder name.
 - The branch-collision rule: a branch already checked out in another worktree is not `--force`d; the collision is surfaced.
 - The `## Workspace` substrate write into `SOURCE_OF_TRUTH.md`.
 - The teardown split: `task-workspace` never removes; `task-close` runs `git worktree remove` + `prune` with the unclean/unmerged halt guard.

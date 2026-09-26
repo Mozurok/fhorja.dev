@@ -13,6 +13,11 @@ reversibility-check: false
 
 ## Trigger
 
+For current Fhorja dispatches, apply this class to the payload on the selected ADR-0158
+carrier: the runtime's typed result or the assigned native JSON file. Validate that payload
+against the declared schema; do not require a worker-side tool call. The tool-call code
+examples below describe the historical failure mechanism, not the current Fhorja API.
+
 A subagent is dispatched with a JSON schema (the StructuredOutput tool) as its required return contract, and it ends its turn by writing prose to its final assistant message instead of calling the tool. The orchestrator's apply step reads only the tool call, so the prose is discarded and the structured payload is null.
 
 The failure is silent by construction. Nothing throws, nothing logs, no metric moves, and every agent exits cleanly, so the orchestrator reports a successful batch. The loss surfaces later, when an expected artifact is missing from disk or the next stage fails on an empty input, far from the dispatch that caused it. It also scales with fan-out: one internal batch had 10 of 12 dispatched agents skip the tool call entirely, which is a batch that consumed full token cost and produced almost no usable output while looking green.
@@ -49,8 +54,8 @@ if (skipped.length > 0) {
 Prompt-template check, cheap enough to run in CI on every change to a prompt file:
 
 ```bash
-grep -L "Call StructuredOutput" packages/**/prompts/*.md
-# any file in the list is missing the final-line reminder
+grep -LE "Return one payload matching|Write one JSON payload matching" packages/**/prompts/*.md
+# any file in the list lacks either carrier reminder; inspect final-line placement separately
 ```
 
 Alert threshold: any batch where `skipCount / total > 0.05` should page. A sustained skip rate is a regression in prompt quality, not a transient, and the per-batch numbers are too small to notice one at a time.
@@ -69,11 +74,11 @@ Given the retrieved dispatch site, its prompt templates, and its result-handling
 
 1. Compose the prompt as the code actually builds it, then read its LAST line. Report that line verbatim. A schema reminder anywhere other than the tail does not satisfy this check, and report where it does appear so the fix is a move rather than an addition.
 2. Count the distinct top-level objectives the prompt asks for. Report the count and quote each imperative. More than one objective per dispatch is a cause of this class, not a style preference.
-3. Trace the result path from the tool-call extraction to the write. Report exactly what happens when the payload is absent: an exception, a retry, a logged warning, or a no-op. A no-op is the finding; name the line.
+3. Trace the result path from the selected carrier's payload to the write: the runtime result or the assigned native JSON file for Fhorja. Report exactly what happens when the payload is absent: an exception, a retry, a logged warning, or a no-op. A no-op is the finding; name the line.
 4. Determine whether anything counts skips. Report the presence or absence of a post-batch sweep, a metric, and an alert threshold, each as a separate answer. Absence is a fact worth stating, because it is the difference between a failure that is rare and one that is invisible.
 5. Check whether the orchestrator retries on a null payload, and if so whether the retry prompt differs from the original. A retry that re-sends the same prompt tends to reproduce the same skip.
 6. Report whether the schema constraints (enum values, required keys, the no-preamble instruction) are repeated near the tail or stated only mid-body.
-7. Recommend, in order: keep each dispatched prompt to one artifact, one schema, one job; make the final line of every dispatched prompt an explicit reminder to call the tool exactly once with the named fields; add a post-batch sweep that counts payload-less results and increments a metric; retry once on a null payload with a more explicit reminder and then surface a hard failure rather than a no-op. In one internal batch, moving the reminder to the final line took the skip rate from 83 per cent to zero, so the ordering above is not arbitrary: the prompt fix is the one that pays, and the sweep is what tells you when it stops paying.
+7. Recommend, in order: keep each dispatched prompt to one artifact, one schema, one job; make its final line an explicit typed-return reminder for the selected carrier, naming the output schema and the assigned file on the native path; add a post-batch sweep that counts payload-less results and increments a metric; retry once on a null payload with a more explicit reminder and then surface a hard failure rather than a no-op. In one internal batch, moving the reminder to the final line took the skip rate from 83 per cent to zero, so the ordering above is not arbitrary: the prompt fix is the one that pays, and the sweep is what tells you when it stops paying.
 
 ## Severity rubric
 

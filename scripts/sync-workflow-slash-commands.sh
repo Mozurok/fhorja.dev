@@ -11,7 +11,9 @@
 #   Claude  (legacy slash):  ~/.claude/commands
 #   Codex  (custom prompts): ~/.codex/prompts (invoked as /prompts:<name>)
 #   Kimi   (skills only):    no custom-command directory exists; see the Kimi note below
-#   Skills (open standard): ~/.claude/skills, ~/.cursor/skills, ~/.agents/skills (ON by default)
+#   Skills (open standard): ~/.claude/skills and ~/.agents/skills (ON by default).
+#                           Cursor 3.17.8 or later reads ~/.agents/skills natively, so
+#                           ~/.cursor/skills is written only under --cursor-skills (ADR-0228).
 #
 # Docs:
 #   Cursor: project .cursor/commands or user commands (this script targets the user dir by default).
@@ -45,6 +47,13 @@ CODEX_DEST="${CODEX_PROMPTS_DIR:-${HOME}/.codex/prompts}"
 CLAUDE_SKILLS_DEST="${CLAUDE_SKILLS_DIR:-${HOME}/.claude/skills}"
 CURSOR_SKILLS_DEST="${CURSOR_SKILLS_DIR:-${HOME}/.cursor/skills}"
 CODEX_SKILLS_DEST="${CODEX_SKILLS_DIR:-${HOME}/.agents/skills}"
+# The root Cursor reads by default is the shared ~/.agents/skills, the same one Codex
+# and Kimi read, so it follows CODEX_SKILLS_DIR rather than having a variable of its own.
+# Cursor loads it natively from 3.17.8 (older builds did not inject it). Writing
+# ~/.cursor/skills as well made Cursor list every Fhorja skill twice, so that root is now
+# opt-in through --cursor-skills, which Cursor Cloud Agents sync needs because only
+# ~/.cursor/skills syncs there (ADR-0228). CURSOR_SKILLS_DIR moves that opt-in root.
+CURSOR_SHARED_SKILLS_DEST="$CODEX_SKILLS_DEST"
 DEFAULT_CODEX_SKILLS_DEST="${HOME}/.agents/skills"
 LEGACY_CODEX_SKILLS_DEST="${HOME}/.codex/skills"
 
@@ -76,6 +85,8 @@ WITH_DOCS=0
 WITH_SKILLS=1          # skills ON by default (opt out with --no-skills)
 DO_CLEAN_ORPHANS=0
 ASSUME_YES=0
+WITH_CURSOR_SKILLS=0   # ~/.cursor/skills is opt-in (ADR-0228); --cursor-skills turns it on
+PRINT_OVERRIDES=""     # --print-skill-overrides=<minimal|core>: print, write nothing
 PROJECT=""
 PROFILE_SET=0   # 1 only when the caller passed --profile=TIER explicitly (D-4, ADR-0059)
 
@@ -99,30 +110,41 @@ usage() {
 Usage: sync-workflow-slash-commands.sh [options]
 
 Run with no options on a terminal to open an interactive wizard. Pass any option
-(or run in CI / a pipe) to take the non-interactive path and copy
-my_work_tasks/commands/*.md and, by default, the agent skills to Cursor, Claude
+(or run in CI / a pipe) to take the non-interactive path and copy the workflow
+repository's commands/*.md and, by default, the agent skills to Cursor, Claude
 Code, Codex, and/or Kimi Code directories.
 
 Options:
   --dry-run              Print actions only; do not write files.
-  --profile=TIER         Which command set to install: minimal (the 12-command
-                         everyday loop; the default), core (~50 commands), or full
+  --profile=TIER         Which command set to install: minimal (the everyday
+                         loop; the default), core (~50 commands), or full
                          (every flat command file). Passing --profile explicitly also
-                         filters the skills mirror: core installs only core-tier
-                         skills, full (or an empty --profile=) installs every
-                         skill. minimal is REFUSED for skills (D-4, ADR-0059):
-                         the tier stays gated until evals/scripts/structural-evals.py's
-                         check_tier_routing_closure() reports a clean corpus (it
-                         currently finds one open break). Add --no-skills to still
-                         install the minimal command set with no skills. Omitting
-                         --profile entirely leaves skills unfiltered, unchanged
-                         from before D-4.
+                         filters the skills mirror: minimal installs the spine
+                         skills, core installs only core-tier skills, full (or an
+                         empty --profile=) installs every skill. Omitting --profile
+                         entirely leaves skills unfiltered. Add --no-skills to install
+                         commands without skills.
   --no-skills            Do NOT sync agent skills (skills sync by default).
   --with-skills          Sync agent skills (default; kept for backward compatibility).
   --clean-orphans        Also remove command files in the destinations that no
-                         longer exist in the source (renamed or deleted commands).
-                         Prompts for confirmation on a terminal; needs --yes in CI.
+                         longer exist in the source (renamed or deleted commands),
+                         and, unless --cursor-skills is set, the Fhorja skills an
+                         earlier install left in ~/.cursor/skills. A skill there counts
+                         as Fhorja's only when its name is a Fhorja skill AND its
+                         SKILL.md carries the x-wos-profiles key; any other skill is
+                         left alone. Asks for confirmation on a terminal; needs --yes
+                         otherwise; deletes nothing under --dry-run.
   --yes                  Assume yes for confirmations (non-interactive clean-orphans).
+  --cursor-skills        Also write the skills to ~/.cursor/skills (CURSOR_SKILLS_DIR
+                         moves it). Off by default: Cursor 3.17.8 or later reads
+                         ~/.agents/skills natively, and a second copy is listed twice.
+                         Cursor Cloud Agents sync needs it, because only
+                         ~/.cursor/skills syncs there.
+  --print-skill-overrides=TIER
+                         Print a Claude Code skillOverrides object (JSON) that sets
+                         every Fhorja skill outside TIER (minimal or core) to
+                         name-only, then exit. Writes nothing: merge it into
+                         ~/.claude/settings.json yourself if you want it.
   --cursor-only          Update only the Cursor destination.
   --claude-only          Update only the Claude Code destination.
   --codex-only           Update only the Codex prompts destination.
@@ -136,7 +158,9 @@ Options:
   --kimi-dir=PATH        Override the Kimi skills directory (default: ~/.agents/skills,
                          the generic directory Kimi scans natively). Use
                          --kimi-dir=~/.kimi-code/skills for a Kimi-owned copy.
-  --project=PATH         Also copy into PATH/.cursor/commands and PATH/.claude/commands.
+  --project=PATH         Also copy into PATH/.cursor/commands and PATH/.claude/commands,
+                         and the skills into PATH/.claude/skills and PATH/.agents/skills
+                         (PATH/.cursor/skills as well only under --cursor-skills).
                          Codex custom prompts are user-local only, so --project does not
                          create project-level Codex prompts. Kimi has no command
                          directory at either level; its project skills go to
@@ -155,11 +179,18 @@ Environment:
   CODEX_WORKFLOW_DOCS_DIR   Third copy for Codex (default: ~/.codex/workflow-docs).
   KIMI_WORKFLOW_DOCS_DIR    Fourth copy for Kimi (default: <kimi-home>/workflow-docs).
   CLAUDE_SKILLS_DIR      Skills destination, Claude Code (default: ~/.claude/skills).
-  CURSOR_SKILLS_DIR      Skills destination, Cursor (default: ~/.cursor/skills).
-  CODEX_SKILLS_DIR       Skills destination, OpenAI Codex (default: ~/.agents/skills).
+  CURSOR_SKILLS_DIR      Skills destination written only under --cursor-skills (default: ~/.cursor/skills).
+  CODEX_SKILLS_DIR       Skills destination shared by Codex, Kimi and Cursor (default: ~/.agents/skills).
   KIMI_SKILLS_DIR        Skills destination, Kimi Code (default: ~/.agents/skills). Same as --kimi-dir.
   KIMI_CODE_HOME         Kimi's own home directory. Read, never set, by this script; it
                          picks the installed one (~/.kimi-code, then ~/.kimi) when unset.
+
+Default skill roots: ~/.claude/skills and ~/.agents/skills. Claude Code reads the
+first and not the second; Codex, Kimi, and Cursor 3.17.8 or later read the second.
+Cursor before 3.17.8 did not load ~/.agents/skills: update Cursor, or pass
+--cursor-skills. Before copying skills, the installer runs
+scripts/build-agent-skills.sh --check and refuses on drift; without python3 it
+prints "skills not checked: python3 absent" and continues. --no-skills skips both.
 
 Note: EVERY sync, with or without --with-docs, also writes the runtime payload
 (WORKFLOW_OPERATING_SYSTEM.md + wos/) into the four workflow-docs destinations above, for
@@ -170,8 +201,8 @@ carries. The spec moved into the payload in ADR-0129; before that it shipped onl
 Cursor and Claude destinations, so a Codex- or Kimi-only machine could not bootstrap.
 
 Note: Command files reference WORKFLOW_OPERATING_SYSTEM.md and paths under this repo.
-For best results, open Claude Code/Codex from my_work_tasks as cwd, or add this
-repo via your normal workflow so those paths resolve.
+For best results, open Claude Code or Codex with the workflow repository as cwd, or
+add it via your normal workflow so those paths resolve.
 
 Codex note: custom prompts load from ~/.codex/prompts and are invoked as
 /prompts:<name> (for example /prompts:task-init). They are deprecated in favor
@@ -217,23 +248,45 @@ expand_tilde() {
   esac
 }
 
+# Defined before the argument loop, not after it, because both the loop and the wizard call it.
+# It was below the loop until 2026-08-30, when the space form of --profile was added and could
+# not reach it (`line 223: set_profile: command not found`). Routing both call sites through
+# this helper is what keeps check_wizard_sets_profile_set strict: PROFILE and PROFILE_SET move
+# together, and no new literal PROFILE= assignment site exists for the guard to have to allow.
+set_profile() {
+  PROFILE="$1"
+  PROFILE_SET=1
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run) DRY_RUN=1 ;;
     --profile=*) PROFILE="${1#*=}"; PROFILE_SET=1 ;;
+    # The space form is accepted because every doc and every muscle memory writes it that way.
+    # Measured 2026-08-30: README and docs/FAQ.md carried four invocations in the space form and
+    # all four exited 2 with "Unknown option", which is the first thing a new user copies.
+    --profile) [[ $# -ge 2 && "$2" != -* ]] || { echo "--profile needs a value" >&2; exit 2; }; set_profile "$2"; shift ;;
     --no-skills) WITH_SKILLS=0 ;;
     --with-skills) WITH_SKILLS=1 ;;
     --clean-orphans) DO_CLEAN_ORPHANS=1 ;;
     --yes|-y) ASSUME_YES=1 ;;
+    --cursor-skills) WITH_CURSOR_SKILLS=1 ;;
+    --print-skill-overrides=*) PRINT_OVERRIDES="${1#*=}"; [[ -n "$PRINT_OVERRIDES" ]] || { echo "--print-skill-overrides needs a value: minimal or core" >&2; exit 2; } ;;
+    --print-skill-overrides) [[ $# -ge 2 && "$2" != -* ]] || { echo "--print-skill-overrides needs a value: minimal or core" >&2; exit 2; }; PRINT_OVERRIDES="$2"; shift ;;
     --cursor-only) select_only cursor ;;
     --claude-only) select_only claude ;;
     --codex-only) select_only codex ;;
     --kimi-only) select_only kimi ;;
     --cursor-dir=*) CURSOR_DEST="$(expand_tilde "${1#*=}")" ;;
+    --cursor-dir) [[ $# -ge 2 && "$2" != -* ]] || { echo "--cursor-dir needs a value" >&2; exit 2; }; CURSOR_DEST="$(expand_tilde "$2")"; shift ;;
     --claude-dir=*) CLAUDE_DEST="$(expand_tilde "${1#*=}")" ;;
+    --claude-dir) [[ $# -ge 2 && "$2" != -* ]] || { echo "--claude-dir needs a value" >&2; exit 2; }; CLAUDE_DEST="$(expand_tilde "$2")"; shift ;;
     --codex-dir=*) CODEX_DEST="$(expand_tilde "${1#*=}")" ;;
+    --codex-dir) [[ $# -ge 2 && "$2" != -* ]] || { echo "--codex-dir needs a value" >&2; exit 2; }; CODEX_DEST="$(expand_tilde "$2")"; shift ;;
     --kimi-dir=*) KIMI_SKILLS_DEST="$(expand_tilde "${1#*=}")" ;;
+    --kimi-dir) [[ $# -ge 2 && "$2" != -* ]] || { echo "--kimi-dir needs a value" >&2; exit 2; }; KIMI_SKILLS_DEST="$(expand_tilde "$2")"; shift ;;
     --project=*) PROJECT="$(expand_tilde "${1#*=}")" ;;
+    --project) [[ $# -ge 2 && "$2" != -* ]] || { echo "--project needs a value" >&2; exit 2; }; PROJECT="$(expand_tilde "$2")"; shift ;;
     --with-docs) WITH_DOCS=1 ;;
     -h|--help) usage; exit 0 ;;
     *)
@@ -255,7 +308,7 @@ fi
 # to be the hardcoded 85 of an older corpus, in three separate strings.
 FLAT_COMMAND_COUNT="$(find "$SRC" -maxdepth 1 -name '*.md' | wc -l | tr -d ' ')"
 
-# Profile filter (ADR-0059): the default profile is `minimal` (the 12-command
+# Profile filter (ADR-0059, ADR-0178): the default profile is `minimal` (the
 # everyday loop). Include a command file when its metadata.x-wos-profiles inline
 # list contains the requested tier, or when the profile is explicitly empty
 # (PROFILE= copies all, the pre-default behavior). minimal/core/full are distinct
@@ -278,17 +331,83 @@ file_in_profile() {
 #     - full
 # Only ever called with a tier the caller explicitly asked for; see
 # skills_effective_profile() below for how that intent is derived.
+# Reads BOTH shapes of x-wos-profiles, on purpose and in this order:
+#   old, a block sequence:   x-wos-profiles:\n    - minimal\n    - core
+#   new, a quoted scalar:    x-wos-profiles: "minimal, core, full"
+# E4.1b flattens every SKILL.md to the scalar form, because the Agent Skills spec
+# fixed metadata as a map from string keys to STRING values on 2026-08-03. This
+# parser lands FIRST and is proved by scripts/tests/test-skill-in-profile.sh, so no
+# ordering of the two slices can leave `--profile=minimal` copying zero skills in
+# silence. The block branch stays afterwards as compatibility for installed trees
+# that have not been re-synced yet.
+# Comparison is per ITEM after the split, never a substring match: `core` must not
+# match inside `hardcore`. It runs inside awk rather than a shell associative array,
+# which returns empty in silence under this machine's zsh.
 skill_in_profile() {
   local skill_dir="$1" p="$2" f
   f="${skill_dir%/}/SKILL.md"
   [[ -z "$p" ]] && return 0
   [[ -f "$f" ]] || return 1
   awk -v want="$p" '
-    /^  x-wos-profiles:/ { in_block=1; next }
+    /^  x-wos-profiles:/ {
+      rest = $0
+      sub(/^  x-wos-profiles:[ \t]*/, "", rest)
+      gsub(/^"|"$/, "", rest)
+      if (rest != "") {
+        n = split(rest, items, /,[ \t]*/)
+        for (i = 1; i <= n; i++) {
+          gsub(/^[ \t]+|[ \t]+$/, "", items[i])
+          if (items[i] == want) found = 1
+        }
+        next
+      }
+      in_block = 1; next
+    }
     in_block && /^    - / { val=$0; sub(/^    - /, "", val); if (val == want) found=1; next }
     in_block { in_block=0 }
     END { exit(found ? 0 : 1) }
   ' "$f"
+}
+
+# advertise_chars <skills-src> <profile> -> total chars of the `description:` field
+# across every skill in <skills-src> that belongs to <profile>.
+#
+# Every agent run pays for these descriptions whether or not the skill is invoked,
+# so this is the one number that scales with how much got mirrored. All 98 skills in
+# this repository carry a multi-line description, so the continuation-line branch
+# below is the normal path and not an edge case; dropping it undercounts by most of
+# the total. Reads the SOURCE tree only, never a destination: it reports what this
+# run mirrored, which is not the same as what the destination now holds, because
+# sync_skills_dest never removes.
+advertise_chars() {
+  local src="$1" prof="$2" total=0 d n
+  shopt -s nullglob
+  for d in "${src}"/*/; do
+    [[ -f "${d}SKILL.md" ]] || continue
+    skill_in_profile "$d" "$prof" || continue
+    n="$(awk '
+      /^---[[:space:]]*$/ { fm++; if (fm == 2) exit; next }
+      fm != 1 { next }
+      /^description:/ {
+        cap = 1
+        line = substr($0, 13)
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+        acc = line
+        next
+      }
+      cap && /^[[:space:]]/ {
+        line = $0
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+        if (line != "") acc = acc " " line
+        next
+      }
+      cap { cap = 0 }
+      END { print length(acc) }
+    ' "${d}SKILL.md")"
+    total=$((total + n))
+  done
+  shopt -u nullglob
+  printf '%s' "$total"
 }
 
 # The profile that actually gates the skills mirror. Skills stay unfiltered
@@ -305,30 +424,43 @@ skills_effective_profile() {
   fi
 }
 
-# D-4 (ADR-0059) skill-profile gate: minimal is refused for skills, explicitly,
-# rather than silently downgraded to core. Only fires when the caller asked
-# for it (PROFILE_SET=1 via --profile=minimal); the untouched default (no
-# --profile flag at all) keeps mirroring every skill, unchanged from before
-# D-4. Exits before any destination is touched.
-refuse_minimal_skills_if_requested() {
-  if [[ "$WITH_SKILLS" -eq 1 && "$PROFILE_SET" -eq 1 && "$PROFILE" == "minimal" ]]; then
-    cat >&2 <<'EOF'
-Refusing: skills cannot be mirrored at the minimal profile yet.
-
-D-4 (ADR-0059, x-wos-profiles) gates the minimal skill tier on a lint rule
-that enforces every command's own routing chain staying inside its own
-declared x-wos-profiles tier. That rule is not clean yet:
-evals/scripts/structural-evals.py's check_tier_routing_closure() reports one
-open break (task-init is [minimal, core, full] and its own Express chain
-routes to branch-commit, which is [core, full] only), so a minimal-tier skill
-install would hand a user a documented next step it did not install.
-
-Use --profile=core or --profile=full (or omit --profile) to install skills,
-or add --no-skills to install the minimal command set with no skills.
-EOF
+# --print-skill-overrides=<minimal|core> (ADR-0228). Claude Code lists every skill it can
+# see on every turn, and a skillOverrides entry of "name-only" keeps a skill's name in that
+# listing while dropping its description. Which skills a machine demotes is the operator's
+# call and lives in their own settings file, so this prints the object and writes nothing.
+print_skill_overrides() {
+  local tier="$1" d
+  case "$tier" in
+    minimal|core) ;;
+    *) echo "--print-skill-overrides takes minimal or core, not '${tier}'" >&2; exit 2 ;;
+  esac
+  if [[ ! -d "$SKILLS_SRC" ]]; then
+    echo "--print-skill-overrides: no skills at ${SKILLS_SRC}; run scripts/build-agent-skills.sh first" >&2
     exit 1
   fi
+  local names=()
+  shopt -s nullglob
+  for d in "${SKILLS_SRC}"/*/; do
+    [[ -f "${d}SKILL.md" ]] || continue
+    skill_in_profile "$d" "$tier" && continue
+    names+=("$(basename "$d")")
+  done
+  shopt -u nullglob
+  local i n=${#names[@]} sep
+  printf '{\n  "skillOverrides": {\n'
+  for ((i = 0; i < n; i++)); do
+    sep=","; [[ $i -eq $((n - 1)) ]] && sep=""
+    printf '    "%s": "name-only"%s\n' "${names[$i]}" "$sep"
+  done
+  printf '  }\n}\n'
+  echo "Printed ${n} Fhorja skill(s) outside the ${tier} tier as name-only. Nothing was written;" >&2
+  echo "merge the object into ~/.claude/settings.json yourself if you want it." >&2
 }
+
+if [[ -n "$PRINT_OVERRIDES" ]]; then
+  print_skill_overrides "$PRINT_OVERRIDES"
+  exit 0
+fi
 
 # ---------------------------------------------------------------------------
 # State-detection helpers (read-only). Shared by the wizard's state panel and
@@ -422,6 +554,47 @@ sync_one_dest() {
 # told to trust that output. Shipping a helper that answers confidently and wrongly is worse
 # than shipping none. Which scripts can ship at all is a per-script question and has its own
 # task.
+#
+# The per-script answer, one entry at a time (ADR-0214). A script ships only when it passes
+# BOTH tests that D-3 names, measured by running an installed copy from outside this repo:
+#   1. it runs where it lands: no path derived from its own location (no BASH_SOURCE, no $0,
+#      no SCRIPT_DIR), and every input it reads arrives as an argument;
+#   2. on an empty or missing input it NAMES the absence rather than printing a well-formed
+#      empty result with exit 0, which is the portfolio-review.sh failure D-3 was written from.
+# rank-learnings.sh, measured 2026-09-22: an installed copy run from /tmp against a real
+# project returned its ranked lessons; against an empty project it printed "no LEARNINGS.md
+# found under: <path>" and "0 ranked / 0 scanned". It depends on awk, find, grep, sed and sort
+# only. task-init's LEARNINGS consume step calls it, so without it the consume path fails
+# silently on every install that is not a clone of this repository.
+# compute-task-outcome.py, measured 2026-09-22: an installed copy run from outside the repo
+# printed a schema-valid plan_review line, and against a task folder that does not exist it
+# exits 2 with "task folder not found". It reads only its arguments and the stdlib. approve-plan,
+# review-hard and task-close append its output to OUTCOMES.jsonl, so without it the ledger
+# ADR-0208 relies on is never written on an install.
+# ingest-scan.py, measured 2026-09-22: read-only, stdlib only, no self-location. It failed
+# test 2 until the same day: empty input printed "VERDICT: CLEAN" with exit 0, and a missing
+# file raised a traceback. Both now exit 2 with the absence named. It is the ASI06 poisoning
+# scan four commands and a shared block run before ingested content enters task memory, so
+# on an install without it that scan was skipped with nothing saying so.
+# scan-substrate-orphans.py, measured 2026-09-22: stdlib only, no self-location. It failed
+# test 2 until the same day: a named file that did not exist printed a warning, then OK with
+# exit 0. It now exits 2 with the absent targets named. Six fleet commands gate their apply
+# step on its exit code, so on an install without it every one of those gates failed.
+# Measured 2026-09-23 (ADR-0224), the rest of the scripts commands run. Each was run as an
+# installed copy from outside the repo against an empty target, and each now names what it
+# did not read, with a non-zero exit wherever the exit is not advisory by contract:
+# rank-references.sh passed as it was ("nothing to rank"). emit-substrate-write.sh,
+# scan-substrate-headers.sh, verify-log-validator.py and verify-substrate-batch.sh ship as
+# ONE unit: the batch wrapper is the closure integrity floor and runs the other two plus the
+# orphan scan from its own directory, and without the emitter, or without the validator's
+# file-scope digest reading, every installed close would fail that floor. The wrapper is the
+# one script here that locates siblings through its own path; every sibling it names ships
+# beside it, which the install test asserts. emit-substrate-write.sh needs jq. The others:
+# check-live-markers.sh, check-plan-coverage.sh, plan-adherence.py, memory-lint.sh,
+# secret-scan-gate.sh and portfolio-review.sh, which now reads the directory it runs from
+# and refuses one with no projects/, the D-3 failure above.
+SHIPPED_SCRIPTS=(rank-learnings.sh compute-task-outcome.py ingest-scan.py scan-substrate-orphans.py rank-references.sh emit-substrate-write.sh scan-substrate-headers.sh verify-log-validator.py verify-substrate-batch.sh check-live-markers.sh check-plan-coverage.sh plan-adherence.py memory-lint.sh secret-scan-gate.sh portfolio-review.sh)
+
 sync_runtime_payload() {
   local label="$1"
   local dest="$2"
@@ -434,12 +607,22 @@ sync_runtime_payload() {
   fi
   SYNCED_PAYLOAD_DESTS="${SYNCED_PAYLOAD_DESTS}${dest%/}|"
   echo "==> ${label} (runtime payload): ${dest}"
-  local topics
-  topics="$(find "${REPO_ROOT}/wos" -name '*.md' | wc -l | tr -d ' ')"
+  local topics classes
+  # Count the two categories the repository counts separately, rather than one
+  # recursive find that calls a bug-class template a topic. The count markers in
+  # the docs are `count:wos-topics` (the lazy topics at the root of wos/) and
+  # `count:bug-templates` (the curated library under wos/bug-classes/), and a
+  # message that reports their sum as "topics" overstates the first by 2.5x.
+  topics="$(find "${REPO_ROOT}/wos" -maxdepth 1 -name '*.md' | wc -l | tr -d ' ')"
+  classes="$(find "${REPO_ROOT}/wos/bug-classes" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')"
   if [[ "$DRY_RUN" -eq 1 ]]; then
     echo "    mkdir -p $(printf '%q' "${dest}/wos")"
     echo "    cp WORKFLOW_OPERATING_SYSTEM.md -> $(printf '%q' "$dest")"
     echo "    cp -R wos/. -> $(printf '%q' "${dest}/wos")  (${topics} topics, recursive)"
+    local s
+    for s in "${SHIPPED_SCRIPTS[@]}"; do
+      echo "    cp scripts/${s} -> $(printf '%q' "${dest}/scripts")"
+    done
     return 0
   fi
   mkdir -p "${dest}/wos"
@@ -453,8 +636,24 @@ sync_runtime_payload() {
   # templates/); the spec was never that.
   cp "${REPO_ROOT}/WORKFLOW_OPERATING_SYSTEM.md" "${dest}/"
   # Recursive: wos/ has subdirectories (bug-classes/), and a flat copy would drop them.
+  # The payload's wos/ belongs to Fhorja alone, so a topic retired from the repository is
+  # removed from it too. A copy on top never removes anything, and on 2026-09-22 and again
+  # on 2026-09-23 an installed payload carried a retired topic a model could still read.
+  local rel
+  while IFS= read -r rel; do
+    [[ -f "${REPO_ROOT}/wos/${rel}" ]] || rm -f "${dest}/wos/${rel}"
+  done < <(cd "${dest}/wos" && find . -type f -name '*.md' | sed 's|^\./||')
   cp -R "${REPO_ROOT}/wos/." "${dest}/wos/"
-  echo "    copied WORKFLOW_OPERATING_SYSTEM.md + wos/ (${topics} topics)"
+  echo "    copied WORKFLOW_OPERATING_SYSTEM.md + wos/ (${topics} topics, ${classes} bug-class files)"
+  if [[ "${#SHIPPED_SCRIPTS[@]}" -gt 0 ]]; then
+    mkdir -p "${dest}/scripts"
+    local s
+    for s in "${SHIPPED_SCRIPTS[@]}"; do
+      cp "${REPO_ROOT}/scripts/${s}" "${dest}/scripts/${s}"
+      chmod +x "${dest}/scripts/${s}"
+    done
+    echo "    copied ${#SHIPPED_SCRIPTS[@]} script(s): ${SHIPPED_SCRIPTS[*]}"
+  fi
 }
 
 # The OPTIONAL reading material, behind --with-docs. The spec is deliberately NOT here
@@ -471,6 +670,14 @@ sync_workflow_docs() {
     return 0
   fi
   mkdir -p "${dest}/templates"
+  # templates/ under the docs destination belongs to Fhorja alone, so a template retired
+  # from the repository is removed from it too, the rule sync_runtime_payload applies to
+  # its topics (ADR-0228, D-6 of the 2026-09-23 backlog task). A copy on top never
+  # removes anything.
+  local rel
+  while IFS= read -r rel; do
+    [[ -f "${REPO_ROOT}/templates/${rel}" ]] || rm -f "${dest}/templates/${rel}"
+  done < <(cd "${dest}/templates" && find . -type f | sed 's|^\./||')
   cp "${REPO_ROOT}/README.md" "${dest}/"
   cp "${REPO_ROOT}/WORKFLOW_DEMO.md" "${dest}/"
   cp "${REPO_ROOT}/COMMAND_PROMPT_STUBS.md" "${dest}/"
@@ -526,6 +733,64 @@ sync_skills_dest() {
   echo "    wrote ${n} skill(s) (profile: ${sp:-all})"
 }
 
+# is_fhorja_skill <skill-dir> -> 0 when the directory holds a skill Fhorja installed: its
+# name is one of this repository's skills AND its SKILL.md frontmatter carries the
+# x-wos-profiles key every generated Fhorja skill has. A name match alone is not enough:
+# ~/.cursor/skills is shared with skills the operator installed from elsewhere, and on
+# 2026-09-17 the maintainer's copy held 11 of those beside Fhorja's 98 (backlog B19).
+is_fhorja_skill() {
+  local dir="${1%/}" name
+  name="$(basename "$dir")"
+  [[ -d "${SKILLS_SRC}/${name}" && -f "${dir}/SKILL.md" ]] || return 1
+  awk '
+    /^---[[:space:]]*$/ { fm++; if (fm == 2) exit; next }
+    fm == 1 && /^[[:space:]]+x-wos-profiles:/ { found = 1; exit }
+    END { exit(found ? 0 : 1) }
+  ' "${dir}/SKILL.md"
+}
+
+# list_cursor_skill_leftovers -> names of Fhorja skills an earlier install wrote to
+# ~/.cursor/skills, which is no longer a default destination (ADR-0228). Empty when
+# --cursor-skills is set (the root is still a destination) or Cursor is deselected.
+list_cursor_skill_leftovers() {
+  [[ "$WITH_CURSOR_SKILLS" -eq 0 && "$DO_CURSOR" -eq 1 ]] || return 0
+  [[ -d "$CURSOR_SKILLS_DEST" ]] || return 0
+  local d
+  shopt -s nullglob
+  for d in "$CURSOR_SKILLS_DEST"/*/; do
+    is_fhorja_skill "$d" && basename "$d"
+  done
+  shopt -u nullglob
+  return 0
+}
+
+# Skills preflight (D-14 of the 2026-09-23 backlog task). The installer copies
+# .claude/skills as it finds it, so a clone whose generated skills no longer match
+# commands/ used to install the stale copies without a word. build-agent-skills.sh
+# --check re-renders every skill and exits 1 on drift or a stale directory; it needs
+# python3 and the rest of this installer does not, so a machine without python3 is
+# told the check did not run instead of being refused.
+preflight_skills() {
+  [[ "$WITH_SKILLS" -eq 1 ]] || return 0
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "==> Skills check: skills not checked: python3 absent (build-agent-skills.sh --check needs it); continuing"
+    return 0
+  fi
+  local out rc=0
+  out="$(bash "${SCRIPT_DIR}/build-agent-skills.sh" --check 2>&1)" || rc=$?
+  if [[ "$rc" -eq 0 ]]; then
+    echo "==> Skills check: .claude/skills matches commands/ (build-agent-skills.sh --check)"
+    return 0
+  fi
+  {
+    printf '%s\n' "$out" | grep -E '^(Drifted skills:|Stale skill directories|  - )' | head -20 || true
+    echo "Refusing to install skills: .claude/skills does not match commands/ (build-agent-skills.sh --check exit ${rc})."
+    echo "Fix: ./scripts/build-agent-skills.sh, then re-run this installer."
+    echo "Or pass --no-skills to install the commands and the payload without skills."
+  } >&2
+  exit 1
+}
+
 cleanup_legacy_codex_skills() {
   local legacy_dest="$1"
 
@@ -579,18 +844,32 @@ clean_orphans() {
       found=$((found + 1))
     done < <(list_orphans "$dest")
   done
+  # ~/.cursor/skills stopped being a default destination in ADR-0228. The Fhorja skills an
+  # earlier install left there make Cursor list every skill twice, and a sync never removes
+  # anything, so this is the one path that takes them out. Only Fhorja's (is_fhorja_skill).
+  local leftovers
+  leftovers="$(list_cursor_skill_leftovers)"
+  while IFS= read -r base; do
+    [[ -z "$base" ]] && continue
+    printf '  %-12s %s\n' "Cursor skill" "${CURSOR_SKILLS_DEST}/${base}"
+    found=$((found + 1))
+  done <<<"$leftovers"
   if [[ "$found" -eq 0 ]]; then
     echo "  No orphans. Nothing to clean."
     return 0
   fi
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "  (dry run: would ask to delete these ${found} item(s); nothing deleted)"
+    return 0
+  fi
   local confirm="n"
   if [[ -t 0 ]]; then
-    printf 'Delete these %d file(s)? [y/N] ' "$found"
+    printf 'Delete these %d item(s)? [y/N] ' "$found"
     read -r confirm || true
   elif [[ "$ASSUME_YES" -eq 1 ]]; then
     confirm="y"
   else
-    echo "  (dry run: pass --yes to delete, or run with no flags for the wizard)"
+    echo "  (nothing deleted: pass --yes to delete, or run with no flags for the wizard)"
     return 0
   fi
   case "$confirm" in
@@ -602,7 +881,12 @@ clean_orphans() {
           rm -f "${dest}/${base}"
         done < <(list_orphans "$dest")
       done
-      echo "Removed ${found} orphan file(s)."
+      while IFS= read -r base; do
+        [[ -z "$base" ]] && continue
+        # Re-checked at the moment of deletion, not trusted from the listing above.
+        is_fhorja_skill "${CURSOR_SKILLS_DEST}/${base}" && rm -rf -- "${CURSOR_SKILLS_DEST:?}/${base}"
+      done <<<"$leftovers"
+      echo "Removed ${found} orphan item(s)."
       ;;
     *) echo "Cancelled. Nothing deleted." ;;
   esac
@@ -635,8 +919,38 @@ print_summary() {
   if [[ "$DO_KIMI" -eq 1 ]]; then
     echo "  Kimi Code got skills only (no custom-command directory exists); invoke them as /skill:<name>."
   fi
+  if [[ "$WITH_SKILLS" -eq 1 ]]; then
+    local adv_chars adv_tokens
+    adv_chars="$(advertise_chars "$SKILLS_SRC" "$sp")"
+    adv_tokens=$((adv_chars / 4))
+    echo "  Every agent run pays for these skill descriptions before it reads any work:"
+    echo "  about ${adv_tokens} tokens (${adv_chars} chars) for the set this run mirrored."
+    if [[ -z "$sp" ]]; then
+      local min_chars min_tokens
+      min_chars="$(advertise_chars "$SKILLS_SRC" minimal)"
+      min_tokens=$((min_chars / 4))
+      echo "  --profile=minimal mirrors the everyday spine instead, at about ${min_tokens} tokens."
+      echo "  This run mirrored the full set. Skills already installed are never removed, so an"
+      echo "  earlier full sync keeps costing its own price until you remove those files yourself."
+    fi
+  fi
+  if [[ "$WITH_SKILLS" -eq 1 && "$DO_CURSOR" -eq 1 ]]; then
+    if [[ "$WITH_CURSOR_SKILLS" -eq 1 ]]; then
+      echo "  Cursor skills went to ${CURSOR_SKILLS_DEST} (--cursor-skills) as well as ${CURSOR_SHARED_SKILLS_DEST};"
+      echo "  Cursor 3.17.8 or later reads both, so it lists each Fhorja skill twice."
+    else
+      echo "  Cursor reads the skills from ${CURSOR_SHARED_SKILLS_DEST} (Cursor 3.17.8 or later)."
+      echo "  Pass --cursor-skills to also write ${CURSOR_SKILLS_DEST}, which Cloud Agents sync needs."
+      local left_n
+      left_n="$(list_cursor_skill_leftovers | grep -c . || true)"
+      if [[ "${left_n:-0}" -gt 0 ]]; then
+        echo "  ${left_n} Fhorja skill(s) from an earlier install remain in ${CURSOR_SKILLS_DEST}, so Cursor"
+        echo "  lists them twice; --clean-orphans removes them after asking."
+      fi
+    fi
+  fi
   if [[ "$PROFILE" == "minimal" && -n "$cmd_txt" ]]; then
-    echo "  Only the 12 everyday commands are installed. For all ${FLAT_COMMAND_COUNT}, re-run with"
+    echo "  Only the everyday spine commands are installed. For all ${FLAT_COMMAND_COUNT}, re-run with"
     echo "  --profile=full, or pick 'Sync everything' in the wizard (run with no flags)."
   fi
 }
@@ -700,7 +1014,7 @@ show_state_panel() {
   local orphans
   printf '  \033[2mCurrent state\033[0m\n'
   printf '    %-12s %s skills · %s commands\n' "Claude Code" "$(count_skills "$CLAUDE_SKILLS_DEST")" "$(count_md "$CLAUDE_DEST")"
-  printf '    %-12s %s skills · %s commands\n' "Cursor" "$(count_skills "$CURSOR_SKILLS_DEST")" "$(count_md "$CURSOR_DEST")"
+  printf '    %-12s %s skills · %s commands\n' "Cursor" "$(count_skills "$CURSOR_SHARED_SKILLS_DEST")" "$(count_md "$CURSOR_DEST")"
   printf '    %-12s %s skills · %s prompts\n' "Codex" "$(count_skills "$CODEX_SKILLS_DEST")" "$(count_md "$CODEX_DEST")"
   printf '    %-12s %s skills · %s\n' "Kimi Code" "$(count_skills "$KIMI_SKILLS_DEST")" "no command dir"
   printf '    %-12s %s\n' "Source" "$(detect_source)"
@@ -708,15 +1022,23 @@ show_state_panel() {
   if [[ -n "${orphans// /}" ]]; then
     printf '    \033[33m⚠ orphan commands:\033[0m %s\n' "$orphans"
   fi
+  orphans="$(list_cursor_skill_leftovers | grep -c . || true)"
+  if [[ "${orphans:-0}" -gt 0 ]]; then
+    printf '    \033[33m⚠ %s Fhorja skill(s) left in %s:\033[0m Cursor lists them twice\n' "$orphans" "$CURSOR_SKILLS_DEST"
+  fi
   printf '\n'
 }
 
+# The wizard sets both halves of the profile choice. skills_effective_profile()
+# reads PROFILE_SET, not PROFILE, so a bare `PROFILE=x` from the wizard installs
+# the full skill set while the command list honours the choice.
+
 wizard_custom() {
   menu_select "Which command set?" \
-    "minimal|the 12 everyday commands" \
+    "minimal|the everyday spine commands" \
     "core|around 50 commands" \
     "full|all ${FLAT_COMMAND_COUNT} commands"
-  case "$MENU_CHOICE" in 0) PROFILE="minimal" ;; 1) PROFILE="core" ;; 2) PROFILE="" ;; esac
+  case "$MENU_CHOICE" in 0) set_profile minimal ;; 1) set_profile core ;; 2) set_profile "" ;; esac
   menu_select "Sync skills too?" "Yes|recommended, the surface models actually load" "No|commands only"
   case "$MENU_CHOICE" in 0) WITH_SKILLS=1 ;; 1) WITH_SKILLS=0 ;; esac
 }
@@ -726,16 +1048,16 @@ run_wizard() {
   show_state_panel
   menu_select "What do you want to do?" \
     "Sync everything|all skills + all ${FLAT_COMMAND_COUNT} commands, every tool (recommended)" \
-    "Everyday loop|all skills + the 12 core commands" \
+    "Everyday loop|the everyday spine: skills and commands" \
     "Custom|choose the command set and skills" \
     "Health check|show what would change, write nothing" \
-    "Clean orphans|remove stale command files no longer in source" \
+    "Clean orphans|remove stale command files, and Fhorja skills left in ~/.cursor/skills" \
     "Quit|"
   case "$MENU_CHOICE" in
-    0) PROFILE=""; WITH_SKILLS=1; run_sync; print_summary ;;
-    1) PROFILE="minimal"; WITH_SKILLS=1; run_sync; print_summary ;;
+    0) set_profile ""; WITH_SKILLS=1; run_sync; print_summary ;;
+    1) set_profile minimal; WITH_SKILLS=1; run_sync; print_summary ;;
     2) wizard_custom; run_sync; print_summary ;;
-    3) DRY_RUN=1; PROFILE=""; WITH_SKILLS=1; echo ""; run_sync ;;
+    3) DRY_RUN=1; set_profile ""; WITH_SKILLS=1; echo ""; run_sync ;;
     4) clean_orphans ;;
     *) echo "Nothing to do." ; return 0 ;;
   esac
@@ -747,7 +1069,6 @@ run_wizard() {
 # the flags set, so there is a single sync code path.
 # ---------------------------------------------------------------------------
 run_sync() {
-  refuse_minimal_skills_if_requested
   # Validate --project BEFORE any destination is written. It used to sit after the three
   # home sync_one_dest calls, so a bad path left a fully installed command set behind and
   # then aborted before the payload: commands present, every wos/ load resolving nowhere.
@@ -755,6 +1076,9 @@ run_sync() {
     echo "Project path is not a directory: $PROJECT" >&2
     exit 1
   fi
+  # Also before any destination is written, for the same reason: a refusal after the
+  # commands and the payload were copied would leave a half-installed machine behind.
+  preflight_skills
   if [[ "$DO_CURSOR" -eq 1 ]]; then
     sync_one_dest "Cursor" "$CURSOR_DEST"
   fi
@@ -819,7 +1143,14 @@ run_sync() {
       sync_skills_dest "Claude Code skills" "$CLAUDE_SKILLS_DEST"
     fi
     if [[ "$DO_CURSOR" -eq 1 ]]; then
-      sync_skills_dest "Cursor skills" "$CURSOR_SKILLS_DEST"
+      # Cursor reads the shared root natively; Codex and Kimi read it too, so the dedup
+      # guard in sync_skills_dest turns their later call into a named skip.
+      sync_skills_dest "Cursor skills (shared root)" "$CURSOR_SHARED_SKILLS_DEST"
+      if [[ "$WITH_CURSOR_SKILLS" -eq 1 ]]; then
+        sync_skills_dest "Cursor skills (--cursor-skills)" "$CURSOR_SKILLS_DEST"
+      else
+        echo "==> Cursor skills: ${CURSOR_SKILLS_DEST} not written (Cursor 3.17.8 or later reads ${CURSOR_SHARED_SKILLS_DEST}; --cursor-skills writes it)"
+      fi
     fi
     if [[ "$DO_CODEX" -eq 1 ]]; then
       sync_skills_dest "OpenAI Codex skills" "$CODEX_SKILLS_DEST"
@@ -835,7 +1166,12 @@ run_sync() {
         sync_skills_dest "Project Claude Code skills" "${PROJECT}/.claude/skills"
       fi
       if [[ "$DO_CURSOR" -eq 1 ]]; then
-        sync_skills_dest "Project Cursor skills" "${PROJECT}/.cursor/skills"
+        # The same default as at user level: Cursor reads <project>/.agents/skills
+        # natively, and <project>/.cursor/skills is written only under --cursor-skills.
+        sync_skills_dest "Project Cursor skills (shared root)" "${PROJECT}/.agents/skills"
+        if [[ "$WITH_CURSOR_SKILLS" -eq 1 ]]; then
+          sync_skills_dest "Project Cursor skills (--cursor-skills)" "${PROJECT}/.cursor/skills"
+        fi
       fi
       if [[ "$DO_CODEX" -eq 1 ]]; then
         sync_skills_dest "Project OpenAI Codex skills" "${PROJECT}/.agents/skills"

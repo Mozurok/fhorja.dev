@@ -53,7 +53,7 @@ cat > "$TMPD/projects/test__fixture/INITIATIVE_INDEX.md" <<'EOF'
 | 2026-02-02 | 2026-02-02_legacy-task | prose row from before the format existed | initialized | blocked-by: 2026-02-01_legacy-blocker | what-next |
 EOF
 
-OUT="$(bash "$TMPD/scripts/portfolio-review.sh" --initiative 2>/dev/null || true)"
+OUT="$(cd "$TMPD" && bash "$TMPD/scripts/portfolio-review.sh" --initiative 2>/dev/null || true)"
 
 fail=0
 assert() {

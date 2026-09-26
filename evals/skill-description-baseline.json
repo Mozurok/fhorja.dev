@@ -3,8 +3,10 @@
   "references": {
     "a11y-audit": [
       "color-contrast-architect",
+      "component-spec",
       "design-spec-review",
-      "screen-spec"
+      "screen-spec",
+      "targeted-questions"
     ],
     "ai-feature-eval-harness": [
       "test-strategy",
@@ -326,7 +328,6 @@
     ],
     "problem-framing": [
       "decision-interview",
-      "incident-triage",
       "targeted-questions",
       "task-init"
     ],
@@ -449,10 +450,12 @@
       "task-init"
     ],
     "verify-against-rubric": [
+      "approve-plan",
       "contract-signoff",
       "implement-approved-slice",
       "pr-package",
       "resolve-contract-gaps",
+      "review-hard",
       "self-critique-and-revise",
       "task-init",
       "verify-against-rubric-fleet"

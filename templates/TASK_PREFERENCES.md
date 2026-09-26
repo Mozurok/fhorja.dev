@@ -1,11 +1,12 @@
 # TASK_PREFERENCES
 
-Per-task delivery preferences that delivery commands consume (`pr-package`, `branch-commit`).
+Per-task delivery preferences that `pr-package` consumes (base branch, commit convention, PR-template
+path). `capture-observation` points a captured durable preference here.
 Copy into a task folder when a durable preference surfaces; gitignored (lives under `projects/`,
 per ADR-0007). Edit by hand: commands READ this file, they do not write it.
 
 This is the consume side of `capture-observation`. A durable cross-command preference recorded
-here is honored by the delivery commands, unlike a free-form `## Observations` bullet, which no
+here is honored by `pr-package`, unlike a free-form `## Observations` bullet, which no
 command reads back. (Careers-page dogfooding 2026-06-23: a captured "git add -A" preference was logged
 to Observations and then ignored by pr-package; this file is where consumable preferences live.)
 

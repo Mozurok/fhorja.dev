@@ -1,0 +1,234 @@
+{
+  "findings": [
+    {
+      "command": "a11y-audit",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 2: Label each criterion machine-checkable or manual-review.** Machine-checkable = a tool can return a deterministic verdict (e.g. 1.1.1 missing alt attribute, 4.1.2 name/role/value via the accessibility tree). Manual-review = requires human judgment (e.g. 1.3.1 meaningful sequence, 2.4.6 descriptive headings, 3.3.2 label adequacy). Never assert a machine verdict for a manual criterion.",
+      "defect": "The example attaches Meaningful Sequence to 1.3.1, which is Info and Relationships. Meaningful Sequence is 1.3.2, so following the example mislabels the promised per-criterion ledger. [WCAG 2.2](https://www.w3.org/TR/WCAG22/#meaningful-sequence).",
+      "proposed_fix": "Replace \"1.3.1 meaningful sequence\" with \"1.3.2 meaningful sequence\".",
+      "family_sites": "commands/a11y-audit/SKILL.md",
+      "chars_delta": 0
+    },
+    {
+      "command": "a11y-audit",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 3: Delegate, do not duplicate.** For contrast (1.4.3 and 1.4.11) do not recompute; cite the `color-contrast-architect` `CONTRAST_AUDIT.md` verdict when present and list the two criteria as delegated rows; when no `CONTRAST_AUDIT.md` exists, mark them `PENDING` and Handoff to `color-contrast-architect`. For single-component spec fidelity, route to `design-spec-review`; do not re-review one component here.",
+      "defect": "The unconditional missing-report handoff includes a UI surface with one contrast pair, but color-contrast-architect explicitly excludes a single pair and requires at least three documented pairs in Step 1. The receiving command instead names component-spec inline for the single-pair case. The audit can route an otherwise eligible surface into an ineligible command.",
+      "proposed_fix": "For a single pair, obtain the inline component-spec contrast result; route a multi-pair audit to color-contrast-architect and preserve delegated evidence in either case. Align the description and Required output item 3 with this branch.",
+      "family_sites": "commands/a11y-audit/SKILL.md, commands/color-contrast-architect/SKILL.md; component-spec.md Step 8 computes contrast from token values; a11y-audit description and Required output item 3 repeat the unconditional route",
+      "chars_delta": 55
+    },
+    {
+      "command": "a11y-audit",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "5. Recommended next command (must exist in `commands/*.md`; verify against directory listing before output). Typical choices: `color-contrast-architect` (contrast pending), `design-spec-review` (single-component fidelity), `implementation-plan` (slice the remediation), `decision-interview` (lock the conformance target), `implement-slice-complement` (small fixes under an open slice).",
+      "defect": "The required existence check only accepts commands/*.md while its own recommended color-contrast-architect exists only at commands/color-contrast-architect/SKILL.md. The cited command cannot pass that literal check. K.3 is implemented by scripts/build-agent-skills.sh and scripts/sync-shared-blocks.sh, which enumerate both layouts.",
+      "proposed_fix": "Accept either commands/<name>.md or commands/<name>/SKILL.md in this command-owned validation sentence and the matching family sites.",
+      "family_sites": "commands/state-reconcile.md, commands/stack-recommend.md, commands/delivery-asset.md, commands/migration-safety-steward/SKILL.md, commands/ai-feature-eval-harness.md, commands/a11y-audit/SKILL.md, commands/task-init.md, commands/db-context-postgres.md, commands/release-plan.md, commands/post-deploy-verifier/SKILL.md, commands/pr-feedback-ingest.md, commands/post-review-pivot.md, commands/performance-budget/SKILL.md, commands/slo-define/SKILL.md, commands/color-contrast-architect/SKILL.md, commands/feature-library-scout.md, commands/external-research.md, commands/code-context-map.md, commands/db-context-supabase.md, commands/rls-auth-boundary-auditor/SKILL.md, commands/postmortem-author/SKILL.md, commands/jtbd-switch-interviewer/SKILL.md",
+      "chars_delta": 35
+    },
+    {
+      "command": "color-contrast-architect",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- theme list (e.g. `light`, `dark`; default to `light` when only one theme is documented)",
+      "defect": "Required inputs explicitly supports a single documented theme, while the frontmatter says not to use the command when the design system has no theme variants. The trigger therefore rejects the one-theme case this input contract supports.",
+      "proposed_fix": "Remove the no-theme-variants exclusion from the description; retain coverage of every supplied theme and the single-theme fallback.",
+      "family_sites": "commands/color-contrast-architect/SKILL.md",
+      "chars_delta": -46
+    },
+    {
+      "command": "color-contrast-architect",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 4: Classify per design context.** Apply thresholds explicitly per WCAG 2.2: normal text >=4.5:1 AA / >=7:1 AAA; large text (18pt+ or 14pt+ bold) >=3:1 AA / >=4.5:1 AAA; UI components and graphical objects (icons, borders that convey state, chart strokes) >=3:1 AA; focus indicators >=3:1 AA against EACH adjacent color (the focused element's interior AND the surrounding surface). Label each pair with its applicable context; pairs that serve multiple contexts (e.g. a token used both as body text and as a small UI border) are scored against the STRICTEST applicable threshold and noted as multi-context.",
+      "defect": "The asserted WCAG AA rule requires contrast with both the element interior and exterior for every focus indicator. W3C distinguishes exterior, interior, border, and mixed indicators; an exterior indicator can pass without contrasting against the element interior. The current rule produces false WCAG failures. [W3C non-text contrast guidance](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html#relationship-with-focus-visible).",
+      "proposed_fix": "Select adjacent colors from the actual indicator geometry; require both sides for a border, the relevant side for an internal or external indicator, and an adequate qualifying part for a mixed indicator. Label any stricter project policy separately from WCAG.",
+      "family_sites": "commands/color-contrast-architect/SKILL.md",
+      "chars_delta": 104
+    },
+    {
+      "command": "color-contrast-architect",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 6: Flag failing pairs with remediation.** For each `FAIL-AA` row, propose an actionable remediation: a token adjustment (e.g. \"darken `color.text.secondary` from `#8A8A8A` to `#6B6B6B` raises ratio from 3.9:1 to 4.6:1 AA\"), a context reclassification (e.g. \"this pair is only used as large-text; reclassify and it passes AA\"), or an explicit deferral with a documented reason. Never emit \"fix it\" as the remediation; the persona's value is the suggested token delta.",
+      "defect": "The input supports a locked AAA target, but remediation and the DoD require action only for FAIL-AA. A normal-text pair at 5:1 is PASS-AA and fails the requested AAA target; this contract can omit it from the failing-pair remediation list.",
+      "proposed_fix": "Require remediation for every row below the named target, including PASS-AA rows when AAA is locked; apply the same condition in the DoD.",
+      "family_sites": "commands/color-contrast-architect/SKILL.md",
+      "chars_delta": 75
+    },
+    {
+      "command": "jtbd-switch-interviewer",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "1. Switch-interview script (numbered questions; explicit trigger -> struggle -> switch ordering; explicit four-forces probes).",
+      "defect": "Step 2 requires the interview questions to walk backward from SWITCH through STRUGGLE to TRIGGER. Required output item 1 requires the script in the opposite trigger -> struggle -> switch order. Timeline reconstruction may be chronological, but these two requirements both govern the script.",
+      "proposed_fix": "Change the required script ordering to switch -> struggle -> trigger, leaving the reconstructed timeline free to be chronological.",
+      "family_sites": "commands/jtbd-switch-interviewer/SKILL.md",
+      "chars_delta": 0
+    },
+    {
+      "command": "migration-safety-steward",
+      "criterion": 1,
+      "severity": "high",
+      "cited_line": "- Postgres version (lock semantics differ: `ADD COLUMN` with default is metadata-only on PG11+, table-rewrite on PG10-)",
+      "defect": "The PG11+ shortcut is stated for any default. Volatile defaults still rewrite the table, including clock_timestamp(); using this input note to classify that statement as metadata-only defeats the lock-risk audit. [PostgreSQL 11 modifying tables](https://www.postgresql.org/docs/11/ddl-alter.html#DDL-ALTER-ADDING-A-COLUMN).",
+      "proposed_fix": "Qualify the metadata-only shortcut as non-volatile defaults on PG11+ and explicitly retain the rewrite case for volatile defaults.",
+      "family_sites": "commands/migration-safety-steward/SKILL.md",
+      "chars_delta": 59
+    },
+    {
+      "command": "migration-safety-steward",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 3: Apply per-pattern safety check.** Canonical rules: `ADD-COLUMN-NOT-NULL` requires backfill phase (add nullable -> backfill in batches -> set NOT NULL) unless table is empty; `DROP-COLUMN` requires a prior shipped deploy where no reader references the column (two-phase: ship code without read, verify in production, then drop); `RENAME-COLUMN` requires double-write window (add new column, write to both, migrate reads, drop old) -- never a bare RENAME on a live table; `CREATE-INDEX` on Postgres MUST use `CONCURRENTLY` (and therefore cannot run inside a transaction); `ALTER-TYPE` that rewrites the table (e.g. `text` -> `uuid`, narrowing `bigint` -> `int`) requires batched copy via new column; `ADD-FK` requires `NOT VALID` followed by separate `VALIDATE CONSTRAINT` to avoid full table scan under AccessExclusiveLock; `ADD-CHECK NOT VALID` then `VALIDATE` similarly; `TRIGGER-CHANGE` requires a runtime feature flag or the trigger must be idempotent across both code versions during the deploy window.",
+      "defect": "The FK rule assigns the validation scan to AccessExclusiveLock. PostgreSQL ADD FOREIGN KEY acquires ShareRowExclusiveLock on both tables, and later VALIDATE uses ShareUpdateExclusiveLock on the altered table. This corrupts the required per-statement lock-level evidence. [PostgreSQL ALTER TABLE](https://www.postgresql.org/docs/current/sql-altertable.html).",
+      "proposed_fix": "Keep NOT VALID followed by a separate VALIDATE, but correct the FK lock explanation and include ShareRowExclusiveLock in Step 4 examples.",
+      "family_sites": "commands/migration-safety-steward/SKILL.md",
+      "chars_delta": 108
+    },
+    {
+      "command": "performance-budget",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 3: Set thresholds, cite or mark.** Every threshold MUST cite a source: a measured baseline, a published standard (e.g. Core Web Vitals good thresholds LCP <=2500ms, INP <=200ms, CLS <=0.1 at the 75th percentile), an SLA, or a user-supplied target. A threshold with no source is marked `PROPOSED-pending-baseline`, never asserted as if measured. State the percentile explicitly; budgets are p75 or p95, not averages.",
+      "defect": "Step 2 explicitly supports API p50/p95/p99, but this rule restricts budgets to p75 or p95. The same blanket percentile requirement also covers declared snapshot budgets such as bundle bytes and texture dimensions, which need an explicit non-percentile representation.",
+      "proposed_fix": "Require the percentile appropriate to the metric, including the p50/p95/p99 already supported; allow N/A for snapshot sizes, counts, and configured constants, with the measurement unit stated.",
+      "family_sites": "commands/performance-budget/SKILL.md",
+      "chars_delta": 93
+    },
+    {
+      "command": "post-deploy-verifier",
+      "criterion": 1,
+      "severity": "low",
+      "cited_line": "Distinct from `verify-against-rubric` (which spawns a stateless sub-agent to render a frozen-rubric verdict on a captured artifact PRE or POST hoc) and from `slice-closure` (which closes the slice from the spec side using the writer's own claims), this persona produces the post-deploy PLAN: the concrete checklist of live signals an on-call engineer will look at to confirm the change actually shipped, actually behaves as specified, and did not regress neighboring systems. The load-bearing differentiator is the per-acceptance-criterion to per-signal mapping: every criterion in the slice gets exactly one named signal (log query, dashboard panel, smoke-test step, feature-flag check, DB invariant query) with the exact query string, panel URL, or user inputs filled in. The failure mode this persona is designed to catch: \"ship == done\" silent no-op deploys, where the PR merged but the runtime change is invisible because no one looked at the right signal.",
+      "defect": "The Goal requires exactly one signal for each acceptance criterion. Step 3 explicitly permits multiple signals for one AC and the DoD requires at least one. These are different cardinality contracts.",
+      "proposed_fix": "Replace \"exactly one named signal\" with \"at least one named signal\" in the Goal.",
+      "family_sites": "commands/post-deploy-verifier/SKILL.md",
+      "chars_delta": 1
+    },
+    {
+      "command": "post-deploy-verifier",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "4. Dashboard panel URLs or scoping params (workspace, dashboard ID, panel ID, time range bounded by the deploy window)",
+      "defect": "Step 2 and ADR-0102 require continuing with infra-free signals when no logging or dashboard system exists. Required output items 3 and 4 nevertheless demand log queries and dashboard identifiers unconditionally. A valid smoke-only plan cannot satisfy those outputs without fabricating infrastructure.",
+      "proposed_fix": "Make log-query and dashboard outputs conditional on the inventory; in the fallback case record that they are unavailable and cite the chosen infra-free signals.",
+      "family_sites": "commands/post-deploy-verifier/SKILL.md",
+      "chars_delta": 168
+    },
+    {
+      "command": "post-deploy-verifier",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- `POST_DEPLOY_PLAN.md` (and per-repo variants if applicable) is produced as a PROPOSED artifact; the slice file's `## Post-deploy checks` PROPOSED block is routed via Pattern A handoff to `slice-closure`.",
+      "defect": "The command declares L3 whole-file ownership and says its owned section is written directly, matching wos/substrate-peers.md Personas CUSTOM. This DoD instead requires that same report to be PROPOSED. The command gives two incompatible persistence instructions for its principal deliverable.",
+      "proposed_fix": "Require the owned report to be written directly, while preserving PROPOSED for the non-owned slice section.",
+      "family_sites": "commands/post-deploy-verifier/SKILL.md",
+      "chars_delta": 13
+    },
+    {
+      "command": "post-deploy-verifier",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 7: Multi-repo split (when applicable).** If the task has a `## Repositories` section, split the plan into per-repo files. Backend signals (log queries, DB queries, API error rates) go in `POST_DEPLOY_PLAN.backend.md`; frontend signals (client error tracker, page-view analytics, smoke-test browser walkthroughs) go in `POST_DEPLOY_PLAN.frontend.md`. Cross-repo correlation notes (e.g. \"backend deploy must land before frontend or AC-3 will spuriously fail\") live in the backend file with a `Cross-repo:` line referencing the frontend file.",
+      "defect": "The cited D6 pattern uses actual repository identifiers, but this rule hardcodes only backend and frontend. Valid inventories may contain web-app, mobile-ios, infra, or multiple backend repositories. The rule cannot produce the promised per-repo files for those inputs. Step 9 and output item 7 also link only POST_DEPLOY_PLAN.md even though output item 8 allows per-repo files instead of that file.",
+      "proposed_fix": "Generate POST_DEPLOY_PLAN.<identifier>.md for each actual repository entry, place correlation notes with the affected repository, and link the files actually produced in the slice proposal.",
+      "family_sites": "commands/post-deploy-verifier/SKILL.md; wos/multi-repo-support.md Schema and D6 define identifiers independently of role tags; wos/command-roles.md repeats the backend/frontend-only split",
+      "chars_delta": -180
+    },
+    {
+      "command": "post-deploy-verifier",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- Do not implement code; this persona produces the verification PLAN only. Execution (running the queries, walking the smoke test, deciding the verdict) belongs to `verify-against-rubric` (when a locked rubric exists) or to the on-call human (when the plan informs operational judgment).",
+      "defect": "The claimed executor, verify-against-rubric, receives only a captured artifact path and frozen rubric and judges that artifact with read-only tools. Its operating rules do not execute the live queries or smoke walkthrough. Routing runtime execution there can yield a verdict about the plan while the deploy remains unverified.",
+      "proposed_fix": "Assign operational execution to the on-call human or an applicable runtime verifier; describe verify-against-rubric as evaluating captured execution evidence against a locked rubric.",
+      "family_sites": "commands/post-deploy-verifier/SKILL.md",
+      "chars_delta": 23
+    },
+    {
+      "command": "postmortem-author",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "A load-bearing postmortem reconstructs what actually happened from evidence, names the systemic contributing causes without blaming anyone, quantifies the damage against the reliability contract, and leaves behind owned, verifiable action items that prevent recurrence. The failure mode it prevents is the silent repeat: an incident resolves, the team moves on, and six weeks later the same contributing cause fires again because no systemic fix was recorded or assigned. Blamelessness is not politeness, it is what makes people surface the real causes instead of hiding them; a postmortem that names a person has already failed. The persona stays in its lane: it is the retrospective record, not live triage (incident-triage) and not the fix itself (task-init); an action item that is real work routes out to its own task rather than being done here.",
+      "defect": "The quality bar rejects any postmortem that names a person, but Step 5 and the required output demand action items with owners. Naming an accountable owner is permitted by the action-item contract and is not individual fault attribution.",
+      "proposed_fix": "Replace the ban on naming a person with a ban on assigning individual blame; keep explicit action owners.",
+      "family_sites": "commands/postmortem-author/SKILL.md",
+      "chars_delta": 2
+    },
+    {
+      "command": "rls-auth-boundary-auditor",
+      "criterion": 1,
+      "severity": "high",
+      "cited_line": "- **Step 3: Verify policy coverage per operation.** For each table, confirm policies exist for SELECT, INSERT, UPDATE, DELETE separately. A single `FOR ALL` policy is acceptable ONLY when the USING and WITH CHECK expressions are identical and the audit explicitly notes this. Missing WITH CHECK on INSERT or UPDATE is a P1 finding: rows can be written that the writer cannot read back (or worse, that leak to another tenant).",
+      "defect": "The rule treats omitted WITH CHECK on UPDATE as an automatic tenant-write bypass. PostgreSQL reuses USING as WITH CHECK for UPDATE and ALL policies when WITH CHECK is absent. The required-output example also describes USING on an INSERT-only policy, which PostgreSQL disallows. These instructions generate false P1 findings. [PostgreSQL CREATE POLICY](https://www.postgresql.org/docs/current/sql-createpolicy.html).",
+      "proposed_fix": "Audit effective operation-specific expressions: account for the USING fallback on UPDATE/ALL, use WITH CHECK for INSERT-only policies, and report P1 only when the effective predicate permits an unauthorized write. Correct the matching examples and description.",
+      "family_sites": "commands/rls-auth-boundary-auditor/SKILL.md; wos/command-roles.md rls-auth-boundary-auditor also repeats the missing-clause bypass claim",
+      "chars_delta": 56
+    },
+    {
+      "command": "rls-auth-boundary-auditor",
+      "criterion": 1,
+      "severity": "high",
+      "cited_line": "- **Step 6: Audit SECURITY DEFINER functions.** Enumerate functions defined with `SECURITY DEFINER`. For each, confirm an RLS-aware guard: explicit `auth.uid()` check at function entry, `SET search_path = pg_catalog, public` to prevent search_path hijacking, and absence of dynamic SQL built from user input. Missing guards are a P1 finding (function runs as table owner and bypasses RLS).",
+      "defect": "SET search_path = pg_catalog, public is presented as sufficient to prevent hijacking. It leaves pg_temp implicitly first for relation lookup and does not establish that public is trusted. PostgreSQL requires excluding untrusted writable schemas and explicitly placing pg_temp last. A function using unqualified relations can pass this audit while remaining hijackable. [PostgreSQL SECURITY DEFINER safety](https://www.postgresql.org/docs/current/sql-createfunction.html#SQL-CREATEFUNCTION-SECURITY).",
+      "proposed_fix": "Check schema privileges and effective object resolution; use a trusted-schema path with explicit pg_temp last, or a locked-down path with fully qualified object references. Do not mark the literal pg_catalog, public setting sufficient.",
+      "family_sites": "commands/rls-auth-boundary-auditor/SKILL.md",
+      "chars_delta": 115
+    },
+    {
+      "command": "rls-auth-boundary-auditor",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 8: Emit per-table verdict.** For each tenant-scoped table, emit PASS (all checks satisfied), GAP (one or more P2/P3 findings, no P1), or FAIL (one or more P1 findings). Remediation MUST be migration-shaped: concrete `CREATE POLICY` / `ALTER TABLE` / `CREATE OR REPLACE FUNCTION` statements ready to paste into a new migration. Prose advice (\"consider tightening the policy\") is forbidden.",
+      "defect": "Step 7 audits unjustified service_role use and missing server-side validation in backend call sites. Step 8 and required output item 4 demand that every remedy be CREATE POLICY/ALTER TABLE/CREATE OR REPLACE FUNCTION SQL. A service-role caller bypassing RLS and accepting unchecked user identifiers can require an application-code fix; new policy SQL cannot repair that call site.",
+      "proposed_fix": "Keep migration-shaped remedies for DDL defects, and allow concrete file-and-symbol application changes for service_role call-site defects. Preserve the analysis-only boundary.",
+      "family_sites": "commands/rls-auth-boundary-auditor/SKILL.md; required output item 4, DoD remediation bullet, and Quality bar repeat the SQL-only requirement",
+      "chars_delta": 91
+    },
+    {
+      "command": "slo-define",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 3: Compute the error budget.** Error budget = 100% minus the SLO over the window (e.g. 99.9% over 28 days is about 40 minutes of allowed downtime). Show the arithmetic so a reviewer can check it.",
+      "defect": "Step 1 accepts latency/freshness SLIs and Step 2 explicitly permits a p95 latency bound, but Step 3 only defines subtraction from a percentage and gives downtime as the result. It never converts a latency-bound SLO to the fraction of eligible events meeting the bound, so the required error-budget arithmetic is undefined for an explicitly supported target shape. [Google SRE SLI and error-budget formulation](https://sre.google/workbook/implementing-slos/).",
+      "proposed_fix": "Define good and eligible events per SLI and the target success fraction before subtraction; compute allowed bad events from volume, using downtime only for time-based availability. For p95 latency, identify the threshold and eligible requests before calculating the 5% allowance.",
+      "family_sites": "commands/slo-define/SKILL.md",
+      "chars_delta": 168
+    },
+    {
+      "command": "a11y-audit",
+      "criterion": 6,
+      "severity": "low",
+      "cited_line": "A load-bearing audit covers EVERY applicable WCAG 2.2 criterion for the named level (not \"I checked the obvious ones\"), labels each row by what can be machine-decided versus human-judged so a reviewer knows where to spend attention, and never manufactures a machine verdict the evidence does not support. A guessed PASS is worse than `MANUAL-REVIEW` because it manufactures false confidence. The failure mode this persona prevents is the \"accessible\" claim with no ledger behind it: a surface ships, a real user with a screen reader hits an unlabeled control, and the gap was never tracked because accessibility was checked ad hoc. Delegation discipline is part of the bar: recomputing contrast here instead of citing `CONTRAST_AUDIT.md`, or re-reviewing a single component instead of routing to `design-spec-review`, duplicates owned work and invites drift. When no checker actually ran, the honest output is `MANUAL-REVIEW` with the exact check to perform, not a fabricated verdict.",
+      "defect": "Steps 1-6 already require complete criterion coverage, evidence, manual-review handling, and delegation; the DoD repeats those checks. The closing paragraph repeats those actions and adds failure-mode rationale without another checkable instruction. Its full quoted paragraph earns no additional behavior under rubric criterion 6.",
+      "proposed_fix": "Delete the closing Quality bar paragraph and its now-empty label; retain the existing operating rules and DoD.",
+      "family_sites": "commands/a11y-audit/SKILL.md, commands/slo-define/SKILL.md, commands/performance-budget/SKILL.md",
+      "chars_delta": -997
+    },
+    {
+      "command": "performance-budget",
+      "criterion": 6,
+      "severity": "low",
+      "cited_line": "A load-bearing budget names a concrete number with a percentile and a source for every in-scope surface, so a reviewer (or a CI gate) can decide pass or fail without judgment. The failure mode it prevents is the silent regression: a change adds 400ms to p95 or 80KB to the bundle, no budget existed, and the slowdown is discovered weeks later in a user complaint when the cause is buried under twenty merges. A guessed threshold is worse than an honest `PROPOSED-pending-baseline`, because it manufactures a number a gate will enforce on no evidence. The persona stays in its lane: it declares budgets and routes their enforcement to the deterministic gate (ADR-0048) and post-deploy-verifier; the moment it tries to run the load test itself it leaves the markdown-spec lane and collides with the gate contract.",
+      "defect": "Steps 3-6 already require sourced numeric thresholds, percentiles, pending-baseline marking, regression actions, and external gate execution. The closing paragraph repeats those actions and adds failure-mode rationale without another checkable instruction. Its full quoted paragraph earns no additional behavior under rubric criterion 6.",
+      "proposed_fix": "Delete the closing Quality bar paragraph and its now-empty label; retain the existing operating rules and DoD.",
+      "family_sites": "commands/a11y-audit/SKILL.md, commands/performance-budget/SKILL.md, commands/slo-define/SKILL.md",
+      "chars_delta": -824
+    },
+    {
+      "command": "slo-define",
+      "criterion": 6,
+      "severity": "low",
+      "cited_line": "A load-bearing SLO spec names a measurable indicator, a target with a window, the error-budget arithmetic, and the exhaustion policy, so reliability stops being argued ad hoc and starts being a contract incident-triage and post-deploy-verifier can gate against. The failure mode it prevents is the reliability conversation that only happens during an outage, when there is no agreed target to anchor it. A fabricated SLO target (a round 99.9% with no baseline) is worse than an honest `PROPOSED-pending-baseline`, because it manufactures a budget the team will enforce on no evidence. The persona stays in its lane: it writes the contract and routes instrumentation to implementation-plan; it never runs a probe or claims a measurement it did not take.",
+      "defect": "Steps 1-6 already require measurable indicators, grounded targets, windowed error-budget arithmetic, exhaustion policy, consumer links, and no probe execution. The closing paragraph repeats those actions and adds failure-mode rationale without another checkable instruction. Its full quoted paragraph earns no additional behavior under rubric criterion 6.",
+      "proposed_fix": "Delete the closing Quality bar paragraph and its now-empty label; retain the existing operating rules and DoD.",
+      "family_sites": "commands/a11y-audit/SKILL.md, commands/performance-budget/SKILL.md, commands/slo-define/SKILL.md",
+      "chars_delta": -765
+    }
+  ]
+}

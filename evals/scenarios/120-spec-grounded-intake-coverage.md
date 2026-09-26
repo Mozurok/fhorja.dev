@@ -16,6 +16,16 @@ A rough objective plus a supplied MD spec that states the problem and the succes
 
 In (a) the command runs the reader first, pre-fills the problem statement and success criteria naming the spec section each came from, asks the operator to confirm those, and then asks one question at a time for non-goals and named deliverables. In (b) behavior is unchanged from the socratic intake, with no reader step and no spec references.
 
+## Pass criteria
+
+1. With a spec supplied, the command runs the definition-completeness reader before asking anything.
+2. The problem statement and the success criteria are pre-filled, and each pre-filled value names the spec section it came from.
+3. The operator is asked to confirm the pre-filled values before they are carried into `BRIEF.md`.
+4. Non-goals and named deliverables, which the spec leaves open, are still asked, one question per message.
+5. No brief field carries a value the spec does not state.
+6. The spec is treated as a source that was read, not as a decision the human made.
+7. With no spec supplied, the socratic intake is unchanged: no reader step and no spec references.
+
 ## Failure modes caught
 
 - A brief field filled with a value the spec does not state.

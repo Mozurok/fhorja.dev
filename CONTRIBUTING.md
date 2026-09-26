@@ -12,6 +12,31 @@ This project is maintained by Bruno Mazurok as a personal open-source effort und
 - For larger changes, please open a discussion or issue first to align on direction before investing time.
 - If this model does not work for you, you are encouraged to fork under the MIT license.
 
+## If the maintainer goes quiet
+
+A solo project should say what happens when the one person stops answering, so nobody has to guess.
+This section is what the project has in place of a succession plan. One person maintains it, so the
+bus factor is one.
+
+**Dormant after 180 days.** No commit, release, or maintainer reply on issues, pull requests, or
+discussions in the public repository for 180 consecutive days means the project is dormant. It is
+not abandoned and it is not deprecated; the code keeps working and the license keeps applying.
+
+**Security disclosure after 30 days.** `SECURITY.md` asks you to report privately and commits to
+acknowledging receipt within 14 days, best effort. If a report gets no answer at all for 30 days,
+publish it. Thirty sits above the fourteen on purpose: the shorter window is for an acknowledgment,
+the longer one is your release from waiting.
+
+**Stopping on purpose.** If the maintainer decides to stop, a notice goes at the top of `README.md`
+first, and then the public repository is archived on GitHub. An archived repository stays readable
+and can still be forked, but takes no new issues, pull requests, or commits. If forks are carrying
+the work on by then, the notice lists them without picking one.
+
+**No successor is named.** Nobody is designated to take over, and this section does not appoint one.
+What it does instead is make a fork the sanctioned path rather than a last resort: the project is
+MIT, so anyone may fork it, rename it, and continue it without asking. A fork of a dormant project
+is the expected outcome here, not a hostile act.
+
 ## License and sign-off (DCO)
 
 This project is licensed under the [MIT license](LICENSE). Contributions are accepted under the same MIT terms.
@@ -53,8 +78,8 @@ Adding a command to `commands/` requires more than a markdown file. New commands
 2. Follow the standard structure documented in `WORKFLOW_OPERATING_SYSTEM.md` (`Goal`, `Required inputs`, `Operating rules`, `Required output`, `Standard output layout (required)` with its `### Artifact changes`, `### Command transcript`, and `### Handoff` sections, `Definition of done (command output)`). Include Agent Skills frontmatter with `name`, `description`, `metadata.category`, `metadata.primary-cursor-mode`, `metadata.context-layers-consumed`, `metadata.context-layers-produced`, `metadata.tools`, `metadata.x-wos-profiles`, and `provenance`. `scripts/lint-commands.sh` is the normative checklist for structure and frontmatter; this list is a summary.
 3. Pass `scripts/lint-commands.sh` validation.
 4. Be referenced in:
-   - `## Command categories` and `## Command roles` index in `WORKFLOW_OPERATING_SYSTEM.md`, plus full detail entry in `wos/command-roles.md`
-   - `Command catalog` in `README.md` (generated: run `python3 scripts/build-command-catalog.py`; do not hand-edit that section)
+   - `## Command categories` cluster list in `WORKFLOW_OPERATING_SYSTEM.md`, plus the role entry in `wos/command-roles.md`
+   - the generated `docs/command-catalog.html` and `docs/command-catalog.json` (run `python3 scripts/build-command-catalog.py`; never hand-edit them)
    - `COMMAND_PROMPT_STUBS.md` with a minimal prompt example
 5. Have a corresponding slot in `WORKFLOW_DEMO.md` if the command represents a new flow stage.
 
@@ -62,7 +87,7 @@ For commands that overlap heavily with existing ones, expect pushback or a reque
 
 ## Proposing changes to the spec
 
-`WORKFLOW_OPERATING_SYSTEM.md` is the normative spec. Changes to it should be accompanied by an Architecture Decision Record under `docs/adr/` (format: Michael Nygard simplified, see existing ADRs for reference).
+`WORKFLOW_OPERATING_SYSTEM.md` is the normative spec. To change a rule, edit the surface that holds it. Add an Architecture Decision Record under `docs/adr/` (start from `docs/adr/template.md`) when the decision shapes a contract others rely on, has non-obvious tradeoffs, had a real alternative rejected for stated reasons, or would be expensive to undo. Otherwise the CHANGELOG entry and the commit message are the record. `AGENTS.md` section 6 has the full rule.
 
 For breaking changes (anything that invalidates existing task memory format or output contracts), expect:
 
@@ -77,7 +102,7 @@ For breaking changes (anything that invalidates existing task memory format or o
 - Use English for normative content (commands, the spec, output tokens like `NO_OP`, `NO_OP_TRACE`).
 - Documentation prose can be in English or Portuguese depending on file purpose; be consistent within a file.
 - No em-dash characters (Unicode U+2014); prefer colons, parentheses, or hyphens.
-- Natural voice (no AI tells): human-facing prose must read like a person wrote it. Avoid slash disjunctions in prose (write `Slack, Discord, or email`, not `Slack / Discord / email`; code enums like `LOW/MEDIUM/HIGH` are exempt), `not just X, but Y` parallelism, vocabulary cliches (`leverage`, `utilize`, `seamless`, `robust`, `comprehensive`, `crucial`, `it's worth noting`), and decorative bold, emoji, or Title Case headers. Full catalog with rewrites: `wos/natural-voice.md`. Lint runs `scripts/check-natural-voice.sh` as an advisory (warn-only) check that never fails the build.
+- Natural voice (no AI tells): human-facing prose must read like a person wrote it. Avoid slash disjunctions in prose (write `Slack, Discord, or email`, not `Slack / Discord / email`; code enums like `LOW/MEDIUM/HIGH` are exempt), `not just X, but Y` parallelism, vocabulary cliches (`leverage`, `utilize`, `seamless`, `robust`, `comprehensive`, `crucial`, `it's worth noting`), and decorative bold, emoji, or Title Case headers. Full catalog with rewrites: `wos/natural-voice.md`. `scripts/check-natural-voice.sh` measures it and is run by hand; the lint does not call it (ADR-0171).
 - Use fenced code blocks with language hint (`text`, `bash`, `yaml`, `markdown`) wherever applicable.
 - Reference other files in the repo with relative paths.
 
@@ -96,16 +121,20 @@ For breaking changes (anything that invalidates existing task memory format or o
 ## Local development
 
 ```bash
-# Sync commands to your editor (legacy slash commands)
-./scripts/sync-workflow-slash-commands.sh --dry-run  # preview
-./scripts/sync-workflow-slash-commands.sh             # apply
-
-# Mirror generated Agent Skills to user-level dirs (multi-tool drop-in)
-./scripts/sync-workflow-slash-commands.sh --with-skills
+# Sync commands and Agent Skills to your editors. Bare on a terminal it opens a
+# setup wizard; any flag runs it non-interactively for Cursor, Claude Code,
+# Codex and Kimi Code (minimal command files, every skill). Skills sync by
+# default; --no-skills skips them.
+./scripts/sync-workflow-slash-commands.sh --dry-run       # preview, non-interactive
+./scripts/sync-workflow-slash-commands.sh                 # wizard on a terminal
+./scripts/sync-workflow-slash-commands.sh --profile full  # scripted, every command file
 
 # Run command lint before opening PR (covers required sections, shared-block
-# drift, frontmatter, em-dashes, natural-voice advisory, AND skills drift via build-agent-skills.sh --check)
+# drift, frontmatter, em-dashes, AND skills drift via build-agent-skills.sh --check)
 ./scripts/lint-commands.sh
+
+# Natural voice is measured by hand; the lint does not call it (ADR-0171)
+./scripts/check-natural-voice.sh
 
 # If you changed any commands/<name>.md, regenerate the Agent Skills artifacts
 ./scripts/build-agent-skills.sh             # build (idempotent)
@@ -120,7 +149,7 @@ python3 ./scripts/measure-tokens.py > scripts/baseline-$(date +%Y-%m-%d).md
 
 ### Agent Skills (canonical → generated)
 
-The command files under `commands/` (flat `<name>.md` plus folder-shaped persona commands at `commands/<name>/SKILL.md`) are the **canonical source of truth**. The generated `.claude/skills/<name>/SKILL.md` files are produced by `scripts/build-agent-skills.sh` and committed to the repo so any of the 35+ tools that read `.claude/skills/` natively (Cursor 2.4+, Claude Code, GitHub Copilot, OpenAI Codex, Gemini CLI, OpenHands, Goose, etc.) gets drop-in compatibility without an install step.
+The command files under `commands/` (flat `<name>.md` plus folder-shaped persona commands at `commands/<name>/SKILL.md`) are the **canonical source of truth**. The generated `.claude/skills/<name>/SKILL.md` files are produced by `scripts/build-agent-skills.sh` and committed to the repo so any of the 35+ tools that read `.claude/skills/` natively (Cursor, Claude Code, GitHub Copilot, OpenAI Codex, Gemini CLI, OpenHands, Goose, etc.) gets drop-in compatibility without an install step.
 
 **Never edit `.claude/skills/<name>/SKILL.md` by hand.** The lint catches drift; the build adapter is idempotent. Edit `commands/<name>.md` and run `./scripts/build-agent-skills.sh`. See [`docs/MIGRATION.md`](./docs/MIGRATION.md) for the full forking and customization guide and [ADR-0005](./docs/adr/0005-multi-tool-architecture.md) for the why.
 
@@ -157,6 +186,11 @@ clean repo produces no diff.
 5. Open a PR using the [PR template](.github/pull_request_template.md).
 6. Sign off your commits with `git commit -s` to certify the DCO.
 7. Wait for review. Best-effort response time.
+
+Pull requests go to the public repository, `Mozurok/fhorja.dev`. The maintainer works in a private
+staging tree, and each release copies that tree over the public one. A merged pull request is
+therefore ported into the staging tree before the next release, so the release carries your change
+instead of overwriting it.
 
 ## Questions
 

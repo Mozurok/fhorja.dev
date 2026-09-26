@@ -1,7 +1,7 @@
 # Eval scenario 75: a named deliverable silently dropped between brief and closure
 
-- **Tags**: ADR-0056, deliverable-coverage, no-silent-de-scope, deliverable-reconcile, task-init, decision-interview, review-hard, regression-guard, D-1, D-3, D-4, D-5
-- **Last reviewed**: 2026-06-26
+- **Tags**: ADR-0056, ADR-0233, deliverable-coverage, no-silent-de-scope, deliverable-reconcile, task-init, decision-interview, review-hard, regression-guard, D-1, D-3, D-4, D-5
+- **Last reviewed**: 2026-09-24
 - **Status**: active
 
 ## Goal
@@ -14,6 +14,7 @@ This exercises:
 - The scoping pass: `impact-analysis` and `decision-interview` surface a dropped deliverable as an explicit de-scope decision rather than letting it vanish (D-1, D-5 scoping half).
 - The closure reconcile gate: the shared block `commands/_shared/deliverable-reconcile.md`, consumed by `review-hard`, `where-we-at`, `slice-closure`, and `task-close`, makes a closure whose ledger has an unreconciled row invalid output (D-3, D-5 hard gate).
 - The legacy no-op: the gate skips cleanly when `## Requested deliverables` is absent.
+- The attended-chain guard (ADR-0233, rests on its provisional P-5): in an attended chain on a task branch, a deliverable that cannot be delivered without a decision the evidence does not settle is never recorded as a provisional de-scope. It stays `in-scope`, gains a `Not delivered, needs you: <deliverable>: <what is undecided>` line in `TASK_STATE.md ## Open questions / blockers`, and the chain continues with the rest. This scenario's own failure (D-B silently dropped, no de-scope entry at all) is not that case: nothing here recorded even an attempted de-scope, provisional or otherwise, so `review-hard`'s pre-existing D-3/D-5 gate is what catches it, unchanged by ADR-0233.
 
 ## Setup
 
@@ -55,3 +56,5 @@ Mode: Ask
 ## Notes
 
 (Record past failures and resolutions here as the scenario is exercised.)
+
+- Related ADR: [ADR-0233](../../docs/adr/0233-the-attended-chain-runs-to-the-draft-pr.md). Scenario 145 is where the P-5 `Not delivered, needs you` line is graded end to end, including its appearance at the top of the `pr-package --apply` draft PR body; this scenario stays the silent-omission regression net review-hard already owned.

@@ -1,62 +1,38 @@
 ---
 name: implement-slice-complement
 description: |-
-  Execute a bounded micro-delta (adjustments, fixes, polish, missed checklist items) that stays inside the same slice intent and DECISIONS.md, then record evidence in slice notes and/or TASK_STATE.md without churning unrelated artifacts. Use when a slice was already implemented or is ready-to-close-with-follow-ups and you discovered a narrow gap (bug, typo, test, log line, copy, small refactor under the same acceptance story), you can state the work as a numbered micro-delta list, and the file touch set is small with named primary paths. Do not use when work belongs to net-new scope (use implementation-plan plus a new slice), correctness-critical ambiguity is open (route upstream to targeted-questions or decision-interview), the change would materially alter signed-off decisions (use post-review-pivot), only state memory needs updating (use sync-task-state), only closure judgment is needed (use slice-closure), or the micro-delta list is empty or vague.
+  Execute a bounded micro-delta (adjustments, fixes, polish, missed checklist items) that stays inside the same slice intent and the locked decisions, then record evidence in slice notes without churning unrelated artifacts. Use when a slice is implemented or ready-to-close-with-follow-ups, you found a narrow gap (bug, typo, test, log line, copy, small refactor under the same acceptance story), and you can state it as a numbered micro-delta list over a small named file set. Do not use when the work is net-new scope (use implementation-plan plus a new slice), when correctness-critical ambiguity is open (use targeted-questions or decision-interview), when it would materially alter signed-off decisions (use post-review-pivot), when only memory needs updating (use sync-task-state), or when only closure judgment is needed (use slice-closure).
 metadata:
-  category: execution-and-closure
-  primary-cursor-mode: Agent
-  multi-repo-aware: false
-  context-layers-consumed:
-    - memory
-  context-layers-produced:
-    - memory
-  tools:
-    - Read
-    - Write
-    - Edit
-    - Bash
-    - Glob
-    - Grep
-  x-wos-profiles:
-    - minimal
-    - core
-    - full
-  provenance: first-party
-  suggested-model: claude-sonnet-4-6
+  category: "execution-and-closure"
+  primary-cursor-mode: "Agent"
+  multi-repo-aware: "false"
+  context-layers-consumed: "memory"
+  context-layers-produced: "memory"
+  tools: "Read, Write, Edit, Bash, Glob, Grep"
+  x-wos-profiles: "minimal, core, full"
+  provenance: "first-party"
+  suggested-model: "claude-sonnet-5"
 ---
-> **Output contract, in brief.** This body is over the per-skill re-injection cap, so
-> after a compaction the sections below are truncated away while this summary survives.
-> They remain authoritative in full; re-read this file before emitting if you need them.
->
-> - `Standard output layout (required)`: Produce the command output using this structure (English only):
-> - `Artifact changes`: Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
-> - `Command transcript`: Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
-> - `Handoff`: Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per...
-> - `Definition of done (command output)`: Every micro-delta bullet is addressed or explicitly deferred with evidence.
-
 
 Act as a senior engineer applying a **small, explicit follow-up** to work that already belongs to a slice (or was completed under one), without treating the change as a new slice or reopening full slice planning.
 
 Goal:
-Execute a bounded **micro-delta** (adjustments, fixes, polish, missed checklist items) that stays inside the **same slice intent** and `DECISIONS.md`, then record evidence in slice notes and/or `TASK_STATE.md` routing without churning unrelated artifacts.
+Execute a bounded **micro-delta** (adjustments, fixes, polish, missed checklist items) that stays inside the **same slice intent** and `DECISIONS.md`, then record evidence in slice notes, in `TASK_STATE.md` routing, or in both without churning unrelated artifacts.
 
 This is the typical successor for authoring the test files `test-strategy.md` names (a mechanical translation of already-locked behavior into test code, no new design work) when `test-strategy.md` itself stops short of writing them. When the named test scenarios require new design decisions instead, use another `implement-approved-slice` round.
 
 Mandatory context bootstrap (before any output):
-<!-- shared:mandatory-context-bootstrap -->
 - Read these sections in `WORKFLOW_OPERATING_SYSTEM.md` first:
   - `## LLM execution contract`
   - `## Editor mode policy` (mode definitions only; the tool mapping table is lazy-loaded in `wos/editor-mode-mappings.md` and needed only for non-Claude-Code tools)
   - `## Global output contract` (including **Adaptive handoff** and **Mode selection rule**)
   - `## Cross-cutting workflow guardrails`
-- **Bootstrap tiers (ADR-0025):** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) may skip `## Editor mode policy` good-fits lists and `## Cross-cutting workflow guardrails` sequencing heuristics, reading only the mode definitions and the core guardrail rules (routing memory, command-less input triage, official command names, material change, no-op). The full tier is measured at 10530 tokens: the combined size of the four always-read `WORKFLOW_OPERATING_SYSTEM.md` sections listed above. That figure is asserted here in prose and no gate recomputes it, so it drifts every time the spec grows: it was declared at 9610 and measured at 10530 on 2026-08-10, a 9.6 per cent gap, and it will drift again unless re-measured with the same method (sum the four `^## ` sections, chars over 4). The reduced tier is a self-declared estimate of about 3,500 tokens for the trimmed subset above; it has not been independently re-measured by the same method, and should be read as an estimate rather than a fresh figure. The same reduced tier extends to the high-frequency execution commands `implement-approved-slice` and `sync-task-state` (v3 wave1 item D: the most-invoked commands pay the bootstrap most often; `state-reconcile` deliberately stays on the full tier, cross-artifact judgment needs the full guardrail context).
-- **Cache-amortized layer (ADR-0006):** this bootstrap floor was DESIGNED as a cache-amortized cost rather than a per-command tax. ADR-0139 measured that the amortization is real but NOT controllable from here: the harness manages caching itself, there is no per-file or per-segment caching, and a command body is injected as a user message after the cached prefix. Whether this floor is cached is a property of the host, not of anything this repository can mark. Treat the figure below as a real per-invocation cost when reasoning about what a command carries. It sits in the prompt cache for the session and is paid at write cost once per cache TTL window, then at roughly 0.1x on cached reads inside that window. Account for it separately from any per-skill Load budget (the generated `.claude/skills/<name>/SKILL.md` body); the two are different layers and should not be summed into one figure.
-- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this same conversation already performed this bootstrap read in an earlier turn that is still VISIBLE in the current context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one instead, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. This is a scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), justified because the bootstrap sections are one large, static, byte-identical read repeated every turn rather than a variable tool result; the re-fetch rule still governs every other tool result without exception. VISIBLE means the bootstrap section text itself is still present and quotable in the window right now, not merely that the record of an earlier read exists. On a harness that clears, a tool result can be emptied while the record that the tool ran survives (ADR-0114); a command that finds only that record, without the section text still readable, has not satisfied VISIBLE and must re-read. Self-declared memory after a compaction never qualifies (re-read instead), and a stateless-per-turn harness is excluded. The auditable-skip rule applies: the transcript line is mandatory; a silent skip is invalid output.
-- **Resolving a relative `wos/<topic>.md`.** Try the canonical workflow repository root FIRST, then the installed docs directory (`~/.claude/workflow-docs/wos/` or `~/.cursor/workflow-docs/wos/`). Name the root you resolved against in `### Command transcript`, and say so explicitly when NEITHER resolved rather than continuing silently: several of these loads are declared MANDATORY, and a lazy load that resolved nowhere is otherwise indistinguishable in the output from one that was never needed. Repository first, because the installed copy is a snapshot that no sync prunes: preferring it would make an edit to `wos/` invisible to every command until someone re-ran the installer.
+- **Bootstrap tiers:** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) plus the high-frequency `implement-approved-slice` and `sync-task-state` (v3 wave1 item D) read the four sections above with two subsections of `## Cross-cutting workflow guardrails` skipped: `### External web access (centralized)` and `### Sequencing heuristics (by phase)`. Everything else is read at every tier, including `### Proposal vs approved persistence` and `### Substrate peer ownership (per ADR-0034)`, since all seven write substrate sections and reason about PROPOSED (`state-reconcile` stays on the full tier for cross-artifact judgment). The full tier is measured at 11678 tokens, the four always-read sections combined; the two skipped subsections are 1,035 of those (measured 2026-09-24), so the reduced tier is about 10,643. The leaf-reviewer tier (`verify-against-rubric`, ADR-0226) reads only `## Global output contract`, measured at 4841 tokens, plus its rubric.
+- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this conversation already read the bootstrap sections in an earlier turn still VISIBLE in the context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. Scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), because these sections are one large, static, byte-identical read repeated every turn; every other tool result still re-fetches. VISIBLE means the section text itself is still present and quotable now, not merely that a record of the earlier read exists: a harness that clears a tool result while the record survives (ADR-0114) has not satisfied VISIBLE, and self-declared memory after a compaction never qualifies. A stateless-per-turn harness is excluded. The transcript line is mandatory; a silent skip is invalid output.
+- **Resolving `WORKFLOW_OPERATING_SYSTEM.md` and a relative `wos/<topic>.md`.** Both resolve the same way: try the canonical workflow repository root FIRST, then the installed docs directory (`~/.claude/workflow-docs/` or `~/.cursor/workflow-docs/`, the spec at that root and topics under its `wos/`). Repository first, because the installed copy is a snapshot no sync prunes; preferring it would hide a `wos/` edit from every command until a reinstall. Name the resolved root in `### Command transcript`, and say so explicitly when NEITHER resolved rather than continuing silently, since several of these loads are MANDATORY.
 - Read additional sections only when relevant to this command's role.
-- Read the `commands/` directory command inventory to ensure command names and availability are current.
 - Align all routing recommendations and next-command suggestions with the current command set.
-- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares that the chain has ended and no following command would be honest, defined in `## Global output contract` (ADR-0126); use it only when nothing honest remains, never to end a chain that has a real next step.
+- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares the chain ended with no honest next step, defined under `### Official command names (routing integrity)` (ADR-0126); use it only then, never to end a chain that has a real next step.
 
 Required inputs:
 - active task folder path
@@ -65,15 +41,16 @@ Required inputs:
 - **primary file paths** (expected touch set; typically ≤ 6 files unless you justify briefly)
 - `TASK_STATE.md`, `DECISIONS.md`, `IMPLEMENTATION_PLAN.md`
 - relevant real codebase context
-- product workspace path if implementation is outside `my_work_tasks`
+- product workspace path if implementation is outside the task repository
 
 Task repository files to create or update (only if materially changed):
-- the anchor slice file (add a **Complement** subsection: deltas, validation, residual risks): `PROPOSED` unless persisting in Agent mode
+- the anchor slice file (add a **Complement** subsection: deltas, validation, residual risks): `APPLIED`
 - `TASK_STATE.md` only if routing/blockers change; otherwise prefer `sync-task-state` after execution
 
 Operating rules:
 - Treat the micro-delta list as **hard scope**: anything outside it is out of scope for this command.
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full).
+- **Operating mode (ADR-0008, ADR-0162).** WHEN `TASK_STATE.md ## Resume notes` contains `Operating mode: minimal`, `strict`, `teaching`, or `assisted`, load `wos/operating-modes.md` and apply that mode. WHEN the line is absent, use this command's native rules. Auto-suggestion is not a declaration.
 - **Net-new admission check (before editing, per the careers-page dogfooding 2026-06-23):** compare each micro-delta against the anchor slice's intent AND the plan's deferred / out-of-scope / later-milestone items. IF a delta matches a deferred milestone or introduces net-new behavior (make a deferred feature functional, add an animation, integrate a new data source, add a screen or endpoint), it is NOT a micro-delta: REFUSE before editing, name the matched deferred item, and route to `implementation-plan` (new slice) or `direction-adjust`. Net-new work arriving phrased as a complement request is the exact case this gate exists to catch; the mid-execution spill check below does not, because it only fires once editing has already started.
 - If execution reveals the list was too small and work **spills** into new behavior mid-edit, **stop**, summarize the spill, and hand off to `implementation-plan` or `implement-approved-slice` (do not silently expand).
 - Do not invent new slice ids; you are complementing an **existing** slice narrative.
@@ -98,27 +75,12 @@ Required output:
 9. Net-new admission verdict: `micro-delta` (proceed) or `net-new` (refused and routed), with the deferred-item / new-behavior check that justifies it. Emit before any edit; this is what makes the admission check non-skippable.
 
 ### Reference grounding (execution gate)
-<!-- shared:reference-grounding -->
 **Reference grounding (execution gate).** Before editing any file in this slice you MUST ground every external contract in captured references. This gate is mandatory, not advisory.
 
 1. Detect. Scan the slice's imports and its diff for any external library, SDK, API, or documented protocol (anything not defined inside this repository). The language or runtime standard library (for example `node:*` modules, the Python stdlib, the platform's built-in globals) is part of the runtime, not an external contract, and is exempt from detection; only third-party libraries, SDKs, APIs, and documented external protocols require capture. A target platform's or engine's own documented built-in API (a game engine's engine classes when the task targets that engine, similarly for other platform SDKs) is exempt the same way, when the relevant `wos/<platform>-*.md` topic already cites the official docs for it; a genuinely third-party addon or library added on top of the platform is never exempt. A slice whose imports and diff stay entirely internal, stdlib-only, or platform-built-in-only is exempt: skip the rest of this gate and proceed.
 
-2. Refuse when uncaptured. IF the slice uses an external contract that is not present in `projects/<client>__<project>/REFERENCES.md`, you MUST NOT edit. Stop, name the missing contract in one short refusal block, and route the user to `capture-references` to capture it (official docs, signature, version). This holds in every task tier. Do not fetch the web here; `capture-references` is the only authorized capture path.
-
-3. Read and cite when captured. WHEN the contract is present in `REFERENCES.md`, read that entry (including any `Implementation contract` block) before you write code, and emit a `Grounded in:` line in the execution summary naming each `REFERENCES.md` entry or local doc you relied on. An edit that touches an external contract without a `Grounded in:` line is invalid output. This cite requirement is NOT conditional on capture: WHEN the thing you relied on is the dependency's own published source rather than a captured entry or a doc (the tier rule 6 admits), the `Grounded in:` line SHALL name the file path, the line range, and the version you read, whether or not that library also has a `REFERENCES.md` entry. Rule 6's case reaches here even when rule 1 stayed silent and the contract was never captured. A bare claim of having read the source is not a cite: every other tier produces a referent a reviewer can open, and this one is held to the same bar (ADR-0121, ADR-0109).
-
-4. Design assets are external contracts too (ADR-0051). WHEN this slice implements from a design source (Figma node, screen, or component spec), pull the exact node via the design MCP (`get_design_context` / `get_screenshot` / `get_variable_defs`, `download_assets` for real assets) BEFORE editing and build from the pulled values: no placeholder boxes, guessed measurements, or assumed copy. Design-to-code slices are NOT exempt when imports are internal. IF the node is unavailable, stop and ask for the link. Placeholders need an approved `Asset-fidelity: placeholder` decision in `IMPLEMENTATION_PLAN.md`.
-
-Do not implement an external API from memory. WHEN the captured entry and your recollection disagree, the captured entry wins (per `WORKFLOW_OPERATING_SYSTEM.md` `## Evidence priority`).
-
-5. Live-verify a security-critical or fully-gating contract before it satisfies this gate (ADR-0108). A captured `REFERENCES.md` entry does NOT satisfy this gate on its own when BOTH of the following hold: (a) the contract governs a security-critical or fully-gating path (authentication, authorization, payment, PII handling, or any point where a wrong assumption blocks 100% of a code path rather than an edge case), AND (b) the only evidence for the exact point in question is a vendor's demo/example/sandbox payload (not a live capture of the real production delivery mechanism) OR the captured entry itself marks the point `[unclear in source]` or otherwise documents it as unconfirmed. WHEN both hold, you MUST NOT implement against the assumed shape until either a live capture (a real request/response from the actual mechanism, e.g. via a webhook capture endpoint, a sandbox call with real credentials, or a vendor support confirmation) replaces the inference, OR the assumption and its accepted risk are recorded as an explicit, named entry via `decision-interview` rather than silently built into the code. This closes the gap the 2026-07-15 tms-webhook-integration dogfood exposed: a captured reference existed and was cited, but it was evidenced only by the vendor's demo payload, and the auth-format point was already marked unconfirmed in the same reference set, yet implementation proceeded and shipped a code path that could never authenticate a real request.
-
-6. Claim-keyed boundary test, additive to the import scan (ADR-0109, D-9). The scan in rule 1 fires on the slice's import-and-diff surface. A SECOND test fires on a load-bearing claim regardless of whether the import surface changed: WHEN you are about to assert behavior of an external library, SDK, API, or documented protocol as a basis for the edit (which version returns what, which default changed, which parameter is required), that claim MUST trace to the grounded set (a captured `REFERENCES.md` entry, a doc read this session, the dependency's own published source read this session, or a live capture per rule 5), or you MUST NOT rely on it. The published-source tier (ADR-0121) exists for the case the other tiers cannot reach: a point the vendor's documentation simply does not state, which a captured entry records as `[unclear in source]` and which does not warrant rule 5's live capture. It is ADDITIVE and never an escape hatch: rule 2 is unchanged, so an external contract absent from `REFERENCES.md` still stops the edit and still routes to `capture-references`, and reading source is not a substitute for capturing it. Cite it per rule 3. The two tests are complementary and neither replaces the other. The case each catches: rule 1 catches a NEW external contract entering via a changed import; this rule catches a fix INSIDE a library the repository already imports, where the import surface is unchanged (rule 1 stays silent) but the claim about that library's runtime behavior is outside the grounded set. For a bug fix in an already-imported library, rule 1 does not fire and this rule does. The full doctrine is `wos/active-epistemic-humility.md` and the universal block `commands/_shared/claim-grounding.md`; this rule is its execution-time face inside the grounding gate.
-
-7. Internal claim-keyed test (ADR-0146). Rule 1's exemption for an internal-only slice exempts it from CAPTURE, not from GROUNDING. WHEN you are about to assert behavior of an in-repo module as a basis for the edit (what a helper already does on failure, which statuses a route can raise, whether any caller can reach the expression you are adding, what a cache actually holds), that claim MUST trace to a `file:line` range you read this session, and the execution summary SHALL name it. Two clauses decide the cases a plain read-it-first rule misses. (a) A partial read does not ground a claim about a complete surface: WHEN the claim quantifies over ALL of something (every error this route raises, every caller of this symbol, every path that reaches this branch), the cite SHALL be an enumeration over the whole file (a grep for every `throw`, for every call site), never a line-window read. (b) Mirroring an in-repo precedent does not ground the claim: the precedent grounds what THAT file does, not that it is correct at THIS call site, so a mirrored error path still requires the callee's own failure handling to be enumerated and cited. A claim you cannot cite this way is not a basis for the edit; record it as an assumption in the slice note and do NOT encode it in a branch. This rule adds no scan and no capture step, and it fires only when you are about to rely on an in-repo behavior claim, so a slice that asserts none pays nothing. The failure it closes: a screen handler called a pipeline internal directly and duplicated the logging and the toast the callee already owned, in a session where the search returning the canonical path had already run and the callee's own handling had already been on screen, because both claims rested on a mirrored precedent plus two line-window reads that skipped the range where the existing behavior lived.
-
+2. Apply the rest (lazy-loaded; `wos/reference-grounding.md`). WHEN step 1 finds an external contract, load `wos/reference-grounding.md` before you edit and apply every rule there exactly as written. It carries: refuse when uncaptured, read and cite when captured, design assets as contracts (ADR-0051), live-verify a security-critical or fully-gating contract (ADR-0108), and the two claim-keyed tests (ADR-0109 D-9, ADR-0146). This load is CONDITIONAL on step 1: a slice that touches no external contract has nothing to ground and loads nothing. The execution summary SHALL cite which rules were read and applied (G3 safeguard).
 ### Claim grounding (active epistemic humility)
-<!-- shared:claim-grounding -->
 **Claim grounding (active epistemic humility).** This block governs what you may assert and how you record it. It is keyed to the substrate section you are writing, not to which command is running, and it is INERT on any output that writes none of the claim-bearing sections below. Full contract and rationale: `wos/active-epistemic-humility.md`.
 
 1. When this applies. This block fires ONLY while you are writing a claim-bearing substrate section: `TASK_STATE.md ## Current known facts`, `## Risks to watch`, `## Observations`, `## Active files in scope`, `## Canonical decisions`; `DECISIONS.md ## Locked decisions`; `IMPLEMENTATION_PLAN.md ## Current gaps`, `## Risks and mitigations`; `IMPACT_ANALYSIS.md`; `EXTERNAL_RESEARCH.md`; `REFERENCES.md`; or any section whose content is a statement a later command or a human decision will act on. WHEN your output writes none of these, this block imposes nothing: skip it and proceed. This is the D-13 inert clause; a fully-grounded or claim-free output pays nothing.
@@ -135,25 +97,21 @@ Do not implement an external API from memory. WHEN the captured entry and your r
 
 7. An unfired gate is not evidence. The absence of a fired check does not mean grounding existed. Do not read silence here as a pass.
 ### Standard output layout (required)
-<!-- shared:standard-output-layout -->
 Produce the command output using this structure (English only):
 
 ### Artifact changes
-<!-- shared:artifact-changes-default -->
-Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
+Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules. Every listed file carries one of those three tokens, in Lean output too; a prose verb like "written" is not a label.
 
 ### Command transcript
-<!-- shared:command-transcript-standard -->
 Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
 
 ### Handoff
-<!-- shared:handoff-body -->
-Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state).
+Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state). Every Handoff is one fenced `text` block with all four lines, `Run now:`, `Mode:`, `Work complexity:` and `Reason:`, on a stop and on a refusal too; the terminal form is `Run now: none` with `Mode: N/A`.
 
 ### Definition of done (command output)
 - Every micro-delta bullet is addressed or explicitly deferred with evidence.
 - Changes remain inside `DECISIONS.md` and the anchor slice intent; spills route outward instead of silent scope growth.
-- Slice complement notes are `PROPOSED` unless persisting in Agent mode; product edits follow repo reality.
+- Slice complement notes are `APPLIED`; product edits follow repo reality.
 - Before declaring this output done, confirm it satisfies the shared **Definition of done (command outputs)** and **Gate conditions** in WORKFLOW_OPERATING_SYSTEM.md.
 
 Quality bar:

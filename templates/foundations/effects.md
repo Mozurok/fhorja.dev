@@ -14,7 +14,7 @@ Blur, gradients, alpha-overlay tokens, surface tint variants. Does NOT cover sha
 
 Which effects are first-class (blur ✓ / gradient ✓ / overlays ✓), platform support strategy (iOS blur via `react-native-blur` vs CSS backdrop-filter), performance constraints.
 
-## 3. Tokens — Blur
+## 3. Tokens: Blur
 
 | Token | Intensity | Use |
 |---|---|---|
@@ -22,7 +22,7 @@ Which effects are first-class (blur ✓ / gradient ✓ / overlays ✓), platform
 | `effect.blur.medium` | 16 | modal scrim |
 | `effect.blur.strong` | 32 | hero glass cards |
 
-## 4. Tokens — Alpha overlays
+## 4. Tokens: Alpha overlays
 
 If supported as first-class tokens (per `color.md`), document the alpha set here for reuse:
 
@@ -35,7 +35,7 @@ If supported as first-class tokens (per `color.md`), document the alpha set here
 
 Combine with any base color: `color.brand.primary` + `effect.alpha.20` → `brand.primary.alpha20`.
 
-## 5. Tokens — Gradient
+## 5. Tokens: Gradient
 
 If gradients are used (note: many design systems forbid them):
 
@@ -49,11 +49,11 @@ If gradients are NOT used in this product, state so explicitly and skip this sec
 
 - **iOS**: native blur is performant via `UIVisualEffectView`; `react-native-blur` wraps it.
 - **Android**: blur via `RenderEffect` (API 31+); below 31, fall back to dim overlay.
-- **Web (Storybook)**: `backdrop-filter: blur()` — check browser support and provide fallback.
+- **Web (Storybook)**: `backdrop-filter: blur()`; check browser support and provide fallback.
 
 ## 7. Performance
 
-- Blur is expensive — avoid stacking multiple blurred layers.
+- Blur is expensive; avoid stacking multiple blurred layers.
 - For scrolling lists, prefer flat scrim (`effect.alpha.40` over solid surface) over animated blur.
 - Profile on lowest-spec target device before shipping blur-heavy screens.
 

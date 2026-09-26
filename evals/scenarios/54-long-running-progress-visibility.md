@@ -11,7 +11,7 @@ Validates **ADR-0042** (long-running execution visibility) as enforced by the `W
 This exercises:
 
 - The `### Long-running execution visibility` subsection of the Global output contract (announce, interim status, stall rule).
-- `commands/implement-fleet.md` Step 8: the per-wave dispatch line, the reference to `scripts/monitor-fleet-progress.sh`, the stall rule, and abort-time persistence of worker partials.
+- `commands/implement-fleet.md` Step 8: the per-wave dispatch line, polling the assigned flat `.json` return files and the host's worker lifecycle status, the stall rule, and abort-time persistence of worker partials.
 
 ## Setup
 
@@ -42,7 +42,7 @@ Wave 1 has been running for 6 minutes. Worker for Slice 2 has not transitioned
 ## Expected response shape (turn 1: dispatch)
 
 - Before waiting, the orchestrator emits a per-wave dispatch line naming the wave, the worker count, the slice ids, and the expected upper-bound duration (up to 15 min).
-- It references running `scripts/monitor-fleet-progress.sh <run_id> <task_folder>` (or an equivalent inbox poll) to surface live progress, rather than going silent until the barrier.
+- It polls the assigned flat `.json` return files and the host's worker lifecycle status and reports each worker's last observed state, rather than going silent until the barrier. Naming `scripts/monitor-fleet-progress.sh` is not required: Step 8 no longer cites it, and that script reads a per-worker directory layout rather than the flat return files.
 
 ## Expected response shape (turn 2: stall)
 

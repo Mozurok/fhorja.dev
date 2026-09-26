@@ -1,6 +1,6 @@
 # Foundation: `<name>`
 
-> **Generic foundation template.** This is the meta-skeleton used when a foundation area does NOT have a dedicated sub-template under `templates/foundations/<area>.md`. Prefer the area-specific sub-template when one exists — it has fields tuned to that area's vocabulary.
+> **Generic foundation template.** This is the meta-skeleton used when a foundation area does NOT have a dedicated sub-template under `templates/foundations/<area>.md`. Prefer the area-specific sub-template when one exists; it has fields tuned to that area's vocabulary.
 >
 > **Sub-templates available** (per `wos/design-system-conventions.md` → `## Repository structure (docs split)` → `### Granular foundations`):
 > - `templates/foundations/color.md`

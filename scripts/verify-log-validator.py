@@ -13,6 +13,16 @@ Cross-checks (after line validation, when the target is a .wos/VERIFICATION_LOG.
   sha-chain (advisory): an applied write/overwrite whose sha_before differs
   from the pair's previous sha_after in the log. Never flips the exit code.
 
+Digest scope. A line carrying "sha_scope":"file" holds whole-file SHA-256 digests,
+the fallback commands/_shared/substrate-digest-fallback.md prescribes when the
+per-section helper is unreachable. Those lines chain per FILE and are compared
+against the whole file's bytes; every other line is a section digest, as before.
+Until 2026-09-23 the validator had no notion of scope and reported every such
+line as content-vs-log drift, so an install using the fallback failed its
+closure integrity floor on every close (ADR-0224).
+
+An empty log is not a clean log: it prints NOT CHECKED and exits 2.
+
 Usage:
   python3 scripts/verify-log-validator.py <path-to-VERIFICATION_LOG.jsonl>
   python3 scripts/verify-log-validator.py --task <task-folder>
@@ -47,6 +57,14 @@ EVENTS = {
 MODES = {"applied", "proposed"}
 
 MERGE_STRATEGIES = {"union", "last-by-timestamp", "consensus-of-N", "manual-review"}
+
+#: Fields a line MAY carry and the validator reads when present. Absence is valid, so a
+#: writer that omits them is not wrong; check_substrate_emit_teaches_full_schema reads this
+#: set so it does not demand them of the hand-rolled emit.
+OPTIONAL_FIELDS = {"sha_scope"}
+
+#: Values of the optional sha_scope field. Absent means section scope.
+SHA_SCOPES = {"section", "file"}
 
 FLEET_EVENTS = {
     "fleet-merge", "partial_merge", "merge_include", "merge_with_gap",
@@ -117,6 +135,10 @@ def validate_line(idx: int, raw: str) -> list[str]:
         if not isinstance(v, str) or not SHA256_HEX.match(v):
             errors.append(f"line {idx}: {fname} not SHA-256 hex (got {v!r})")
 
+    sha_scope = obj.get("sha_scope")
+    if sha_scope is not None and sha_scope not in SHA_SCOPES:
+        errors.append(f"line {idx}: sha_scope {sha_scope!r} not in {sorted(SHA_SCOPES)}")
+
     # sha_after MUST be non-null hex on applied writes -- an applied write
     # produced bytes, so a SHA exists. K.4 cutover fix (2026-06-04): catches
     # the half-compliant pattern where writers emit a JSONL line with null
@@ -184,8 +206,21 @@ def _is_owning_write(obj: dict) -> bool:
     return obj.get("mode") == "applied" and obj.get("event") in ("write", "overwrite")
 
 
-def _advance_chain(last_sha_after: dict, key: tuple, obj: dict) -> None:
-    """Advance the per-(file, section) chain position after visiting an entry.
+def _is_file_scope(obj: dict) -> bool:
+    """True when the line's digests cover the whole file (the digest fallback in
+    commands/_shared/substrate-digest-fallback.md), not one section."""
+    return obj.get("sha_scope") == "file"
+
+
+def _advance_chain(last_sec: dict, last_file: dict, key: tuple, obj: dict) -> None:
+    """Advance the chain positions after visiting an entry.
+
+    Two tables. `last_sec` is keyed by (file, section) and holds the section digest
+    a section-scope write left behind. `last_file` is keyed by file and holds
+    (run_id, sha_before, sha_after) from the last file-scope write. Each kind of
+    write makes the OTHER table's position for that file unknowable: a section
+    write moves the file's bytes by an amount no file digest records, and a file
+    digest says nothing about the section's own digest.
 
     A mode=proposed entry can change a section's bytes WITHOUT owning it: both
     `impact-analysis` and `decision-interview` are told to insert a PROPOSED
@@ -207,34 +242,74 @@ def _advance_chain(last_sha_after: dict, key: tuple, obj: dict) -> None:
     promotion rewrites the block is a question this function cannot answer, and
     this gate is BLOCKING per `wos/closure-floors.md`, so fixing a
     false-positive class must not introduce a new failing class."""
+    file_ = key[0]
     if obj.get("mode") == "proposed":
         if obj.get("event") == "propose":
-            last_sha_after[key] = INDETERMINATE
+            last_sec[key] = INDETERMINATE
+            last_file[file_] = INDETERMINATE
         return
-    last_sha_after[key] = obj.get("sha_after")
+    if _is_file_scope(obj):
+        if _is_owning_write(obj):
+            last_file[file_] = (obj.get("run_id"), obj.get("sha_before"), obj.get("sha_after"))
+        else:
+            last_file[file_] = INDETERMINATE
+        last_sec[key] = INDETERMINATE
+        return
+    last_sec[key] = obj.get("sha_after")
+    last_file[file_] = INDETERMINATE
 
 
-def sha_chain_advisories(chain_entries: list[tuple[int, dict]]) -> list[str]:
-    """Warn-only sha-chain advisory: an applied write/overwrite whose sha_before
-    differs from the previous sha_after recorded for the same (file, section)
-    in the log. Advisory text only; never flips the exit code. Walks applied AND
-    proposed entries so a PROPOSED block inserted into a section is not
-    invisible to the chain (see _advance_chain)."""
-    advisories: list[str] = []
-    last_sha_after: dict[tuple[str, str], object] = {}
+def _chain_mismatches(chain_entries: list[tuple[int, dict]]):
+    """Yield (idx, obj, expected) for every applied write/overwrite whose
+    sha_before does not continue the chain. `expected` is the previous sha_after.
+
+    Section scope: sha_before must equal the previous sha_after for the same
+    (file, section), as it always has.
+
+    File scope: sha_before must equal the previous file-scope sha_after for the
+    same file. Inside one run it may instead repeat the previous line's sha_before,
+    because the fallback allows a run that writes several sections to digest the
+    file once before and once after, so every line of that run carries the same
+    pair. A later run must start from where the earlier one ended."""
+    last_sec: dict[tuple[str, str], object] = {}
+    last_file: dict[str, object] = {}
     for idx, obj in chain_entries:
         file_ = obj.get("file")
         section = obj.get("section")
         if not isinstance(file_, str) or not isinstance(section, str):
             continue
         key = (file_, section)
-        if _is_owning_write(obj) and key in last_sha_after:
-            prev = last_sha_after[key]
-            if prev is not INDETERMINATE and obj.get("sha_before") != prev:
-                advisories.append(
-                    f"line {idx}: sha_before {obj.get('sha_before')!r} differs from previous sha_after {prev!r} for {file_} {section!r} (sha-chain advisory)"
-                )
-        _advance_chain(last_sha_after, key, obj)
+        if _is_owning_write(obj):
+            sb = obj.get("sha_before")
+            if _is_file_scope(obj):
+                prev = last_file.get(file_, INDETERMINATE)
+                if prev is not INDETERMINATE:
+                    prev_run, prev_before, prev_after = prev
+                    same_run = prev_run is not None and prev_run == obj.get("run_id")
+                    if sb != prev_after and not (same_run and sb == prev_before):
+                        yield idx, obj, prev_after
+            elif key in last_sec:
+                prev = last_sec[key]
+                if prev is not INDETERMINATE and sb != prev:
+                    yield idx, obj, prev
+        _advance_chain(last_sec, last_file, key, obj)
+
+
+def _scope_label(obj: dict) -> str:
+    return " at file scope" if _is_file_scope(obj) else ""
+
+
+def sha_chain_advisories(chain_entries: list[tuple[int, dict]]) -> list[str]:
+    """Warn-only sha-chain advisory: an applied write/overwrite whose sha_before
+    differs from the previous sha_after recorded for the same (file, section)
+    in the log, or for the same file at file scope. Advisory text only; never
+    flips the exit code. Walks applied AND proposed entries so a PROPOSED block
+    inserted into a section is not invisible to the chain (see _advance_chain)."""
+    advisories: list[str] = []
+    for idx, obj, prev in _chain_mismatches(chain_entries):
+        advisories.append(
+            f"line {idx}: sha_before {obj.get('sha_before')!r} differs from previous sha_after {prev!r} for {obj.get('file')} {obj.get('section')!r}{_scope_label(obj)} (sha-chain advisory)"
+        )
     return advisories
 
 
@@ -278,26 +353,12 @@ def sha_chain_breaks(chain_entries: list[tuple[int, dict]], cutover_ts: str) -> 
     correct: a PROPOSED block inserted into a section moves its bytes, and a
     walk blind to that reports a break where the writer obeyed its contract."""
     breaks: list[str] = []
-    last_sha_after: dict[tuple[str, str], object] = {}
-    for idx, obj in chain_entries:
-        file_ = obj.get("file")
-        section = obj.get("section")
-        if not isinstance(file_, str) or not isinstance(section, str):
-            continue
-        key = (file_, section)
-        if _is_owning_write(obj) and key in last_sha_after:
-            prev = last_sha_after[key]
-            ts = obj.get("ts")
-            if (
-                prev is not INDETERMINATE
-                and obj.get("sha_before") != prev
-                and isinstance(ts, str)
-                and ts >= cutover_ts
-            ):
-                breaks.append(
-                    f"line {idx}: sha_before {obj.get('sha_before')!r} != previous sha_after {prev!r} for {file_} {section!r} (post-cutover sha-chain break)"
-                )
-        _advance_chain(last_sha_after, key, obj)
+    for idx, obj, prev in _chain_mismatches(chain_entries):
+        ts = obj.get("ts")
+        if isinstance(ts, str) and ts >= cutover_ts:
+            breaks.append(
+                f"line {idx}: sha_before {obj.get('sha_before')!r} != previous sha_after {prev!r} for {obj.get('file')} {obj.get('section')!r}{_scope_label(obj)} (post-cutover sha-chain break)"
+            )
     return breaks
 
 
@@ -334,6 +395,14 @@ def delete_orphan_findings(applied_entries: list[tuple[int, dict]], task_dir: Pa
     return findings
 
 
+def _sha_of_file(path: Path) -> str:
+    """Whole-file SHA-256, the same bytes `shasum -a 256 <file>` digests."""
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return "null"
+
+
 def content_sha_findings(chain_entries: list[tuple[int, dict]], task_dir: Path, cutover_ts: str | None = None) -> list[str]:
     """Content-vs-log SHA drift (S1, opt-in): for the last applied write/overwrite
     per (file, section) whose recorded sha_after is a real hash, recompute the
@@ -345,24 +414,40 @@ def content_sha_findings(chain_entries: list[tuple[int, dict]], task_dir: Path, 
     include content the owner never applied, so the event filter below skips the
     key: disk cannot be compared against an applied sha while a proposal sits on
     top of it. That is a deliberate loss of coverage for pending proposals, and
-    it is preferable to reporting drift against a writer that did as it was told."""
+    it is preferable to reporting drift against a writer that did as it was told.
+
+    File scope ("sha_scope":"file"): the digest covers the whole file, so it is
+    compared against the whole file, and only when that line is the last entry
+    to touch the file. Any later write to the file, to any section and at any
+    scope, moves the file's bytes past what the line recorded, so an earlier
+    file-scope line has nothing left to be compared with. A section-scope line
+    whose section was last written at file scope is skipped at section scope for
+    the same reason."""
     last_write: dict[tuple[str, str], tuple[int, object, dict]] = {}
+    last_touch: dict[str, tuple[int, dict]] = {}
     for idx, obj in chain_entries:
         file_ = obj.get("file")
         section = obj.get("section")
         if not isinstance(file_, str) or not isinstance(section, str):
             continue
         last_write[(file_, section)] = (idx, obj.get("event"), obj)
+        # A proposed entry that is not event=propose wrote nothing to disk.
+        if obj.get("mode") == "proposed" and obj.get("event") != "propose":
+            continue
+        last_touch[file_] = (idx, obj)
+
+    def in_window(obj: dict) -> bool:
+        ts = obj.get("ts")
+        return cutover_ts is None or (isinstance(ts, str) and ts >= cutover_ts)
 
     findings: list[str] = []
     for (file_, section), (idx, event, obj) in last_write.items():
-        if not _is_owning_write(obj):
+        if not _is_owning_write(obj) or _is_file_scope(obj):
             continue
         recorded = obj.get("sha_after")
         if not isinstance(recorded, str):
             continue
-        ts = obj.get("ts")
-        if cutover_ts is not None and (not isinstance(ts, str) or ts < cutover_ts):
+        if not in_window(obj):
             continue
         path = task_dir / file_
         if not path.is_file():
@@ -372,6 +457,21 @@ def content_sha_findings(chain_entries: list[tuple[int, dict]], task_dir: Path, 
             findings.append(
                 f"{file_} {section!r} (last applied: line {idx}): recorded sha_after {recorded} != recomputed {actual} (content-vs-log drift)"
             )
+
+    for file_, (idx, obj) in last_touch.items():
+        if not _is_owning_write(obj) or not _is_file_scope(obj):
+            continue
+        recorded = obj.get("sha_after")
+        if not isinstance(recorded, str) or not in_window(obj):
+            continue
+        path = task_dir / file_
+        if not path.is_file():
+            continue
+        actual = _sha_of_file(path)
+        if actual != recorded:
+            findings.append(
+                f"{file_} (last applied at file scope: line {idx}): recorded sha_after {recorded} != recomputed {actual} (content-vs-log drift)"
+            )
     return findings
 
 
@@ -379,7 +479,10 @@ def resolve_target(args: argparse.Namespace) -> Path:
     if args.path:
         return Path(args.path)
     if args.task:
-        repo_root = Path(__file__).resolve().parent.parent
+        # The task repository is where the caller stands, not where this file sits.
+        # Resolving from the script's own location read this clone's projects/ on
+        # every install, which holds none of the user's tasks (ADR-0224).
+        repo_root = Path.cwd()
         pattern = f"projects/*/active/{args.task}/.wos/VERIFICATION_LOG.jsonl"
         matches = sorted(repo_root.glob(pattern))
         if len(matches) == 1:
@@ -398,7 +501,7 @@ def resolve_target(args: argparse.Namespace) -> Path:
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("path", nargs="?")
-    p.add_argument("--task", help="task folder name under projects/<client>__<project>/active/")
+    p.add_argument("--task", help="task folder name under projects/<client>__<project>/active/, resolved from the current directory")
     p.add_argument("--max-errors", type=int, default=50)
     p.add_argument(
         "--check-deletes",
@@ -446,6 +549,13 @@ def main() -> int:
                 applied_entries.append((i, obj))
             if isinstance(obj, dict) and obj.get("mode") in ("applied", "proposed"):
                 chain_entries.append((i, obj))
+
+    if total == 0:
+        # A log with no lines records no write, so nothing was checked. It used to
+        # print `lines: 0` and OK with exit 0, a pass on a log nobody wrote to.
+        print(f"file: {target}")
+        print("NOT CHECKED: log has no lines")
+        return 2
 
     advisories = sha_chain_advisories(chain_entries)
 

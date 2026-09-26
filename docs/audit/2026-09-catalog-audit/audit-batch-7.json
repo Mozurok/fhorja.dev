@@ -1,0 +1,24 @@
+{
+  "findings": [
+    {
+      "command": "apply-sweep-triage",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 6: Deduplicate.** Before appending, check if an identical row (same bug_class + file_path) already exists in the target table. If yes, update the existing row's date, file_hash, and reason instead of appending a duplicate.",
+      "defect": "Step 6 applies to all three target tables but instructs duplicate-row updates using only the Declined findings fields. Step 5 and templates/REVIEW_PREFERENCES.template.md define action_taken for Applied findings and note for Discussed findings; neither table has file_hash or reason. Re-triaging an existing apply or discuss row therefore has no consistent instruction to persist its new action or note.",
+      "proposed_fix": "Replace the cited line with: - **Step 6: Deduplicate.** Before appending, check whether the target table already contains the same bug_class + file_path. If yes, update its date and the fields Step 5 defines for that table instead of appending a duplicate.",
+      "family_sites": "site-unique; rg -n -F 'file_hash, and reason instead of appending a duplicate' commands returned commands/apply-sweep-triage.md:55 only.",
+      "chars_delta": -4
+    },
+    {
+      "command": "im-stuck",
+      "criterion": 6,
+      "severity": "low",
+      "cited_line": "- **Cheap check before expensive research.** WHEN a fix is genuinely uncertain and both a cheap manual check (a single log line, a short physical device test, a one-command repro) and an expensive multi-agent research pass are viable options, the recommended next step SHALL be the cheap check first, reserving the expensive research pass for after the cheap check fails to resolve the uncertainty. Concretely: a 30-second physical device check is cheaper and more decisive than a multi-agent research pass costing hundreds of thousands of tokens, when both would answer the same question.",
+      "defect": "The final sentence repeats the preceding instruction to choose a cheap check before expensive research when both can settle the uncertainty. The preceding sentence already names physical-device checks and multi-agent research. The repeated sentence adds no action, output, or exception: Concretely: a 30-second physical device check is cheaper and more decisive than a multi-agent research pass costing hundreds of thousands of tokens, when both would answer the same question.",
+      "proposed_fix": "Delete only the final sentence beginning \"Concretely:\" from this rule in both family sites. Preserve the trigger, the cheap-first requirement, its examples, and the fallback to research. chars_delta is the combined change across both files.",
+      "family_sites": "rg -n -F 'Concretely: a 30-second physical device check' commands returned commands/im-stuck.md:69 and commands/incident-triage.md:81; both contain the identical full cited line.",
+      "chars_delta": -382
+    }
+  ]
+}

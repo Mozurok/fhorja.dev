@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "scenarios": [
+    {
+      "file": "evals/scenarios/137-express-one-human-stop.md",
+      "reason": "The whole attended chain (task-init, implementation-plan, approve-plan, implement-approved-slice, branch-commit --apply): 5 of the 19 minimal-profile commands, and a contract that shipped without ever running against a model. Timeout is 1800 rather than the 900 the others carry: this is the only scenario whose input is a whole chain, several commands in one invocation, and kimi exceeded 900 on 2026-09-01 with no verdict. The number is a bound, not a measurement, because the run that would have measured it is the one that timed out. Since 2026-09-24 it runs in a throwaway repository with no remote (the fixture), not in the workflow repository: after ADR-0233 a run there, whose remote is real, would push and open a real draft PR.",
+      "setup": "fixture",
+      "verdict_required": false,
+      "timeout_seconds": 1800,
+      "fixture": "evals/fixtures/spine/137-chain.sh"
+    },
+    {
+      "file": "evals/scenarios/03-slice-execution-and-closure.md",
+      "reason": "The two most used commands of the spine: scope discipline and NO_OP semantics, multi-turn.",
+      "setup": "fixture",
+      "verdict_required": false,
+      "timeout_seconds": 900,
+      "fixture": "evals/fixtures/spine/03-slice-execution.sh"
+    },
+    {
+      "file": "evals/scenarios/01-bootstrap-and-init.md",
+      "reason": "The front door: task memory written APPLIED in every mode (ADR-0199, ADR-0215) and the shape of the ### Handoff block, which is the interface an external consumer parses fail-closed (ADR-0169). A shape regression here has the widest blast radius.",
+      "setup": "none",
+      "verdict_required": false,
+      "timeout_seconds": 900,
+      "probe": "evals/fixtures/spine/01-bootstrap-probe.sh"
+    },
+    {
+      "file": "evals/scenarios/125-branch-commit-apply-authorization.md",
+      "reason": "The only path in the repository that creates a commit, and where slice E1 reproduced a real defect.",
+      "setup": "fixture",
+      "verdict_required": false,
+      "timeout_seconds": 900,
+      "fixture": "evals/fixtures/spine/125-branch-commit-apply.sh",
+      "turns": "independent"
+    },
+    {
+      "file": "evals/scenarios/08-operating-modes-minimal-vs-strict.md",
+      "reason": "The strict path: a control that the default path, which ADR-0207 stopped calling Express, did not eat the declared route (ADR-0162).",
+      "setup": "fixture",
+      "verdict_required": false,
+      "timeout_seconds": 900,
+      "turns": "independent",
+      "fixture": "evals/fixtures/spine/08-operating-modes.sh"
+    },
+    {
+      "file": "evals/scenarios/141-task-memory-stays-out-of-the-product-repo.md",
+      "reason": "The one scenario that runs task-init against a product repository, the layout every installed user has (ADR-0129). ADR-0223's two halves, the self-ignoring projects/.gitignore on creation and the warning on an already-tracked tree, are otherwise measured only by a structural check that reads the command text.",
+      "setup": "fixture",
+      "verdict_required": false,
+      "timeout_seconds": 900,
+      "turns": "independent",
+      "fixture": "evals/fixtures/spine/141-projects-ignore.sh"
+    },
+    {
+      "file": "evals/scenarios/142-directive-proportionality.md",
+      "reason": "The ADR-0189 directive graded in both directions: a typo fix opens a task, a tweak to an open task continues it, and a question opens none. The typo turn is the control, so a model that never opens a task cannot pass the two negatives. Its prompts name no command and no project, as a user would write them, so the directive alone decides whether a task opens. Timeout is 1800 because turn 1 runs a whole chain, as scenario 137 does.",
+      "setup": "fixture",
+      "verdict_required": false,
+      "timeout_seconds": 1800,
+      "turns": "independent",
+      "fixture": "evals/fixtures/spine/142-directive-proportionality.sh"
+    },
+    {
+      "file": "evals/scenarios/143-task-init-escalations-fire.md",
+      "reason": "task-init's escalation assessment when a disqualifier should fire: the scope disqualifier on a documentation sweep and the categorical auth or multi-tenant surface on a cross-tenant read. Every other spine scenario grades an Escalations line that reads none, so an assessment that never escalates would pass all of them.",
+      "setup": "fixture",
+      "verdict_required": false,
+      "timeout_seconds": 900,
+      "turns": "independent",
+      "fixture": "evals/fixtures/spine/143-task-init-escalations.sh"
+    },
+    {
+      "file": "evals/scenarios/144-one-slice-route.md",
+      "reason": "The one-slice route (ADR-0225): task-init writes the approved slice and hands straight to implement-approved-slice, and check-doc-sync.sh --against HEAD replaces the blinded plan review. The route removes a review, so it is graded against a model on the plain path and on the renumbering trap it exists for. Timeout 1800, as for 137: each turn runs a chain of commands.",
+      "setup": "fixture",
+      "verdict_required": false,
+      "timeout_seconds": 1800,
+      "turns": "independent",
+      "fixture": "evals/fixtures/spine/144-one-slice-route.sh"
+    },
+    {
+      "file": "evals/scenarios/145-attended-chain-reaches-the-draft-pr.md",
+      "reason": "The ADR-0233 extension past scenario 137: with a remote configured, the same attended chain continues through branch-commit --apply into pr-package --apply and the draft PR, and an open product decision is recorded provisional rather than asked. No scenario before this one reached pr-package --apply from inside an attended chain. Timeout is 1800, as for 137 and 144, since the input runs a whole chain in one turn. The fixture's remote is a local bare repository with no pull request host, so the push is checked against origin.git and the draft PR step is graded as an environment limit; no run touches the workflow repository's branches or remote.",
+      "setup": "fixture",
+      "verdict_required": false,
+      "timeout_seconds": 1800,
+      "fixture": "evals/fixtures/spine/145-draft-pr.sh"
+    }
+  ]
+}

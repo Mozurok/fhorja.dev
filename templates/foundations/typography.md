@@ -21,7 +21,7 @@ Font families, type scale (size), weight scale, line-height scale, letter-spacin
 | `<primary>` | body, UI | 400, 500, 600, 700 | <Google Fonts / system / licensed> |
 | `<secondary>` | display | 700, 900 | <source> |
 
-## 4. Tokens — Type scale
+## 4. Tokens: Type scale
 
 | Token | Size | Line-height | Letter-spacing | Use |
 |---|---|---|---|---|
@@ -53,7 +53,7 @@ If React Native + Storybook web diverge:
 ## 7. Dynamic type / accessibility
 
 - Respect iOS Dynamic Type and Android font scale.
-- Never truncate critical labels with ellipsis when the user has scaled up — provide reflow.
+- Never truncate critical labels with ellipsis when the user has scaled up; provide reflow.
 - Minimum body size: 14pt (mobile). Avoid using <12pt for anything readable; reserve `caption.xs` for non-critical metadata.
 
 ## 8. Research
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
 
 - Hardcode font sizes/weights in components (always go through tokens)
 - Mix scales (e.g., custom 17pt between `body.md` and `title.md`)
-- Apply weight via raw `fontWeight: '500'` — use `typography.weight.medium` token
+- Apply weight via raw `fontWeight: '500'`; use `typography.weight.medium` token
 - Ignore Dynamic Type by forcing fixed `allowFontScaling={false}` without security/legal reason
 
 ## 11. Open questions

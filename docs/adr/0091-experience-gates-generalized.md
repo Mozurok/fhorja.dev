@@ -1,6 +1,6 @@
 # ADR-0091: Experience gates generalized off Godot (tagging predicate, verdict gate, entry-path probe)
 
-- **Status**: Accepted
+- **Status**: Accepted; the attester for `user-facing-content` on attended Express is Superseded by [ADR-0161](./0161-express-experience-verdict-at-apply.md) (`branch-commit --apply`). Godot stand-down and non-Express verdict remain. The human-bound attester of the experience-verdict floor is superseded by [ADR-0179](./0179-the-experience-verdict-records-its-attester.md), which records the attester instead of requiring a person.
 - **Date**: 2026-07-10
 - **Tags**: experience-gate, entry-path-probe, tagging-predicate, closure-enforcement, slice-closure, task-close, implement-approved-slice, dogfood-driven, extends-adr-0084, extends-adr-0085, extends-adr-0089
 

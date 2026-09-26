@@ -1,7 +1,7 @@
 # Eval scenario 20: compact-task-memory on a multi-slice task with stale facts
 
 - **Tags**: compact-task-memory, working-memory, lossy-compaction, preserve-verbatim, audit-trail
-- **Last reviewed**: 2026-05-18
+- **Last reviewed**: 2026-09-23
 - **Status**: active
 
 ## Goal
@@ -66,12 +66,12 @@ I have 6 closed slices and the TASK_STATE feels heavy. Compact it before slice 7
 ## Expected response shape
 
 - Response begins with compact-task-memory's persona line.
-- Response proposes a slimmed `TASK_STATE.md` with PROPOSED status (Plan mode default).
+- Response shows the slimmed `TASK_STATE.md` and marks it `PROPOSED`, because the run is in Plan mode.
 - All "preserve verbatim" categories are preserved unchanged from the source.
 - Stale facts are removed (Stripe API version re-verified; Q1 bug fixed; Mobile team parsing resolved; Salesforce export consumed).
 - Active facts are kept (tier values still load-bearing for slice 7).
 - A `## Compaction history` entry is appended with reduction metrics and a list of what was dropped.
-- The proposed change is `PROPOSED` for user review, not `APPLIED` (Plan mode default per PROPOSED-by-default contract).
+- The slimmed file is proposed, not written. `compact-task-memory` is the one command that keeps the editor-mode gate: it writes `APPLIED` only in Agent mode, because a compaction drops facts that reading the file again cannot bring back (ADR-0220).
 
 ## Pass criteria
 
@@ -82,7 +82,7 @@ I have 6 closed slices and the TASK_STATE feels heavy. Compact it before slice 7
 5. **Mitigated risks moved to history**: R2 and R3 (both mitigated) are removed from `## Risks to watch` and listed in the new `## Compaction history` entry. R1 (active) remains in `## Risks to watch`.
 6. **Compaction history entry present**: a new section is appended with date, lines-before/after, list of dropped fact categories, and mitigated risks moved.
 6b. **Reversibility pointer resolves**: `Reversible via` cites the pre-compaction snapshot path under `.wos/compaction/`, and the response shows that snapshot being written BEFORE the pruned file. The task in this scenario lives under `projects/`, which is gitignored, so a response citing only `git show <SHA>:TASK_STATE.md` FAILS this criterion: the pointer names bytes that were never committed.
-7. **PROPOSED status**: `### Artifact changes` marks TASK_STATE.md as `PROPOSED`, not `APPLIED` (Plan mode default per ADR-0001).
+7. **PROPOSED status in Plan mode**: `### Artifact changes` marks TASK_STATE.md as `PROPOSED`, because the mode is Plan. The gate is deliberate on this command alone, since the compaction is lossy (ADR-0220); the same run in Agent mode marks it `APPLIED`. A response that writes the pruned file in Plan mode FAILS this criterion.
 8. **No invented decisions**: response does not add new decisions or change existing ones; D-3's "200 with empty array" wording is preserved as-is.
 9. **Handoff routes correctly**: `Run now:` is `sync-task-state` or `resume-from-state` or `implement-approved-slice` (any of the three is defensible; `implement-approved-slice` is the most user-aligned since they want to start slice 7).
 
@@ -91,13 +91,13 @@ I have 6 closed slices and the TASK_STATE feels heavy. Compact it before slice 7
 - **Paraphrases a decision**: D-1's wording is shortened or summarized. Even a small rewording breaks the audit trail. The "preserve verbatim" rule is non-negotiable.
 - **Drops an active fact**: tier values are stale-looking (slice 2 was weeks ago) but still load-bearing for slice 7. Dropping it is the highest-cost over-compaction.
 - **No `## Compaction history` entry**: the audit trail is the safety net; without it, lossy compaction has no recovery path beyond raw git.
-- **APPLIED instead of PROPOSED**: Plan mode default is PROPOSED; APPLIED requires explicit Agent mode.
+- **APPLIED in Plan mode**: the response writes the pruned file although the mode is Plan. ADR-0199 writes task memory `APPLIED` in every mode for the other commands; ADR-0220 keeps the gate on this one, because its write is lossy.
 - **Compacts SLICES/* files**: out of scope; slices are durable history and not subject to compaction per ADR-0015.
 - **Modifies DECISIONS.md**: out of scope; DECISIONS.md is immutable in this command per the operating rules.
 
 ## Notes
 
-- Related ADRs: [ADR-0015](../../docs/adr/0015-working-memory-compaction.md).
+- Related ADRs: [ADR-0015](../../docs/adr/0015-working-memory-compaction.md), [ADR-0220](../../docs/adr/0220-the-mode-gate-stays-only-where-the-write-is-lossy.md).
 - Related commands: `commands/compact-task-memory.md`, `commands/sync-task-state.md` (sibling; incremental), `commands/state-reconcile.md` (sibling; drift repair).
 
 ## History

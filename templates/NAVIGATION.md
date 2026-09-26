@@ -1,6 +1,6 @@
 # Navigation
 
-> Navigator structure per persona — bottom-tab bars, modal stack, drawer (if used), and deep-link rules. Distinct from `routes.md` (which owns URL → screen mapping) and `SCREEN_MAP.md` (which indexes all screens with status).
+> Navigator structure per persona: bottom-tab bars, modal stack, drawer (if used), and deep-link rules. Distinct from `routes.md` (which owns URL → screen mapping) and `SCREEN_MAP.md` (which indexes all screens with status).
 >
 > When a screen enters a tab bar, modal stack, or deep-link target, this file updates in the same slice as the route.
 

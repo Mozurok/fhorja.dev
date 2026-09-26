@@ -102,7 +102,7 @@ The most convincing evidence that this is not theater is a mistake the workflow 
 
 > **Learning: verify claimed-real outputs by running the command before shipping them.** What happened: a drafted "real" fragment (`ls commands/*.md | wc -l` -> 94) was FALSE against the live repo (real output: 85; nine persona commands are directories, not `.md` files). Caught only because the curation step ran the command instead of trusting the count marker.
 
-A number that was going onto the public site was wrong, and it was caught because the rule is to run the command, not recall the answer. That is the same reason the site now says "12-command loop, 94-command catalog" and not a rounder, prettier number.
+A number that was going onto the public site was wrong, and it was caught because the rule is to run the command, not recall the answer. That is the same reason the site, in July 2026, said "12-command loop, 94-command catalog" and not a rounder, prettier number. Both numbers have moved since; the count markers in the README carry the current ones.
 
 ## 6. The tamper-evident proof: the verification log
 

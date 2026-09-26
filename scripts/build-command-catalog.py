@@ -3,16 +3,20 @@
 
 Single source of truth: commands/<name>.md (and folder-shaped commands/<name>/SKILL.md) frontmatter,
 COMMAND_PROMPT_STUBS.md (example prompts), and wos/command-roles.md (next-commands). The catalog is a
-GENERATED artifact (ADR-0005): never hand-edit docs/command-catalog.html; edit the command files and
-re-run this script. Modeled on build-agent-skills.sh.
+GENERATED artifact (ADR-0005): never hand-edit docs/command-catalog.html or docs/command-catalog.json;
+edit the command files and re-run this script. Modeled on build-agent-skills.sh.
+
+README.md no longer carries a generated copy of the list. Its `## Command catalog` section is a
+hand-written pointer to docs/command-catalog.html, so this script neither writes nor checks README.md.
 
 Usage:
-  python3 scripts/build-command-catalog.py            # build: write docs/command-catalog.html
-  python3 scripts/build-command-catalog.py --check     # drift: exit 1 if the committed HTML is stale
+  python3 scripts/build-command-catalog.py            # build: write docs/command-catalog.html and .json
+  python3 scripts/build-command-catalog.py --check     # drift: exit 1 if the committed HTML or JSON is stale
   python3 scripts/build-command-catalog.py --verbose   # also print per-command processing
 
 Output is deterministic (no timestamps) so --check is stable. Stdlib only.
 """
+import re
 import sys
 import html
 import json
@@ -24,19 +28,23 @@ STUBS_FILE = REPO / "COMMAND_PROMPT_STUBS.md"
 ROLES_FILE = REPO / "wos" / "command-roles.md"
 HTML_OUT = REPO / "docs" / "command-catalog.html"
 JSON_OUT = REPO / "docs" / "command-catalog.json"
-README_FILE = REPO / "README.md"
-README_HEADING = "## Command catalog"
 
 # Canonical metadata.category values (lint-validated) in lifecycle display order.
 CATEGORY_ORDER = [
     ("project-initialization", "Project initialization"),
+    ("research-and-sourcing", "Research and sourcing"),
     ("discovery-and-scoping", "Discovery and scoping"),
-    ("contract-and-decision-hardening", "Contract and decision hardening"),
+    ("design-and-ui", "Design and UI"),
+    ("game-and-engine", "Game and engine"),
+    ("database-context", "Database context"),
+    ("contracts-and-decisions", "Contracts and decisions"),
     ("planning-and-validation", "Planning and validation"),
     ("execution-and-closure", "Execution and closure"),
+    ("runtime-verification", "Runtime verification"),
+    ("audit-and-sweep", "Audit and sweep"),
+    ("autonomy", "Autonomy"),
     ("delivery-and-communication", "Delivery and communication"),
     ("state-and-navigation", "State and navigation"),
-    ("database-context", "Database context"),
     ("prompt-tooling", "Prompt tooling"),
 ]
 CATEGORY_LABELS = dict(CATEGORY_ORDER)
@@ -58,7 +66,7 @@ def parse_frontmatter(path):
         return None
     fm = lines[1:end]
     meta = {"name": None, "description": "", "category": "",
-            "mode": "", "model": "", "multi_repo": ""}
+            "mode": "", "model": "", "multi_repo": "", "lifecycle": ""}
     in_metadata = False
     for line in fm:
         if line.startswith("name:"):
@@ -78,6 +86,11 @@ def parse_frontmatter(path):
                 meta["model"] = val
             elif key == "multi-repo-aware":
                 meta["multi_repo"] = val
+            elif key == "lifecycle":
+                # ADR-0176: absent means active, so absence stays absence here.
+                # Emitting "active" for 91 commands would invent a state the
+                # frontmatter does not carry.
+                meta["lifecycle"] = val
     if not meta["name"]:
         return None
     return meta
@@ -175,7 +188,13 @@ def split_use(description):
 
 
 def pretty_model(m):
-    """claude-sonnet-4-6 -> Sonnet 4.6 (display only)."""
+    """`claude-sonnet-5` -> `Sonnet 5`, `claude-haiku-4-5` -> `Haiku 4.5` (display only).
+
+    The example is backticked on purpose. A blind rename sweep on 2026-09-17 rewrote
+    the left side of this mapping and left the right side, so the docstring claimed
+    `claude-sonnet-5 -> Sonnet 4.6`. Fifth instance that day of a sweep editing prose
+    ABOUT a value as readily as the value.
+    """
     if not m:
         return ""
     m = m.replace("claude-", "")
@@ -194,6 +213,8 @@ def render_card(m, stubs, nexts):
         badges.append(f'<span class="badge soft">{esc(pretty_model(m["model"]))}</span>')
     if str(m.get("multi_repo", "")).lower() == "true":
         badges.append('<span class="badge soft">multi-repo</span>')
+    if m.get("lifecycle") == "frozen":
+        badges.append('<span class="badge soft">frozen</span>')
     badge_row = "".join(badges)
 
     parts = [f'<p class="lead">{esc(lead)}</p>']
@@ -449,10 +470,53 @@ footer{max-width:1180px;margin:0 auto;padding:24px 30px 50px;color:var(--faint);
 '''
 
 
-def first_sentence(text):
-    t = (text or "").strip()
-    i = t.find(". ")
-    return (t[: i + 1] if i != -1 else t).strip()
+def disk_counts():
+    """The artifact counts, computed from disk with the same formulas as
+    disk_count() in scripts/reconcile-counts.sh, which mirrors the lint.
+
+    The formulas now live in three places. That is a real cost, and what pays
+    for it is that all three are verified by the same lint run: if they diverge,
+    either the Counts: line or the Catalog: line goes red. The alternative,
+    shipping a catalog that carries one number while the site cites eight, is
+    the state this replaces.
+    """
+    def frontmatter_values(key):
+        out = []
+        for path in sorted(COMMANDS_DIR.glob("*.md")) + sorted(COMMANDS_DIR.glob("*/SKILL.md")):
+            for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+                if line.startswith(f"  {key}:"):
+                    out.append(line.split(":", 1)[1].strip())
+        return out
+
+    def profiled(profile):
+        # grep -w on the reconcile side: `core` must not match inside `hardcore`.
+        n = 0
+        for value in frontmatter_values("x-wos-profiles"):
+            if re.search(rf"\b{re.escape(profile)}\b", value):
+                n += 1
+        return n
+
+    bug_classes = [p for p in sorted((REPO / "wos/bug-classes").glob("*.md"))
+                   if "_index" not in p.name]
+    categories = set()
+    for path in bug_classes:
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            if line.startswith("category:"):
+                categories.add(line.split(":", 1)[1].strip())
+
+    return {
+        "commands": len(list(COMMANDS_DIR.glob("*.md"))) + len(list(COMMANDS_DIR.glob("*/SKILL.md"))),
+        "commands_minimal": profiled("minimal"),
+        "commands_core": profiled("core"),
+        "command_categories": len(set(frontmatter_values("category"))),
+        "personas": len(list(COMMANDS_DIR.glob("*/SKILL.md"))),
+        "fleet_commands": len(list(COMMANDS_DIR.glob("*-fleet.md"))),
+        "adrs": len([p for p in (REPO / "docs/adr").glob("*.md") if p.name[0].isdigit()]),
+        "scenarios": len([p for p in (REPO / "evals/scenarios").glob("*.md") if p.name[0].isdigit()]),
+        "wos_topics": len(list((REPO / "wos").glob("*.md"))),
+        "bug_templates": len(bug_classes),
+        "bug_categories": len(categories),
+    }
 
 
 def render_json(commands):
@@ -468,53 +532,21 @@ def render_json(commands):
             "multi_repo_aware": commands[name]["multi_repo"],
             "description": commands[name]["description"],
             "next_commands": nexts.get(name, []),
+            **({"lifecycle": commands[name]["lifecycle"]}
+               if commands[name].get("lifecycle") else {}),
         }
         for name in sorted(commands)
     ]
+    counts = disk_counts()
     doc = {
         "schema_version": 1,
         "generated_by": "scripts/build-command-catalog.py",
-        "command_count": len(items),
+        # Kept for readers that already parse it; equal to counts["commands"].
+        "command_count": counts["commands"],
+        "counts": counts,
         "commands": items,
     }
     return json.dumps(doc, indent=2, sort_keys=True) + "\n"
-
-
-def render_readme_block(commands):
-    """The generated body of the README '## Command catalog' section (markdown)."""
-    by_cat = {}
-    for m in commands.values():
-        by_cat.setdefault(m["category"], []).append(m)
-    out = [
-        "Generated from `commands/*.md` by `scripts/build-command-catalog.py`. Do not hand-edit this "
-        "section; edit the command files and re-run. For the browsable reference with examples and "
-        "metadata, open `docs/command-catalog.html`; for the machine-readable manifest, see "
-        "`docs/command-catalog.json`. For per-command intent and routing, see "
-        "`## Command roles` in `WORKFLOW_OPERATING_SYSTEM.md` and `wos/command-roles.md`.",
-        "",
-    ]
-    for key, label in CATEGORY_ORDER:
-        cmds = sorted(by_cat.get(key, []), key=lambda m: m["name"])
-        if not cmds:
-            continue
-        out.append(f"### {label}")
-        out.append("")
-        for m in cmds:
-            lead, _, _ = split_use(m["description"])
-            out.append(f"- `{m['name']}`: {first_sentence(lead)}")
-        out.append("")
-    return "\n".join(out).rstrip() + "\n"
-
-
-def readme_text(commands):
-    """Return the full README with its '## Command catalog' section body regenerated."""
-    lines = README_FILE.read_text().splitlines(keepends=True)
-    start = next((i for i, l in enumerate(lines) if l.strip() == README_HEADING), None)
-    if start is None:
-        raise SystemExit(f"ERROR: '{README_HEADING}' heading not found in README.md")
-    end = next((j for j in range(start + 1, len(lines)) if lines[j].startswith("## ")), len(lines))
-    block = render_readme_block(commands)
-    return "".join(lines[: start + 1]) + "\n" + block + "\n" + "".join(lines[end:])
 
 
 def main():
@@ -542,8 +574,6 @@ def main():
 
     rendered = render_html(commands)
 
-    new_readme = readme_text(commands)
-
     rendered_json = render_json(commands)
 
     # Stdout manifest mode: print JSON for piping, write nothing.
@@ -557,8 +587,6 @@ def main():
             drift.append(str(HTML_OUT.relative_to(REPO)))
         if not JSON_OUT.exists() or JSON_OUT.read_text() != rendered_json:
             drift.append(str(JSON_OUT.relative_to(REPO)))
-        if README_FILE.read_text() != new_readme:
-            drift.append(f"{README_FILE.relative_to(REPO)} (## Command catalog section)")
         if drift:
             print("DRIFT: out of sync with commands/*.md; re-run build-command-catalog.py:", file=sys.stderr)
             for d in drift:
@@ -570,8 +598,7 @@ def main():
     HTML_OUT.parent.mkdir(parents=True, exist_ok=True)
     HTML_OUT.write_text(rendered)
     JSON_OUT.write_text(rendered_json)
-    README_FILE.write_text(new_readme)
-    print(f"wrote {HTML_OUT.relative_to(REPO)}, {JSON_OUT.relative_to(REPO)} and regenerated the README catalog section ({len(commands)} commands)")
+    print(f"wrote {HTML_OUT.relative_to(REPO)} and {JSON_OUT.relative_to(REPO)} ({len(commands)} commands)")
 
 
 if __name__ == "__main__":

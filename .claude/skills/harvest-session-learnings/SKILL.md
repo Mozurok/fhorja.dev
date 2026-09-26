@@ -3,25 +3,15 @@ name: harvest-session-learnings
 description: |-
   Scan the current working session and the active task's artifacts for reusable, generalizable lessons (what was tried, what failed and why, what surprised us, what the next task should do differently) and propose anchored entries to append to the task's LEARNINGS.md, the produce-side counterpart to the ADR-0017 consume path that task-init already reads. Append-only and read-only on existing entries; de-duplicates against what is already captured; keeps durable lessons and drops one-off task trivia. Use on demand mid-task after a hard-won fix or a surprising failure, or at closure to sweep a long session before the context is lost. Do not use to rewrite or prune existing learnings (never edit prior entries), to capture a single in-flight observation (use capture-observation), to close a slice or the task (use slice-closure or task-close), or when nothing durable was learned (return a NO_OP rather than manufacturing a lesson).
 metadata:
-  category: execution-and-closure
-  primary-cursor-mode: Ask
-  multi-repo-aware: false
-  context-layers-consumed:
-    - memory
-  context-layers-produced:
-    - memory
-  tools:
-    - Read
-    - Write
-    - Edit
-    - Bash
-    - Glob
-    - Grep
-  x-wos-profiles:
-    - core
-    - full
-  provenance: first-party
-  suggested-model: claude-sonnet-4-6
+  category: "execution-and-closure"
+  primary-cursor-mode: "Ask"
+  multi-repo-aware: "false"
+  context-layers-consumed: "memory"
+  context-layers-produced: "memory"
+  tools: "Read, Write, Edit, Bash, Glob, Grep"
+  x-wos-profiles: "core, full"
+  provenance: "first-party"
+  suggested-model: "claude-sonnet-5"
 ---
 
 Act as a senior/staff engineer running a focused retrospective sweep over the current session, distilling only the lessons worth carrying into future tasks.
@@ -30,20 +20,17 @@ Goal:
 Read the working session and the active task's artifacts, extract the reusable lessons (tried X, it failed because Y, next time Z), and propose anchored entries to append to the task's `LEARNINGS.md`. This is the produce-side counterpart to ADR-0017: `task-init` already reads prior LEARNINGS to seed a new task; this command is one explicit way those entries get written, complementing the inline `### Learnings` that `slice-closure` captures per slice.
 
 Mandatory context bootstrap (before any output):
-<!-- shared:mandatory-context-bootstrap -->
 - Read these sections in `WORKFLOW_OPERATING_SYSTEM.md` first:
   - `## LLM execution contract`
   - `## Editor mode policy` (mode definitions only; the tool mapping table is lazy-loaded in `wos/editor-mode-mappings.md` and needed only for non-Claude-Code tools)
   - `## Global output contract` (including **Adaptive handoff** and **Mode selection rule**)
   - `## Cross-cutting workflow guardrails`
-- **Bootstrap tiers (ADR-0025):** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) may skip `## Editor mode policy` good-fits lists and `## Cross-cutting workflow guardrails` sequencing heuristics, reading only the mode definitions and the core guardrail rules (routing memory, command-less input triage, official command names, material change, no-op). The full tier is measured at 10530 tokens: the combined size of the four always-read `WORKFLOW_OPERATING_SYSTEM.md` sections listed above. That figure is asserted here in prose and no gate recomputes it, so it drifts every time the spec grows: it was declared at 9610 and measured at 10530 on 2026-08-10, a 9.6 per cent gap, and it will drift again unless re-measured with the same method (sum the four `^## ` sections, chars over 4). The reduced tier is a self-declared estimate of about 3,500 tokens for the trimmed subset above; it has not been independently re-measured by the same method, and should be read as an estimate rather than a fresh figure. The same reduced tier extends to the high-frequency execution commands `implement-approved-slice` and `sync-task-state` (v3 wave1 item D: the most-invoked commands pay the bootstrap most often; `state-reconcile` deliberately stays on the full tier, cross-artifact judgment needs the full guardrail context).
-- **Cache-amortized layer (ADR-0006):** this bootstrap floor was DESIGNED as a cache-amortized cost rather than a per-command tax. ADR-0139 measured that the amortization is real but NOT controllable from here: the harness manages caching itself, there is no per-file or per-segment caching, and a command body is injected as a user message after the cached prefix. Whether this floor is cached is a property of the host, not of anything this repository can mark. Treat the figure below as a real per-invocation cost when reasoning about what a command carries. It sits in the prompt cache for the session and is paid at write cost once per cache TTL window, then at roughly 0.1x on cached reads inside that window. Account for it separately from any per-skill Load budget (the generated `.claude/skills/<name>/SKILL.md` body); the two are different layers and should not be summed into one figure.
-- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this same conversation already performed this bootstrap read in an earlier turn that is still VISIBLE in the current context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one instead, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. This is a scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), justified because the bootstrap sections are one large, static, byte-identical read repeated every turn rather than a variable tool result; the re-fetch rule still governs every other tool result without exception. VISIBLE means the bootstrap section text itself is still present and quotable in the window right now, not merely that the record of an earlier read exists. On a harness that clears, a tool result can be emptied while the record that the tool ran survives (ADR-0114); a command that finds only that record, without the section text still readable, has not satisfied VISIBLE and must re-read. Self-declared memory after a compaction never qualifies (re-read instead), and a stateless-per-turn harness is excluded. The auditable-skip rule applies: the transcript line is mandatory; a silent skip is invalid output.
-- **Resolving a relative `wos/<topic>.md`.** Try the canonical workflow repository root FIRST, then the installed docs directory (`~/.claude/workflow-docs/wos/` or `~/.cursor/workflow-docs/wos/`). Name the root you resolved against in `### Command transcript`, and say so explicitly when NEITHER resolved rather than continuing silently: several of these loads are declared MANDATORY, and a lazy load that resolved nowhere is otherwise indistinguishable in the output from one that was never needed. Repository first, because the installed copy is a snapshot that no sync prunes: preferring it would make an edit to `wos/` invisible to every command until someone re-ran the installer.
+- **Bootstrap tiers:** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) plus the high-frequency `implement-approved-slice` and `sync-task-state` (v3 wave1 item D) read the four sections above with two subsections of `## Cross-cutting workflow guardrails` skipped: `### External web access (centralized)` and `### Sequencing heuristics (by phase)`. Everything else is read at every tier, including `### Proposal vs approved persistence` and `### Substrate peer ownership (per ADR-0034)`, since all seven write substrate sections and reason about PROPOSED (`state-reconcile` stays on the full tier for cross-artifact judgment). The full tier is measured at 11678 tokens, the four always-read sections combined; the two skipped subsections are 1,035 of those (measured 2026-09-24), so the reduced tier is about 10,643. The leaf-reviewer tier (`verify-against-rubric`, ADR-0226) reads only `## Global output contract`, measured at 4841 tokens, plus its rubric.
+- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this conversation already read the bootstrap sections in an earlier turn still VISIBLE in the context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. Scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), because these sections are one large, static, byte-identical read repeated every turn; every other tool result still re-fetches. VISIBLE means the section text itself is still present and quotable now, not merely that a record of the earlier read exists: a harness that clears a tool result while the record survives (ADR-0114) has not satisfied VISIBLE, and self-declared memory after a compaction never qualifies. A stateless-per-turn harness is excluded. The transcript line is mandatory; a silent skip is invalid output.
+- **Resolving `WORKFLOW_OPERATING_SYSTEM.md` and a relative `wos/<topic>.md`.** Both resolve the same way: try the canonical workflow repository root FIRST, then the installed docs directory (`~/.claude/workflow-docs/` or `~/.cursor/workflow-docs/`, the spec at that root and topics under its `wos/`). Repository first, because the installed copy is a snapshot no sync prunes; preferring it would hide a `wos/` edit from every command until a reinstall. Name the resolved root in `### Command transcript`, and say so explicitly when NEITHER resolved rather than continuing silently, since several of these loads are MANDATORY.
 - Read additional sections only when relevant to this command's role.
-- Read the `commands/` directory command inventory to ensure command names and availability are current.
 - Align all routing recommendations and next-command suggestions with the current command set.
-- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares that the chain has ended and no following command would be honest, defined in `## Global output contract` (ADR-0126); use it only when nothing honest remains, never to end a chain that has a real next step.
+- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares the chain ended with no honest next step, defined under `### Official command names (routing integrity)` (ADR-0126); use it only then, never to end a chain that has a real next step.
 
 Required inputs:
 - active task folder path
@@ -63,21 +50,20 @@ Operating rules:
 - **Anchor every entry.** Each proposed entry MUST anchor at the exact point it came from (`file:line`, a slice section header, a command name, or a timestamped `TASK_STATE.md` row) and follow `templates/LEARNINGS.md` `## Entry shape`. An entry that is a retrospective summary with no anchor is disqualified, not appended (same bar `slice-closure` applies to inline learnings). Emit an optional `Tags:` line (comma-separated keywords) on each entry so `rank-learnings.sh` can surface it for a future task (ADR-0071).
 - **De-duplicate against existing entries.** Before proposing, read the current `LEARNINGS.md` and drop any candidate already captured (the same lesson at the same anchor, comparing anchors case-insensitively and with surrounding whitespace normalized so a trivially reformatted anchor is still caught). Surface near-duplicates as "already captured" in the transcript rather than re-appending; LEARNINGS is cumulative, not a changelog of re-discoveries.
 - **Stay inside one task.** Write only to the active task's `LEARNINGS.md`. A lesson that is genuinely cross-project belongs in `USER_MEMORY.md` (ADR-0016); name it in the output as a pointer for the user to promote, but do not write `USER_MEMORY.md` yourself. Likewise, a lesson whose subject is the workflow system's own contract is flagged as a candidate workflow-repo dogfood finding for the user to file in the workflow repository (`problem-framing` or `task-init` there, or `capture-observation` in an already-active workflow task); this command never writes outside the active task.
-- Treat task-memory write policy per `WORKFLOW_OPERATING_SYSTEM.md`: `PROPOSED` in Ask mode, `APPLIED` only in Agent mode.
+- Treat task-memory write policy per `WORKFLOW_OPERATING_SYSTEM.md`: write the file and mark it `APPLIED`.
 - **Distinctness.** `capture-observation` captures a single in-flight note verbatim without judgment; `slice-closure` captures the learnings of one slice as it closes; `task-close` is the terminal lifecycle move. This command is an on-demand, session-wide harvest that can run mid-task or at the end, and it judges what is durable before writing.
 
 Required output:
 1. A one-line read of whether the session produced durable lessons (or a NO_OP routing back to the prior work when nothing generalizes)
 2. The candidate lessons found, each with its anchor and a one-line reason it generalizes
 3. Which candidates were dropped as duplicates or one-off trivia, and why
-4. Exact `LEARNINGS.md` append block (the new entries only, in `templates/LEARNINGS.md` shape), marked PROPOSED or APPLIED per editor mode
+4. Exact `LEARNINGS.md` append block (the new entries only, in `templates/LEARNINGS.md` shape), marked `APPLIED`
 5. Any cross-project lesson flagged as a pointer to `USER_MEMORY.md`, and any workflow-contract lesson flagged as a candidate workflow-repo dogfood finding for the user to file in the workflow repository (neither written here)
 6. Recommended next command
 7. Recommended editor mode
 8. Why that is the correct next step
 
 ### Claim grounding (active epistemic humility)
-<!-- shared:claim-grounding -->
 **Claim grounding (active epistemic humility).** This block governs what you may assert and how you record it. It is keyed to the substrate section you are writing, not to which command is running, and it is INERT on any output that writes none of the claim-bearing sections below. Full contract and rationale: `wos/active-epistemic-humility.md`.
 
 1. When this applies. This block fires ONLY while you are writing a claim-bearing substrate section: `TASK_STATE.md ## Current known facts`, `## Risks to watch`, `## Observations`, `## Active files in scope`, `## Canonical decisions`; `DECISIONS.md ## Locked decisions`; `IMPLEMENTATION_PLAN.md ## Current gaps`, `## Risks and mitigations`; `IMPACT_ANALYSIS.md`; `EXTERNAL_RESEARCH.md`; `REFERENCES.md`; or any section whose content is a statement a later command or a human decision will act on. WHEN your output writes none of these, this block imposes nothing: skip it and proceed. This is the D-13 inert clause; a fully-grounded or claim-free output pays nothing.
@@ -94,25 +80,21 @@ Required output:
 
 7. An unfired gate is not evidence. The absence of a fired check does not mean grounding existed. Do not read silence here as a pass.
 ### Standard output layout (required)
-<!-- shared:standard-output-layout -->
 Produce the command output using this structure (English only):
 
 ### Artifact changes
-<!-- shared:artifact-changes-default -->
-Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
+Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules. Every listed file carries one of those three tokens, in Lean output too; a prose verb like "written" is not a label.
 
 ### Command transcript
-<!-- shared:command-transcript-standard -->
 Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
 
 ### Handoff
-<!-- shared:handoff-body -->
-Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state).
+Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state). Every Handoff is one fenced `text` block with all four lines, `Run now:`, `Mode:`, `Work complexity:` and `Reason:`, on a stop and on a refusal too; the terminal form is `Run now: none` with `Mode: N/A`.
 
 ### Definition of done (command output)
 - Every appended entry is reusable beyond this task, anchored per `templates/LEARNINGS.md` `## Entry shape`, and new (de-duplicated against existing `LEARNINGS.md`); an unanchored or one-off entry is invalid output.
 - The run is append-only: no existing `LEARNINGS.md` entry is edited, reordered, or pruned, and no other task-memory file is touched.
-- `### Artifact changes` marks the `LEARNINGS.md` append as `PROPOSED` in Ask/Plan mode or `APPLIED` only in Agent mode; a session with nothing durable returns a NO_OP rather than a manufactured lesson.
+- `### Artifact changes` marks the `LEARNINGS.md` append as `APPLIED`; a session with nothing durable returns a NO_OP rather than a manufactured lesson.
 - Output ends with a complete `### Handoff` block per the adaptive format in `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract`.
 - Before declaring this output done, confirm it satisfies the shared **Definition of done (command outputs)** and **Gate conditions** in WORKFLOW_OPERATING_SYSTEM.md.
 

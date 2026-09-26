@@ -1,0 +1,86 @@
+[
+  {
+    "index": 0,
+    "refuted": false,
+    "reason": "The exact citation is present at commands/code-context-map.md:73 and is outside every shared span, checked against each shared source's actual line count and content. Computing the supplied example gives 0.01639344262295082 for the zero-hit symbol and 0.008035714285714287 for the matching symbol. ADR-0072's accepted Decision explicitly locks both the zero-hit guarantee and descending RRF sorting, so the ADR repeats rather than resolves the inconsistency. Independent directory searches found the formula and guarantee only in this command and ADR-0072; templates/CODE_CONTEXT_MAP.template.md describes RRF generally but adds no ordering rule. No eval dependency on the erroneous guarantee was found.",
+    "corrected_claim": "The ranking contract is internally inconsistent. The proposed matching-first grouping changes ADR-0072's accepted global descending-score ordering; choosing that grouping, or dropping the zero-hit guarantee instead, requires an explicit decision and partial supersession of the incompatible accepted requirement. This is not merely reconciliation to an already unambiguous decision. Keep the candidate set, default no-keyword behavior, and score explanations unchanged."
+  },
+  {
+    "index": 1,
+    "refuted": true,
+    "reason": "The premise stands: commands/external-research-fleet.md:198 is command-owned, outside exact source-length shared spans, and conflicts with its carrier-aware Steps 4-6 and accepted ADR-0158 D-1. However, the proposed command-only family correction omits an existing eval dependency: evals/scenarios/40-fleet-command-adr0038-compliance.md:20 and :44 still require explicit worker invocation of StructuredOutput, and this command is an enumerated regression subject. Under the supplied refutation rule, a cut that removes behavior an eval depends on is refuted until that dependency is reconciled. Line 200 specifically condemns free-form prose responses that skip the tool; it does not independently classify every absent tool call as a violation.",
+    "corrected_claim": "Reconcile the completion check to the selected typed carrier together with the outdated scenario-40 expectation. This implements accepted ADR-0158, which already supersedes ADR-0038's mechanism, rather than reversing an accepted decision. Own recursive commands/ grep confirms six affected commands: external-research-fleet:198,200,208; implement-fleet:103,168; task-init-fleet:123,124,183; verify-against-rubric-fleet:115,116,178,189; feature-library-scout-fleet:88,179,180,188; screen-spec-fleet:124,125,185,194. atom-audit-fleet:103 names the dispatch paths and carries no equivalent worker-call completion mandate."
+  },
+  {
+    "index": 2,
+    "refuted": true,
+    "reason": "The exact command-owned Step-7 citation is present and really mandates an unavailable worker-side call, contradicting commands/_shared/worker-contract.md and accepted ADR-0158 D-1. The proposed removal and reminder replacement nevertheless intersect a live eval contract: scenario 40 defines worker invocation as mandatory for any fleet command, and scenario 39's safe-prompt fixture still uses a final StructuredOutput-call reminder. The proposal does not reconcile these dependencies. The supplied instructions require refuting a proposed cut with that dependency, even when its premise is valid. structural-evals.py:2880-2914 checks the path-naming sentinel and forbidden artifact= syntax, not actual worker access to the tool.",
+    "corrected_claim": "The tool-call mandate must be replaced with a path-specific typed-payload return, preserving the final reminder while coordinating the outdated eval expectations. The six-command family and additional sites are recorded in index 1, verified by an independent recursive commands/ grep. ADR-0158 already decided both carriers and runtime ownership; no new reversal is needed to implement that decision, and the historical ADR-0039 Decision text should not be edited."
+  },
+  {
+    "index": 3,
+    "refuted": false,
+    "reason": "The exact Step-6 citation at commands/implement-fleet.md:102 is outside shared spans. Required inputs at :85 permit origin/main. Steps 9-11 apply worker diffs to the integration branch, validate the merged working tree, and dispatch the next wave without advancing base_ref or ensuring those changes exist in its commit. A git worktree created from the unchanged ref therefore lacks earlier-wave changes. ADR-0041 requires completed dependencies and an integrated gate but supplies no missing base-update operation; ADR-0074 D-3 supplies only the task-branch override. Independent commands/, wos/, and docs/adr/ searches found no wave-base advancement rule elsewhere.",
+    "corrected_claim": "Before every wave, resolve a common base containing all earlier passing waves, and ensure worktree creation uses the corresponding committed tree. The defect is at implement-fleet:85,102,105-107; task-workspace:23 only supplies the task-branch override. This reconciles execution with ADR-0041's existing dependency invariant and does not require reversing an accepted ADR. Any commit needed for the checkpoint must use the repository's authorized commit path rather than silently assuming new commit authority."
+  },
+  {
+    "index": 4,
+    "refuted": false,
+    "reason": "The exact citation at commands/repo-consistency-sweep.md:75 is outside shared spans. scripts/scan-substrate-orphans.py:31-36 lists exactly TASK_STATE.md, IMPLEMENTATION_PLAN.md, DECISIONS.md, and SOURCE_OF_TRUTH.md for directory mode. Its scan_file state machine at :39-62 checks bullet position relative to H1, H2, and transaction headers; it performs no path, section-reference, or decision-ID resolution. The sweep wrapper invokes this directory mode. wos/bug-classes/substrate-bullet-orphan.md also defines positional failure shapes, while wos/substrate-peers.md:436 separately names memory-lint for dead cross-links. Own directory searches found the false dangling-reference description only at this command site.",
+    "corrected_claim": "K.7 is positional orphan-bullet detection over four task-memory files in directory mode, with arbitrary named files supported in file mode. Its scope differs from the header scanner and its zero count cannot establish reference integrity. Correcting the description preserves the existing scanner and accepted substrate contract; no ADR decision reversal is required."
+  },
+  {
+    "index": 5,
+    "refuted": false,
+    "reason": "The exact citation at commands/repo-consistency-sweep.md:62 is command-owned. Reading the full evals/e2e/assertions/09-repo-consistency-sweep.sh confirms that it checks snapshot presence, header/log metadata, header drift, log validity, and the sweep's own write, but contains no orphan-counter check or EXPECTED_MAX_SUBSTRATE_ORPHANS variable. Independent searches across commands/, scripts/, evals/, wos/, and docs/adr/ found that variable only at :62. The related orphan-cap attributions are :73 and :152. The actual separate phase-4 check at 00-phase4-rollup.sh:63-76 runs the orphan scanner and tests its exit status. ADR-0029 defines registry and count-marker guards, not this alleged cap.",
+    "corrected_claim": "Remove the nonexistent Step-09 orphan-cap attribution while retaining the sweep's existing informational counter policy. If citing the phase-4 rollup, identify its distinct scanner exit-status check accurately. Implementing a new configurable Step-09 cap is optional additional work, not a description of present behavior. No accepted ADR reversal is needed for the factual correction."
+  },
+  {
+    "index": 6,
+    "refuted": false,
+    "reason": "The exact command-owned :82 citation is present. Step 1 sets bug_class_run=false on a clean first run; Step 2 does not require a cache hit in that case; Step 9 then forbids creating a snapshot and demands a matching prior one. Step 8b expressly recognizes a first sweep, but only skips finding reconciliation and does not repair this branch. Required output 7 demands a snapshot path, and evals/e2e/assertions/09-repo-consistency-sweep.sh also expects a snapshot. Independent commands/, wos/, and docs/adr/ searches found no clean-first-run persistence exception. ADR-0142 only settles committed-versus-working-tree diff selection.",
+    "corrected_claim": "Separate no bug-class analysis from reuse of an existing snapshot. When no matching snapshot exists, write a zero-finding snapshot containing this run's fresh substrate audit, preserving the existing required snapshot path and Step-09 expectation. The proposal's alternative of emitting no snapshot would need an additional output/eval contract change. The zero-finding-snapshot correction does not reverse an accepted ADR."
+  },
+  {
+    "index": 7,
+    "refuted": false,
+    "reason": "The exact :120 citation is outside the shared handoff span, which ends at :115. Required inputs at :39 accept a game-design brief, and Step 1a at :53 explicitly permits DECISIONS.md or BRIEF.md when no MECHANICS_SPEC.md exists. Required output 2 at :76 and the completion check at :120 restate a narrower spec-or-unresolved-rule contract. Their Step-1a cross-reference does not remove that contradictory explicit condition. Own recursive commands/ grep found this inconsistent source pair only in godot-scene-plan. ADR-0084 permits behavior stated by the user, and scenario 94 exercises the spec-present path rather than requiring every intake path to create a spec.",
+    "corrected_claim": "Carry Step 1a's existing fallback into godot-scene-plan:76 and :120. Use MECHANICS_SPEC.md when present; otherwise cite the specific decided or brief-sourced mechanic, and keep unresolved mechanics routed to decision-interview. This aligns the output with an already sanctioned intake path without weakening scenario 94's unresolved-rule gate or reversing an accepted ADR."
+  },
+  {
+    "index": 8,
+    "refuted": false,
+    "reason": "The exact command-owned citation at commands/godot-scene-plan.md:69 is present. The fetched [official renderer overview](https://docs.godotengine.org/en/stable/tutorials/rendering/renderers.html) identifies both Forward+ and Mobile as RenderingDevice renderers and explicitly lists access for both. The fetched [Godot 4.6 RenderingDevice reference](https://docs.godotengine.org/en/4.6/classes/class_renderingdevice.html) excludes Compatibility and headless mode. Own recursive directory searches confirm the complete erroneous family: this command line, wos/godot-3d-rendering-and-performance.md:17, and wos/godot-runtime-battery.md:34. No eval requires the erroneous Mobile exclusion. ADR-0117 requires a renderer declaration but does not decide that Mobile lacks RenderingDevice.",
+    "corrected_claim": "RenderingDevice support belongs to Forward+ and Mobile, with Compatibility/headless unavailable under the cited documentation. Correct all three sites while retaining separate effect-specific and device-support checks. This is a technical factual correction, not a reversal of ADR-0117's tier-declaration decision."
+  },
+  {
+    "index": 9,
+    "refuted": true,
+    "reason": "The exact command-owned :123 citation is present. It contradicts accepted ADR-0158 D-1 by requiring a worker-side StructuredOutput call and demoting the Agent-path JSON carrier to debug-only. However, the proposed template cut removes the worker-call behavior expressly required by evals/scenarios/40-fleet-command-adr0038-compliance.md:20,44; task-init-fleet is an enumerated regression subject. The proposal does not update that dependency, so it is refuted under the supplied cut/dependency rule. This is a refutation of the incomplete fix, not of the observed transport contradiction.",
+    "corrected_claim": "Update task-init-fleet:122-124 and :183 to consume the selected schema-valid carrier, coordinated with scenario 40's superseded expectation and the six-command family in index 1. Preserve the typed payload, run-scoped file boundary, and final payload reminder. ADR-0158 already authorizes this behavior, so no new reversal of an accepted decision is necessary."
+  },
+  {
+    "index": 10,
+    "refuted": false,
+    "reason": "The exact command-owned Step-1 citation is present at commands/mcp-server-vet.md:59. Step 5b at :65 and Required output 6b at :78 specify only per-tool description-plus-input-schema hashes, with an explicit limitation. ADR-0097's accepted Decision (b) specifies the same narrow hash and no configuration hash. Independent directory searches found no separate full-definition/configuration pin or comparison rule in commands/, wos/, docs/adr/, or evals/. The wider Step-1 inventory does not itself define the missing pin basis.",
+    "corrected_claim": "The smallest correction is to retain full config/tool inspection but narrow Step 1's pin-coverage claim to the description-plus-schema hashes actually defined by Step 5b and ADR-0097. That needs no ADR reversal. Adding full-definition and configuration hashes instead would expand the pin schema and re-vet contract and should be treated as a separate contract decision, not silently included as factual reconciliation."
+  },
+  {
+    "index": 11,
+    "refuted": false,
+    "reason": "The exact command-owned :68 citation is present. The mobile mode at :66 covers store delivery including new apps and supplies no first-publication exception. The fetched [Google Play staged-rollout documentation](https://support.google.com/googleplay/android-developer/answer/6346149?hl=en) explicitly restricts staged rollouts to updates and excludes first publication. Independent directory searches confirm the unconditional percentage mandate only at release-plan:68, with the related mapping and completion consumers at :66 and :136. ADR-0089's ship-preflight decision binds actual store mechanisms to release planning; it does not establish platform support for first-publication percentages. No eval dependency on that impossible percentage mandate was found.",
+    "corrected_claim": "Distinguish first publication from updates. Preserve staged percentages for eligible updates; first publication must use documented launch controls and testing preparation instead. Keep the promotion and rollback vocabulary grounded in mechanisms actually available for that release type. This corrects platform applicability while preserving the accepted ship-preflight decision, rather than reversing it."
+  },
+  {
+    "index": 12,
+    "refuted": false,
+    "reason": "The exact dump form at commands/db-context-supabase.md:75 is present outside shared spans. The local branch checks local status, allows only the unqualified dump form, then labels the snapshot local at :90 and :109. The fetched [Supabase CLI reference](https://supabase.com/docs/reference/cli/supabase-db-dump) describes remote dumping, and the fetched [official CLI command reference](https://github.com/supabase/cli/blob/develop/apps/cli/docs/go-cli-reference.md) explicitly shows db dump --linked defaulting true and --local selecting the local database. It also shows inspect defaulting to the linked project. Own commands/ grep found these forms only in this command. The :82 uncertainty marker does not stop the unqualified operation or prevent false local attribution.",
+    "corrected_claim": "Ground and permit explicit local selection for the dump and every other introspection operation used by the local branch; reject incompatible remote selectors and stop if local target identity cannot be established. The supplied dump defect is valid, with related selector scope at :75-79 and the grounding limitation at :82. This preserves the already declared local-fallback behavior and requires no accepted ADR reversal."
+  },
+  {
+    "index": 13,
+    "refuted": true,
+    "reason": "The exact :178 citation is command-owned and the transport contradiction is real: Steps 5-6 still demand StructuredOutput while accepted ADR-0158 and worker-contract.md sanction the Agent-path JSON file. However, the proposed command-only removal conflicts with scenario 40's explicit worker-call requirement; verify-against-rubric-fleet is one of that scenario's named regression subjects. Under the supplied refutation rule, the missing eval reconciliation refutes the proposed cut. Also, the interruption text expressly applies to schema-skip/free-form prose; it does not separately say a schema-valid JSON file is prose, so the claimed automatic interruption outcome is stronger than the literal rule establishes.",
+    "corrected_claim": "The completion condition and Steps 5-6 cannot all be satisfied by the sanctioned file carrier and must be reconciled, together with scenario 40, to the selected typed return. Preserve the final payload-only reminder and intentional failure taxonomy for missing or invalid returns. Own directory grep confirms the six-command family recorded in index 1. This implements ADR-0158's existing accepted decision without a new reversal."
+  }
+]

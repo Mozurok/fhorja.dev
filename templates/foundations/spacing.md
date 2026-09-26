@@ -8,13 +8,13 @@
 
 ## 1. Scope
 
-Spacing scale used for gap, padding, margin, and inset tokens. Does NOT cover layout grid (see `grid.md`) — that owns containers/columns/breakpoints.
+Spacing scale used for gap, padding, margin, and inset tokens. Does NOT cover layout grid (see `grid.md`), which owns containers/columns/breakpoints.
 
 ## 2. Decision (TL;DR)
 
 Base unit (4pt or 8pt), scale shape (linear / fibonacci / hybrid), how many steps, semantic aliases (if any).
 
-## 3. Tokens — Spacing scale
+## 3. Tokens: Spacing scale
 
 | Token | Value | Use observed |
 |---|---|---|
@@ -61,8 +61,8 @@ const styles = StyleSheet.create({
 
 ## 8. Do not
 
-- Raw numbers in styles (`padding: 16`) — use `tokens.spacing.lg`
-- Off-scale values (introducing `padding: 18`) — pick the closest token or extend the scale via Decisions
+- Raw numbers in styles (`padding: 16`); use `tokens.spacing.lg`
+- Off-scale values (introducing `padding: 18`); pick the closest token or extend the scale via Decisions
 - Mix base units within the system (don't have both `7pt` and `8pt` tokens)
 
 ## 9. Open questions

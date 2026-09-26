@@ -14,19 +14,19 @@ Brand colors, neutral greyscale ramp, semantic state colors (success/warning/dan
 
 3-5 lines: how many brand colors, what the neutral ramp looks like, semantic state set, dark mode strategy (parity / inverted / deferred).
 
-## 3. Tokens — Brand
+## 3. Tokens: Brand
 
 | Figma variable | Hex | Code token | Use observed |
 |---|---|---|---|
 | `Brand/<name>` | `#XXXXXX` | `color.brand.<name>` | <where used> |
 
-## 4. Tokens — Greyscale ramp
+## 4. Tokens: Greyscale ramp
 
 | Figma variable | Hex | Code token | Use observed |
 |---|---|---|---|
 | `greyscale/Grey N` | `#XXXXXX` | `color.grey.N` | <where used> |
 
-## 5. Tokens — Semantic state
+## 5. Tokens: Semantic state
 
 | Figma variable | Hex | Code token | Meaning |
 |---|---|---|---|

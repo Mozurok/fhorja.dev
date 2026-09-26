@@ -30,6 +30,38 @@ gating one. `commands/task-close.md` keeps every floor NAMED inline with its tri
 and its routing, and three of them additionally keep the exact string their runner
 emits. The solo/local auto-waiver did not move: it is a gate modifier, not a floor.
 
+**What a floor waits for (2026-09-16).** A floor SHALL NOT wait for a HUMAN attester, and SHALL still
+refuse to close when no attester of any kind produced the evidence it names. The two halves matter
+separately. Removing the first is what this rule is for: a floor that held the chain until a person
+looked was friction, and the runtime gates now capture their own evidence. Removing the second would
+convert an unverified run into a silent pass, which is worse than the friction it saves.
+
+Each floor below declares one of three behaviors on its own line, beside `Attester class:`:
+
+- `On missing evidence: record` -- the floor writes `unverified: <reason>` and closure proceeds. The
+  task's final report lists every floor left in this state, so nothing disappears quietly.
+- `On missing evidence: refuse` -- the floor refuses and routes. Reserved for the floors that prevent
+  LOSING work rather than adding friction, where proceeding destroys something instead of skipping a
+  check.
+- `On missing evidence: reconcile` -- the floor records the unsatisfied constraint as a named deferral
+  and closure proceeds.
+
+The two lines answer different questions and neither substitutes for the other. `Attester class:` says
+WHO can produce the evidence. `On missing evidence:` says what happens when nobody did.
+
+Where a `record` goes. The floor writes `unverified: <reason>` into the closing slice's notes, and
+`task-close` collects every one of them into an `### Unverified floors` block in the final report
+(its Required output item 7a). The collection is built from those recorded lines rather than
+re-derived at closing time, so the report cannot claim a floor was checked when nothing checked it.
+A floor that records without that block reaching a reader is indistinguishable from a floor that was
+skipped, which is why the two halves ship together.
+
+In an attended chain that reaches a draft pull request (ADR-0233), the reader is met earlier: the
+same recorded `unverified:` lines are listed under `Not verified` in the draft pull request body, built
+from the slice notes the same way, so the person sees them before marking the draft ready for review.
+`task-close` still collects them at closure. Unattended, background and fleet-dispatched runs keep
+each floor's behavior exactly as its `On missing evidence:` line states.
+
 
 ---
 
@@ -39,6 +71,8 @@ emits. The solo/local auto-waiver did not move: it is a gate modifier, not a flo
 
 Attester class: agnostic
 
+On missing evidence: refuse -- uncommitted work can be lost outright, which is not a skipped check
+
 **The no-VCS waiver (ADR-0128), shared by both variants below.** A fourth route exists for the one case the three above cannot express: a workspace that has no version control at all and will not get any. All THREE conditions must hold, and the waiver is recorded as `no-vcs waiver: <workspace path> (<verbatim user decision>)`:
 
 1. The workspace genuinely has no VCS. `git rev-parse --is-inside-work-tree` fails at the product path and no other VCS is in use. This is a fact the command CHECKS, not a claim it accepts.
@@ -47,22 +81,32 @@ Attester class: agnostic
 
 With all three present the slice may close and the floor is satisfied. With any one absent the floor is unsatisfied and the routing below is unchanged. This route NEVER fires on a git-backed repository: a repo whose operator is merely absent, forbidden, or unattended stays on the bounded deferral, which is the case ADR-0100 decided and does not reopen. It is also recorded separately from the `task-close` archive-with-waiver: neither authorizes the other. The reason a fourth route exists at all is that `deferred: pending human commit` is FALSE in a workspace that will never have a repository, and writing it there is the permanent-skip-disguised-as-bounded that ADR-0098 rules out for the sibling floors.
 
+**The ignored-path waiver (ADR-0194), shared by both variants below.** A fifth route exists for the one case the four above cannot express: a deliverable whose only home is a path the repository deliberately and permanently ignores. ADR-0133 named this question and left it open on purpose, because whether work is committable at all is a different question from who may attest it. All THREE conditions must hold, and the waiver is recorded as `ignored-path waiver: <deliverable path> (<ignore file>:<line> <pattern>)`:
+
+1. The path is PROVABLY ignored AND the ignoring pattern is COMMITTED. `git check-ignore -v <deliverable path>` succeeds and its output is cited verbatim in the notes, and the matching pattern is present in the ignore file at HEAD rather than in an uncommitted working-tree edit. Both halves are facts the command CHECKS, not claims it accepts. The second half exists so that a run cannot write its own exemption into `.gitignore` and then invoke this route.
+2. The ignored path is the deliverable's ONLY home, and the deliverable is not DERIVED from anything committable. Build output fails this condition: `dist/bundle.js` is ignored, but it is produced from a committable source, so the slice's work IS committable and this route does not apply. The question is never whether the artifact is ignored; it is whether a committable form of the work exists anywhere.
+3. The preserved work is NAMED: the notes state which paths hold the deliverable, so a later reader can find it.
+
+With all three present the slice may close and the floor is satisfied. With any one absent the floor is unsatisfied and the routing below is unchanged. This route NEVER fires because the operator is absent, forbidden, or unattended: each of those stays on the bounded deferral, which is the case ADR-0100 decided and this does not reopen. It fires only where the path CANNOT receive a commit, which is a property of the repository's own recorded decision rather than of the session. It carries no verbatim user decision, unlike the no-VCS waiver's condition 2, because there is nothing here for a user to disambiguate: a missing `.git` reads equally as "never" and as "not yet", while a committed ignore pattern is the decision already written down, and condition 1 makes the command read it. Requiring the user to restate it in session would either block the route or invite a fabricated quote. Like the no-VCS waiver it does NOT travel to `task-close`: it is evidence that home reads, never a route that satisfies it.
+
 ### task-close variant
 
-**Commit-evidence floor (ADR-0084, bounded deferral per ADR-0100, `ref-attested` route per ADR-0133).** Even when merge (condition 4) is waived, closure requires one of the two attestation classes below, or an explicit recorded waiver of committing. The classes are `commit-ref` (the closed work is committed and the reference is cited; where a human turn is available, route to `branch-commit --apply`) and `ref-attested` (the runner pointed a quarantine ref at a git object holding the run's work, under `refs/fhorja/attested/<run-id>/<invocation-id>`, and the closure record cites that ref). An unattended run reaches `commit-ref` through the driver-owned-branch route (`wos/autonomous-track.md ## The autonomous commit route`) when its four conditions hold, and `ref-attested` otherwise. A committing-waiver covers ONLY genuinely discardable work (a deliberate throwaway, recorded verbatim, with the discard rationale); real work carrying neither class, including an unattended session where git was unavailable or forbidden or where the attestation could not be made, is a BOUNDED DEFERRAL: the task stays open (not archived) pending the human commit, recorded as `deferred: pending human commit (<one-line context>)`. The gate-blocked result for a bounded deferral names the human commit as the smallest unblocking action (then `branch-commit --apply`). A waiver line on real work does not satisfy this floor. IF the work carries neither attestation class, is not genuinely waived, nor the archive is explicitly authorized by the user WITH the deferral on the record (an archive-with-waiver decision naming the preserved uncommitted work, e.g. an audit-purpose dogfood folder), THEN do NOT archive; return gate-blocked and route to `branch-commit --apply`, the only path in this repository that can create a commit (Agent-mode only, and it requires the user's confirmation in that same turn given after the diff is displayed, so it never satisfies this floor unattended). This closes the observed failure where a task archived as done with the work uncommitted (the dogfood behind ADR-0084 archived two tasks with 41 uncommitted files). A waived merge that still cites a commit satisfies the floor. **Relation to the slice-level no-VCS waiver (ADR-0128):** a slice may close under a three-condition `no-vcs waiver` recorded in its own notes (see `wos/closure-floors.md ## Commit-evidence floor`). Those waivers are EVIDENCE this floor reads, never a route that satisfies it: cite them here, then still obtain the archive-with-waiver authorization at closure as this floor already requires. A slice-level waiver does NOT travel to this home (ADR-0128 decision, "It does not travel to `task-close`"), because a decision taken once when the first slice closed would otherwise satisfy the archiving gate for every slice after it, which is the cascade this floor exists to stop and the exact shape of the 2026-08-06 dogfood failure. The two routes stay recorded separately and neither authorizes the other. **Routing in this case:** the `branch-commit --apply` fallback below is unreachable here, because condition 1 of the slice-level waiver already established that no repository exists; do NOT route to it. Ask the user for the archive-with-waiver authorization instead, and WHEN they decline, leave the task open recording `no archive authorization for a no-VCS workspace` as the reason. An open task with a stated reason is the honest outcome; routing to a command the workspace makes impossible is a loop.
+**Commit-evidence floor (ADR-0084, bounded deferral per ADR-0100, `ref-attested` route per ADR-0133).** Even when merge (condition 4) is waived, closure requires one of the two attestation classes below, or an explicit recorded waiver of committing. The classes are `commit-ref` (the closed work is committed and the reference is cited; where a human turn is available, route to `branch-commit --apply`) and `ref-attested` (an external execution layer pointed a quarantine ref at a git object holding the run's work, under `refs/fhorja/attested/<run-id>/<invocation-id>`, and the closure record cites that ref). An unattended external execution layer reaches `commit-ref` through its driver-owned-branch route (`wos/autonomous-track.md ## The autonomous commit route`) when its four conditions hold and SHALL route to `ref-attested` otherwise. Direct-use `autonomous-run` creates neither class; it records the bounded deferral and leaves the task open for the next human session. A committing-waiver covers ONLY genuinely discardable work (a deliberate throwaway, recorded verbatim, with the discard rationale); real work carrying neither class, including an unattended session where git was unavailable or forbidden or where the attestation could not be made, is a BOUNDED DEFERRAL: the task stays open (not archived) pending the human commit, recorded as `deferred: pending human commit (<one-line context>)`. The gate-blocked result for a bounded deferral names the human commit as the smallest unblocking action (then `branch-commit --apply`). A waiver line on real work does not satisfy this floor. IF the work carries neither attestation class, is not genuinely waived, nor the archive is explicitly authorized by the user WITH the deferral on the record (an archive-with-waiver decision naming the preserved uncommitted work, e.g. an audit-purpose dogfood folder), THEN do NOT archive; return gate-blocked and route to `branch-commit --apply`, the only path in this repository that can create a commit (Agent-mode only and refuses unattended under ADR-0163, so it never satisfies this floor unattended). This closes the observed failure where a task archived as done with the work uncommitted (the dogfood behind ADR-0084 archived two tasks with 41 uncommitted files). A waived merge that still cites a commit satisfies the floor. **Relation to the slice-level no-VCS waiver (ADR-0128):** a slice may close under a three-condition `no-vcs waiver` recorded in its own notes (see `wos/closure-floors.md ## Commit-evidence floor`). Those waivers are EVIDENCE this floor reads, never a route that satisfies it: cite them here, then still obtain the archive-with-waiver authorization at closure as this floor already requires. A slice-level waiver does NOT travel to this home (ADR-0128 decision, "It does not travel to `task-close`"), because a decision taken once when the first slice closed would otherwise satisfy the archiving gate for every slice after it, which is the cascade this floor exists to stop and the exact shape of the 2026-08-06 dogfood failure. The two routes stay recorded separately and neither authorizes the other. **Routing in this case:** the `branch-commit --apply` fallback below is unreachable here, because condition 1 of the slice-level waiver already established that no repository exists; do NOT route to it. Ask the user for the archive-with-waiver authorization instead, and WHEN they decline, leave the task open recording `no archive authorization for a no-VCS workspace` as the reason. An open task with a stated reason is the honest outcome; routing to a command the workspace makes impossible is a loop.
 
 
 ---
 
 ## Experience-verdict floor (ADR-0091, generalizes ADR-0089 D-4)
 
-**Criterion without the attester.** A person experienced a sample of the deliverable and recorded PASS. The erasure fails here: remove the person and only "a PASS block exists" survives, which any writer satisfies.
+**Criterion without the attester.** The recorded `Attested by:` value names who reached the verdict. The erasure fails here: remove that line and only "a PASS block exists" survives, which any writer satisfies. `run` is valid ONLY when the block cites the evidence the run itself captured (the screenshot path it wrote, the runtime output it quoted, the route it probed); `human` means a person experienced a sample. An artifact may never claim `human` for a verdict no person reached (ADR-0179).
 
-Attester class: human-bound
+Attester class: agnostic
+
+On missing evidence: record -- S7 made the evidence capturable by the run; `Attested by: run` is a real attester
 
 ### task-close variant
 
-**Experience-verdict floor (generalized, ADR-0091).** WHEN the task's closure includes a deliverable tagged `user-facing-content` or `new-user-facing-surface` (the D-1 ledger and plan tags), closure requires a recorded human experience verdict on a sample (an `## Experience verdict` block with `Overall: PASS` cited in the task record) OR an explicit one-line skip reason recorded in the final `TASK_STATE.md`. Machine-green evidence (lint, tests, a runtime PASS) SHALL NOT substitute for the human verdict. IF a deliverable's text plainly indicates user-facing content and no tag is present THEN treat it as tagged and flag the missing tag. IF neither is present THEN do NOT archive; return gate-blocked and route to the experience-verdict check. This is the whole-task backstop for the F-1 enforcement. WHILE the Godot task signature is present this floor stands down in favor of the D-4 feel-verdict floor above. This generalizes ADR-0089 D-4 off Godot: the 2026-07-10 connector dogfood shipped four machine-authored session packs with no human validation of one.
+**Experience-verdict floor (generalized, ADR-0091).** WHEN the task's closure includes a deliverable tagged `user-facing-content` or `new-user-facing-surface` (the D-1 ledger and plan tags), closure requires a recorded experience verdict on a sample (an `## Experience verdict` block with `Overall: PASS` AND a mandatory `Attested by:` line valued `run` or `human`, cited in the task record) OR an explicit one-line skip reason recorded in the final `TASK_STATE.md`. Machine-green evidence (lint, tests, a runtime PASS) SHALL NOT substitute for the human verdict: it attests as itself, `Attested by: run`, and only when the block cites the evidence the run captured; it is never recorded as `human` (ADR-0179). IF a deliverable's text plainly indicates user-facing content and no tag is present THEN treat it as tagged and flag the missing tag. IF neither is present THEN record `unverified: no experience verdict on a sample` and archive, naming the experience-verdict check in the final report's `### Unverified floors` block. This is the whole-task backstop for the F-1 enforcement. WHILE the Godot task signature is present this floor stands down in favor of the D-4 feel-verdict floor in `wos/platform-runtime-floors.md ## Godot feel-verdict floor (D-4, ADR-0089)`. Do not record a decorative skip. This generalizes ADR-0089 D-4 off Godot: the 2026-07-10 connector dogfood shipped four machine-authored session packs with no human validation of one.
 
 
 ---
@@ -73,9 +117,11 @@ Attester class: human-bound
 
 Attester class: environment-bound
 
+On missing evidence: record -- the probe is capturable by the run on every surface that has one
+
 ### task-close variant
 
-**Entry-path probe floor (ADR-0091).** WHEN the task's closure includes a deliverable tagged `new-user-facing-surface`, closure requires one recorded exercised run through the user's real entry path (the way an end user reaches the surface, not the API underneath) cited in the task record OR an explicit one-line skip reason recorded in the final `TASK_STATE.md`. IF neither is present THEN do NOT archive; return gate-blocked and route the operator to run the entry path once. The dogfooded surface shipped as MCP prompts a chat model never invokes, a gap found only after it had already scaled four times over. WHILE the Godot task signature is present this floor stands down in favor of the D-4 feel-verdict floor above.
+**Entry-path probe floor (ADR-0091).** WHEN the task's closure includes a deliverable tagged `new-user-facing-surface`, closure requires one recorded exercised run through the user's real entry path (the way an end user reaches the surface, not the API underneath) cited in the task record OR an explicit one-line skip reason recorded in the final `TASK_STATE.md`. IF neither is present THEN record `unverified: entry path never exercised` and archive, naming the entry-path run in the final report's `### Unverified floors` block. The dogfooded surface shipped as MCP prompts a chat model never invokes, a gap found only after it had already scaled four times over. WHILE the Godot task signature is present this floor stands down in favor of the D-4 feel-verdict floor in `wos/platform-runtime-floors.md ## Godot feel-verdict floor (D-4, ADR-0089)`.
 
 
 ---
@@ -86,9 +132,11 @@ Attester class: environment-bound
 
 Attester class: agnostic
 
+On missing evidence: refuse -- it caught two real protocol defects on 2026-09-16; a broken substrate that closes is unrecoverable by reading
+
 ### task-close variant
 
-**Integrity floor (blocking; v3 wave3, item S1).** Run `bash scripts/verify-substrate-batch.sh <task-folder>` before archiving. WHEN the wrapper exits non-zero the task SHALL NOT be archived UNLESS an explicit waiver line is recorded in the final `TASK_STATE.md`: `integrity-waiver: N advisories unresolved (<one-line reason>)`, naming the failing validator(s). A silent non-zero archive is invalid. Consumes the wrapper's exit code only (never re-implements the validators; the informational header-drift count cannot fire it). Whole-task backstop of the slice-level floor in `slice-closure`.
+**Integrity floor (blocking; v3 wave3, item S1).** Run `bash scripts/verify-substrate-batch.sh <task-folder>` before archiving. WHEN the wrapper exits non-zero the task SHALL NOT be archived UNLESS an explicit waiver line is recorded in the final `TASK_STATE.md`: `integrity-waiver: N advisories unresolved (<one-line reason>)`, naming the failing validator(s). A silent non-zero archive is invalid. Consumes the wrapper's exit code only (never re-implements the validators; the informational header-drift count cannot fire it). Whole-task backstop of the slice-level floor in `slice-closure`. Resolve `scripts/verify-substrate-batch.sh` against the WORKFLOW ROOT (the clone, or the installed docs directory, which ships it per ADR-0224), never against the task repository. WHEN it is in neither, record `integrity: not checked (verify-substrate-batch not installed)` and name a re-sync of the install: that line is neither a pass nor a waiver, so the floor holds exactly as it does for a non-zero exit.
 
 
 ---
@@ -99,15 +147,19 @@ Attester class: agnostic
 
 Attester class: agnostic
 
+On missing evidence: reconcile -- an unconsumed strategy row carries its waiver; the ADR-0089 contract already allows one
+
 ### task-close variant
 
-**Test-strategy consumption floor (F-6, ADR-0089).** WHEN the task folder contains a `TEST_STRATEGY.md`, closure requires that every `critical` and `regression` scenario row in it maps to a real test file (cite the path in the closure evidence) OR carries a recorded waiver (in the strategy or the slice notes). For a `critical` row the citation SHALL also carry the falsifiability evidence that strategy's own rule requires (a red step, or one recorded mutation on a line the slice wrote, seen failing): a cited path backed only by a green suite is an unreconciled row, not a mapped one. IF any such row has neither THEN do NOT archive; return gate-blocked and route to `implement-slice-complement` (write the missing tests under the same slice intent) or record the waiver first. This is the produce-side counterpart of the deliverable-reconcile gate: a deferral on the record is allowed, a silently orphaned strategy artifact is not. No-op when the task has no `TEST_STRATEGY.md`.
+**Test-strategy consumption floor (F-6, ADR-0089).** WHEN the task folder contains a `TEST_STRATEGY.md`, closure requires that every `critical` and `regression` scenario row in it maps to a real test file (cite the path in the closure evidence) OR carries a recorded waiver (in the strategy or the slice notes). For a `critical` row the citation SHALL also carry the falsifiability evidence that strategy's own rule requires (a red step, or one recorded mutation on a line the slice wrote, seen failing): a cited path backed only by a green suite is an unreconciled row, not a mapped one. IF any such row has neither THEN record it as a named deferral and archive, naming `implement-slice-complement` (write the missing tests under the same slice intent) or record the waiver first. This is the produce-side counterpart of the deliverable-reconcile gate: a deferral on the record is allowed, a silently orphaned strategy artifact is not. No-op when the task has no `TEST_STRATEGY.md`.
 
 ## Unresolved-revision floor (ADR-0109, D-10)
 
 **Criterion without the attester.** No defeasible-claim revision entry in `DECISIONS.md ## Decision history` is still marked `[OPEN]`.
 
 Attester class: agnostic
+
+On missing evidence: refuse -- an `[OPEN]` contradiction that closes is a recorded conflict silently dropped
 
 ### task-close variant
 

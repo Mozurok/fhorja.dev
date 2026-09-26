@@ -5,7 +5,7 @@ Fhorja is a workflow operating system for AI-assisted engineering. This document
 ## LLM execution contract
 
 Primary audience:
-- the executing model inside Cursor
+- the executing model in the editor or agent harness (Claude Code, Cursor, Codex, and others)
 
 Human-facing policy:
 - normative behavior belongs here in compact, enforceable rules
@@ -17,7 +17,8 @@ Precedence order:
 3. `README.md` onboarding guidance
 
 Conflict rule:
-- if this file and command files disagree on command-specific behavior, follow the most recent command file and flag the mismatch explicitly
+- this file governs cross-command behavior: the output contract, the guardrails, the lifecycle, the naming rules. A command file governs its own steps, preconditions and gates, and MAY be stricter there, never looser.
+- when a command file contradicts a rule in this file instead of narrowing it, this file wins: follow this file, flag the mismatch in the output, and route the fix to the command file.
 
 Minimum read map for execution:
 - always read before routing or output shaping:
@@ -26,13 +27,13 @@ Minimum read map for execution:
   - `## Cross-cutting workflow guardrails`
 - read when needed by context:
   - naming/path disputes: `## Naming conventions`, `## Repository structure`
-  - artifact requirements: `## Required task files`, `## Optional task files`, `## TASK_STATE policy`
-  - multi-artifact drift or stale `TASK_STATE.md` after heavy edits: `## Command roles` index (`state-reconcile`)
-  - PR review feedback under the same contract (Greptile, CI, inline comments): `## Command roles` index (`pr-feedback-ingest`)
-  - PR or team feedback changes direction after packaging: `## Command roles` index (`post-review-pivot`)
-  - phase/entry ambiguity: `## Command roles` index, `## Entry points`, `## Gate conditions`
+  - artifact requirements: `## Task files`, `## TASK_STATE policy` (per-file contract: load `wos/task-file-contracts.md`)
+  - multi-artifact drift or stale `TASK_STATE.md` after heavy edits: `wos/command-roles.md` (`state-reconcile`)
+  - PR review feedback under the same contract (Greptile, CI, inline comments): `wos/command-roles.md` (`pr-feedback-ingest`)
+  - PR or team feedback changes direction after packaging: `wos/command-roles.md` (`post-review-pivot`)
+  - phase/entry ambiguity: `wos/command-roles.md`, `## Entry points`, `## Gate conditions`
   - command distinctness, guard rails, multi-repo nuance, or routing disputes the index does not resolve: load `wos/command-roles.md` (full per-command detail; not loaded by default)
-  - phase-by-phase command sequencing across multiple phases when `## Command roles` index plus `## Default workflow` are insufficient: load `wos/cross-cutting-workflow-guardrails.md` (heuristics + external-web motivation; not loaded by default)
+  - phase-by-phase command sequencing across multiple phases when `wos/command-roles.md` plus `## Default workflow` are insufficient: load `wos/cross-cutting-workflow-guardrails.md` (heuristics + external-web motivation; not loaded by default)
   - the session has NO human respondent (unattended, background, or fleet-dispatched) and the command is about to reach a question loop or a decision-bearing surface: load `wos/cross-cutting-workflow-guardrails.md` → `### Unattended sessions`. It is the rule for that situation and it is not discoverable from the sequencing trigger above, which is why four agents in one validation run improvised four incompatible behaviors at the same point
   - multi-repo task schema, locked decisions, invariants, non-goals, decision table, or implementation notes: load `wos/multi-repo-support.md` (single-repo tasks do not need this; not loaded by default)
   - full directory tree or governance files inventory (LICENSE, CONTRIBUTING.md, `.github/*`, etc.): load `wos/repository-structure.md` (compact path index in the spec suffices for day-to-day execution; not loaded by default)
@@ -50,11 +51,12 @@ Minimum read map for execution:
   - phase gate checklists: load `wos/gate-conditions.md`
   - workflow anti-patterns: load `wos/anti-patterns.md`
   - task shape selection (which workflow flow for this type of task): load `wos/workflow-shapes.md`
-  - operating modes (minimal / strict / teaching): load `wos/operating-modes.md`
+  - operating modes (minimal, strict, teaching, assisted): load `wos/operating-modes.md`
   - editor mode translation to non-Claude-Code tools (Cursor, Copilot, Codex, Gemini CLI equivalents) and per-harness operational quirks (sandbox write-root alignment, approval front-load, patch mechanics): load `wos/editor-mode-mappings.md` (only when working in a tool other than Claude Code)
   - designing, building, or running the autonomous delivery track (the autonomy cluster: two human gates, runtime governor, mid-run escalation, run protocol): load `wos/autonomous-track.md` (built per ADR-0044; not loaded by default)
   - Godot 2D-mobile game development (scene architecture, save/state and the mobile lifecycle, 2D rendering performance, touch input and game-feel, audio, the asset pipeline, headless testing and CI): load `wos/godot-2d-architecture.md`, `wos/godot-2d-mobile-rendering-performance.md`, `wos/godot-mobile-interaction-and-feel.md`, `wos/godot-2d-audio.md`, `wos/godot-2d-asset-pipeline.md`, `wos/godot-testing-and-ci.md` (the Godot cluster reference layer per ADR-0078 and ADR-0084; capability-scoped, not loaded by default)
   - Godot 3D development (renderer tiers and what each drops, the four limitation classes, the nine optimization techniques, GridMap and MeshLibrary level building, navigation meshes and agents, the physics body taxonomy, CC0 asset sourcing and the glTF import path): load `wos/godot-3d-rendering-and-performance.md`, `wos/godot-3d-architecture.md`, `wos/godot-3d-asset-pipeline.md` (the Godot 3D reference layer per ADR-0117; dimension-neutral content stays in the 2D topics and is cross-referenced, not duplicated; capability-scoped, not loaded by default)
+  - running a runtime gate: load the battery for the surface under test, `wos/app-runtime-battery.md` for a mobile app, `wos/web-runtime-battery.md` for a browser, `wos/api-runtime-battery.md` for a backend, or `wos/godot-runtime-battery.md` for a game. Each is the adapter layer of the `*-runtime-verify` command for that surface, capability-scoped and not loaded by default, and each holds its own taxonomy, probes and evidence rules
   - Unity mobile development (capturing runtime evidence from an Android or iOS build, the managed-versus-native output split the taxonomy keys on, the Edit-versus-Play-mode test tiers, the test-assembly compile-unit requirement, the undocumented test exit-code contract, and the CI license-activation precondition): load `wos/unity-runtime-evidence.md`, `wos/unity-testing-and-ci.md` (the Unity reference layer per ADR-0130; Unity lands as an `app-runtime-verify` adapter plus contract widenings, with no net-new Unity command; capability-scoped, not loaded by default)
   - Unity multiplayer planning (topology and authority models with Unity's own trade-off table, what Netcode for GameObjects does NOT ship, per-NetworkObject ownership as the security boundary, the RPC-versus-NetworkVariable late-joiner test, and why physics determinism cannot be assumed): load `wos/unity-netcode-architecture.md` (per ADR-0131; grounded in Netcode for GameObjects only, with the framework comparison, CCU cost model, and anti-cheat design deliberately absent; capability-scoped, not loaded by default)
   - Unity mobile rendering (the three-way render-pipeline choice, HDRP's enumerated platform list and its compute-shader and OpenGL ES constraints, and the pipeline declaration a 3D plan carries): load `wos/unity-mobile-rendering-and-performance.md` (per ADR-0132; scoped to the pipeline decision only, with numeric budgets, batching, texture compression, shader stripping, Addressables, and Adaptive Performance deliberately absent; capability-scoped, not loaded by default)
@@ -69,14 +71,14 @@ Minimum read map for execution:
 ## Purpose
 
 Human onboarding stub:
-- this document defines the operating system for the engineering command library inside Cursor IDE
+- this document defines the operating system for the engineering command library, run in the editor or agent harness (Claude Code, Cursor, Codex, and others)
 - it is a workflow control system (not just a prompt library), optimized for low ambiguity and resumable execution
 
 ---
 
 ## Scope
 
-This workflow is designed for a single developer operating inside Cursor with a strict, evidence-driven, low-assumption working style.
+This workflow is designed for a single developer working in an editor or agent harness (Claude Code, Cursor, Codex, and others) with a strict, evidence-driven, low-assumption working style.
 
 Primary priorities:
 - minimize ambiguity
@@ -120,9 +122,9 @@ The workflow operates on a separate task-memory repository. Compact path index (
 
 - `commands/<name>.md`: command files (source of truth for which commands exist; carry Agent Skills frontmatter validated by `lint-commands.sh`).
 - `commands/_shared/<name>.md`: canonical shared blocks propagated by `sync-shared-blocks.sh` into commands that declare the marker.
-- `.claude/skills/<name>/SKILL.md`: **generated** Agent Skills artifacts produced by `scripts/build-agent-skills.sh` from each canonical `commands/<name>.md`. Drop-in for the 35+ tools that read `.claude/skills/` natively (Cursor 2.4+, Claude Code, Copilot, Codex, Gemini CLI, etc.). Never edit by hand; lint fails on drift.
-- `wos/<topic>.md`: lazy-loaded reference files (<!-- count:wos-topics -->50<!-- /count --> topics; e.g. `command-roles.md`, `cross-cutting-workflow-guardrails.md`, `global-output-contract.md`; see the Minimum read map for the full set). Loaded only when explicitly needed.
-- `templates/`: starting points for task artifacts (`PR_PACKAGE.md`, `review-hard-checklist.md`).
+- `.claude/skills/<name>/SKILL.md`: **generated** Agent Skills artifacts produced by `scripts/build-agent-skills.sh` from each canonical `commands/<name>.md`. Drop-in for the 35+ tools that read `.claude/skills/` natively (Cursor, Claude Code, Copilot, Codex, Gemini CLI, etc.). Never edit by hand; lint fails on drift.
+- `wos/<topic>.md`: lazy-loaded reference files (<!-- count:wos-topics -->55<!-- /count --> topics; e.g. `command-roles.md`, `cross-cutting-workflow-guardrails.md`, `global-output-contract.md`; see the Minimum read map for the full set). Loaded only when explicitly needed.
+- `templates/`: starting points for task artifacts (`TASK_STATE.template.md`, `PR_PACKAGE.md`, `OUTCOMES.schema.md`), plus design-system and hook scaffolds.
 - `scripts/`: automation (`lint-commands.sh`, `sync-shared-blocks.sh`, `sync-workflow-slash-commands.sh`, `build-agent-skills.sh`, `check-doc-sync.sh`, `check-natural-voice.sh`, `monitor-fleet-progress.sh`, `scan-substrate-orphans.py`, `measure-tokens.py`, `measure-task-cost.py`).
 - `evals/scenarios/<NN>-*.md`: manual eval harness exercising load-bearing workflow contracts (project-bootstrap to task-init wiring, multi-repo schema, slice execution and closure scope discipline, pr-package diff grounding, state-reconcile minimum patch). `evals/scripts/run-evals.sh` walks through them.
 - `docs/`: contributor and user-facing reference (`FAQ.md`, `MIGRATION.md`, `adr/` Architecture Decision Records).
@@ -149,7 +151,7 @@ Format:
 Examples:
 - `petvet__platform`
 - `coinbase__wallet-web`
-- `zipdev__purecars`
+- `acme__storefront`
 
 Rules:
 - lowercase
@@ -211,7 +213,7 @@ For the schema (identifier, path, base branch, role), example, locked decisions 
 
 This taxonomy covers the product lifecycle commands. The `*-fleet` orchestrators (`implement-fleet`, `task-init-fleet`) and the CUSTOM personas inherit multi-repo behavior from the per-repo loop they run and are not enumerated here.
 
-**Multi-repo aware (7 commands)**:
+**Multi-repo aware (<!-- count:commands-multi-repo -->7<!-- /count --> commands)**:
 - `task-init`: writes the `## Repositories` schema into `SOURCE_OF_TRUTH.md` when 2+ repos are provided (the schema producer; the others are consumers).
 - `code-locate`: accepts `target repo` input when multi-repo; restricts search to that repo's workspace path.
 - `impact-analysis`: produces per-repo blast radius assessment when multi-repo; per-repo subsections in `IMPACT_ANALYSIS.md`.
@@ -230,7 +232,7 @@ These commands consume `SOURCE_OF_TRUTH.md` but ignore the `Repositories` sectio
 
 ### Per-task worktree isolation (opt-in, v1)
 
-Opt-in, git-gated isolation lets several tasks run in parallel on one repository without colliding on a single working tree (ADR-0074). It is additive: when isolation is not requested, or the project is not a git repository, every command behaves as today (single working tree, single branch, no overhead). When a task opts in, the `task-workspace` command provisions one durable git worktree and a `task/<task-slug>` branch off the base, and records them in `SOURCE_OF_TRUTH.md` under an optional `## Workspace` section (worktree path, task branch, base branch; schema in `wos/multi-repo-support.md`). `task-init` routes to `task-workspace` when isolation is requested rather than provisioning itself; `task-close` tears the worktree down (`git worktree remove` then `prune`) and halts on an unclean or unmerged tree. These per-task worktrees are distinct from the ephemeral slice-level worktrees `implement-fleet` creates: when a task worktree is active, fleet slice worktrees branch off the task branch. Multi-repo worktree provisioning is out of scope for v1.
+Opt-in, git-gated isolation lets several tasks run in parallel on one repository without colliding on a single working tree (ADR-0074). It is additive: when isolation is not requested, or the project is not a git repository, every command behaves as today (single working tree, single branch, no overhead). The task branch itself is no longer opt-in: WHEN `task-init` runs attended in a git repository with a configured remote while the default branch is checked out and isolation is not requested, it SHALL create `task/<task-dir>` in place and record it on a `Task branch:` line in `TASK_STATE.md ## Resume notes` (ADR-0233). When a task opts in, the `task-workspace` command provisions one durable git worktree and the `task/<task-dir>` branch off the base, and records them in `SOURCE_OF_TRUTH.md` under an optional `## Workspace` section (worktree path, task branch, base branch; schema in `wos/multi-repo-support.md`). `task-init` routes to `task-workspace` when isolation is requested rather than provisioning itself; `task-close` tears the worktree down (`git worktree remove` then `prune`) and halts on an unclean or unmerged tree. These per-task worktrees are distinct from the ephemeral slice-level worktrees `implement-fleet` creates: when a task worktree is active, fleet slice worktrees branch off the task branch. Multi-repo worktree provisioning is out of scope for v1.
 
 ---
 
@@ -297,17 +299,13 @@ x-wos-profiles: [minimal, core, full]
 provenance: first-party
 ```
 
-`tools:` is the command's tool surface from the canonical vocabulary (Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, Task). A read-only command (`context-layers-produced: []`) MUST NOT declare Write or Edit (Bash is exempt: read-only commands still run git, grep, and lint); lint fails on violation. `x-wos-profiles:` is the install-tier membership (a subset of `minimal`, `core`, `full`; minimal commands also list core and full); `sync-workflow-slash-commands.sh --profile <tier>` filters by it. `provenance:` is the trust origin (`first-party` for every command; `vetted-third-party` and `sandbox` are reserved for external skills a human approved via `skill-vet`). Lint validates all three; the canonical `tools` vocabulary lives in the `VALID_TOOLS` array in `scripts/lint-commands.sh`.
+`tools:` is the command's tool surface from the canonical vocabulary (Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, Agent). `Task` is refused by lint. A read-only command (`context-layers-produced: []`) MUST NOT declare Write or Edit (Bash is exempt: read-only commands still run git, grep, and lint); lint fails on violation. `x-wos-profiles:` is the install-tier membership (a subset of `minimal`, `core`, `full`; minimal commands also list core and full); `sync-workflow-slash-commands.sh --profile <tier>` filters by it. `provenance:` is the trust origin (`first-party` for every command; `vetted-third-party` and `sandbox` are reserved for external skills a human approved via `skill-vet`). Lint validates all three; the canonical `tools` vocabulary lives in the `VALID_TOOLS` array in `scripts/lint-commands.sh`.
 
 ### Universal baseline rule
 
 `system`, `tools`, and `task` are universal baseline. Every command consumes them by definition. They are NOT listed in `consumed:` to keep the signal discriminating. Valid non-baseline values for `consumed:` are `memory`, `retrieved`, `history`. Empty lists are valid: a command may consume nothing beyond baseline (`project-bootstrap`) or produce nothing material (pure routing such as `what-next`).
 
 Lint enforces presence of both fields and validates values against the canonical six.
-
-### Cache breakpoint marker
-
-Every `commands/<name>.md` ends with a single `<!-- cache-breakpoint -->` HTML comment marker as the LAST non-blank line of the body. The marker delimits the static cacheable prefix (the command file content) from the runtime-dynamic content that follows in the conversation (user invocation, task state, paste content). Lint validates presence (exactly one), count, and position (after `### Definition of done`) with hard FAIL on drift. See `wos/context-budget.md ## Cache breakpoint convention` for the full rationale and tool-integration notes; ADR-0014 records the decision.
 
 ### Example classification (contract-fixing exemption)
 
@@ -355,7 +353,9 @@ Commit-evidence floor (ADR-0084): even when merge (condition 4) is waived in a s
 
 ## Editor mode policy
 
-The workflow's canonical editor-mode vocabulary is **`Ask` / `Plan` / `Agent` / `Debug`**. These names originate from Cursor but are adopted as the workflow's tool-neutral mode taxonomy: every command's `Primary editor mode:` field uses one of these four values, and every `### Handoff` block's `Mode:` line uses one of them. Other AI tools have similar mode taxonomies under different names; the table below maps the workflow's modes to common tool equivalents.
+Which command fits which mode is per-command data: every command declares `metadata.primary-cursor-mode` in its own frontmatter and `docs/command-catalog.json` carries the same value as `mode`. This section defines the <!-- count:editor-modes -->4<!-- /count --> modes and nothing per-command.
+
+The workflow's canonical editor-mode vocabulary is **`Ask` / `Plan` / `Agent` / `Debug`**. These names originate from Cursor but are adopted as the workflow's tool-neutral mode taxonomy: every command's `metadata.primary-cursor-mode` field uses one of these four values, and every `### Handoff` block's `Mode:` line uses one of them. Other AI tools have similar mode taxonomies under different names; the table below maps the workflow's modes to common tool equivalents.
 
 ### Mapping to other tools
 
@@ -375,34 +375,6 @@ Use Ask when the goal is:
 - delivery packaging
 - lightweight communication
 
-Good fits:
-- `project-bootstrap` when drafting or validating project-level artifacts
-- `capture-references` when researching and persisting external references
-- `task-init` when drafting or validating task artifacts only
-- `code-locate`
-- `impact-analysis`
-- `invariants-and-non-goals`
-- `targeted-questions`
-- `decision-interview`
-- `problem-framing`
-- `what-next`
-- `workflow-guide`
-- `im-stuck`
-- `capture-observation`
-- `direction-adjust`
-- `review-hard`
-- `where-we-at`
-- `slice-closure`
-- `resume-from-state`
-- `pr-package`
-- `branch-commit`
-- `team-update`
-- `prompt-shape`
-- `sync-task-state`
-- `state-reconcile`
-- `pr-feedback-ingest`
-- `post-review-pivot`
-
 Do not use Ask as disguised implementation.
 
 ### Plan
@@ -411,14 +383,6 @@ Use Plan when the goal is:
 - converging contract decisions
 - hardening implementation rules
 - defining test strategy
-
-Good fits:
-- `resolve-contract-gaps`
-- `contract-signoff`
-- `implementation-plan`
-- `test-strategy`
-- `compact-task-memory`
-- `self-critique-and-revise`
 
 Do not use Plan to pretend implementation is already done.
 
@@ -430,17 +394,7 @@ Use Agent only when:
 - correctness-critical ambiguity is already resolved
 - the next step is an actual code change
 
-Also use Agent when:
-- a command is allowed to materialize or update files inside `my_work_tasks`
-- and the intent is to write task-memory files, not product code
-
-Good fits:
-- `implement-approved-slice`
-- `implement-fleet` (parallel execution of independent approved slices per ADR-0041; the orchestrator and its workers all run in Agent mode)
-- `implement-slice-complement`
-- `task-init` only when creating files in the task-memory repo
-- `approve-proposed` (the canonical batch-persist idiom; writes every `PROPOSED` file from the prior assistant turn's `### Artifact changes` atomically; see ADR-0024 and `## Cross-cutting workflow guardrails ### Proposal vs approved persistence`)
-- other commands only when explicitly persisting task-memory artifacts
+Writing task-memory files does not require Agent: it is `APPLIED` in every mode (ADR-0199).
 
 Do not use Agent for discovery, policy decisions, or broad exploration.
 
@@ -449,9 +403,6 @@ Use Debug only when:
 - there is a concrete observed technical failure
 - the problem is actual runtime behavior, broken output, or failing tests
 - diagnosis is the main need
-
-Good fits:
-- `incident-triage` (the canonical Debug-mode use case in this workflow)
 
 In this workflow, Debug is exceptional, not the default path. `incident-triage` exists so urgency-shaped tasks have a structured entry point that defends against bypassing the workflow entirely while keeping ceremony short for real hotfixes.
 
@@ -472,6 +423,7 @@ Across the workflow, use this evidence priority unless a command states otherwis
 Rule:
 - if correctness depends on something not grounded in code, docs, tests, or explicit user input, do not guess
 - ask targeted questions instead
+- a decision the request does not contain is not a fact to guess: in an attended chain on a task branch it becomes a provisional `P-N` chosen from that evidence and labeled as the agent's (`### Adaptive handoff`)
 - when an answer requires an external web reference that is not yet in `REFERENCES.md`, route to `capture-references` rather than fetching ad-hoc
 
 Greenfield clause (priority reordering for new code in established frameworks):
@@ -496,12 +448,12 @@ Every command output MUST be structured into these sections, in this order:
 1) `### Artifact changes`
 - List each task-memory file that would change (or `None`).
 - For each file, label the change as one of:
-  - `APPLIED`: you are explicitly instructing a file write in this run (typically only in Agent mode, and only when the command’s policy allows persistence)
-  - `PROPOSED`: content the user should review before persisting. Adapt verbosity to file state:
+  - `APPLIED`: you are instructing a file write in this run. This is the default for task-memory files in every mode, per `### Task-memory write policy (default)` below.
+  - `PROPOSED`: a block staged by a command that does not OWN the section, for the owner to promote (ADR-0034). It is not a mode gate. Adapt the verbosity of the staged block to file state:
     - **Create** (new file): full content inline -- there is no existing file to diff against
     - **Update-delta** (existing file, small change): semantic delta only -- name the section(s) changed, state what changed and why, include the changed lines or block. Do NOT repeat unchanged content.
-    - **Update-rewrite** (existing file, large rewrite in Agent mode): write directly via tool call; list the file as `APPLIED` with a one-line summary of changes
   - `SKIP`: explicitly skipping an optional artifact with a one-line rationale (example: `TEST_STRATEGY.md`)
+- A file labelled `APPLIED` is already on disk, so list it with a one-line summary of what changed, however large the rewrite.
 
 2) `### Command transcript`
 - Short audit trail for reruns: what changed vs last step, why this command was/wasn’t a no-op, and any `NO_OP_TRACE` notes.
@@ -537,7 +489,7 @@ All human-facing prose (PR descriptions, commit bodies, team and status updates,
 - Vocabulary cliches: prefer `use` over `leverage` or `utilize`; cut `seamless`, `robust`, `comprehensive`, `crucial`, `it's worth noting`.
 - Decorative bold, emoji, and Title Case headers: bold only real emphasis, no emoji, sentence-case headers.
 
-The em-dash character stays a hard lint failure (use `--`, a colon, or parentheses). The rest is advisory: `scripts/check-natural-voice.sh` surfaces hits on the lint `Natural-voice:` line without failing the build. Full catalog with rewrites: `wos/natural-voice.md`.
+The em-dash character stays a hard lint failure (use `--`, a colon, or parentheses). The rest is advisory: `scripts/check-natural-voice.sh` measures it, run by hand rather than from the lint (ADR-0171). Full catalog with rewrites: `wos/natural-voice.md`.
 
 ### Long-running execution visibility (per ADR-0042)
 
@@ -551,9 +503,9 @@ This is the operator-visibility counterpart to the Handoff contract: the Handoff
 
 ### Task-memory write policy (default)
 Unless a command explicitly says otherwise:
-- Treat task-memory updates as **`PROPOSED`** by default in Ask/Plan modes.
-- Prefer applying `TASK_STATE.md` updates via `sync-task-state` after meaningful progress (unless the command explicitly requires an immediate `TASK_STATE.md` patch and the user is persisting in Agent mode).
-- **Exception (ADR-0026):** `implement-approved-slice` running in Agent mode uses **`APPLIED`** by default for slice execution notes (slice files, TASK_STATE.md updates). Rationale: the user already authorized execution via the handoff; a PROPOSED cycle adds overhead with near-zero rejection rate (0% in Fhorja analysis). This exception does NOT extend to other commands or to Ask/Plan modes; the PROPOSED-by-default contract from ADR-0001 remains the global default.
+- Write task-memory files directly and mark them **`APPLIED`**, in every mode. Writing five markdown files into a task folder is internal and reversible, and it matches none of the four reasons a chain stops, so it never waited on a human to begin with. This replaces the ADR-0001 PROPOSED-by-default write gate and the ADR-0026 exception that carved `implement-approved-slice` out of it; the exception is unnecessary once the rule it excepted is gone.
+- `PROPOSED` keeps its OTHER meaning, which this change does not touch: a command that does not OWN a substrate section stages a `<!-- PROPOSED by <command>: ... -->` block inside it for the owner to promote (ADR-0034). That is a peer-ownership mechanism, not a mode gate, and it applies in Agent mode too.
+- Prefer applying `TASK_STATE.md` updates via `sync-task-state` after meaningful progress (unless the command explicitly requires an immediate `TASK_STATE.md` patch).
 
 ### Claim status and abstention (per ADR-0109)
 The active-epistemic-humility doctrine (`wos/active-epistemic-humility.md`, shared block `commands/_shared/claim-grounding.md`). This subsection is inert on any output whose claims are all grounded, so a normal output pays nothing:
@@ -562,7 +514,7 @@ The active-epistemic-humility doctrine (`wos/active-epistemic-humility.md`, shar
 - Abstention is a routed continuation, never a bare refusal: it names the specific investigation that would settle the question and routes to the command that runs it. Abstention is distinct from `NO_OP` (no work to do); it means the grounding to proceed is missing.
 
 ### Every command should end with:
-- recommended next command
+- the next command in the chain, which the same session then runs without being asked
 - recommended editor mode
 - **work complexity** for the immediate next step (`LOW`, `MEDIUM`, `HIGH`, or `N/A` when not applicable)
 - one-line reason
@@ -588,9 +540,9 @@ Non-normative mapping to Cursor (user-controlled in the product UI; see [Cursor 
 Rules:
 - Do **not** output model names, version numbers, or provider product strings in command outputs.
 - Re-evaluate complexity when phase, risk, or slice changes; `sync-task-state` should keep the task-level line aligned with the next real step.
-- **Model selection for direct Claude Code usage** (no Cursor routing layer): `ADR-0025` → `## Model selection by tier` provides a recommended Claude SKU per pipeline tier (Express → Haiku 4.5, Standard → Sonnet 4.6, Disciplined → Sonnet/Opus, Strict → Opus). This is the user's per-task decision recorded in `TASK_STATE.md`; commands themselves still never emit SKU names in handoffs.
-- **Harness primitive equivalence** (working in a non-Claude-Code harness): `wos/sub-agent-orchestration.md` → `## Harness equivalence` maps the Claude Code primitives commands assume (`SendMessage`, `Workflow` fleets, `AskUserQuestion`) to each harness's equivalent or explicit degradation, and ADR-0025's tier table carries a `Codex reasoning-effort default` column. The vendor-neutral rule above is unchanged: commands never emit model or effort names in handoffs.
-- Pipeline tier (Express/Standard/Disciplined/Strict from `ADR-0025`) and `Work complexity` (`LOW`/`MEDIUM`/`HIGH`/`N/A`) are orthogonal axes: pipeline tier governs *which workflow shape* (how many ceremony steps); Work complexity governs *how hard the next single step is*. A Strict task may have a `LOW` next step (a trivial typo fix in an auth file); a Standard task may have a `HIGH` next step (a tricky integration decision). Do not conflate them.
+- **Model selection for direct Claude Code usage** (no Cursor routing layer): `wos/model-routing.md` carries a recommended Claude SKU and Codex reasoning-effort ladder, from the default pipeline up to the most escalated one. Its rows are keyed on the escalations `TASK_STATE.md` records (ADR-0207). This is the user's per-task decision recorded in `TASK_STATE.md`; commands themselves still never emit SKU names in handoffs.
+- **Harness primitive equivalence** (working in a non-Claude-Code harness): `wos/sub-agent-orchestration.md` → `## Harness equivalence` maps the Claude Code primitives commands assume (`SendMessage`, `Workflow` fleets, `AskUserQuestion`) to each harness's equivalent or explicit degradation, and `wos/model-routing.md` carries a `Codex reasoning-effort default` column. The vendor-neutral rule above is unchanged: commands never emit model or effort names in handoffs.
+- Pipeline escalations and `Work complexity` (`LOW`/`MEDIUM`/`HIGH`/`N/A`) are orthogonal axes: an escalation adds a ceremony step because a named disqualifier fired, and Work complexity says *how hard the next single step is*. A task escalated on an auth surface may still have a `LOW` next step (a trivial typo fix in that file); a task with no escalation may have a `HIGH` next step (a tricky integration decision). Do not conflate them.
 
 ### Calibration examples (non-normative)
 
@@ -599,6 +551,16 @@ For the full `LOW` / `MEDIUM` / `HIGH` calibration vignettes (typo fixes, API pl
 ### Adaptive handoff
 
 The `### Handoff` block adapts its verbosity based on session state.
+
+`Run now:` names what happens next, and an attended session continues into it in the same turn rather than waiting to be asked. Stop and hand back only for a reason you can name: an act whose audience is not bounded, a decision that changes what the product is, a cost or loop ceiling, or a check of the work the agent cannot honestly run on itself. Say which one in `Reason:`.
+
+An attended chain on a task branch is an attended session (ADR-0159) whose `TASK_STATE.md ## Resume notes` carry a `Task branch:` line and no declared `Operating mode: assisted`; every command that names it means this. In such a chain, reasons 2 and 4 are records, not stops (ADR-0233). WHEN such a chain needs a decision the request does not contain, the command SHALL pick the option the code and the request support, record it as a `### P-N` under `DECISIONS.md ## Provisional decisions` (`Evidence:`, `Impact:`, `Status: provisional`), and continue; WHEN a check it cannot honestly run on itself is pending, it SHALL record the check and continue. The draft pull request lists them under `Decisions made without you` (`Impact: high` first, to confirm before merge) and `Not verified`, and a named deliverable that needs a decision no evidence settles goes under `Not delivered, needs you`, never dropped. Short of a reason 3 ceiling, reason 1 is the one stop left: ready for review, merge, publish, outward egress. WHERE git or a configured remote is missing, reasons 2 and 4 stop as before. WHERE `Operating mode: assisted` is declared (`wos/operating-modes.md`, provisional P-8), every stop ADR-0233 removed comes back and nothing else: `task-init` creates no task branch, reasons 2 and 4 stop as before, and `branch-commit` does not hand on to `pr-package --apply`; the blinded plan review and the local commit on a named branch still run alone. Unattended, background and fleet-dispatched runs write no `P-N` and keep `wos/cross-cutting-workflow-guardrails.md` → `### Unattended sessions`.
+
+Approving a plan is not an instance of reason 2. A plan is a route to decisions already locked in `DECISIONS.md`, not a decision itself, and `commands/implementation-plan.md` already requires a plan that would introduce a behavioral commitment those decisions do not support to be marked `PROPOSED` and routed to `decision-interview`, `targeted-questions`, `resolve-contract-gaps` or `contract-signoff` rather than approved; in an attended chain on a task branch that route ends in a provisional `P-N`, not a wait. What is left at approval is whether that routing rule held, which is a check against a rubric rather than a decision to make. So `approve-plan` runs its own check and continues, on the evidence of a review performed in a context that never saw the conversation that wrote the plan (ADR-0208). `## Locked decisions` stays the only authorization it reads: a slice resting on a `P-N` passes labeled "rests on provisional P-N", and the review asks whether that entry's evidence exists on the task branch. The autonomous delivery track keeps its own entry gate, because its premise is that nobody is watching: see `wos/autonomous-track.md` (ADR-0044).
+
+Reason 1 turns on who can see the act, not on whether the act can be undone. An act clears, and the command proceeds without asking, when the set of people it reaches is bounded: a local commit, a push to a task branch, a draft pull request that notifies nobody. An act gates when that set is open: marking a draft pull request ready for review, sending produced content outward through a connected MCP server, publishing a page. Undo decides nothing here. A published page can be deleted and the people who already read it still read it, while a local commit that cannot be recovered still reached no one. One case has to be checked rather than assumed: a draft pull request clears only where the target repository fires no publishing workflow on `pull_request: opened`, and reading that repository's workflow triggers is the duty of the command doing the act. WHEN an act's audience is not bounded, the command SHALL obtain an explicit confirmation in that same turn, after displaying the raw payload and the exact destination rather than its own summary of them. One act takes one confirmation. No standing approval exists and consent is never carried across turns.
+
+When one turn runs several commands, `### Artifact changes` and `### Handoff` are emitted ONCE for the turn, not once per command: the per-command record is the substrate each command writes, and the turn's single Handoff reports where the chain actually stopped. One block per command is not wrong, only more verbose (ADR-0192).
 
 **Mode A -- Compact (default, intra-session)**
 
@@ -617,7 +579,7 @@ When the chain has ended and no following command would be honest, the same bloc
 
 **Mode B -- Full (cross-session or post-compaction)**
 
-When context loss is likely (new chat, `resume-from-state`, after auto-compaction, handoff to a different person):
+When context is actually lost (after auto-compaction, or when the next command is `resume-from-state`):
 
 ```text
 Run now: /<command>
@@ -647,7 +609,7 @@ Format:
 
 ```text
 Delegate now: <comma-separated sub-agent invocations or pattern descriptions>
-Mode: Plan (parent) + Explore (workers); use Claude Code Task tool, Cursor /worktree, or equivalent
+Mode: Plan (parent) + Explore (workers); use Claude Code `Agent` tool, Cursor /worktree, or equivalent
 Work complexity: matches parent slice
 Reason: <why fanout vs inline>
 Merge back: <where the parent integrates the summarized results>
@@ -661,8 +623,6 @@ The parent emits the delegation; sub-agents run in isolated contexts. The parent
 - **Switch to Mode B** when:
   - The command explicitly targets a new session (`resume-from-state`).
   - Auto-compaction has occurred since the last handoff.
-  - The user indicates they will continue in a different tool or chat.
-  - The task is being handed to a different person.
 - **Switch to Mode C** when:
   - The command body declares it triggers parallel-fanout (per ADR-0032) AND
   - One of the trigger conditions listed above is met AND
@@ -696,16 +656,18 @@ Authoritative transition checks live in `## Gate conditions`. Use them to sanity
 |------------------------------|------------------|
 | Before planning | `code-locate`, `impact-analysis`, `invariants-and-non-goals`, `targeted-questions`, `decision-interview` |
 | Before planning / contract hardening | `resolve-contract-gaps`, `contract-signoff` |
-| Before implementation | `implementation-plan`, `test-strategy` |
+| Before implementation | `implementation-plan`, `approve-plan` (every plan but a one-slice route's), `test-strategy` |
 | Before implementation (execution) | `implement-approved-slice`, `implement-slice-complement` |
 | Before slice closure | `review-hard`, `slice-closure` |
+| Local commit (after the last slice) | `branch-commit --apply` |
+| Draft PR (after the local commit, attended, with a remote) | `pr-package --apply` |
 | Before PR packaging | `where-we-at` (when used), `pr-package` |
 | After PR review feedback (corrective) | `pr-feedback-ingest` |
 | After PR review feedback (pivot) | `post-review-pivot` |
 | Project-level memory init | `project-bootstrap`, `capture-references` |
 | Entry / recovery / drift | `task-init`, `resume-from-state`, `what-next`, `workflow-guide`, `im-stuck`, `sync-task-state`, `state-reconcile` |
 | Concrete observed failure | `incident-triage` |
-| Communication / meta | `branch-commit`, `team-update`, `prompt-shape` |
+| Communication / meta | `branch-commit` (naming only), `team-update`, `prompt-shape` |
 
 ---
 
@@ -735,7 +697,7 @@ The last item is the default, not an exception. Propose only on a clear bucket m
 - Valid command identifiers are exactly the basenames of files in the workflow repository `commands/` directory, **without** the `.md` suffix (example: `impact-analysis`, `implementation-plan`).
 - Do not invent command names or aliases that do not match a file in `commands/` (invalid examples: `task-plan`, `plan`, `execute-task`).
 - When recommending the next step, the `Run now` line must use that same basename after the slash (example: `Run now: /impact-analysis`).
-- **Terminal form (the one exception).** `Run now: none` is the single value on that line that does not name a `commands/` basename. It declares that the chain has ended and no following command would be honest, either because the task is finished or because every remaining path needs a human or an environment this session cannot supply. A block carrying it sets `Mode: N/A`, and `Reason:` says what would unblock the work. This exception exists so that a command with no honest next step has somewhere to say so: without it the only available moves are inventing a value or naming a command that is not really next, and a 2026-08-05 unattended run reached exactly that state and invented `none` on its own. Do not use it to end a chain that has a real next step, and do not use it in place of a queued question when the block still routes somewhere (ADR-0126).
+- **Terminal form (the one exception).** `Run now: none` is the single value on that line that does not name a `commands/` basename. It declares that the chain has ended and no following command would be honest, either because the task is finished or because every remaining path needs a human or an environment this session cannot supply. A block carrying it sets `Mode: N/A`, and `Reason:` says what would unblock the work. It is how a continuing chain stops. Do not use it to end a chain that has a real next step, and do not use it in place of a queued question when the block still routes somewhere (ADR-0126).
 - A manual activity is not a Fhorja command. When the next step is a manual action (running the app, a shell or CLI command like `npm run ios`, a device or browser test session, a dashboard check), describe it as a manual step in prose; never emit it as a `Run now: /<name>` line. The `Run now` line is reserved for real `commands/` basenames, so routing a manual activity through it (for example `Run now: /device-verify` when `device-verify` is a manual on-device test session, not a command) is invalid output. When in doubt whether the next step is a command, check `commands/` for that basename: present it as `Run now` only if the file exists, otherwise as a manual step.
 - WHEN the next step depends on a human action outside the session (adding a connector, running a tunnel, pasting a credential, clicking through a flow), the manual-step handoff (F-4) SHALL hand over the exact current artifact that action needs (the URL, command, or value), verified as current immediately before the ask; asking for the outcome of a manual step before its inputs were delivered is invalid output. A mutable value (a tunnel URL, a port) has one source of truth in the handoff and is restated whenever it changes. This exists because a dogfooded session ran a tunnel in a background subshell and asked twice how the demo went while the user never had a usable URL.
 - WHEN a turn is about to dispatch a fleet wave or a Workflow run (command-driven or command-less), the known-gotchas preflight (F-5) SHALL first consult the recorded operational gotchas for the tool being dispatched (scripts/rank-learnings.sh over the project LEARNINGS plus the user-level memory) and apply them to the dispatch, stating what it applied. A dispatch that repeats a recorded gotcha is a preventable failure, not bad luck: the consume side of ADR-0017/0071 extends from task-init to dispatch time because the 2026-07-10 dogfood re-hit a Workflow args gotcha recorded seven days earlier.
@@ -762,13 +724,14 @@ If rerunning the command would **not** produce a material change:
 
 ### Proposal vs approved persistence
 - Do not silently change semantic intent in `DECISIONS.md` without explicit user approval in-chat or authoritative artifact approval.
+- A provisional `### P-N` under `## Provisional decisions` is not such a change: it is labeled `Status: provisional`, never recorded as the user's input or under `## Locked decisions`, and listed in the draft pull request.
 - When needed, label content as **PROPOSED** and route to explicit confirmation or the correct hardening command.
-- The user has three valid paths to turn `PROPOSED` artifacts into `APPLIED` writes (ADR-0024 adendum to ADR-0001): (a) re-run the source command in Agent mode; (b) run `/approve-proposed` once after any turn that emitted PROPOSED files, which reads the prior assistant turn and persists every PROPOSED file atomically with a locked five-line recap; or (c) copy-paste the proposed content manually. Commands MUST NOT pretend the user has already approved when no signal was given; commands MUST persist when a valid lock signal is given (e.g., `/decision-interview` recognizing `D<N> [LOCK]` picks per its Operating rules `LOCK-pick recognition`).
-- `### Artifact changes` is the single proposal surface per turn. Never nest PROPOSED blocks (no `## PROPOSED X.md block` or `## PROPOSED X.md deltas` headers under `### Artifact changes`); inline content goes directly under each file's bullet. The shared block `commands/_shared/artifact-changes-default.md` is the canonical source.
+- A `PROPOSED` block staged by a non-owner is promoted by the section's OWNER, or by `/approve-proposed` when the user asks for it. That command is no longer part of any default chain: the ADR-0024 three-path rule described the mode gate, and the mode gate is gone. Commands MUST NOT pretend the user has already approved a DECISION when no signal was given, and MUST persist when a valid lock signal is given (e.g., `/decision-interview` recognizing `D<N> [LOCK]` picks per its Operating rules `LOCK-pick recognition`).
+- `### Artifact changes` is the single proposal surface per turn. Never nest PROPOSED blocks (no `## PROPOSED X.md block` or `## PROPOSED X.md deltas` headers under `### Artifact changes`); inline content goes directly under each file's bullet.
 
 ### Substrate peer ownership (per ADR-0034)
 
-Commands, personas (SKILL.md files), and Epic J fleet workers are peers sharing four canonical substrate files: `TASK_STATE.md`, `DECISIONS.md`, `IMPLEMENTATION_PLAN.md`, `SOURCE_OF_TRUTH.md`. Every H2 section has exactly one OWNER (writes via Edit/Write) plus explicit CO-WRITERS (propose-only via PROPOSED blocks). Conflict resolution: REFUSE + Handoff routing to owner; no silent last-write-wins. Workers dispatched by orchestrators MUST conform to the canonical worker contract in `commands/_shared/worker-contract.md`. Full ownership matrix, read/write contracts, conflict rules, and audit-trail schema in `wos/substrate-peers.md` (lazy-loaded; activation `model_decision`).
+Commands, personas (SKILL.md files), and Epic J fleet workers are peers sharing four canonical substrate files: `TASK_STATE.md`, `DECISIONS.md`, `IMPLEMENTATION_PLAN.md`, `SOURCE_OF_TRUTH.md`. Every H2 section has one conventional OWNER plus named CO-WRITERS, and ownership routes by convention (ADR-0232): a write outside the row is logged naming the owner, never refused; no silent last-write-wins. Workers dispatched by orchestrators MUST conform to the canonical worker contract in `commands/_shared/worker-contract.md`. Full ownership matrix, read/write contracts, conflict rules, and audit-trail schema in `wos/substrate-peers.md` (lazy-loaded; activation `model_decision`).
 
 ### External web access (centralized)
 
@@ -797,7 +760,7 @@ WHEN a task's `TASK_STATE.md` phase reads delivered or done and the current sess
 
 ### Sequencing heuristics (by phase)
 
-Phase-grouped routing heuristics (Discovery → Contract → Planning → Execution → Delivery → Debug) live in `wos/cross-cutting-workflow-guardrails.md` → `### Sequencing heuristics (by phase)`. Most routing decisions are resolved by the `## Command roles` index plus `## Default workflow`; consult the lazy file when phase ordering across multiple commands is unclear.
+Phase-grouped routing heuristics (Discovery → Contract → Planning → Execution → Delivery → Debug) live in `wos/cross-cutting-workflow-guardrails.md` → `### Sequencing heuristics (by phase)`. Most routing decisions are resolved by the `## Command roles` pointer plus `## Default workflow`; consult the lazy file when phase ordering across multiple commands is unclear.
 
 ---
 
@@ -805,528 +768,152 @@ Phase-grouped routing heuristics (Discovery → Contract → Planning → Execut
 
 Navigation note:
 - this section is a grouping aid; authoritative command-level behavior lives in `## Command roles`
+- one command sits in exactly one category. `README.md` `## Command clusters` groups the same commands
+  editorially, where a command may appear in more than one family; the two axes answer different questions
 
 ### Project initialization
 - `project-bootstrap`
+
+### Research and sourcing
 - `capture-references`
-
-### State and navigation
-- `task-init`
-- `task-init-fleet`
-- `task-workspace`
-- `sync-task-state`
-- `state-reconcile`
-- `resume-from-state`
-- `what-next`
-- `portfolio-review`
-- `workflow-guide`
-- `im-stuck`
-- `incident-triage`
-- `capture-observation`
-- `compact-task-memory`
-- `approve-proposed`
-- `autonomous-board`
-
-### Design system (WOS-UI)
-- `design-bootstrap`
-- `component-spec`
-- `screen-spec`
-- `image-to-spec`
-- `journey-map`
-- `pattern-doc`
-- `design-spec-review`
-- `foundation-audit`
-- `extract-foundations-from-screens`
-- `atom-audit`
-- `atom-audit-fleet`
-- `screen-spec-fleet`
-- `inventory-snapshot`
-
-### Discovery and scoping
-- `code-locate`
-- `code-context-map`
-- `impact-analysis`
-- `invariants-and-non-goals`
-- `targeted-questions`
-- `problem-framing`
-- `decision-interview`
 - `external-research`
 - `external-research-fleet`
-- `stack-recommend`
-- `stack-currency-check`
 - `feature-library-scout`
 - `feature-library-scout-fleet`
-- `api-contract-review`
-- `graphql-contract-review`
+- `stack-currency-check`
+- `stack-recommend`
+
+### Discovery and scoping
+- `backend-system-design`
+- `code-context-map`
+- `code-locate`
+- `impact-analysis`
+- `inventory-snapshot`
+- `jtbd-switch-interviewer`
+- `pattern-doc`
+- `problem-framing`
+- `targeted-questions`
+
+### Design and UI
+- `color-contrast-architect`
+- `component-spec`
+- `design-bootstrap`
+- `design-spec-review`
+- `extract-foundations-from-screens`
 - `frontend-architecture-review`
 - `frontend-system-design`
-- `backend-system-design`
-- `jtbd-switch-interviewer`
-- `color-contrast-architect`
+- `image-to-spec`
+- `journey-map`
+- `screen-spec`
+- `screen-spec-fleet`
+
+### Game and engine
+- `godot-runtime-verify`
 - `godot-scene-plan`
 - `unity-scene-plan`
 
 ### Database context
-- `db-context-supabase`
 - `db-context-postgres`
+- `db-context-supabase`
 
-### Contract and decision hardening
-- `resolve-contract-gaps`
+### Contracts and decisions
+- `api-contract-review`
 - `contract-signoff`
+- `decision-interview`
 - `direction-adjust`
+- `graphql-contract-review`
+- `invariants-and-non-goals`
+- `resolve-contract-gaps`
 
 ### Planning and validation
-- `implementation-plan`
+- `ai-feature-eval-harness`
 - `approve-plan`
-- `test-strategy`
+- `implementation-plan`
+- `migration-safety-steward`
+- `release-plan`
 - `self-critique-and-revise`
+- `slo-define`
+- `test-strategy`
 - `verify-against-rubric`
 - `verify-against-rubric-fleet`
-- `ai-feature-eval-harness`
-- `slo-define`
-- `release-plan`
-- `rls-auth-boundary-auditor`
-- `migration-safety-steward`
-- `a11y-audit`
-- `performance-budget`
 
 ### Execution and closure
+- `harvest-session-learnings`
 - `implement-approved-slice`
 - `implement-fleet`
-- `post-deploy-verifier`
-- `postmortem-author`
 - `implement-slice-complement`
+- `postmortem-author`
+- `review-hard`
 - `slice-closure`
 - `task-close`
-- `harvest-session-learnings`
-- `review-hard`
-- `repo-consistency-sweep`
+- `where-we-at`
+
+### Runtime verification
+- `api-runtime-verify`
+- `app-runtime-verify`
+- `post-deploy-verifier`
+- `web-runtime-verify`
+
+### Audit and sweep
+- `a11y-audit`
 - `apply-sweep-triage`
+- `atom-audit`
+- `atom-audit-fleet`
+- `foundation-audit`
+- `mcp-server-vet`
+- `performance-budget`
+- `repo-consistency-sweep`
+- `rls-auth-boundary-auditor`
 - `security-review`
 - `skill-vet`
-- `mcp-server-vet`
-- `where-we-at`
+
+### Autonomy
+- `autonomous-board`
 - `autonomous-readiness`
 - `autonomous-run`
-- `godot-runtime-verify`
-- `app-runtime-verify`
-- `web-runtime-verify`
-- `api-runtime-verify`
 
 ### Delivery and communication
-- `pr-package`
-- `pr-feedback-ingest`
-- `post-review-pivot`
 - `branch-commit`
-- `team-update`
 - `delivery-asset`
+- `post-review-pivot`
+- `pr-feedback-ingest`
+- `pr-package`
+- `team-update`
+
+### State and navigation
+- `approve-proposed`
+- `capture-observation`
+- `compact-task-memory`
+- `im-stuck`
+- `incident-triage`
+- `portfolio-review`
+- `resume-from-state`
+- `state-reconcile`
+- `sync-task-state`
+- `task-init`
+- `task-init-fleet`
+- `task-workspace`
+- `what-next`
+- `workflow-guide`
 
 ### Prompt tooling
 - `prompt-shape`
 
----
-
 ## Command roles
 
-Compact routing index with Role + Next for each of the <!-- count:commands -->98<!-- /count --> commands. For full per-command detail (distinctness rules, guard rails, multi-repo hints, edge-case routing), load `wos/command-roles.md`.
-
-### project-bootstrap
-Role: zero-state entry for a new project; creates `projects/<client>__<project>/` and project-level memory (`PROJECT_CHARTER.md`, `REFERENCES.md`).
-Next: `task-init`, `capture-references`.
-
-### task-init
-Role: mandatory start of every task; creates task folder and required base files; seeds from `PROJECT_CHARTER.md` when present.
-Next: `impact-analysis`.
-
-### task-workspace
-Role: opt-in, git-gated provisioning of a durable per-task git worktree and `task/<task-slug>` branch (ADR-0074); records the `## Workspace` section in `SOURCE_OF_TRUTH.md`; runs standalone to retrofit an in-flight task. Distinct from `implement-fleet` slice worktrees; teardown is `task-close`.
-Next: `impact-analysis` (or the task's discovery step).
-
-### task-init-fleet
-Role: orchestrator-workers variant of `task-init` per ADR-0034 (J.8 PILOT). Opus orchestrator decomposes a multi-stream brief into N >= 3 independent sub-tasks; dispatches N Sonnet workers; each creates one task folder; orchestrator merges INITIATIVE_INDEX.md. Use when the brief contains N >= 3 logically independent work streams (multi-repo migrations, parallel feature kickoffs).
-Next: per-sub-task `impact-analysis` or per declared complexity tier; overall `where-we-at`.
-
-### code-locate
-Role: read-only code search returning up to 10 candidate paths with `HIGH` / `MEDIUM` / `LOW` confidence and explicit search trail.
-Next: `impact-analysis`, `targeted-questions`, `incident-triage`.
-
-### code-context-map
-Role: opt-in; generates a ranked, token-budgeted, layered Markdown structural map (imports, signatures, invoke edges, typed db/http/queue boundaries), or a seed-anchored import chain from one file (`chain:<seed-file>`, depth via `max-hops` or `all`, cycle-guarded), into a gitignored folder inside the target repo; optional self-contained `MAP.html` for humans; regenerate-on-invoke; ripgrep by default with parser augmentation only if already present, no embeddings; single-pass by default with a consent-gated fleet past a context-window threshold. A grep seed, not an authoritative index (ADR-0027, ADR-0057).
-Next: `impact-analysis`, `code-locate`, `what-next`.
-
-### impact-analysis
-Role: bounded technical understanding and blast-radius assessment; per-repo subsections when multi-repo.
-Next: `invariants-and-non-goals`, `targeted-questions`, `decision-interview`, `implementation-plan`.
-
-### invariants-and-non-goals
-Role: define what must not change; lock boundaries before planning or implementation.
-Next: `targeted-questions`, `decision-interview`, `implementation-plan`.
-
-### targeted-questions
-Role: ask the minimum factual questions needed to proceed safely.
-Next: `decision-interview`, `implementation-plan`, `resolve-contract-gaps`.
-
-### decision-interview
-Role: ask the minimum decision-level questions that affect behavior, data, or rollout safety.
-Next: `resolve-contract-gaps`, `implementation-plan`.
-
-### problem-framing
-Role: optional pre-task intake (Phase 0.5); socratic one-question-at-a-time framing that questions whether the objective is the right problem and writes a task-level BRIEF.md.
-Next: `task-init` (or `project-bootstrap` when the project is not yet bootstrapped).
-
-### db-context-supabase
-Role: opt-in Supabase schema snapshot via MCP; creates/regenerates `DB_CONTEXT.md`; read-only introspection.
-Next: prior step's command; defaults to `impact-analysis` or `implementation-plan`.
-
-### db-context-postgres
-Role: opt-in generic Postgres schema snapshot via `psql`/`pg_dump` (GCP Cloud SQL, GKE Autopilot, self-hosted, RDS); creates/regenerates `DB_CONTEXT.md` with tables, indexes, FKs, RLS policies (optional), extensions, server version; read-only introspection only. Distinct from `db-context-supabase` (which uses Supabase MCP); use this when target is non-Supabase Postgres.
-Next: prior step's command; defaults to `impact-analysis` or `implementation-plan`.
-
-### resolve-contract-gaps
-Role: turn ambiguity into canonical implementation-safe decisions.
-Next: `contract-signoff`, `implementation-plan`.
-
-### contract-signoff
-Role: harden wording and remove interpretation risk from approved decisions.
-Next: `implementation-plan`.
-
-### direction-adjust
-Role: record a mid-task course correction from the user's own work (not external review) as a numbered `D-N` entry in `DECISIONS.md`.
-Next: `implement-approved-slice`, `implementation-plan`, `state-reconcile`, `decision-interview`.
-
-### implementation-plan
-Role: define safe phases or slices before any implementation; assign **work complexity** per slice; emit per-slice `Scope` + `Depends-on` and an `## Execution waves` section.
-Next: `approve-plan` (default lock step when the plan is complete with no clarification markers), `test-strategy`, `sync-task-state`. Execution (`implement-fleet` / `implement-approved-slice`) is reached through the approval gate, routed waves-aware per ADR-0042.
-
-### test-strategy
-Role: define the smallest high-signal test plan.
-Next: `sync-task-state`, `implement-approved-slice`.
-
-### sync-task-state
-Role: update operational memory after meaningful progress or decision changes; keep work complexity aligned. Incremental, append-only, never lossy.
-Next: depends on the new state.
-
-### compact-task-memory
-Role: lossy compaction of `TASK_STATE.md` when task memory has grown beyond a useful working size; preserves canonical decisions and recommended next step verbatim while dropping stale facts, resolved questions, and mitigated risks. Writes a `## Compaction history` audit entry. Reversible only via git. Distinct from `sync-task-state` (incremental) and `state-reconcile` (drift repair, no shrinking).
-Next: `sync-task-state`, `resume-from-state`, `what-next`; or the next planned slice.
-
-### approve-proposed
-Role: atomically persist every file marked `PROPOSED` in the most recent prior assistant turn's `### Artifact changes` block. Single-command batch-persist idiom that closes the two-step latency in ADR-0001. Agent mode (writes files by definition). Locked five-line recap (Persisted / Skipped already current / Skipped incomplete inline / Skipped path outside scope / Skipped no PROPOSED marker). Conflict-with-locked-decision rollback (FAILs the batch if any proposal contradicts `TASK_STATE.md ## Canonical decisions`). Three explicit no-op cases. Does NOT replace ADR-0001; users can still re-run source commands in Agent mode or copy-paste manually.
-Next: `sync-task-state`, `where-we-at`, or whichever command produced the original proposals.
-
-### approve-plan
-Role: atomically lock IMPLEMENTATION_PLAN.md as the approved execution baseline. Symmetric counterpart to approve-proposed but plan-specific (not for arbitrary PROPOSED artifacts). Refuses with NO_OP_TRACE when the plan has `[NEEDS CLARIFICATION:]` markers, when it was not last touched by implementation-plan / self-critique-and-revise, or when already approved. Appends `## Approval log` entry and stamps TASK_STATE.md. Emits the execution handoff waves-aware per ADR-0042.
-Next: `implement-fleet` when the first remaining wave has size 2 or more with `Scope` and `Depends-on` declared; otherwise `implement-approved-slice` for the first slice.
-
-### state-reconcile
-Role: cross-check `TASK_STATE.md` against other task artifacts; propose minimal patches when drift is material. Also runs an opt-in read-only memory-lint mode (ADR-0053) that reports memory-hygiene issues (dead relative cross-links, orphaned `SLICES/` files, stale facts) and writes nothing, backed by `scripts/memory-lint.sh` for the deterministic checks.
-Next: `sync-task-state`, `what-next`, `resume-from-state`; upstream contract/plan commands when drift is `BLOCKING`.
-
-### implement-approved-slice
-Role: canonical single-slice execution path and the fleet fallback; minimal, bounded implementation of a single approved slice.
-Next: waves-aware and terminal-safe per ADR-0042 -- `implement-fleet` when remaining `## Execution waves` show a wave of size 2 or more with `Scope` + `Depends-on`; `implement-approved-slice` for the next sequential slice; `sync-task-state` for the LOW/MEDIUM inline-close path; `slice-closure` (HIGH or unverifiable inline) or `review-hard`; `where-we-at` or `task-close` when this was the last slice.
-
-### implement-fleet
-Role: orchestrator-workers variant of `implement-approved-slice` per ADR-0041 (PILOT). Computes parallelizable waves from `IMPLEMENTATION_PLAN.md` `Scope` + `Depends-on`, validates file-scope disjointness, runs one worktree-isolated worker per slice per wave, and gates each wave on an integrated build + typecheck + test. Use when the slice DAG has a wave of size >= 2; falls back to `implement-approved-slice` when the DAG is a chain. When the active task is worktree-isolated (a `## Workspace` section per ADR-0074), slice worktrees branch off the task branch, not the repo base, so the two worktree layers stay consistent (D-3).
-Next: `slice-closure`, `pr-package`, `implement-approved-slice` (for held or failed slices).
-
-### implement-slice-complement
-Role: bounded **micro-deltas** after slice work (polish, small fixes) still inside the same slice intent.
-Next: `slice-closure`, `sync-task-state`, `review-hard`, `implement-approved-slice`.
-
-### slice-closure
-Role: determine whether the current slice is actually ready to close; for single-slice tasks may route directly to delivery.
-Next: `sync-task-state`, next slice, `pr-package`, `where-we-at`, `task-close` (when the whole task is ending).
-
-### task-close
-Role: terminal task lifecycle transition; symmetric counterpart to `task-init`. Verifies the Fhorja done-conditions, sets `TASK_STATE.md` final, and moves the task folder `active/` -> `archive/`. Distinct from `slice-closure` (slice scope) and `where-we-at` (assessment only); the only official way to close a whole task.
-Next: `delivery-asset`, `pr-package`, `task-init` (for a spun-off follow-up), or none.
-
-### harvest-session-learnings
-Role: on-demand, session-wide retrospective sweep; the produce-side of ADR-0017. Reads the session and task artifacts, judges what generalizes, and appends anchored, de-duplicated entries to the task's `LEARNINGS.md` (append-only; never edits history). Distinct from `capture-observation` (single verbatim note), `slice-closure` (per-slice inline learnings), and `task-close` (terminal move).
-Next: `slice-closure`, `task-close`, `sync-task-state`, or the prior in-progress command.
-
-### review-hard
-Role: focused pre-PR engineering risk check; not a replacement for external review systems.
-Next: `slice-closure`, `repo-consistency-sweep`, `where-we-at`, `pr-package`, `verify-against-rubric` (mandatory on a zero-finding verdict over a product-code diff, per ADR-0145).
-
-### repo-consistency-sweep
-Role: proactive defect-class detection against a curated bug-class library; handles convention drift, ordering bugs, type-safety gaps, and CWE-grounded patterns before PR packaging. Distinct from `review-hard` (which does design/correctness/safety risk) and `pr-feedback-ingest` (which consumes external feedback after PR open).
-Next: `pr-package`, `implement-slice-complement` (if P0 finding), `apply-sweep-triage` (for triage persistence).
-
-### apply-sweep-triage
-Role: persist user triage decisions (apply, decline, discuss) from a SWEEP snapshot into project-level `REVIEW_PREFERENCES.md` so future sweeps suppress declined findings.
-Next: `pr-package`, `repo-consistency-sweep` (re-run after fixes).
-
-### security-review
-Role: dedicated security review covering threat modeling, OWASP ASVS L1 checklist, auth/authz flow tracing, and operational security reminders. Distinct from `review-hard` (general risk) and `repo-consistency-sweep` (pattern matching). Grounded in OWASP ASVS 5.0 (17 chapters, 350 requirements at L1).
-Next: `implement-slice-complement` (if P0 security finding), `pr-package`, `repo-consistency-sweep`.
-
-### skill-vet
-Role: read-only safety inspection of a third-party agent skill or plugin before install; reads every file (not just SKILL.md), compares declared vs actual behavior, scans for exfiltration, secret access, out-of-directory and agent-config writes, shell execution, and hidden Unicode, and returns INSTALL / SANDBOX / DECLINE for a human to approve (ADR-0046). Distinct from `security-review` (own-code attack surface) and `repo-consistency-sweep` (first-party patterns).
-Next: `capture-references` (if the source is a URL not yet captured), then human approval of the verdict.
-
-### mcp-server-vet
-Role: read-only safety inspection of a third-party MCP server before it is added to a config or trusted; enumerates the config entry and declared tool surface, compares declared vs actual, scans for tool-description poisoning, over-broad or undeclared scopes, egress and credential access, agent-config writes, shell execution, and hidden Unicode, and returns ADD / SANDBOX / DECLINE for a human to approve (ADR-0070). Distinct from `skill-vet` (third-party skill or plugin directories) and `security-review` (own-code attack surface).
-Next: `capture-references` (if the source is a URL not yet captured), then human approval of the verdict.
-
-### self-critique-and-revise
-Role: evaluator-optimizer for draft artifacts (IMPLEMENTATION_PLAN.md, SLICES/*.md, PR_PACKAGE.md); runs a locked per-artifact-type rubric and emits both a critique and a revised draft. Distinct from `review-hard` (judges; no revision) and `direction-adjust` (records corrections; no artifact revision).
-Next: artifact's downstream consumer (`implement-approved-slice` after revising a slice; `pr-package` after revising PR_PACKAGE.md; `decision-interview` if the critique surfaced a missing decision).
-
-### verify-against-rubric
-Role: spawn a stateless sub-agent (Claude Code Task tool or equivalent) with ONLY the artifact + locked rubric (no TASK_STATE.md, no DECISIONS.md, no prior history). Returns structured per-criterion verdict + overall classification (satisfied / needs_revision / failed). Distinct from `self-critique-and-revise` (same-context, in-thread) and `review-hard` (general risk review). Per ADR-0033; Anthropic Outcomes pattern (2026-05-06; +10pp success vs same-context critique). Persists to VERIFICATION_LOG.md.
-Next: `pr-package` (on satisfied), `implement-slice-complement` (on needs_revision), `direction-adjust` or `decision-interview` (on failed).
-
-### verify-against-rubric-fleet
-Role: orchestrator-workers generalization of `verify-against-rubric` per ADR-0034 (J.10 PILOT). Sonnet orchestrator dispatches N >= 4 stateless Sonnet workers in parallel; each receives ONE artifact + the SAME locked rubric (no sibling artifacts, no shared context). Orchestrator merges per-artifact verdicts into one VERIFICATION_LOG.md cohort entry with aggregate counts AND failure clustering (criteria failing >= 50% are SYSTEMIC -> likely rubric/spec issue, not per-artifact). Closes same-context bias at cohort scale.
-Next: `decision-interview` on rubric (when SYSTEMIC clusters present), `direction-adjust` on spec (when SYSTEMIC + upstream), `implement-slice-complement` per artifact (LOCALIZED).
-
-### where-we-at
-Role: macro checkpoint against the approved plan; broader than slice closure; for multi-slice or longer tasks.
-Next: `what-next`, `implement-approved-slice`, `implement-slice-complement`, `pr-package`.
-
-### autonomous-readiness
-Role: boot gate in front of `autonomous-run`; runs the shared definition-completeness reader over the project's own artifacts and emits a per-criterion ledger with one verdict, BOOT or NOT-READY, naming every missing item; returns NOT-READY when a declared runtime surface has no evidence adapter; reports and routes, never answering a criterion for the operator, and a BOOT verdict never substitutes for plan approval.
-Next: `autonomous-run` (on BOOT), `decision-interview`, `implementation-plan`, `approve-plan` (on NOT-READY, per the gap named).
-
-### autonomous-run
-Role: controller for the autonomous delivery track (ADR-0044); drives an approved waved plan through bounded execution behind two human gates and a runtime governor; reuses `implement-approved-slice` as single writer; emits PROPOSED diffs only and never merges.
-Next: `approve-proposed`, `review-hard`, `implement-approved-slice` (for an escalated slice the human approves).
-
-### resume-from-state
-Role: reconstruct task truth after context loss or new session start.
-Next: `what-next`, command appropriate to the resumed phase.
-
-### what-next
-Role: fast routing answer; short and operational.
-Next: depends on phase.
-
-### portfolio-review
-Role: read-only cross-task board across every active task in all projects; runs `scripts/portfolio-review.sh` to classify each task (done-unclosed / blocked / my-move / stale / in-flight) and recommends one action per row. Portfolio-level (no single active task); never writes. Distinct from `what-next` (routes one active task) and `where-we-at` (deep checkpoint of one task).
-Next: per row, the recommended action (`task-close` / `where-we-at` / `approve-plan` / the unblocking command).
-
-### workflow-guide
-Role: pedagogical explanation of current phase and next 2-3 steps; for users learning the workflow.
-Next: depends on phase.
-
-### im-stuck
-Role: recovery from loops, false progress, stale state, or phase confusion.
-Next: depends on diagnosis.
-
-### incident-triage
-Role: triage a concrete observed technical failure; classify (`REGRESSION` / `NEW_BUG` / `CONFIG` / `EXTERNAL_DEPENDENCY` / `REPRODUCIBILITY` / `DIAGNOSTIC_INSUFFICIENT`) and recommend fix size (`HOTFIX` / `SLICE` / `INVESTIGATION` / `ESCALATE`).
-Next: `branch-commit` + `pr-package` (HOTFIX); `implement-approved-slice` or `implementation-plan` (SLICE); `impact-analysis` or `targeted-questions` (INVESTIGATION); `capture-observation` + `team-update` (ESCALATE); `decision-interview` on locked-decision conflict.
-
-### capture-references
-Role: append external references to project-level `REFERENCES.md` with freshness metadata; deduplicates by URL.
-Next: prior command; `task-init` after fresh bootstrap; `what-next` when uncertain.
-
-### capture-observation
-Role: lean append of a single observation, question, hypothesis, or concern to `TASK_STATE.md` without disrupting in-progress work.
-Next: prior command; `what-next` fallback.
-
-### autonomous-board
-Role: read-only board-of-record view for an `autonomous-run` task (ADR-0044 D7); maps slices and waves to to-do / in-progress / escalated / proposed / done from the Fhorja artifacts only; no external tracker, no writes.
-Next: `autonomous-run`, `approve-proposed`, `what-next`.
-
-### pr-package
-Role: prepare delivery artifacts based on the real diff vs an explicit base branch; per-repo when multi-repo.
-Next: depends on review outcome.
-
-### pr-feedback-ingest
-Role: consolidate PR review signals (Greptile, CI, bots, humans) into a traceable matrix aligned with `DECISIONS.md`, `IMPLEMENTATION_PLAN.md`, `TASK_STATE.md`.
-Next: `implement-approved-slice`, `implement-slice-complement`, `implementation-plan`, `sync-task-state`, `state-reconcile`, `post-review-pivot`, `decision-interview`, `pr-package`.
-
-### post-review-pivot
-Role: absorb PR or team feedback that changes direction while keeping the same task thread; produce pivot digest.
-Next: `targeted-questions`, `decision-interview`, `resolve-contract-gaps`, `contract-signoff`, `implementation-plan`, `test-strategy`, `implement-approved-slice`, `state-reconcile`, `pr-package`.
-
-### branch-commit
-Role: lightweight naming support grounded in the real `git diff`; produces branch name + ≤3-line commit message.
-Next: `pr-package`.
-
-### team-update
-Role: short status communication for any team channel (Slack, Discord, Teams, email, PR comment, standup); channel-portable.
-Next: depends on context.
-
-### delivery-asset
-Role: outward-facing artifact (executive summary, release note, slack/email post, demo script, blog draft) per audience and per format; grounded in `TASK_STATE.md` / `DECISIONS.md` / `IMPLEMENTATION_PLAN.md` / `PR_PACKAGE.md`; never leaks workflow paths into the public surface.
-Next: `team-update`, `pr-package`, or `state-reconcile` (when grounding revealed drift).
-
-### external-research
-Role: synthesize multiple external sources into a task-scoped `EXTERNAL_RESEARCH.md`; each source goes through `capture-references` first; every claim cites a `REFERENCES.md` entry; the model's recommendation is visually separated from the source-grounded analysis.
-Next: `decision-interview` (when the synthesis surfaced new decision questions) or `implementation-plan` (when the synthesis closed the question and the path is clear).
-
-### external-research-fleet
-Role: orchestrator-workers variant of `external-research` per ADR-0034 (J.9 PILOT). Promotes inline Mode C delegation (ADR-0032) to a first-class orchestrator. Sonnet orchestrator dispatches N >= 3 Sonnet workers (one per angle or source-group); merges into one EXTERNAL_RESEARCH.md with explicit ADR-0018 reconciliation (REINFORCING / CONTRADICTING / DIFFERENT-FRAMING) and one consolidated recommendation.
-Next: `decision-interview` (CONTRADICTING groups surfaced) or `implementation-plan` (path concluded).
-
-### stack-recommend
-Role: research and recommend a technology stack for the active project; consults official docs for latest stable versions, quality articles, and AAA company practices; accepts user-provided reference links; produces `STACK_RECOMMENDATION.md` with versioned picks, compatibility matrix, trade-offs, and confidence per layer; captures sources into `REFERENCES.md`.
-Next: `implementation-plan` (stack decided), `decision-interview` (trade-offs need user input), `project-bootstrap` (feeding a new project initialization), `feature-library-scout` (per-feature library choices below the chosen layers, ADR-0045).
-
-### stack-currency-check
-Role: verify the patterns about to be used for a given framework+version are current per official docs; caches the result as project-level `CURRENT_PATTERNS.md`; prevents the "gold-standard audit" anti-pattern where training-data defaults ship outdated patterns. Distinct from `stack-recommend` (choosing the stack) and `capture-references` (arbitrary URL fetch).
-Next: `implementation-plan`, `impact-analysis`, `decision-interview`.
-
-### feature-library-scout
-Role: discover and vet the community-validated best-in-class library for each per-feature problem in the product (lists, camera, forms, keyboard, sheets), ranked by adoption signal (registry downloads, dependents, last release, stars and trend, maintenance, framework/platform fit) relative to the stack's ecosystem, across five angles (internet, product repo, package registry, AAA-company practices, reference repos); writes `FEATURE_LIBRARIES.md`; funnels sources into `REFERENCES.md`. Stack-agnostic (any registry: npm, PyPI, crates.io, Go, Maven). One granularity below `stack-recommend` (layers); recommendations are optional guidance (ADR-0045).
-Next: `decision-interview` (a pick needs the maintainer's ruling), `implementation-plan` (picks clear), `feature-library-scout-fleet` (deep multi-problem sweep).
-
-### feature-library-scout-fleet
-Role: orchestrator-workers variant of `feature-library-scout` per ADR-0038 and ADR-0045. Decomposes the product feature set into N >= 3 feature problems; the orchestrator (authorized fetcher, sole writer) captures adoption signals into `REFERENCES.md`, then dispatches one Sonnet worker per problem; each worker ranks candidates by adoption signal grounded in captured sources and returns a typed `StructuredOutput` payload; the orchestrator merges into one `FEATURE_LIBRARIES.md` and runs the orphan-scan gate. Workers never fetch or write.
-Next: `decision-interview` (a pick needs the maintainer's ruling) or `implementation-plan` (picks clear).
-
-### api-contract-review
-Role: pre-implementation review of an API contract (endpoints, request/response shapes, error codes, auth model) for naming consistency, versioning, pagination, idempotency, and alignment with existing endpoints. Distinct from `review-hard` (post-implementation risk) and `repo-consistency-sweep` (pattern matching on written code).
-Next: `implementation-plan`, `decision-interview`, `impact-analysis`.
-
-### graphql-contract-review
-Role: pre-implementation review of a GraphQL schema and BFF contract against a GraphQL-specific checklist (schema shape and nullability, errors-as-data unions, N+1 and DataLoader, query cost and depth, cursor connections, federation entity ownership, breaking-change gate, BFF token posture and thinness, partial-failure degradation). Distinct from `api-contract-review` (REST and HTTP), `review-hard` (post-implementation risk), and `repo-consistency-sweep` (pattern matching on written code).
-Next: `implementation-plan`, `decision-interview`, `impact-analysis`.
-
-### frontend-architecture-review
-Role: design-time review of a frontend architecture at scale with a micro-frontend adopt/don't-adopt gate first (default: prefer a modular monolith). Checks team-and-domain boundaries, independent deployability, governed shared dependencies, design-system sharing, runtime isolation, cross-app communication, routing and composition tier, rendering strategy, state at scale, a performance budget across the composition, and governance and failure handling. Distinct from `frontend-system-design` (designs one system) and the contract reviews.
-Next: `implementation-plan`, `decision-interview`, `impact-analysis`.
-
-### frontend-system-design
-Role: produce a staff-grade frontend system-design RFC (12 sections: problem, requirements, architecture, data model, API and interface contract, rendering and delivery, state management, performance, accessibility, security, rollout, trade-offs) for the active task, covering web and mobile; a default RFC mode plus an `--interview` mode (RADIO-aligned). Capability-routed, not React-specific. Distinct from `problem-framing` (frames the problem pre-task), `implementation-plan` (slices the build), and `api-contract-review` (reviews one API contract).
-Next: `implementation-plan`, `decision-interview`, `approve-plan`.
-
-### backend-system-design
-Role: produce a staff-grade backend system-design RFC (12 sections: problem, requirements, architecture, data model and storage, API contract, caching, scaling and bottlenecks, reliability and SLOs, security, observability, rollout and migration, trade-offs) for a new service, endpoint, or backend feature. Capability-routed and scale-honest (no distributed-systems machinery without a stated requirement). The backend sibling of `frontend-system-design`; composes with `slo-define`, `performance-budget`, `api-contract-review`, `migration-safety-steward`, and `release-plan`. Distinct from `impact-analysis` (blast radius of an existing change) and `api-contract-review` (one API contract in isolation).
-Next: `implementation-plan`, `decision-interview`, `approve-plan`.
-
-### godot-scene-plan
-Role: plan the Godot scene and node structure for a 2D game feature before any GDScript: the scene tree and node types, autoloads (singletons), signal wiring, the input map, and the resources and sub-scenes to create. Produces `GODOT_SCENE_PLAN.md`. Capability-routed and MCP-agnostic (names no server). Part of the Godot 2D-mobile game-dev cluster (ADR-0069). Distinct from `problem-framing` game-design mode (frames the game), `implementation-plan` (slices the build), `impact-analysis` (blast radius), and `godot-runtime-verify` (verifies a running scene).
-Next: `implementation-plan`, `decision-interview`, `targeted-questions`.
-
-### unity-scene-plan
-
-Role: plan the Unity GameObject hierarchy and component architecture for a 3D feature before any C# is written: the scene and prefab structure, what each MonoBehaviour owns, the input model, and, for a networked feature, the authority declarations. Produces `UNITY_SCENE_PLAN.md`. A 3D plan SHALL declare its render pipeline and a networked plan SHALL declare its topology, or the plan is incomplete. Capability-routed and MCP-agnostic; names the steps no vetted MCP surface can apply so the build does not stall silently (ADR-0132). Distinct from `godot-scene-plan` (a different engine with no shared vocabulary; ADR-0069 D-4 forbids merging them), `implementation-plan` (slices already-decided architecture), and `app-runtime-verify` (verifies a built app at runtime).
-### godot-runtime-verify
-Role: verify a built Godot 2D scene at runtime; run it (press-play or headless), read the captured debugger output, classify runtime errors against a Godot taxonomy, and decide a PASS/FAIL runtime gate for the slice's acceptance behavior. The run's real output IS the Layer-1 runtime evidence (ADR-0048); MCP-agnostic about the runner; verifies and routes fixes, never writes code. Part of the Godot 2D-mobile cluster (ADR-0069). Distinct from `godot-scene-plan` (plans the scene), `implement-approved-slice` / `implement-slice-complement` (write or fix code), and `incident-triage` (sizes a fix from a failure).
-Next: `slice-closure` / `review-hard` (on PASS), `incident-triage` / `implement-slice-complement` (on FAIL).
-
-### app-runtime-verify
-Role: verify a built mobile/app runtime; run it (device, emulator, or headless), read the captured runtime output (native logcat / device log and/or the Metro/JS console), classify against a per-stack taxonomy (RN/Expo first adapter: NATIVE_CRASH, NAVIGATION_TEARDOWN, JS_ERROR, and more), and decide a PASS/FAIL runtime gate for the slice's acceptance behavior. The run's real output IS the Layer-1 runtime evidence (ADR-0048); capability-routed and MCP-agnostic; verifies and routes fixes, never writes code. Reads `wos/rn-expo-runtime-evidence.md` for the capture path (ADR-0087). Distinct from `godot-runtime-verify` (Godot scenes), `implement-approved-slice` / `implement-slice-complement` (write or fix code), and `incident-triage` (sizes a fix from a failure).
-Next: `slice-closure` / `review-hard` (on PASS), `incident-triage` / `implement-slice-complement` (on FAIL).
-
-### web-runtime-verify
-Role: verify a built web or static frontend at runtime; serve the build on an ephemeral free port (mechanics per `wos/frontend-preview-and-experience-verdict.md`, ADR-0099), assert page identity FIRST with automatic re-bind recovery on a collision or stale server, run the web battery (overflow 320 to 2560, keyboard and focus, console errors, Lighthouse and axe with honest n/a when absent), classify against the web taxonomy (PAGE_IDENTITY_MISMATCH, SERVE_FAILURE, CONSOLE_ERROR, OVERFLOW, FOCUS_DEFECT, A11Y_VIOLATION, PERF_MEASUREMENT, CLEAN), and decide a PASS/FAIL/BLOCKED gate. The run's real output IS the Layer-1 evidence (ADR-0048, ADR-0112); verifies and routes fixes, never writes code. Distinct from `godot-runtime-verify` (Godot scenes), `app-runtime-verify` (mobile), the ADR-0091 experience verdict (human, over the same served build), and `performance-budget` (numeric thresholds).
-Next: `slice-closure` / `review-hard` (on PASS), `incident-triage` / `implement-slice-complement` / `a11y-audit` (on FAIL).
-
-### api-runtime-verify
-Role: verify an implemented backend HTTP surface at runtime; per route record the request actually made, the HTTP status, the response content-type and the observed body shape, assert each response against the slice's acceptance behavior, classify the findings, and decide a PASS/FAIL/BLOCKED gate. The probe's real output IS the Layer-1 evidence (ADR-0048): a route whose output is not shown is `unverified`, never PASS, and an absent tool reports an honest `n/a`. Capability-routed (no pinned HTTP client, no pinned MCP server); verifies and routes fixes, never writes code. Distinct from `api-contract-review` and `graphql-contract-review` (design-time contract review, before implementation) and from the browser, app, and Godot verify gates.
-Next: `slice-closure` / `review-hard` (on PASS), `incident-triage` / `implement-slice-complement` / `security-review` / `api-contract-review` (on FAIL).
-
-### design-bootstrap
-Role: zero-state entry for design system work; reads Figma via MCP, extracts tokens, scaffolds foundation docs, creates component/screen inventories, bootstraps directory structure and OPEN_QUESTIONS.md.
-Next: `component-spec`, `screen-spec`.
-
-### component-spec
-Role: generates a 15-section component spec from a Figma component using MCP tools (anatomy, variants, sizes, states, a11y, motion, haptics, platform, security, performance, API, usage, anti-patterns).
-Next: next component from inventory, `screen-spec`, `journey-map`.
-
-### screen-spec
-Role: generates a 12-section screen spec from a Figma frame (layout sketch, components used, spacing, data deps, copy, a11y, interactions, error states).
-Next: next screen from inventory, `journey-map`.
-
-### image-to-spec
-Role: generates a spec from a raw image (no Figma source) in `--component` (COMPONENT_SPEC-shaped) or `--screen` (SCREEN_SPEC-shaped) mode, auto-detecting when no flag is given; marks every observation `(proposed)` since there is no source of truth. Distinct from `component-spec` / `screen-spec` (Figma-sourced) and from `generate_figma_design` (image into Figma).
-Next: `component-spec` / `screen-spec` (upgrade against Figma when available), `design-spec-review`, `implementation-plan`.
-
-### journey-map
-Role: documents a user journey across 3+ screens (outcome, flow diagram, critical states, a11y, security, performance).
-Next: `pattern-doc`, `implementation-plan`.
-
-### pattern-doc
-Role: documents a reusable UX pattern (empty state, error handling, confirmation, loading skeleton) applicable across projects.
-Next: `implementation-plan`, next pattern.
-
-### design-spec-review
-Role: verifies implementation against spec doc (10 checks: variants, sizes, states, a11y, tokens, motion, API, story, anti-patterns, platform). Distinct from `review-hard` (general risk) and `repo-consistency-sweep` (pattern matching).
-Next: `implement-slice-complement` (if findings), `pr-package`.
-
-### foundation-audit
-Role: compares code tokens vs foundation docs vs optionally Figma variables; detects undocumented tokens, unimplemented tokens, and value drift.
-Next: `implement-slice-complement` (to fix drift), `pr-package`.
-
-### extract-foundations-from-screens
-Role: extracts canonical foundations docs (`color.md`, `typography.md`, `spacing.md`, `radii.md`) from a batch of existing SCREEN_SPECs. Unions raw values, buckets into role tokens, routes conflicts to a `## Review queue` instead of silently resolving. Idempotent: re-runs preserve locked role mappings and only add new tokens. Distinct from `design-bootstrap` (which seeds foundations from Figma); use this when SCREEN_SPECs already carry raw values and you need cross-screen convergence.
-Next: `foundation-audit` (verify extraction vs code), `component-spec` (start consuming role tokens).
-
-### atom-audit
-Role: tier-scoped audit of all atoms vs `COMPONENT_GUIDELINES.md` rules (memo, callbacks, inline styles, press anim, touch target, a11y, reduced motion). Produces `ATOM_AUDIT.md` table; fixes flow through normal slice pipeline. Single-agent variant.
-Next: `task-init` (per fix grouping), `pr-package`.
-
-### atom-audit-fleet
-Role: orchestrator-workers variant of `atom-audit` per ADR-0034 (J.6 PILOT). Sonnet orchestrator dispatches N Haiku workers (3-5 atoms each); merges rows into ATOM_AUDIT.md table. Use when atom count >= 6. Eval baseline for K.7.
-Next: `task-init` (per fix grouping), `pr-package`.
-
-### screen-spec-fleet
-Role: orchestrator-workers variant of `screen-spec` per ADR-0034 (J.7 PILOT, Bruno's primary scenario). Sonnet orchestrator dispatches N Sonnet workers (1 screen each) in parallel; each runs the 12-step screen-spec flow from a Figma frame; merges SCREEN_MAP.md rows + new routes. Use when screen count >= 6, one persona per run.
-Next: `journey-map` (if fleet covered a complete journey), `task-init` (per screen group for implementation).
-
-### inventory-snapshot
-Role: snapshot the upstream Figma component library into `docs/research/_inventory/figma_components.md`; classify by tier; check WOS-UI traceability (spec/code/story); compute delta vs previous snapshot; refresh priority queue.
-Next: `component-spec` (on the #1 priority entry).
-
-### prompt-shape
-Role: shape the exact next prompt when precision or handoff quality matters.
-Next: target command.
-
-### jtbd-switch-interviewer
-Role: K.8 CUSTOM persona (L3 per ADR-0036 Path B; owns its declared section/report file, PROPOSED for non-owned substrate). Senior JTBD switch-interview researcher (Christensen / Moesta lineage) extracting the four forces (push, pull, anxiety, habit) and the trigger -> struggle -> switch timeline from real users. Replaces internal motivation assumptions with verbatim quote evidence. Owns its report file directly at L3; PROPOSED blocks for non-owned substrate; routes those via Pattern A handoff per `wos/substrate-peers.md`.
-Next: `decision-interview` (promote D-N drafts), `capture-observation`, `implementation-plan` (when risks surfaced).
-
-### ai-feature-eval-harness
-Role: design a dataset-backed evaluation plan for a product AI feature (measurable success criteria, held-out labeled set, per-criterion grading code-then-LLM, pass threshold); produces `AI_EVAL_PLAN.md`. Code-graded tier composes with ADR-0048 (Layer-1 evidence); distinct from test-strategy (deterministic tests) and verify-against-rubric (internal artifact judging).
-Next: `test-strategy` (deterministic half), `implementation-plan` (slice the harness build), `decision-interview` (lock the quality target), `implement-approved-slice`.
-
-### slo-define
-Role: K.8 CUSTOM persona (L1 at launch per `wos/maturity-ladder.md`; produces a report file, PROPOSED for non-owned substrate). Senior reliability engineer defining a service's reliability contract (SLIs, SLO target + window, error-budget math, error-budget policy); produces `SLO_SPEC.md`. Cites a baseline/SLA per target or marks PROPOSED-pending-baseline; SKIPs when no observability stack. post-deploy-verifier consumes the SLO threshold; incident-triage uses SLO burn to weight urgency (D-1/D-3).
-Next: `decision-interview` (lock the SLO target), `post-deploy-verifier` (use the SLO in deploy negative checks), `incident-triage` (live budget burn), `implementation-plan` (slice instrumentation).
-
-### postmortem-author
-Role: K.8 CUSTOM persona (L1 at launch per `wos/maturity-ladder.md`; produces a report file, PROPOSED for non-owned substrate). Senior reliability engineer authoring a blameless postmortem for a resolved incident (timeline, contributing causes without fault, impact vs error budget, owned action items); produces `POSTMORTEM.md`. Distinct from incident-triage (live triage + inline `### Learnings`) and slo-define (the contract this measures impact against); incident-triage and task-close route into it for significant incidents.
-Next: `task-init` (a follow-up fix task), `slo-define` (incident exposed a missing SLO), `decision-interview` (a policy action item), `task-close` (closes the incident task).
-
-### release-plan
-Role: design a pre-deploy release/rollout strategy for a change (pattern by risk + infra, exposure ramp, promotion metric + threshold, rollback trigger + mechanism); produces `RELEASE_PLAN.md`. Stack/infra-agnostic; designs the rollout, does not execute it. D-1 boundary: release-plan designs the per-change rollout, post-deploy-verifier consumes the promotion metric + rollback mechanism for the post-deploy watch, the standing-pipeline rollback audit is reserved for the future pipeline-gate-review.
-Next: `post-deploy-verifier` (author the post-deploy checks that consume this plan), `decision-interview` (lock a rollout policy), `pr-package` (deliver), `slo-define` (promotion metric needs an SLO basis).
-
-### a11y-audit
-Role: K.8 CUSTOM persona (L1 at launch per `wos/maturity-ladder.md`; produces a report file, PROPOSED for non-owned substrate). Senior accessibility auditor mapping a UI surface to WCAG 2.2 at a named conformance level (A/AA/AAA); produces `ACCESSIBILITY_AUDIT.md`, a per-criterion ledger splitting machine-checkable rows from a manual-review queue, with severity and concrete remediation. Delegates contrast (1.4.3/1.4.11) to color-contrast-architect and single-component fidelity to design-spec-review.
-Next: `color-contrast-architect` (contrast pending), `design-spec-review` (single-component), `implementation-plan` (slice remediation), `decision-interview` (lock target), `implement-slice-complement` (small fixes).
-
-### performance-budget
-Role: K.8 CUSTOM persona (L1 at launch per `wos/maturity-ladder.md`; produces a report file, PROPOSED for non-owned substrate). Senior performance-budget auditor declaring the numeric budgets a change must hold (Core Web Vitals, latency percentiles, payload/bundle size) and the regression action per metric, before the change ships; produces `PERFORMANCE_BUDGET.md`. Cites a source per threshold or marks PROPOSED-pending-baseline; declares numbers only and routes enforcement to the ADR-0048 gate and post-deploy-verifier.
-Next: `test-strategy` (functional coverage), `post-deploy-verifier` (live signal post-ship), `implementation-plan` (slice optimization), `decision-interview` (lock budget policy), `implement-slice-complement` (small optimizations).
-
-### color-contrast-architect
-Role: K.8 CUSTOM persona (L3 per ADR-0036 Path B; owns its declared section/report file, PROPOSED for non-owned substrate). Senior design-system color contrast architect enforcing WCAG 2.2 AA/AAA per design context (normal text, large text, UI components, focus indicators). Pairwise audit across light/dark themes BEFORE visual choices lock; produces a token-level contrast matrix with concrete remediation. Owns `CONTRAST_AUDIT.md` directly at L3; PROPOSED blocks for non-owned substrate.
-Next: `screen-spec` (audit cleared), `foundation-audit` (multi-token rework), `decision-interview` (contrast policy lock), `targeted-questions` (missing pairs).
-
-### rls-auth-boundary-auditor
-Role: K.8 CUSTOM persona (L3 per ADR-0036 Path B; owns its declared section/report file, PROPOSED for non-owned substrate). Senior Supabase RLS+Auth Boundary Auditor reviewing migrations and policy DDL for tenant isolation gaps BEFORE deploy. Catches USING-without-WITH-CHECK, RLS-without-FORCE, missing policies on join/audit tables, missing tenant predicates, SECURITY DEFINER unsafe functions, unjustified service_role bypass. Produces migration-shaped remediation (concrete CREATE POLICY / ALTER TABLE statements).
-Next: `implementation-plan` (slice remediation), `decision-interview` (policy tradeoffs), `approve-proposed`.
-
-### migration-safety-steward
-Role: K.8 CUSTOM persona (L3 per ADR-0036 Path B; owns its declared section/report file, PROPOSED for non-owned substrate). Senior database migration safety steward auditing DDL for production-unsafe patterns BEFORE the migration is applied. Per-statement verdict table (SAFE / NEEDS-PHASING / UNSAFE) with concrete statement-shaped remediation; biases NEEDS-PHASING when row count or deploy strategy is unknown; flags IRREVERSIBLE operations for explicit user confirmation.
-Next: `implementation-plan` (re-slice into phases), `decision-interview` (IRREVERSIBLE confirm), `approve-proposed`.
-
-### post-deploy-verifier
-Role: K.8 CUSTOM persona (L3 per ADR-0036 Path B; owns its declared section/report file, PROPOSED for non-owned substrate). Senior reliability engineer producing per-slice post-deploy verification plans mapping every acceptance criterion to a concrete live signal (exact log query, scoped dashboard panel, smoke-test walkthrough, feature-flag check, DB invariant query) plus negative checks + rollback trigger checklist with named humans. Distinct from `verify-against-rubric` (locked-rubric verdict on captured artifact); this persona produces the PLAN, not the verdict.
-Next: `verify-against-rubric` (locked rubric authorable), `slice-closure` (apply ## Post-deploy checks), `direction-adjust` (follow-up needed), `approve-proposed`.
-
----
+Per-command Role and Next lives in `wos/command-roles.md`. Load it when routing needs
+command-level intent, distinctness between two candidates, or the next-command edge.
+
+This file keeps no inline copy. The index duplicated data that every command paid for on
+every invocation, and a dispute the command's own description does not settle is exactly the
+case that should open the full file.
 
 ## Default workflow
 
 Navigation note:
 - this is a phase template; command-level intent still comes from `## Command roles`
+- the default path is `task-init` -> `implementation-plan` -> `approve-plan` -> `implement-approved-slice` -> `branch-commit --apply` -> `pr-package --apply` (ADR-0184, ADR-0208, ADR-0233). Phases 2 and 3 run only when a named disqualifier fires, and `task-init` records it on the `Escalations:` line of `## Recommended pipeline`. The last step runs attended where the repository has a configured remote; after the draft pull request opens the chain ends with `Run now: none`, and ready for review and merge are the person's
+- the one-slice route skips Phase 4: for an attended one-sentence change to at most two named files with every decision in the brief and no provisional `P-N`, `task-init` writes the approved slice and hands to `implement-approved-slice`, which runs `check-doc-sync.sh --against HEAD` at its inline close (ADR-0225)
 
 ### Phase 0: initialize the project (only when the project folder does not exist yet)
 0a. `project-bootstrap`
@@ -1345,17 +932,21 @@ Expected result:
 - task folder exists
 - required base files exist
 - initial task state exists
+- in an attended git repository with a configured remote, the task branch exists and `TASK_STATE.md` names it on a `Task branch:` line
+- the decisions `task-init` expects to assume are listed, and the chain continues without waiting for answers
 
 ### Phase 2: understand the task
-2. `impact-analysis`
-3. `invariants-and-non-goals`
+Only when a named disqualifier fires (recorded on `Escalations:`):
+2. `impact-analysis` when the scope needs more than one sentence to state, or the change touches 5 or more files
+3. `invariants-and-non-goals` when the surface is auth, payments, compliance, PII, or multi-tenant isolation
 
 Expected result:
 - blast radius is understood
 - boundaries are explicit
 
 ### Phase 3: remove ambiguity
-4. `targeted-questions` or `decision-interview`
+Only when a named disqualifier fires (recorded on `Escalations:`), or a missing fact blocks the plan:
+4. `decision-interview` when a decision the prompt does not contain is required before the first line of code, or the change spans multiple packages or adds an external service dependency (in an attended chain on a task branch it records a provisional `P-N` and the chain continues); `targeted-questions` when the gap is a fact
 5. `resolve-contract-gaps`
 6. `contract-signoff` if needed
 
@@ -1365,28 +956,30 @@ Expected result:
 
 ### Phase 4: plan safely
 7. `implementation-plan`
-8. `test-strategy` if needed
-9. `sync-task-state` if useful
+8. `approve-plan`, for every plan `implementation-plan` writes: it runs the blinded review itself, and only an ESCALATED exit reaches the user (ADR-0208); in an attended chain on a task branch a missing product decision becomes a provisional `P-N` rather than an ESCALATED exit (ADR-0233)
+9. `test-strategy` when the strict-surface disqualifier fired or the change carries regression risk
+10. `sync-task-state` if useful
 
 Expected result:
-- safe incremental plan exists
+- safe incremental plan exists and is approved
 - validation strategy is known
 - task state is updated when needed
 
 ### Phase 5: execute slices
-10. `implement-fleet` when the approved plan's `## Execution waves` show a remaining wave of size 2 or more with `Scope` and `Depends-on` declared; otherwise `implement-approved-slice` (waves-aware per ADR-0042)
-11. `review-hard` if useful
-12. `slice-closure`
-13. `sync-task-state` if useful
+11. `implement-fleet` when the approved plan's `## Execution waves` show a remaining wave of size 2 or more with `Scope` and `Depends-on` declared; otherwise `implement-approved-slice` (waves-aware per ADR-0042)
+12. `review-hard` when the strict-surface disqualifier fired, otherwise if useful
+13. `slice-closure` when the slice does not close inline
+14. `sync-task-state` if useful
 
-Repeat this loop per slice.
+Repeat this loop per slice. After the last slice, `branch-commit --apply` creates the local commit (ADR-0163). In an attended chain with a configured remote, `pr-package --apply` then pushes the task branch and opens the draft pull request, which closes the default pipeline (ADR-0233); without a remote the local commit closes it.
 
 ### Phase 6: checkpoint or deliver
-14. `where-we-at` only if the task is large enough to justify a macro checkpoint
-15. `repo-consistency-sweep` (optional; proactive defect-class detection before packaging; triage findings with `apply-sweep-triage` if any)
-15b. `security-review` (optional; dedicated security assessment when the task touches auth, PII, public endpoints, or crypto; can run in parallel with step 15)
-16. `pr-package`
-17. `team-update` if useful
+15. `where-we-at` only if the task is large enough to justify a macro checkpoint
+16. `repo-consistency-sweep` (optional; proactive defect-class detection before packaging; triage findings with `apply-sweep-triage` if any)
+16b. `security-review` (optional; dedicated security assessment when the task touches auth, PII, public endpoints, or crypto; can run in parallel with step 16)
+17. `pr-package`; the push and the draft PR happen only through `pr-package --apply` (ADR-0185), which an attended chain runs right after the last commit without waiting (ADR-0233); ready for review and merge stay human
+18. `team-update` if useful
+19. `task-close` once every slice is closed and the work is merged or explicitly waived
 
 Optional when a PR is open and review returns under the same contract: `pr-feedback-ingest`, then repeat Phase 5 / `pr-package` as needed; use `post-review-pivot` when feedback changes direction.
 
@@ -1441,7 +1034,7 @@ Transition checks for 6 phase boundaries (before planning, before implementation
 
 ## Recommended workflows by task shape
 
-Scenario shortcuts for common task types (typical, contract-sensitive, greenfield POC, docs-only, test-only, refactor, incident, resume, delivery, post-review). Command-level authority remains in `## Command roles`. For the full catalog of 14 task shapes with skip rationales, load `wos/workflow-shapes.md`.
+Scenario shortcuts for common task types (typical, contract-sensitive, greenfield POC, docs-only, test-only, refactor, incident, resume, delivery, post-review). Command-level authority remains in `## Command roles`. For the full catalog of <!-- count:task-shapes -->15<!-- /count --> task shapes with skip rationales, load `wos/workflow-shapes.md`.
 
 ---
 
@@ -1453,7 +1046,7 @@ Three tiers (`Lean`, `Balanced`, `Deep`) controlling how verbose each command's 
 
 ## Operating modes
 
-Three per-task postures (`minimal`, `strict`, `teaching`) that change how strictly commands enforce ceremony. Orthogonal to editor mode and output depth. Declared at `task-init` time; recorded in `TASK_STATE.md ## Resume notes`. When undeclared, the workflow uses its standard rules.
+Four per-task postures (`minimal`, `strict`, `teaching`, `assisted`) that change how strictly commands enforce ceremony. Orthogonal to editor mode and output depth. Declared at `task-init` time; recorded in `TASK_STATE.md ## Resume notes`. When undeclared, the workflow uses its standard rules.
 
 For mode definitions (effects, when to use, when NOT to use), declaring/switching mechanics, and the default posture, load `wos/operating-modes.md`.
 
@@ -1480,15 +1073,15 @@ It is optimized for:
 
 ### Drift-prevention discipline (PROPOSED accumulation)
 
-The PROPOSED-by-default write policy (Ask/Plan modes; see ADR-0001) means **artifact proposals can accumulate without ever being persisted to disk** if the user reads the conversation but never re-runs in Agent mode. Three or more consecutive PROPOSED-but-not-applied turns is a smell: `TASK_STATE.md` and the rest of the task-memory artifacts can drift away from the conversation's truth, breaking resumability across sessions.
+Since ADR-0199 a command writes its task-memory files `APPLIED` in every mode, so whole files no longer pile up unpersisted. What can still accumulate is a `<!-- PROPOSED by <command>: ... -->` block a command stages inside a section it does not own, for the owner to promote (ADR-0034). Left unpromoted, those blocks let the section drift from what its owner would write.
 
-Heuristic for the user (no command auto-enforces this; it is a habit):
+Heuristic for the user (no command enforces this; it is a habit):
 
-- After **every 3 to 5 PROPOSED turns** that have not been applied, run `state-reconcile` against the active task folder. The command's job is exactly to surface and patch this kind of drift.
+- When a section carries PROPOSED blocks from more than one command, or the same block has sat through several turns, run the owning command or `approve-proposed` (on request, ADR-0199) to promote or discard them, and `state-reconcile` when the section and the conversation have diverged.
 - After meaningful progress that **was** applied (Agent mode commit, slice closure, decision update), run `sync-task-state` to keep `TASK_STATE.md` aligned. `sync-task-state` is the lighter alternative; `state-reconcile` is for cross-artifact drift detection.
 - Before resuming a task in a new session, run `resume-from-state` first; if the artifacts seem inconsistent, route to `state-reconcile` immediately and only then to `what-next`.
 
-A future tool layer (a Claude Code hook, a Cursor pre-flight skill, etc.) could automate this counter and trigger the reconcile suggestion mechanically. The markdown layer cannot; documenting the discipline is the v0.1.x answer. A session-boundary hook now exists: the session-continuity hook (`scripts/session-continuity-hook.sh`, ADR-0052) nudges `sync-task-state` when `TASK_STATE.md` is stale, though it does not count PROPOSED-but-not-applied turns. See [ROADMAP](./ROADMAP.md) Wave 2 for the auto-trigger entry.
+The session-continuity hook (`scripts/session-continuity-hook.sh`, ADR-0052) nudges `sync-task-state` when `TASK_STATE.md` is stale, though it does not count unpromoted ownership blocks.
 
 ---
 
@@ -1498,7 +1091,7 @@ Use the smallest command that matches the real current need.
 Use the safest editor mode for the current phase.
 Do not move forward just because a next command exists.
 Move forward only when the current phase is genuinely ready to close.
-And when you finish a command, the next step should already be ready to paste.
+And when you finish a command, an attended session is already running the next one, or has stopped for a reason it named (ADR-0186); a next step left for the user to paste is the relay this replaced.
 
 
 ---
@@ -1511,7 +1104,7 @@ Tool support today: only Claude Code exposes the Workflow tool primitive. Other 
 
 ### When to use
 
-- 5 or more independent items of the same shape (file audits, per-route checks, per-component spec generation, per-slice verification).
+- 3 or more independent items of the same shape (file audits, per-route checks, per-component spec generation, per-slice verification).
 - Read-only work, OR independent edits with no shared write target (each subagent touches a disjoint file set).
 - Each item's output fits a stable structured shape the parent can merge mechanically.
 
@@ -1519,12 +1112,12 @@ Tool support today: only Claude Code exposes the Workflow tool primitive. Other 
 
 - Shared-state writes (multiple subagents editing the same file -- last write wins, silent loss). Exception: ADR-0040 carves out disjoint-folder writes where each worker owns its own folder (e.g., `task-init-fleet`); those are allowed without an orchestrator merge step because there is no shared write target.
 - Dependent steps (item N needs item N-1's output).
-- Fewer than 5 items (dispatch overhead exceeds the savings; run sequentially).
+- Fewer than 3 items (dispatch overhead exceeds the savings; run sequentially). The fan-out floor is 3; per-command thresholds MAY be higher, never lower. Exceptions are registered in `wos/workflow-patterns.md`.
 - Decisions or judgment calls the user owns -- parallelism amplifies wrong defaults.
 
 ### Per-batch checklist
 
 - Per-subagent prompt: 300 to 500 words. Shorter loses grounding; longer wastes context across N workers.
-- StructuredOutput reminder in every subagent prompt -- the parent reads only the tool call, not the text reply.
+- Typed-return reminder in every subagent prompt; the carrier depends on the dispatch path, per `commands/_shared/worker-contract.md`. Prose returns are forbidden.
 - After the batch returns, run `scripts/scan-substrate-orphans.py` (or the project's equivalent post-apply scan) to catch any files the merge step missed.
 - Persist the batch shape and outcome in the slice notes so future runs can replay or compare.

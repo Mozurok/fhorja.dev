@@ -13,7 +13,7 @@ This scenario is the regression harness for the "sweet spot" rule documented in 
 - Token meter resettable per scenario run.
 - Worker agent template registered and idempotent.
 - 35 independent input items pre-staged in the eval fixture (so item 26..35 exist for the second sub-case).
-- Reference docs loaded in context: ADR-0039, `wos/workflow-patterns.md` (section "Parallel batch sizing"), and the canonical Workflow tool contract.
+- Reference docs loaded in context: ADR-0039 (which holds the per-call cap), `wos/workflow-patterns.md` sections `## 1. Workflow vs single Agent: when to use which` and `## Fan-out floor`, and the canonical Workflow tool contract.
 
 ## Input prompt
 

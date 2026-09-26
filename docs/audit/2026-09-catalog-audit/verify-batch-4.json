@@ -1,0 +1,26 @@
+[
+  {
+    "index": 0,
+    "refuted": false,
+    "reason": "The exact cited text is commands/code-locate.md:55 and is command-owned. The same command requires an explicit target at lines 42-43 and restricts search to that target's workspace at line 67; WORKFLOW_OPERATING_SYSTEM.md:218 and the runtime decision table in wos/multi-repo-support.md independently impose the same boundary. Own directory searches found the other Mode C declarations in external-research, repo-consistency-sweep, and feature-library-scout, but none supplies an exception to code-locate's boundary. ADR-0032 permits independent per-repo analysis generally and names code-locate's large-codebase trigger; it does not explicitly waive this command's required target. No inspected eval requires code-locate to search every listed repo. The proposed narrowing should preserve ADR-0032's general per-repo fanout decision for other commands and explicitly reconcile this command's eligibility with its target boundary.",
+    "corrected_claim": ""
+  },
+  {
+    "index": 1,
+    "refuted": false,
+    "reason": "The exact cited text is commands/ai-feature-eval-harness.md:61 and is command-owned. ADR-0026's Decision explicitly limits its exception to implement-approved-slice, Agent mode, slice execution notes, and TASK_STATE.md updates; WORKFLOW_OPERATING_SYSTEM.md:509 repeats that exclusion of other commands. ADR-0001's Decision explicitly says Agent-mode artifact changes are APPLIED. Eval 70 also expects this AI eval plan to be APPLIED in Agent mode, so changing only the citation preserves required behavior. Own directory grep finds precisely the reported three ADR-0026 references; implement-fleet dispatches implement-approved-slice workers and does not establish an AI_EVAL_PLAN.md exception. This is a wrong attribution, not a reason to change persistence behavior or reverse either ADR's Decision.",
+    "corrected_claim": ""
+  },
+  {
+    "index": 2,
+    "refuted": false,
+    "reason": "The exact cited text is commands/delivery-asset.md:67 and is command-owned. Lines 75-87 define Metadata and optional sender-only Notes alongside Body; line 90 explicitly reserves those wrappers for the maintainer. Rule 5 of commands/_shared/mcp-capability-routing.md was read in full and matches the embedded block by exact source length: it requires display and confirmation but contains no section extraction. The corresponding lazy integration topic and ADRs 0082 and 0149 add no Body-only exception. Eval 07 requires the local wrapper, while eval 93 requires exact-payload display and per-post confirmation; retaining the local wrapper and confirming the extracted Body preserves both. This is a payload-selection defect conditional on a confirmed publish, not an unconfirmed-send bypass. ADR-0149 assigns command-specific payload selection to this inline paragraph; the shared confirmation contract should remain unchanged.",
+    "corrected_claim": "When a publish is confirmed, delivery-asset defines its outbound payload as the entire wrapped asset file, even though the same file marks Notes as NOT to be sent and reserves Metadata and Notes for the maintainer. Define the published payload as Body content while retaining the full local artifact and the existing confirmation gate."
+  },
+  {
+    "index": 3,
+    "refuted": false,
+    "reason": "The exact cited text is commands/direction-adjust.md:136 and is command-owned: the shared handoff-body source has exactly two lines and ends at command line 127, so it does not own this later Definition of done bullet. Line 53 explicitly permits adaptive Mode A or Mode B. WORKFLOW_OPERATING_SYSTEM.md's Adaptive handoff templates and shared Definition of done require four fields for Mode A and Resume context only for Mode B; wos/global-output-contract.md confirms that distinction. Own directory grep finds no second all-five-fields requirement or direction-adjust-specific exemption. ADR-0002's historical fixed five-field contract is marked Superseded; ADR-0032 also describes four-field Mode A and Mode B adding Resume context. Updating this bullet restores the current contract without reversing an accepted ADR decision.",
+    "corrected_claim": ""
+  }
+]

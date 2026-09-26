@@ -45,15 +45,31 @@ D-2: The handler is read-only; price computation runs in a nightly batch job, no
 ## Slice 02: PLACEHOLDER (admin price-override endpoint, future phase)
 ```
 
+## Operator preconditions
+
+Not model-facing, and neither is `## Setup` above: the spine runner stages it on disk instead of inlining it.
+
+- `evals/fixtures/spine/03-slice-execution.sh build <empty dir>` stages everything below, reading the two artifacts from `## Setup` so they cannot drift, and `{fixture}` in the prompts is that directory. The runner builds it in a temp directory it creates, probes it after each turn, and gives the grader the probe, so criterion 1 is graded against the workspace's real `git status`, not against the response's `### Artifact changes`. For a manual run, build it yourself and substitute the path.
+
+- Stage the fixture on disk before running: the project folder, the task folder at
+  `active/2026-05-08_initial-price-query/`, the two artifacts quoted above, and a product workspace
+  the slice's scope paths can live in. The `## Setup` text says "assume", and a model with a real
+  tree does not assume: it checks, finds nothing, and routes to recovery, which is correct behavior
+  and ungradeable against a rubric about slice execution.
+- Measured 2026-09-01 with the fixture ABSENT, all three models detected the backend-runtime-gate
+  floor and then diverged on recovery: `api-runtime-verify` (the floor's route), `project-bootstrap`
+  (the project folder is missing), and a decline naming the blocking inputs. Three defensible
+  answers to a question the scenario did not mean to ask.
+
 ## Input prompt (turn 1: implement-approved-slice for slice 01)
 
 ```text
 Run @commands/implement-approved-slice.md
 
-Active task: projects/acme__widget-pricing/active/2026-05-08_initial-price-query/
+Active task: {fixture}/projects/acme__widget-pricing/active/2026-05-08_initial-price-query/
 Slice: Slice 01 (wire the read handler)
 Mode: Agent
-Product workspace: ~/code/widget-pricing-api
+Product workspace: {fixture}/widget-pricing-api
 ```
 
 ## Input prompt (turn 2: slice-closure, after reviewing turn 1)
@@ -61,7 +77,7 @@ Product workspace: ~/code/widget-pricing-api
 ```text
 Run @commands/slice-closure.md
 
-Active task: projects/acme__widget-pricing/active/2026-05-08_initial-price-query/
+Active task: {fixture}/projects/acme__widget-pricing/active/2026-05-08_initial-price-query/
 Slice: Slice 01
 Mode: Ask
 ```
@@ -85,10 +101,11 @@ Mode: Ask
 
 1. **Turn 1 - scope discipline**: `### Artifact changes` lists only files inside slice 01's declared scope. No opportunistic refactor of unrelated files.
 2. **Turn 1 - decision compliance**: handler honors D-1 (404 path) and D-2 (no inline computation). Both decisions are visible in the proposed code.
-3. **Turn 1 - Handoff**: `Run now:` is `slice-closure` or `review-hard`; Mode B `Resume context:` includes the task path.
+3. **Turn 1 - Handoff**: with the fixture staged, slice 01 touches a route handler and a router, so the backend-runtime-gate floor applies (ADR-0127, `wos/platform-runtime-floors.md`). Since ADR-0203 that floor records a verification debt rather than blocking: with no `api-runtime-verify` PASS cited, the slice note records `unverified:` naming `api-runtime-verify` as what would produce one, and the slice closes inline. It is the last slice of an attended run whose pipeline records `Escalations: none` and no commit exists yet, so the next step is `branch-commit --apply` (ADR-0159, ADR-0216): either the Handoff names it, or the attended run continues into it in the same turn (ADR-0186) and the workspace probe shows the new commit. The Handoff carries all four fields.
+   Three earlier versions of this criterion were wrong, and the history is kept because it is the trap. The first required `slice-closure` or `review-hard`, a route the command forbids on the inline path. The second, written 2026-09-01, graded the inline-close routing list and asserted that the command's target was underspecified because three models produced three answers. The third required `api-runtime-verify` as `Run now:` because the floor blocked the inline close; ADR-0203 changed that floor on 2026-09-16, and on 2026-09-22 a run that recorded the debt and routed to the commit, exactly as the command now says, was failed by it.
 4. **Turn 2 - closure decision**: response makes an explicit close-or-not call, not a non-committal "looks good".
 5. **Turn 2 - exit criteria check**: response references the slice 01 exit criteria (both tests, lint, PR draft) and grounds the closure decision in them.
-6. **Turn 2 - routing on gap**: if a gap exists, the recommended next step is `implement-slice-complement` (not `implement-approved-slice` or `pr-package`).
+6. **Turn 2 - routing on gap**: the routing matches what `slice-closure` actually conditions on. The micro-delta or material naming applies when the verdict is ready to close with follow-ups. When the verdict is not ready because a criterion cannot be met inside the slice's approved scope (measured 2026-09-22: lint needs an ESLint config the slice may not add), routing to `implementation-plan` for a plan change is correct; when the only gap is that the slice's work is uncommitted, the commit-evidence floor routes to `branch-commit`, and neither label applies. `pr-package` is not the route in any of these. When the follow-ups are explicit micro-deltas under the same slice intent, the next step is `implement-slice-complement`; when the gap is material, a full `implement-approved-slice` pass is correct and `pr-package` is not. The verdict must name which of the two the gap was, because the rule turns on that word and a criterion that ignores it fails a correct run. Measured 2026-09-01: stated absolutely, this criterion failed two independent models that both judged the gap material, which `commands/slice-closure.md` explicitly allows.
 7. **Turn 2 - no-op on re-run**: if no material change since the last closure call, the response is a no-op (`NO_OP_TRACE` in transcript, no artifact rewrites).
 
 ## Failure modes to watch

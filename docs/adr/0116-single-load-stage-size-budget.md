@@ -1,6 +1,6 @@
 # ADR-0116: one enforced size budget at the Load stage; retire the per-command token-budget field
 
-- **Status**: Accepted
+- **Status**: Accepted; ceiling value superseded in part by [ADR-0227](./0227-the-load-ceiling-ratchets-to-36000.md): the ceiling is 36,000 chars, held in one constant, a slack check lowers it as trims land, and a lowering needs no new decision. Marked 2026-09-23 rather than rewritten, per ADR-0187.
 - **Date**: 2026-07-25
 - **Tags**: context-engineering, token-budget, load-stage, progressive-disclosure, lint-enforced-hard-fail, supersedes-adr-0013
 

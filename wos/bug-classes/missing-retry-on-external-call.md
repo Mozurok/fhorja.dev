@@ -31,7 +31,7 @@ Look for `await fetch(`, `await axios.`, `await client.send(`, `await resend.`, 
 ## Analysis prompt
 
 Given the external call:
-1. What external service is being called? What is its typical reliability? (email APIs: ~99.9%; webhooks: variable)
+1. What external service is being called? What is its typical reliability? (email APIs: read the provider's published SLA, which differs by provider and plan; webhooks: variable)
 2. Is the call idempotent (safe to retry without side effects)?
 3. If yes: what retry strategy is appropriate? (Recommendation: 3 retries with exponential backoff starting at 1s)
 4. If not idempotent: is there an idempotency key mechanism available?
@@ -63,7 +63,12 @@ if (!response.ok) throw new Error("SMS send failed");
 
 ```typescript
 const response = await pRetry(
-  () => fetch("https://api.twilio.com/send-sms", { method: "POST", body }),
+  async () => {
+    const res = await fetch("https://api.twilio.com/send-sms", { method: "POST", body });
+    // fetch resolves on a 502, so the retried function has to throw for p-retry to see a failure
+    if (!res.ok) throw new Error(`SMS send failed: ${res.status}`);
+    return res;
+  },
   { retries: 3, minTimeout: 1000, factor: 2 }
 );
 ```

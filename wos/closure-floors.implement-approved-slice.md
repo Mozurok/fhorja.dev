@@ -30,6 +30,38 @@ gating one. `commands/task-close.md` keeps every floor NAMED inline with its tri
 and its routing, and three of them additionally keep the exact string their runner
 emits. The solo/local auto-waiver did not move: it is a gate modifier, not a floor.
 
+**What a floor waits for (2026-09-16).** A floor SHALL NOT wait for a HUMAN attester, and SHALL still
+refuse to close when no attester of any kind produced the evidence it names. The two halves matter
+separately. Removing the first is what this rule is for: a floor that held the chain until a person
+looked was friction, and the runtime gates now capture their own evidence. Removing the second would
+convert an unverified run into a silent pass, which is worse than the friction it saves.
+
+Each floor below declares one of three behaviors on its own line, beside `Attester class:`:
+
+- `On missing evidence: record` -- the floor writes `unverified: <reason>` and closure proceeds. The
+  task's final report lists every floor left in this state, so nothing disappears quietly.
+- `On missing evidence: refuse` -- the floor refuses and routes. Reserved for the floors that prevent
+  LOSING work rather than adding friction, where proceeding destroys something instead of skipping a
+  check.
+- `On missing evidence: reconcile` -- the floor records the unsatisfied constraint as a named deferral
+  and closure proceeds.
+
+The two lines answer different questions and neither substitutes for the other. `Attester class:` says
+WHO can produce the evidence. `On missing evidence:` says what happens when nobody did.
+
+Where a `record` goes. The floor writes `unverified: <reason>` into the closing slice's notes, and
+`task-close` collects every one of them into an `### Unverified floors` block in the final report
+(its Required output item 7a). The collection is built from those recorded lines rather than
+re-derived at closing time, so the report cannot claim a floor was checked when nothing checked it.
+A floor that records without that block reaching a reader is indistinguishable from a floor that was
+skipped, which is why the two halves ship together.
+
+In an attended chain that reaches a draft pull request (ADR-0233), the reader is met earlier: the
+same recorded `unverified:` lines are listed under `Not verified` in the draft pull request body, built
+from the slice notes the same way, so the person sees them before marking the draft ready for review.
+`task-close` still collects them at closure. Unattended, background and fleet-dispatched runs keep
+each floor's behavior exactly as its `On missing evidence:` line states.
+
 
 ---
 
@@ -39,6 +71,8 @@ emits. The solo/local auto-waiver did not move: it is a gate modifier, not a flo
 
 Attester class: agnostic
 
+On missing evidence: refuse -- uncommitted work can be lost outright, which is not a skipped check
+
 **The no-VCS waiver (ADR-0128), shared by both variants below.** A fourth route exists for the one case the three above cannot express: a workspace that has no version control at all and will not get any. All THREE conditions must hold, and the waiver is recorded as `no-vcs waiver: <workspace path> (<verbatim user decision>)`:
 
 1. The workspace genuinely has no VCS. `git rev-parse --is-inside-work-tree` fails at the product path and no other VCS is in use. This is a fact the command CHECKS, not a claim it accepts.
@@ -47,26 +81,36 @@ Attester class: agnostic
 
 With all three present the slice may close and the floor is satisfied. With any one absent the floor is unsatisfied and the routing below is unchanged. This route NEVER fires on a git-backed repository: a repo whose operator is merely absent, forbidden, or unattended stays on the bounded deferral, which is the case ADR-0100 decided and does not reopen. It is also recorded separately from the `task-close` archive-with-waiver: neither authorizes the other. The reason a fourth route exists at all is that `deferred: pending human commit` is FALSE in a workspace that will never have a repository, and writing it there is the permanent-skip-disguised-as-bounded that ADR-0098 rules out for the sibling floors.
 
+**The ignored-path waiver (ADR-0194), shared by both variants below.** A fifth route exists for the one case the four above cannot express: a deliverable whose only home is a path the repository deliberately and permanently ignores. ADR-0133 named this question and left it open on purpose, because whether work is committable at all is a different question from who may attest it. All THREE conditions must hold, and the waiver is recorded as `ignored-path waiver: <deliverable path> (<ignore file>:<line> <pattern>)`:
+
+1. The path is PROVABLY ignored AND the ignoring pattern is COMMITTED. `git check-ignore -v <deliverable path>` succeeds and its output is cited verbatim in the notes, and the matching pattern is present in the ignore file at HEAD rather than in an uncommitted working-tree edit. Both halves are facts the command CHECKS, not claims it accepts. The second half exists so that a run cannot write its own exemption into `.gitignore` and then invoke this route.
+2. The ignored path is the deliverable's ONLY home, and the deliverable is not DERIVED from anything committable. Build output fails this condition: `dist/bundle.js` is ignored, but it is produced from a committable source, so the slice's work IS committable and this route does not apply. The question is never whether the artifact is ignored; it is whether a committable form of the work exists anywhere.
+3. The preserved work is NAMED: the notes state which paths hold the deliverable, so a later reader can find it.
+
+With all three present the slice may close and the floor is satisfied. With any one absent the floor is unsatisfied and the routing below is unchanged. This route NEVER fires because the operator is absent, forbidden, or unattended: each of those stays on the bounded deferral, which is the case ADR-0100 decided and this does not reopen. It fires only where the path CANNOT receive a commit, which is a property of the repository's own recorded decision rather than of the session. It carries no verbatim user decision, unlike the no-VCS waiver's condition 2, because there is nothing here for a user to disambiguate: a missing `.git` reads equally as "never" and as "not yet", while a committed ignore pattern is the decision already written down, and condition 1 makes the command read it. Requiring the user to restate it in session would either block the route or invite a fabricated quote. Like the no-VCS waiver it does NOT travel to `task-close`: it is evidence that home reads, never a route that satisfies it.
+
 ### implement-approved-slice variant (inline-close)
 
 **Commit-evidence floor (inline-close; ADR-0084, bounded deferral per ADR-0100, third home per ADR-0105, no-VCS waiver per ADR-0128, `ref-attested` route per ADR-0133).** A slice SHALL NOT close inline (the LOW/MEDIUM path) unless its work is evidenced by one of the two attestation classes below, OR an explicit committing-waiver covering only genuinely discardable work (a deliberate throwaway, a spike whose value was the learning) is recorded, OR the three-condition no-VCS waiver above is recorded in the slice notes.
 
 The two classes, either of which satisfies this floor:
 
-- `commit-ref`: the work is committed and the slice notes cite the commit reference. Where a human turn is available this is the route, and a run with a human present SHALL route to `branch-commit --apply`, the only path in this repository that can create a commit. An UNATTENDED run reaches `commit-ref` too, by the driver-owned-branch route in `wos/autonomous-track.md ## The autonomous commit route`: it commits by explicit path onto a non-default branch the runner owns, never merging, pushing or opening a pull request. That route's safety rests on the run REFUSING to start on a default or integration branch, so an admitted commit has nowhere else to land; where that refusal is absent the route is unavailable and `ref-attested` is what the run reaches.
-- `ref-attested`: the RUNNER created a git object holding the run's work and pointed a quarantine ref at it under `refs/fhorja/attested/<run-id>/<invocation-id>`, and the slice notes cite that ref. An unattended run SHALL route to `ref-attested`, because it has no human turn and therefore cannot reach the route above. The agent never writes this ref; the runner does, after the agent's turn has ended.
+- `commit-ref`: the work is committed and the slice notes cite the commit reference. Where a human turn is available this is the route, and a run with a human present SHALL route to `branch-commit --apply`, the only path in this repository that can create a commit. An unattended run driven by an external execution layer MAY reach `commit-ref` by the driver-owned-branch route in `wos/autonomous-track.md ## The autonomous commit route`: the layer stages by explicit path and commits bare onto a non-default branch it owns, never merging, pushing or opening a pull request. That route's safety rests on the layer REFUSING to start on a default or integration branch, so an admitted commit has nowhere else to land. The direct-use `autonomous-run` command cannot use this route.
+- `ref-attested`: the external execution layer created a git object holding the run's work and pointed a quarantine ref at it under `refs/fhorja/attested/<run-id>/<invocation-id>`, and the slice notes cite that ref. An external execution layer that cannot use its driver-owned branch SHALL route to `ref-attested`. The agent and direct-use `autonomous-run` never write this ref; the layer does, after the agent's turn has ended.
 
-Real work in a git-backed workspace with NEITHER class present, including an unattended session where git is unavailable or forbidden or where the attestation could not be made, is a BOUNDED DEFERRAL: record `deferred: pending human commit (<one-line context>)`, do NOT inline-close, and leave the slice open for the next human session. IF the slice's work carries neither attestation class, is neither genuinely waived nor covered by the no-VCS waiver, nor recorded as a bounded deferral, THEN do not inline-close; route to `branch-commit --apply`. It is Agent-mode only and requires the user's confirmation in that same turn, so THAT COMMAND never satisfies this floor unattended. Two routes are reachable there instead: the driver-owned-branch route to `commit-ref` (`wos/autonomous-track.md ## The autonomous commit route`), available only to a run that refuses to start on a default or integration branch, and `ref-attested`. The bounded deferral remains the answer when neither is available, and the no-VCS waiver is unreachable because its condition 2 needs a user present to state the decision.
+Real work in a git-backed workspace with NEITHER class present, including an unattended session where git is unavailable or forbidden or where the attestation could not be made, is a BOUNDED DEFERRAL: record `deferred: pending human commit (<one-line context>)`, do NOT inline-close, and leave the slice open for the next human session. IF the slice's work carries neither attestation class, is neither genuinely waived nor covered by the no-VCS waiver, nor recorded as a bounded deferral, THEN do not inline-close; route to `branch-commit --apply`. It is Agent-mode only and refuses unattended (ADR-0163), so THAT COMMAND never satisfies this floor unattended. An external execution layer may instead use its driver-owned-branch route to `commit-ref` (`wos/autonomous-track.md ## The autonomous commit route`) or route to `ref-attested`. Direct-use `autonomous-run` has neither capability: it records the bounded deferral and leaves the slice open for the next human session. The no-VCS waiver is unreachable because its condition 2 needs a user present to state the decision.
 
 ## Experience-verdict floor (ADR-0091, generalizes ADR-0089 D-4)
 
-**Criterion without the attester.** A person experienced a sample of the deliverable and recorded PASS. The erasure fails here: remove the person and only "a PASS block exists" survives, which any writer satisfies.
+**Criterion without the attester.** The recorded `Attested by:` value names who reached the verdict. The erasure fails here: remove that line and only "a PASS block exists" survives, which any writer satisfies. `run` is valid ONLY when the block cites the evidence the run itself captured (the screenshot path it wrote, the runtime output it quoted, the route it probed); `human` means a person experienced a sample. An artifact may never claim `human` for a verdict no person reached (ADR-0179).
 
-Attester class: human-bound
+Attester class: agnostic
+
+On missing evidence: record -- S7 made the evidence capturable by the run; `Attested by: run` is a real attester
 
 ### implement-approved-slice variant (inline-close)
 
-**Experience-verdict floor (inline-close, generalized, ADR-0091).** WHEN the slice's deliverable carries the tag `user-facing-content` or `new-user-facing-surface` (the D-1 ledger and plan tags), the slice SHALL NOT close inline unless a recorded human experience verdict on a sample (an `## Experience verdict` block with `Overall: PASS` cited in the slice notes) is present OR an explicit one-line skip reason is recorded. Machine-green evidence (lint, tests, a runtime PASS) SHALL NOT substitute for the human verdict. IF the deliverable text plainly indicates user-facing content and no tag is present THEN treat the slice as tagged and flag the missing tag. IF neither is present THEN do NOT inline-close; route to the experience-verdict check first. WHILE the Godot task signature is present this floor stands down in favor of the D-4 feel-verdict floor above. This generalizes ADR-0089 D-4 off Godot: the 2026-07-10 connector dogfood shipped four machine-authored session packs with no human validation of one. Same bounded-vs-permanent skip rule as the D-4 floor above applies here (ADR-0098): a "no human, ever" skip reason does not satisfy this floor.
+**Experience-verdict floor (inline-close, generalized, ADR-0091).** WHEN the slice's deliverable carries the tag `user-facing-content` or `new-user-facing-surface` (the D-1 ledger and plan tags), the slice SHALL record `unverified: no experience verdict on a sample` and close inline unless a recorded experience verdict on a sample (an `## Experience verdict` block with `Overall: PASS` AND a mandatory `Attested by:` line valued `run` or `human`, cited in the slice notes) is present OR an explicit one-line skip reason is recorded. Machine-green evidence (lint, tests, a runtime PASS) SHALL NOT substitute for the human verdict: it attests as itself, `Attested by: run`, and only when the block cites the evidence the run captured; it is never recorded as `human` (ADR-0179). IF the deliverable text plainly indicates user-facing content and no tag is present THEN treat the slice as tagged and flag the missing tag. IF neither is present THEN record `unverified: no experience verdict on a sample` in the slice notes, name the experience-verdict check as what would produce one, and close inline. WHILE the Godot task signature is present this floor stands down in favor of the D-4 feel-verdict floor in `wos/platform-runtime-floors.md ## Godot feel-verdict floor (D-4, ADR-0089)`. Do not record a decorative skip. This generalizes ADR-0089 D-4 off Godot: the 2026-07-10 connector dogfood shipped four machine-authored session packs with no human validation of one. Same bounded-vs-permanent skip rule as that D-4 floor applies here (ADR-0098): a "no human, ever" skip reason does not satisfy this floor.
 
 ## Entry-path probe floor (ADR-0091)
 
@@ -74,9 +118,11 @@ Attester class: human-bound
 
 Attester class: environment-bound
 
+On missing evidence: record -- the probe is capturable by the run on every surface that has one
+
 ### implement-approved-slice variant (inline-close)
 
-**Entry-path probe floor (inline-close, ADR-0091).** WHEN the slice ships a deliverable tagged `new-user-facing-surface`, it SHALL NOT close inline unless one recorded exercised run through the user's real entry path (the way an end user reaches the surface, not the API underneath) is cited in the slice notes OR an explicit one-line skip reason is recorded. IF neither is present THEN do NOT inline-close; route the operator to run the entry path once. The dogfooded surface shipped as MCP prompts a chat model never invokes, a gap found only after it had already scaled four times over. WHILE the Godot task signature is present this floor stands down in favor of the D-4 feel-verdict floor above.
+**Entry-path probe floor (inline-close, ADR-0091).** WHEN the slice ships a deliverable tagged `new-user-facing-surface`, it SHALL record `unverified: entry path never exercised` and close inline unless one recorded exercised run through the user's real entry path (the way an end user reaches the surface, not the API underneath) is cited in the slice notes OR an explicit one-line skip reason is recorded. IF neither is present THEN record `unverified: entry path never exercised` in the slice notes, name running the entry path once as what would produce the evidence, and close inline. The dogfooded surface shipped as MCP prompts a chat model never invokes, a gap found only after it had already scaled four times over. WHILE the Godot task signature is present this floor stands down in favor of the D-4 feel-verdict floor in `wos/platform-runtime-floors.md ## Godot feel-verdict floor (D-4, ADR-0089)`.
 
 ## Eval-threshold floor (ADR-0104)
 
@@ -84,9 +130,23 @@ Attester class: environment-bound
 
 Attester class: environment-bound
 
+On missing evidence: record -- an absent eval run is a missing measurement, not lost work
+
 ### implement-approved-slice variant (inline-close)
 
-**Eval-threshold floor (inline-close, ADR-0104).** WHEN an `AI_EVAL_PLAN.md` exists in the task folder covering the feature this slice ships or changes, the slice SHALL NOT close inline unless the recorded eval OUTCOME (the score against the plan's pass threshold on its held-out set) is cited in the slice notes with the threshold met, OR an explicit one-line skip reason is recorded (bounded-vs-permanent per ADR-0098: a bounded deferral satisfies it, a permanent "the eval will never run" does not). An exit criterion worded around the harness mechanism ("the harness runs", "the eval executes") SHALL NOT substitute for the threshold outcome: a green harness execution with a failing score FAILS this floor. IF the outcome is absent THEN do NOT inline-close; run the eval per `AI_EVAL_PLAN.md` first.
+**Eval-threshold floor (inline-close, ADR-0104).** WHEN an `AI_EVAL_PLAN.md` exists in the task folder covering the feature this slice ships or changes, the slice SHALL record `unverified: no eval outcome cited` and close inline unless the recorded eval OUTCOME (the score against the plan's pass threshold on its held-out set) is cited in the slice notes with the threshold met, OR an explicit one-line skip reason is recorded (bounded-vs-permanent per ADR-0098: a bounded deferral satisfies it, a permanent "the eval will never run" does not). An exit criterion worded around the harness mechanism ("the harness runs", "the eval executes") SHALL NOT substitute for the threshold outcome: a green harness execution with a failing score FAILS this floor. IF the outcome is absent THEN record `unverified: no eval outcome cited`, name running the eval per `AI_EVAL_PLAN.md` first.
+
+## Integrity floor (v3 wave3 item S1)
+
+**Criterion without the attester.** `verify-substrate-batch.sh` exited 0 for this task folder.
+
+Attester class: agnostic
+
+On missing evidence: refuse -- it caught two real protocol defects on 2026-09-16; a broken substrate that closes is unrecoverable by reading
+
+### implement-approved-slice variant (inline-close)
+
+**Integrity floor (inline-close, blocking; v3 wave3, item S1).** Before closing a slice inline, run `bash scripts/verify-substrate-batch.sh <task-folder>`. WHEN the wrapper exits non-zero the slice SHALL NOT close inline UNLESS an explicit waiver line is recorded in the slice notes: `integrity-waiver: N advisories unresolved (<one-line reason>)`, naming the failing validator(s) from the wrapper's summary line. With neither a zero exit nor the waiver, route to `slice-closure`, whose variant of this floor holds the slice until the validators pass or the waiver is recorded. A silent non-zero inline close is invalid output. Consumes the wrapper's exit code only (never re-implements the validators; the informational header-drift count cannot fire it). Most slices close on this path, so a floor with only the `slice-closure` home skipped the one check that the K.2 headers and the `.wos/VERIFICATION_LOG.jsonl` lines a slice was told to write actually exist. Resolve `scripts/verify-substrate-batch.sh` against the WORKFLOW ROOT (the clone, or the installed docs directory, which ships it per ADR-0224), never against the task repository. WHEN it is in neither, record `integrity: not checked (verify-substrate-batch not installed)` and name a re-sync of the install: that line is neither a pass nor a waiver, so the floor holds exactly as it does for a non-zero exit.
 
 ## Layer-2 review floor (wos/gate-conditions.md, skip semantics per ADR-0098)
 
@@ -94,15 +154,17 @@ Attester class: environment-bound
 
 Attester class: agnostic
 
+On missing evidence: record -- a missing review is a skipped check, and the skip is now visible in the final report
+
 ### implement-approved-slice variant (inline-close)
 
-**Layer-2 review floor (inline-close; layering rule: `wos/gate-conditions.md` `## Verification layering`; skip semantics per ADR-0098).** A slice SHALL NOT close inline unless a Layer-2 risk review ran against the slice diff and its verdict is cited in the slice notes: `review-hard` (plus `security-review` when the slice has a security surface), or the host repository's own equivalent gate, cited by whatever name it carries there, OR an explicit one-line skip reason. The inline exit-criteria checklist above is Layer 1 and SHALL NOT substitute for it. IF neither a cited verdict nor a skip reason is present THEN do NOT inline-close; route to `review-hard`. This floor matters most on the path that skips `slice-closure` entirely: LOW and MEDIUM slices are where an unreviewed defect travels furthest before anyone looks (mobile dogfood 2026-07-29: 5 LOW and 3 MEDIUM slices, zero Layer-2 reviews, and the first review returned 4 defects spanning two slices already treated as done).
+**Layer-2 review floor (inline-close; layering rule: `wos/gate-conditions.md` `## Verification layering`; skip semantics per ADR-0098).** A slice SHALL record `unverified: no Layer-2 review` and close inline unless a Layer-2 risk review ran against the slice diff and its verdict is cited in the slice notes: `review-hard` (plus `security-review` when the slice has a security surface), or the host repository's own equivalent gate, cited by whatever name it carries there, OR an explicit one-line skip reason. The command's inline exit-criteria checklist is Layer 1 and SHALL NOT substitute for it. IF neither a cited verdict nor a skip reason is present THEN record `unverified: no Layer-2 review` in the slice notes, name `review-hard` as what would produce one, and close inline. This floor matters most on the path that skips `slice-closure` entirely: LOW and MEDIUM slices are where an unreviewed defect travels furthest before anyone looks (mobile dogfood 2026-07-29: 5 LOW and 3 MEDIUM slices, zero Layer-2 reviews, and the first review returned 4 defects spanning two slices already treated as done).
 
-**Coverage of the cited verdict (worktree dogfood 2026-08-04).** The cited verdict SHALL cover the slice's current HEAD. WHEN a commit exists on the slice that is newer than the reviewed ref, the slice SHALL declare `Layer-2 coverage:` naming exactly one closed case: (a) the later delta changes no byte that crosses a process boundary (nothing persisted, serialized, sent over the network, or read by another module), or (b) the later delta applies findings from the cited verdict itself AND none of them changes a persisted value or a public signature. An enum value that persists to a database does NOT qualify under (a), and qualifies under (b) only when the cited verdict named that rename. IF neither case applies THEN do NOT inline-close; route to `review-hard` against the current HEAD.
+**Coverage of the cited verdict (worktree dogfood 2026-08-04).** The cited verdict SHALL cover the slice's current HEAD. WHEN a commit exists on the slice that is newer than the reviewed ref, the slice SHALL declare `Layer-2 coverage:` naming exactly one closed case: (a) the later delta changes no byte that crosses a process boundary (nothing persisted, serialized, sent over the network, or read by another module), or (b) the later delta applies findings from the cited verdict itself AND none of them changes a persisted value or a public signature. An enum value that persists to a database does NOT qualify under (a), and qualifies under (b) only when the cited verdict named that rename. IF neither case applies THEN record `unverified: Layer-2 verdict predates the current HEAD` in the slice notes, name `review-hard` against the current HEAD as what would settle it, and close inline.
 
-**A zero-finding cited verdict does not satisfy this floor alone (ADR-0145).** WHEN the cited Layer-2 verdict names zero must-fix and zero should-fix findings AND the slice diff touched product code, the floor additionally requires the `verify-against-rubric` verdict id alongside it. A cited verdict WITH findings satisfies the floor exactly as it does today, and the one-line skip reason remains available and unchanged. The reason is not that a clean review is suspect in general: it is that a reviewer holding the authoring rationale can audit a finding it produced and cannot audit the absence of one it did not, so the empty verdict is the single output of that reviewer with no in-context check available. IF a zero-finding verdict is cited without the blinded verdict id THEN do NOT inline-close; route to `verify-against-rubric` with the slice's exit criteria as the rubric and the diff as the artifact.
+**A zero-finding cited verdict does not satisfy this floor alone (ADR-0145).** WHEN the cited Layer-2 verdict names zero must-fix and zero should-fix findings AND the slice diff touched product code, the floor additionally requires the `verify-against-rubric` verdict id alongside it. A cited verdict WITH findings satisfies the floor exactly as it does today, and the one-line skip reason remains available and unchanged. The reason is not that a clean review is suspect in general: it is that a reviewer holding the authoring rationale can audit a finding it produced and cannot audit the absence of one it did not, so the empty verdict is the single output of that reviewer with no in-context check available. IF a zero-finding verdict is cited without the blinded verdict id THEN record `unverified: zero-finding verdict with no blinded id` and close inline, naming `verify-against-rubric` with the slice's exit criteria as the rubric and the diff as the artifact.
 
-**Internal-reuse sweep floor (inline-close; ADR-0145 D-3).** A slice that added a file or an exported symbol into a directory that ALREADY contained siblings SHALL NOT close inline without one of: a cited `repo-consistency-sweep` run over this slice's diff whose snapshot names `sibling-controller-divergence`, `sibling-route-divergence`, and `custom-component-when-ds-exists` among the classes its class-selection step chose; a named host-repository equivalent gate, cited by whatever name it carries there; or an explicit one-line skip reason. The cite is the snapshot file path, not a claim that the sweep ran. The trigger is evaluated against the finished diff, where "a directory that already contained siblings" is a directory listing rather than a judgment. The failure this closes: the three classes describe internal-reuse defects precisely and are consumed only by a command that a 6,010-tool-call corpus never invoked, which makes good detection content and no detection content indistinguishable in outcome.
+**Internal-reuse sweep floor (inline-close; ADR-0145 D-3).** A slice that added a file or an exported symbol into a directory that ALREADY contained siblings SHALL record `unverified: no internal-reuse sweep` and close inline without one of: a cited `repo-consistency-sweep` run over this slice's diff whose snapshot names `sibling-controller-divergence`, `sibling-route-divergence`, and `custom-component-when-ds-exists` among the classes its class-selection step chose; a named host-repository equivalent gate, cited by whatever name it carries there; or an explicit one-line skip reason. The cite is the snapshot file path, not a claim that the sweep ran. The trigger is evaluated against the finished diff, where "a directory that already contained siblings" is a directory listing rather than a judgment. The failure this closes: the three classes describe internal-reuse defects precisely and are consumed only by a command that a 6,010-tool-call corpus never invoked, which makes good detection content and no detection content indistinguishable in outcome.
 
 ## Rollout-constraint reconcile (mobile dogfood 2026-07-29)
 
@@ -110,6 +172,8 @@ Attester class: agnostic
 
 Attester class: agnostic
 
+On missing evidence: reconcile -- an unsatisfied rollout constraint is a named deferral, not a verdict
+
 ### implement-approved-slice variant (inline-close)
 
-**Rollout-constraint reconcile (inline-close, mobile dogfood 2026-07-29).** WHEN `IMPLEMENTATION_PLAN.md` carries a `## Rollout and rollback notes` section, check each constraint stated there against this slice's declared Scope before closing inline. A constraint naming a file, config key, or release track inside that Scope is reconciled when the slice notes state it is satisfied, or record it as a deferral naming what satisfies it and when. IF a constraint in Scope is unchecked THEN do NOT inline-close. The plan writes its rollout constraints before the code exists: on the source run the plan named the exact OTA-versus-native ordering hazard on day one, and it surfaced as the run's only CRITICAL 30 hours later.
+**Rollout-constraint reconcile (inline-close, mobile dogfood 2026-07-29).** WHEN `IMPLEMENTATION_PLAN.md` carries a `## Rollout and rollback notes` section, check each constraint stated there against this slice's declared Scope before closing inline. A constraint naming a file, config key, or release track inside that Scope is reconciled when the slice notes state it is satisfied, or record it as a deferral naming what satisfies it and when. IF a constraint in Scope is unchecked THEN record it as a named deferral in the slice notes and close inline. The plan writes its rollout constraints before the code exists: on the source run the plan named the exact OTA-versus-native ordering hazard on day one, and it surfaced as the run's only CRITICAL 30 hours later.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # bootstrap-user-setup.sh
 #
-# First-time setup helper for the my_work_tasks workflow operating system.
+# First-time setup helper for the Fhorja workflow repository.
 # Idempotent: safe to re-run; existing artifacts are left alone.
 #
 # What it does (default):
@@ -15,7 +15,7 @@
 # What it does NOT do:
 #   - Install slash commands globally (use scripts/sync-workflow-slash-commands.sh
 #     explicitly when you want them).
-#   - Mirror skills to user-level dirs (--with-skills on the sync script).
+#   - Mirror skills to user-level dirs (the sync script does it by default).
 #   - Run project-bootstrap or task-init (those need your input).
 #
 # Usage:
@@ -72,8 +72,8 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-echo "my_work_tasks: first-time setup"
-echo "================================"
+echo "Fhorja: first-time setup"
+echo "========================"
 echo ""
 
 # ---- Step 1: USER_MEMORY.md bootstrap --------------------------------------
@@ -125,8 +125,9 @@ echo ""
 echo "  Optional helpers (run when relevant):"
 echo "    - Install slash commands globally for any project:"
 echo "        ./scripts/sync-workflow-slash-commands.sh"
-echo "    - Mirror skills to user-level dirs (~/.claude/skills/, ~/.cursor/skills/, etc.):"
-echo "        ./scripts/sync-workflow-slash-commands.sh --with-skills"
+echo "    - Mirror skills to user-level dirs (~/.claude/skills/ and ~/.agents/skills/, which"
+echo "      Codex, Kimi and Cursor 3.17.8 or later read); the same command does it, since skills"
+echo "      sync by default (--no-skills skips them, --cursor-skills adds ~/.cursor/skills/)."
 echo ""
 echo "  Start your first project (interactive; in your AI tool):"
 echo "    /project-bootstrap   # new project context (creates projects/<client>__<project>/)"

@@ -1,6 +1,6 @@
 # ADR-0044: The autonomous delivery track (a new additive WOS cluster)
 
-- **Status**: Accepted
+- **Status**: Accepted; the D9 skip-list entry "default-no-approval auto-run" is superseded in part by [ADR-0186](./0186-the-handoff-continues-the-chain.md), which narrows it to the unattended track it was measured on. The other four D9 entries and the rest of this ADR stand.
 - **Date**: 2026-06-16
 - **Tags**: autonomy, additive-track, human-in-the-loop, two-gates, mid-run-escalation, runtime-governor, kill-switch, fleet-orchestration, workflow-tool, single-writer
 

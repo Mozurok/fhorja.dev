@@ -68,6 +68,6 @@ A small set of words shows up far more in machine text than in human writing. Re
 ## Enforcement (tiered)
 
 - Hard block (fails the build): the em-dash character, via `FORBIDDEN_PATTERNS` in `scripts/lint-commands.sh`.
-- Advisory (warns, never fails): everything in this catalog, via `scripts/check-natural-voice.sh`, surfaced on the lint `Natural-voice:` summary line under `--verbose` / `--strict`. A human triages each hit.
+- Advisory (warns, never fails): everything in this catalog, via `scripts/check-natural-voice.sh`. That script left the lint output in ADR-0171 and is run by hand, so the catalog is measured when someone chooses to measure it. A human triages each hit either way.
 
 Why the rest is advisory and not a hard byte-level ban: patterns like a spaced slash, `robust`, or `comprehensive` have legitimate uses (enums, mode templates, accurate domain terms). A hard ban would false-positive on honest prose and create churn for no quality gain. The advisory keeps regressions visible without blocking real writing.

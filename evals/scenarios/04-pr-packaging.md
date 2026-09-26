@@ -6,12 +6,12 @@
 
 ## Goal
 
-Validates that `pr-package` produces a PR description grounded in the **actual** `git diff` (not a paraphrase of `TASK_STATE.md`), includes all 11 required `PR_PACKAGE.md` items, and never leaks workflow paths (no `my_work_tasks/`, no `commands/`, no `TASK_STATE.md` references) into the PR body that humans will read on GitHub.
+Validates that `pr-package` produces a PR description grounded in the **actual** `git diff` (not a paraphrase of `TASK_STATE.md`), includes all 11 required `PR_PACKAGE.md` items, and never leaks workflow paths (no path into the workflow repository or the task repository, no `commands/`, no `TASK_STATE.md` references) into the PR body that humans will read on GitHub.
 
 This exercises:
 
 - The "diff is both upper and lower bound on the narrative" rule (every claim in the PR traces to a hunk; every materially changed hunk appears in the PR).
-- The "no leaked workflow paths" rule (the PR is for humans on GitHub; workflow internals stay in `my_work_tasks/`).
+- The "no leaked workflow paths" rule (the PR is for humans on GitHub; workflow internals stay in the workflow and task repositories).
 - The 11-item `PR_PACKAGE.md` structure.
 - The Handoff contract.
 
@@ -110,7 +110,7 @@ Mode: Ask
 - The proposed `PR_PACKAGE.md` includes ALL 11 required items: explicit base branch + current branch + diff commands; delivery scope vs the base branch; suggested branch name; suggested main commit message (at most 2 lines); optional additional commits if justified; suggested git commands (fetch, checkout confirmation if useful, add, commit, push); suggested PR title; PR description in markdown; reviewer attention points; recommended next command; recommended editor mode.
 - The PR description body cites the 3 changed files: `src/handlers/prices.ts` (new), `src/routes.ts` (route registration), `tests/handlers/prices.spec.ts` (new tests).
 - Every concrete claim in the PR description traces to a hunk in the synthetic diff. No invented endpoint shape, no invented test framework, no invented behavior.
-- The PR description does **not** contain the strings `my_work_tasks/`, `commands/`, `TASK_STATE.md`, `DECISIONS.md`, `IMPLEMENTATION_PLAN.md`, or any other workflow-internal path.
+- The PR description does **not** contain a path into the workflow repository or the task repository, nor the strings `commands/`, `TASK_STATE.md`, `DECISIONS.md`, `IMPLEMENTATION_PLAN.md`, or any other workflow-internal path.
 - The suggested commit message is at most 2 lines.
 - `### Handoff` block at the end. Mode B `Resume context:` includes the active task path.
 
@@ -120,7 +120,7 @@ Mode: Ask
 2. **Diff grounding**: every concrete behavior claim in the PR description (status codes, route paths, file names, test cases) traces to a specific hunk in the diff.
 3. **No fabrication**: the PR does not mention rate limiting, caching, retries, auth, logging, or other subjects that have no hunk in the diff.
 4. **Diff coverage**: each of the 3 materially changed files appears in the PR description (no silent omission of `src/routes.ts` even though it is a 2-line change).
-5. **No workflow-path leakage**: the PR description body does not contain `my_work_tasks/`, `commands/`, `TASK_STATE.md`, `DECISIONS.md`, `IMPLEMENTATION_PLAN.md`, or `projects/<...>__<...>/`.
+5. **No workflow-path leakage**: the PR description body does not contain a path into the workflow repository or the task repository, `commands/`, `TASK_STATE.md`, `DECISIONS.md`, `IMPLEMENTATION_PLAN.md`, or `projects/<...>__<...>/`.
 6. **Commit message length**: the suggested main commit message is at most 2 lines.
 7. **Diff commands recorded**: the proposed `PR_PACKAGE.md` includes the verbatim `git diff origin/main...HEAD` and `git diff --stat origin/main...HEAD` strings (auditability).
 8. **Handoff intact**: Mode B `Resume context:` includes the active task path; `Run now:` recommends a next command (typically `branch-commit`, `team-update`, or `pr-feedback-ingest` depending on review state).
@@ -128,7 +128,7 @@ Mode: Ask
 ## Failure modes to watch
 
 - **PR narrative paraphrases TASK_STATE**: the description reads like a plan summary ("This task implements the initial price query") rather than a description of the actual diff ("Adds GET /v1/prices/:customer_id with 200/404 paths against `prices_view`"). Symptom: claims with no hunk to back them.
-- **Workflow-path leakage**: the PR description references `TASK_STATE.md` or `my_work_tasks/` inside the body that will be pasted on GitHub. This is the single most damaging failure mode for the user (private workflow internals exposed publicly).
+- **Workflow-path leakage**: the PR description references `TASK_STATE.md` or a path into the workflow repository inside the body that will be pasted on GitHub. This is the single most damaging failure mode for the user (private workflow internals exposed publicly).
 - **Silent file omission**: the description discusses `prices.ts` and the test file but skips `routes.ts` because the change is small. Reviewers cannot verify the route is wired without seeing it called out.
 - **Fabricated test cases**: the description claims tests for "rate-limit handling" or "auth gate" that the diff does not include.
 - **Commit message overflow**: the suggested message is 4 lines or includes a long bullet list. Per the Fhorja pr-package contract, max 2 lines.

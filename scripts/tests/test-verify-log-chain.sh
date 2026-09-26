@@ -58,6 +58,10 @@ $(jline 2026-07-20T10:01:00.000Z overwrite applied "$SC" "$SB")
 EOF
 RC=0; OUT=$(python3 "$VALIDATOR" "$WORK/B/.wos/VERIFICATION_LOG.jsonl" --check-deletes --cutover-ts "$CUT" 2>&1) || RC=$?
 check "broken chain: nonzero exit under --check-deletes + cutover" $([[ "$RC" -ne 0 ]]; echo $?)
+# A task-memory file, so the wrapper's orphan stage scans and reports clean. Without one it
+# exits 2 ("not scanned", ADR-0218), which made checks 9 and 11 pass or fail on the orphan
+# stage instead of the log stage they exist to test (B37, 2026-09-23).
+printf '# TASK_STATE\n' > "$WORK/B/TASK_STATE.md"
 check "broken chain: break names the section" $(grep -q "sha-chain break" <<<"$OUT"; echo $?)
 
 # ---------- 3. broken chain without --check-deletes stays advisory ----------
@@ -143,8 +147,9 @@ check "emitter-built fixture: chain plus tip check clean (exit 0)" $?
 cd "$WORK"
 
 # ---------- 9-10. NEW: wrapper activates the checks by default (red-to-green) ----------
-RC=0; bash "$WRAPPER" "$WORK/B" >/dev/null 2>&1 || RC=$?
+RC=0; OUT=$(bash "$WRAPPER" "$WORK/B" 2>&1) || RC=$?
 check "wrapper over broken chain: nonzero WITHOUT env (battery default)" $([[ "$RC" -ne 0 ]]; echo $?)
+check "wrapper over broken chain: the log stage is what failed" $([[ "$OUT" == *"log=1 orphans=0"* ]]; echo $?)
 RC=0; bash "$WRAPPER" "$WORK/G" >/dev/null 2>&1 || RC=$?
 check "wrapper over consistent fixture: exit 0 (no false positive)" $([[ "$RC" -eq 0 ]]; echo $?)
 

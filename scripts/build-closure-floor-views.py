@@ -19,9 +19,17 @@ does. The property that must hold is not "the files match" but "the normative te
 consumer must apply is byte-identical to what it read before", which is what
 `check_closure_view_equivalence` in structural-evals.py asserts.
 
+SECOND INVARIANT (--check only, added 2026-09-23 after the docs drift audit, gap 4). A closure
+command names its floors twice more in its own prose: a "The floors are: ..." sentence where it
+loads the view, and one Definition-of-done bullet per floor. Nothing compared either with the
+view, so implement-approved-slice required an "Integrity floor (inline-close)" that the canonical
+file gave no inline-close variant, and the drift check stayed clean. --check now fails when the
+declared list and the view disagree, or when a DoD bullet names a floor the consumer's view does
+not carry.
+
 Usage:
   build-closure-floor-views.py            # write the views
-  build-closure-floor-views.py --check    # exit 1 on drift, write nothing
+  build-closure-floor-views.py --check    # exit 1 on drift or on a command/view disagreement, write nothing
 """
 
 import hashlib
@@ -71,6 +79,61 @@ def render(text, consumer):
     return "\n".join(out).rstrip() + "\n"
 
 
+PLATFORM = "wos/platform-runtime-floors.md"
+
+
+def floor_key(name):
+    """`Commit-evidence floor (ADR-0084, ...)` and `commit-evidence (ADR-0084/0100)` -> `commit-evidence`."""
+    name = re.sub(r"\s*\(.*", "", name.strip()).strip().lower()
+    name = re.sub(r"\s+floor$", "", name)
+    return re.sub(r"[\s-]+", "-", name)
+
+
+def view_floor_keys(text, consumer):
+    """The floors the consumer's generated view carries, as keys."""
+    keys = set()
+    for block in render(text, consumer).split("\n"):
+        if block.startswith("## ") and not block[3:].startswith("When to load"):
+            keys.add(floor_key(block[3:]))
+    return keys
+
+
+def command_disagreements(text, consumer):
+    """Where commands/<consumer>.md names its floors differently from its view."""
+    path = f"commands/{consumer}.md"
+    if not os.path.isfile(path):
+        return []
+    body = open(path, encoding="utf-8").read()
+    view = view_floor_keys(text, consumer)
+    canonical = {floor_key(h[3:]) for h in re.findall(r"(?m)^## .+$", text)
+                 if not h[3:].startswith("When to load")}
+    platform = set()
+    if os.path.isfile(PLATFORM):
+        platform = {floor_key(h[3:]) for h in re.findall(r"(?m)^## .+$", open(PLATFORM, encoding="utf-8").read())}
+    out = []
+    m = re.search(r"The floors are: (.+?)\.(?:\s|$)", body)
+    if m:
+        items = re.split(r",\s*(?:and\s+)?|\s+and\s+", m.group(1))
+        declared = {floor_key(i) for i in items if i.strip()}
+        for k in sorted(declared - view):
+            out.append(f"{path}: 'The floors are:' names `{k}`, which is not in wos/closure-floors.{consumer}.md")
+        for k in sorted(view - declared):
+            out.append(f"{path}: 'The floors are:' leaves out `{k}`, which wos/closure-floors.{consumer}.md applies")
+    for n, line in enumerate(body.split("\n"), 1):
+        dm = re.match(r"^- ([A-Z][\w-]*(?: [\w-]+){0,3}? (?:floor|reconcile)) \(", line)
+        if not dm:
+            continue
+        k = floor_key(dm.group(1))
+        if k in view or (k in platform and k not in canonical):
+            continue
+        if k in canonical:
+            out.append(f"{path}:{n}: the Definition of done requires the `{k}` floor, and wos/closure-floors.md "
+                       f"gives it no {consumer} variant, so the view this command loads never applies it")
+        else:
+            out.append(f"{path}:{n}: the Definition of done names a `{k}` floor that no floors file defines")
+    return out
+
+
 def main():
     check = "--check" in sys.argv
     if not os.path.isfile(CANONICAL):
@@ -95,9 +158,16 @@ def main():
         print(f"  wrote:     {path} ({len(rendered)} chars)")
 
     if check:
+        disagreements = [d for c in CONSUMERS for d in command_disagreements(text, c)]
         if drift:
             print("build-closure-floor-views: DRIFT in " + ", ".join(drift), file=sys.stderr)
             print("  run: python3 scripts/build-closure-floor-views.py", file=sys.stderr)
+        if disagreements:
+            print("build-closure-floor-views: a closure command names its floors differently from its view:",
+                  file=sys.stderr)
+            for d in disagreements:
+                print(f"  {d}", file=sys.stderr)
+        if drift or disagreements:
             return 1
         print("build-closure-floor-views: clean")
     return 0

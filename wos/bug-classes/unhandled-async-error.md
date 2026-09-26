@@ -2,7 +2,7 @@
 name: unhandled-async-error
 category: resilience
 default-severity: P1
-cwe: [CWE-755]
+cwe: [CWE-248]  # CWE-755 is Discouraged; CWE-248 Uncaught Exception is the Base-level child and is what this class is (2026-09-21)
 languages: [typescript, javascript]
 file-patterns: ["controllers/**", "services/**", "consumers/**", "handlers/**", "api/**"]
 perspectives: [operator]

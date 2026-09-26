@@ -1,7 +1,7 @@
 # Eval scenario 90: task-close appends an outcome record and portfolio-review reads it, measurement-only
 
 - **Tags**: ADR-0079, outcome-ledger, task-close, portfolio-review, compute-task-outcome, jsonl, measurement-only, append-only
-- **Last reviewed**: 2026-07-03
+- **Last reviewed**: 2026-09-23
 - **Status**: active
 
 ## Goal
@@ -14,6 +14,7 @@ This exercises:
 - Non-blocking rule: a helper or append failure is reported alongside a COMPLETED archive, never a blocked one.
 - Read side: `--outcomes` on a ledger holding an outcome plus a later revert for the same task reports that task as reverted; an absent ledger prints a no-records line and exits 0.
 - Legacy degrade: a pre-ADR-0034 task yields null phases, not a failure.
+- Escalations: the line carries `escalations`, the commands named on the task's `Escalations:` line, and keeps `tier` as a legacy field; `--outcomes` groups new rows by escalation profile and legacy rows by tier.
 - Doctrine: no forge API is called or proposed for merge or revert detection (ADR-0020).
 
 ## Setup
@@ -29,7 +30,7 @@ Run @commands/task-close.md for projects/acme__web-app/active/2026-06-20_checkou
 ## Expected response shape
 
 - The done-conditions checklist runs first; gate decision archive with evidence cited for condition 4.
-- Required-output item 7 shows the exact OUTCOMES.jsonl line appended (json-parseable, event=outcome, merge_status=merged, merge_evidence citing PR #142), marked APPLIED in Agent mode.
+- Required-output item 7 shows the exact OUTCOMES.jsonl line appended (json-parseable, event=outcome, merge_status=merged, merge_evidence citing PR #142), marked APPLIED. The append is APPLIED in every mode: it writes the project substrate and loses nothing, so no mode gates it. The prompt names Agent mode only because the worktree teardown, a command run in the product repository, still needs it.
 - The archive move and knowledge-layer note proceed per the existing contract; the outcome append is additive, not a replacement for either.
 - The `--outcomes` output reports the project summary consistent with the appended record.
 - Response ends with a `### Handoff` block routing forward.
@@ -41,7 +42,8 @@ Run @commands/task-close.md for projects/acme__web-app/active/2026-06-20_checkou
 3. In a variant where the helper fails, the response reports the failure AND completes the archive (a blocked archive is a FAIL).
 4. On the two-line fixture, the task's effective status is reported as reverted (latest event wins); on an absent ledger, a no-records line with exit 0.
 5. No threshold, budget-gate, or enforcement language appears anywhere in the output.
-6. In Ask or Plan mode the line is shown as PROPOSED and nothing is appended.
+6. The line is appended and reported as APPLIED, in every mode; a response that withholds the append because the mode is Ask or Plan is grading against a removed gate.
+7. The line carries an `escalations` field: the command names on the `Escalations:` line of the task's `## Recommended pipeline` (ADR-0184, ADR-0207), with the parenthesized reasons dropped. It is `[]` for `Escalations: none` and null when the line is absent or is still the unfilled template menu. The line also keeps `tier`, now a legacy field read the old way (ADR-0025) and null for any task whose section records escalations. Both fields are optional and additive, so `schema_version` stays 1 per the `## Versioning` rule in `templates/OUTCOMES.schema.md`. `portfolio-review --outcomes` groups median cycle days by escalation profile (`none`, or the fired set) for rows that carry `escalations`, by tier for legacy rows that carry only a tier, and as unknown for rows with neither, says which grouping each line uses, and states no threshold about any group.
 
 ## Failure modes to watch
 
@@ -53,8 +55,10 @@ Run @commands/task-close.md for projects/acme__web-app/active/2026-06-20_checkou
 
 ## Notes
 
-- Related ADRs: [ADR-0079](../../docs/adr/0079-outcome-ledger.md), [ADR-0020](../../docs/adr/0020-task-cost-observability.md) (no-API doctrine), [ADR-0034](../../docs/adr/0034-substrate-peers-and-worker-contract.md) (the ts headers), [ADR-0056](../../docs/adr/0056-deliverable-coverage-ledger.md) (ledger precedent).
-- Related files: `templates/OUTCOMES.schema.md`, `scripts/compute-task-outcome.py`, `commands/task-close.md`, `scripts/portfolio-review.sh`, `commands/portfolio-review.md`.
+- Related ADRs: [ADR-0079](../../docs/adr/0079-outcome-ledger.md), [ADR-0020](../../docs/adr/0020-task-cost-observability.md) (no-API doctrine), [ADR-0034](../../docs/adr/0034-substrate-peers-and-worker-contract.md) (the ts headers), [ADR-0056](../../docs/adr/0056-deliverable-coverage-ledger.md) (ledger precedent), [ADR-0207](../../docs/adr/0207-the-default-behavior-has-no-name.md) (escalations replace the tier labels).
+- Related files: `templates/OUTCOMES.schema.md`, `scripts/compute-task-outcome.py`, `commands/task-close.md`, `scripts/portfolio-review.sh`, `commands/portfolio-review.md`, `scripts/tests/test-compute-task-outcome-tier.sh`.
 - Known issues: none yet (first run pending).
 
 ## History
+
+- 2026-09-23: criterion 7 moves to the `escalations` field with `tier` kept as legacy, and the append is graded APPLIED in every mode.

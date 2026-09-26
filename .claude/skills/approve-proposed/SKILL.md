@@ -1,39 +1,18 @@
 ---
 name: approve-proposed
 description: |-
-  Atomically persist every file marked PROPOSED in the most recent prior assistant turn's `### Artifact changes` block. Single-command idiom that closes the two-step latency in ADR-0001's PROPOSED-by-default contract; the user reviews proposals in Ask/Plan mode, then runs this once to write all of them. Use when the prior assistant turn ended with a `### Artifact changes` block containing one or more files marked PROPOSED and you have read and accepted the inline content for each. Do not use when the prior turn had no `### Artifact changes` block, every artifact is APPLIED or SKIP, you have not yet read the proposed content, or you want to approve only a subset (run the original command in Agent mode for partial approval).
+  Atomically persist every file marked PROPOSED in the most recent prior assistant turn's `### Artifact changes` block. Invoked on request only; it is not part of any default chain. The ADR-0001 mode gate it once serviced is gone, and what remains is the staged write: a command chose to stage a PROPOSED block inside a section it does not conventionally own (optional since ADR-0232 made ownership descriptive), and the user wants it promoted without waiting for the owner command. Use when the prior assistant turn ended with a `### Artifact changes` block containing one or more files marked PROPOSED and you have read and accepted the inline content for each. Do not use when the prior turn had no `### Artifact changes` block, every artifact is APPLIED or SKIP, you have not yet read the proposed content, or you want to approve only a subset (run the original command in Agent mode for partial approval).
 metadata:
-  category: state-and-navigation
-  primary-cursor-mode: Agent
-  multi-repo-aware: false
-  context-layers-consumed:
-    - history
-    - memory
-  context-layers-produced:
-    - memory
-  tools:
-    - Read
-    - Write
-    - Edit
-    - Bash
-    - Glob
-    - Grep
-  x-wos-profiles:
-    - core
-    - full
-  provenance: first-party
-  suggested-model: claude-haiku-4-5
+  category: "state-and-navigation"
+  primary-cursor-mode: "Agent"
+  multi-repo-aware: "false"
+  context-layers-consumed: "history, memory"
+  context-layers-produced: "memory"
+  tools: "Read, Write, Edit, Bash, Glob, Grep"
+  x-wos-profiles: "core, full"
+  provenance: "first-party"
+  suggested-model: "claude-haiku-4-5"
 ---
-> **Output contract, in brief.** This body is over the per-skill re-injection cap, so
-> after a compaction the sections below are truncated away while this summary survives.
-> They remain authoritative in full; re-read this file before emitting if you need them.
->
-> - `Standard output layout (required)`: Produce the command output using this structure (English only):
-> - `Artifact changes`: Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
-> - `Command transcript`: Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
-> - `Handoff`: Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per...
-> - `Definition of done (command output)`: Every file the prior turn marked `PROPOSED` (full inline or update-delta) is either persisted as `APPLIED` or explicitly skipped w...
-
 
 Act as a senior/staff engineer executing a single batch-persist of every file the prior assistant turn proposed under `### Artifact changes`.
 
@@ -41,20 +20,17 @@ Goal:
 Read the most recent prior assistant turn in the conversation history, identify every file marked `PROPOSED` in its `### Artifact changes` block, and write all of them atomically. Print a single recap line listing what landed.
 
 Mandatory context bootstrap (before any output):
-<!-- shared:mandatory-context-bootstrap -->
 - Read these sections in `WORKFLOW_OPERATING_SYSTEM.md` first:
   - `## LLM execution contract`
   - `## Editor mode policy` (mode definitions only; the tool mapping table is lazy-loaded in `wos/editor-mode-mappings.md` and needed only for non-Claude-Code tools)
   - `## Global output contract` (including **Adaptive handoff** and **Mode selection rule**)
   - `## Cross-cutting workflow guardrails`
-- **Bootstrap tiers (ADR-0025):** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) may skip `## Editor mode policy` good-fits lists and `## Cross-cutting workflow guardrails` sequencing heuristics, reading only the mode definitions and the core guardrail rules (routing memory, command-less input triage, official command names, material change, no-op). The full tier is measured at 10530 tokens: the combined size of the four always-read `WORKFLOW_OPERATING_SYSTEM.md` sections listed above. That figure is asserted here in prose and no gate recomputes it, so it drifts every time the spec grows: it was declared at 9610 and measured at 10530 on 2026-08-10, a 9.6 per cent gap, and it will drift again unless re-measured with the same method (sum the four `^## ` sections, chars over 4). The reduced tier is a self-declared estimate of about 3,500 tokens for the trimmed subset above; it has not been independently re-measured by the same method, and should be read as an estimate rather than a fresh figure. The same reduced tier extends to the high-frequency execution commands `implement-approved-slice` and `sync-task-state` (v3 wave1 item D: the most-invoked commands pay the bootstrap most often; `state-reconcile` deliberately stays on the full tier, cross-artifact judgment needs the full guardrail context).
-- **Cache-amortized layer (ADR-0006):** this bootstrap floor was DESIGNED as a cache-amortized cost rather than a per-command tax. ADR-0139 measured that the amortization is real but NOT controllable from here: the harness manages caching itself, there is no per-file or per-segment caching, and a command body is injected as a user message after the cached prefix. Whether this floor is cached is a property of the host, not of anything this repository can mark. Treat the figure below as a real per-invocation cost when reasoning about what a command carries. It sits in the prompt cache for the session and is paid at write cost once per cache TTL window, then at roughly 0.1x on cached reads inside that window. Account for it separately from any per-skill Load budget (the generated `.claude/skills/<name>/SKILL.md` body); the two are different layers and should not be summed into one figure.
-- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this same conversation already performed this bootstrap read in an earlier turn that is still VISIBLE in the current context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one instead, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. This is a scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), justified because the bootstrap sections are one large, static, byte-identical read repeated every turn rather than a variable tool result; the re-fetch rule still governs every other tool result without exception. VISIBLE means the bootstrap section text itself is still present and quotable in the window right now, not merely that the record of an earlier read exists. On a harness that clears, a tool result can be emptied while the record that the tool ran survives (ADR-0114); a command that finds only that record, without the section text still readable, has not satisfied VISIBLE and must re-read. Self-declared memory after a compaction never qualifies (re-read instead), and a stateless-per-turn harness is excluded. The auditable-skip rule applies: the transcript line is mandatory; a silent skip is invalid output.
-- **Resolving a relative `wos/<topic>.md`.** Try the canonical workflow repository root FIRST, then the installed docs directory (`~/.claude/workflow-docs/wos/` or `~/.cursor/workflow-docs/wos/`). Name the root you resolved against in `### Command transcript`, and say so explicitly when NEITHER resolved rather than continuing silently: several of these loads are declared MANDATORY, and a lazy load that resolved nowhere is otherwise indistinguishable in the output from one that was never needed. Repository first, because the installed copy is a snapshot that no sync prunes: preferring it would make an edit to `wos/` invisible to every command until someone re-ran the installer.
+- **Bootstrap tiers:** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) plus the high-frequency `implement-approved-slice` and `sync-task-state` (v3 wave1 item D) read the four sections above with two subsections of `## Cross-cutting workflow guardrails` skipped: `### External web access (centralized)` and `### Sequencing heuristics (by phase)`. Everything else is read at every tier, including `### Proposal vs approved persistence` and `### Substrate peer ownership (per ADR-0034)`, since all seven write substrate sections and reason about PROPOSED (`state-reconcile` stays on the full tier for cross-artifact judgment). The full tier is measured at 11678 tokens, the four always-read sections combined; the two skipped subsections are 1,035 of those (measured 2026-09-24), so the reduced tier is about 10,643. The leaf-reviewer tier (`verify-against-rubric`, ADR-0226) reads only `## Global output contract`, measured at 4841 tokens, plus its rubric.
+- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this conversation already read the bootstrap sections in an earlier turn still VISIBLE in the context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. Scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), because these sections are one large, static, byte-identical read repeated every turn; every other tool result still re-fetches. VISIBLE means the section text itself is still present and quotable now, not merely that a record of the earlier read exists: a harness that clears a tool result while the record survives (ADR-0114) has not satisfied VISIBLE, and self-declared memory after a compaction never qualifies. A stateless-per-turn harness is excluded. The transcript line is mandatory; a silent skip is invalid output.
+- **Resolving `WORKFLOW_OPERATING_SYSTEM.md` and a relative `wos/<topic>.md`.** Both resolve the same way: try the canonical workflow repository root FIRST, then the installed docs directory (`~/.claude/workflow-docs/` or `~/.cursor/workflow-docs/`, the spec at that root and topics under its `wos/`). Repository first, because the installed copy is a snapshot no sync prunes; preferring it would hide a `wos/` edit from every command until a reinstall. Name the resolved root in `### Command transcript`, and say so explicitly when NEITHER resolved rather than continuing silently, since several of these loads are MANDATORY.
 - Read additional sections only when relevant to this command's role.
-- Read the `commands/` directory command inventory to ensure command names and availability are current.
 - Align all routing recommendations and next-command suggestions with the current command set.
-- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares that the chain has ended and no following command would be honest, defined in `## Global output contract` (ADR-0126); use it only when nothing honest remains, never to end a chain that has a real next step.
+- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares the chain ended with no honest next step, defined under `### Official command names (routing integrity)` (ADR-0126); use it only then, never to end a chain that has a real next step.
 
 Required inputs:
 - the conversation history containing the most recent prior assistant turn with an `### Artifact changes` block (already in context when the command runs)
@@ -68,7 +44,7 @@ Operating rules:
 - **Source-of-truth turn**: the "prior assistant turn" means the most recent assistant message whose `### Artifact changes` block is NON-EMPTY and carries at least one `PROPOSED` file. Skip intervening user messages, tool results, assistant messages with no Artifact-changes block, AND assistant messages whose Artifact-changes block is empty (a NO_OP `None` / `NO_FILE_CHANGES` block): an empty block does NOT shadow an earlier real proposal (D-4, 2026-07-18). STOP walking back at the first intervening block that carried real `APPLIED` or `SKIP` decisions: never reach past a block the user already acted on, so a superseded proposal is never resurrected. This preserves ADR-0024's rule that you never walk back across multiple *decision-bearing* Artifact-changes turns; it only skips empty NO_OP blocks that would otherwise hide the latest real proposal.
 - **Stacked live proposals are never silently dropped (worktree dogfood 2026-08-04).** WHEN, walking back under the rule above, you find an EARLIER non-empty `PROPOSED` block that no intervening block resolved as `APPLIED` or `SKIP`, that block is a LIVE proposal, not a superseded one. Persist its files too when their paths do not collide with the latest block's. On a path collision the latest block wins and the earlier file is listed under `Skipped (superseded by a later proposal): <list>`. Emitting nothing about the earlier block is invalid output: on the source run three proposed files evaporated this way and one of them, `IMPACT_ANALYSIS.md`, was never written.
 - **Content required**: persist files that have either (a) full inline content or (b) an update-delta (semantic description of changes to an existing file). For full inline: write the content as-is. For update-delta: read the current file on disk, apply the described changes, and write the result. If a file is marked `PROPOSED` but its content is vague or unresolvable (e.g., "see content above", "same as last turn"), do NOT persist it; list it under `Skipped (incomplete inline)` in the recap.
-- **Path resolution**: every file path in the prior block must resolve to a real path inside the active task folder OR inside `my_work_tasks/` (for workflow meta-edits). If a path resolves outside both, do NOT persist it; list it under `Skipped (path outside scope)` in the recap.
+- **Path resolution**: every file path in the prior block must resolve to a real path inside the active task folder OR inside the workflow repository (for workflow meta-edits). If a path resolves outside both, do NOT persist it; list it under `Skipped (path outside scope)` in the recap.
 - **Atomic batch**: perform all qualifying writes in this single turn (one Write per file). Do not split across multiple turns. Do not interleave Write calls with conversational prose.
 - **No partial mode**: this command is all-or-nothing for the qualifying subset. If the user wants partial approval, they re-run the source command in Agent mode or edit the proposals before running this command.
 - **No-op cases**:
@@ -83,6 +59,7 @@ Operating rules:
   4. `Skipped (path outside scope): <list>` (omit if empty)
   5. `Skipped (no PROPOSED marker): <list>` (omit if empty)
 - **Conflict-check rule**: before persisting any file, compare the proposed content's references to locked decisions in `TASK_STATE.md ## Canonical decisions`. If the proposal contradicts a locked decision, FAIL with a clear error naming the contradiction; do NOT persist anything in this turn (atomic rollback).
+- **Why this still exists (ADR-0232).** Ownership is descriptive: a co-writer may write a section directly, logging the conventional owner in `reason`. Staging a PROPOSED block is the choice for a write the user wants to read before it lands, and this command is how that staged write lands in one batch. It is never required for a write outside the matrix row.
 - **Substrate write protocol (per ADR-0034, K.2, ADR-0101).** WHEN a persisted file is a K.2 substrate file per `commands/_shared/substrate-write-protocol.md`, replace the proposer's mode=proposed transaction header with this run's `owner=approve-proposed ... mode=applied` header and append one `event=approve` JSONL line per applied file to `active/<task>/.wos/VERIFICATION_LOG.jsonl` with valid sha_before/sha_after (`bash scripts/emit-substrate-write.sh` is the invokable path); non-substrate files are unaffected.
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full).
 
@@ -94,7 +71,6 @@ Required output:
 5. What should explicitly not be done yet.
 
 ### Substrate digest fallback
-<!-- shared:substrate-digest-fallback -->
 **Digest fallback when the canonical helper is unreachable.** `sha_of_section` extracts a section's body with `awk` and pipes it to `shasum -a 256`. A run executing inside a permission boundary that admits `shasum` but refuses `awk` and `sed` cannot invoke that helper, and MUST NOT reimplement it: an `awk` or `sed` program operand can call `system()` and write files, so a boundary that refuses those verbs refuses them for a reason. Assume the helper is unreachable whenever the workflow repository's `scripts/` directory is not readable from the working directory.
 
 WHERE the canonical per-section digest helper is unreachable, the write SHALL use a whole-file SHA-256 and SHALL declare the reduced scope:
@@ -112,7 +88,6 @@ Do NOT rebuild the helper by writing each section out as its own file so it can 
 
 What the fallback costs, stated so the trade is explicit rather than discovered later: the digest chain exists to detect an unlogged change to a SECTION. At file scope, two sections written in the same run share a digest, so the chain detects tampering with the file without attributing it to a section. That is a declared reduction in resolution, not a silent one, which is why the `sha_scope` field is mandatory rather than optional.
 ### Claim grounding (active epistemic humility)
-<!-- shared:claim-grounding -->
 **Claim grounding (active epistemic humility).** This block governs what you may assert and how you record it. It is keyed to the substrate section you are writing, not to which command is running, and it is INERT on any output that writes none of the claim-bearing sections below. Full contract and rationale: `wos/active-epistemic-humility.md`.
 
 1. When this applies. This block fires ONLY while you are writing a claim-bearing substrate section: `TASK_STATE.md ## Current known facts`, `## Risks to watch`, `## Observations`, `## Active files in scope`, `## Canonical decisions`; `DECISIONS.md ## Locked decisions`; `IMPLEMENTATION_PLAN.md ## Current gaps`, `## Risks and mitigations`; `IMPACT_ANALYSIS.md`; `EXTERNAL_RESEARCH.md`; `REFERENCES.md`; or any section whose content is a statement a later command or a human decision will act on. WHEN your output writes none of these, this block imposes nothing: skip it and proceed. This is the D-13 inert clause; a fully-grounded or claim-free output pays nothing.
@@ -129,20 +104,16 @@ What the fallback costs, stated so the trade is explicit rather than discovered 
 
 7. An unfired gate is not evidence. The absence of a fired check does not mean grounding existed. Do not read silence here as a pass.
 ### Standard output layout (required)
-<!-- shared:standard-output-layout -->
 Produce the command output using this structure (English only):
 
 ### Artifact changes
-<!-- shared:artifact-changes-default -->
-Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
+Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules. Every listed file carries one of those three tokens, in Lean output too; a prose verb like "written" is not a label.
 
 ### Command transcript
-<!-- shared:command-transcript-standard -->
 Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
 
 ### Handoff
-<!-- shared:handoff-body -->
-Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state).
+Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state). Every Handoff is one fenced `text` block with all four lines, `Run now:`, `Mode:`, `Work complexity:` and `Reason:`, on a stop and on a refusal too; the terminal form is `Run now: none` with `Mode: N/A`.
 
 ### Definition of done (command output)
 - Every file the prior turn marked `PROPOSED` (full inline or update-delta) is either persisted as `APPLIED` or explicitly skipped with a recap-line reason. Silent omission is invalid.

@@ -37,7 +37,7 @@ The supply is not locked to one look, which matters when a project's art directi
 
 The asset decision and the renderer decision are not independent. See `wos/godot-3d-rendering-and-performance.md` for the tier definitions.
 
-- **Texture ceiling.** Mobile GPUs are typically limited to 4096x4096 textures, so a source texture above that is a mobile-target defect caught at import, not at runtime. A photoreal source set aimed at desktop will routinely exceed it.
+- **Texture ceiling.** Treat 4096x4096 as the mobile ceiling. It is the `maxImageDimension2D` floor Vulkan guarantees, which is why the number circulates; neither Qualcomm's Adreno guidance nor ARM's Mali docs publish a current typical maximum, so this is a planning default and not a device fact. Godot's importer does not check it either: it has an opt-in size limit, not a GPU-ceiling gate, so a source texture above it is caught by whoever is looking, not by the import. A photoreal source set aimed at desktop will routinely exceed it.
 - **LOD is a technique, not an asset property.** The optimization set includes mesh LOD, but whether a downloaded asset ships LOD levels is per-asset and is not stated by any captured source.
 - **Poly counts are uncaptured.** No captured source gives poly counts, texture resolutions, LOD levels, or collision-shape data for any asset source. This is the single largest gap in this topic and it is exactly the gap that blocks answering whether a given CC0 pack is mobile-viable. Measure the asset; do not infer it from the source's reputation.
 

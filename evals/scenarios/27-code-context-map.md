@@ -1,7 +1,7 @@
 # Eval scenario 27: code-context-map output contract
 
-- **Tags**: code-context-map, discovery-and-scoping, gitignored-artifact, token-budget, ADR-0027
-- **Last reviewed**: 2026-05-30
+- **Tags**: code-context-map, discovery-and-scoping, gitignored-artifact, token-budget, ADR-0027, ADR-0195
+- **Last reviewed**: 2026-09-07
 - **Status**: active
 
 ## Goal
@@ -66,6 +66,34 @@ Mode: Agent
 - **Missing freshness or grep-seed framing**: the artifact omits `Last generated` `branch@sha` or presents itself as an authoritative/exhaustive index.
 - **Missing Handoff**: either turn ends without a complete `### Handoff` block.
 
+## Keyword ordering subcase
+
+Exercise the Layer 2 ordering step after extraction, using these already-established ranks from
+one in-scope module. This fixture isolates ranking; it does not stand in for source extraction or
+the full map generation exercised above. Compare the relative order of these three candidates
+within the larger candidate set. Keyword ranks refer to matching candidates only.
+
+| Candidate | Fan-in rank | Keyword rank | Expected RRF score with k=60 |
+|---|---:|---:|---:|
+| hub | 1 | none | 0.01639344 |
+| weak-match | 500 | 100 | 0.00803571 |
+| strong-match | 2 | 1 | 0.03252247 |
+
+- With `keywords:` and `--explain-ranking`, expect `strong-match`, then `hub`, then `weak-match`
+  in relative order, with the ranks and scores shown. Rounded scores must not reverse that order.
+- With keywords but without explanations, expect the same order without score annotations.
+- With keywords absent, expect fan-in order: `hub`, then `strong-match`, then `weak-match`, and
+  ranking source `structural`.
+- With keywords present but no matches anywhere, every keyword rank is `none`, every score is
+  its fan-in term, and relative order is fan-in order. The ranking source remains
+  `structural + keyword`, because the keyword path was selected.
+- Repeat with every candidate in the module matching: include both terms for each candidate
+  and sort by descending RRF. Preserve the original candidate set in every variant.
+- Layer 1, module order and import-chain traversal do not change when keywords are supplied.
+
+A failure groups every matching symbol before `hub`, excludes `hub`, gives it a keyword term,
+changes the no-keyword path, or reports explanations inconsistent with the actual order.
+
 ## Notes
 
 - Related ADR: [ADR-0027](../../docs/adr/0027-code-context-map-and-product-repo-artifacts.md).
@@ -75,3 +103,4 @@ Mode: Agent
 ## History
 
 - 2026-05-30: scenario authored as part of the code-context-map task (Slice 5).
+- 2026-09-07: added the global RRF counterexample and keyword-path variants under ADR-0195.

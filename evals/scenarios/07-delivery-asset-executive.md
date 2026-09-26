@@ -10,7 +10,7 @@ Validates that `delivery-asset` produces an audience-appropriate artifact (here:
 
 This exercises:
 
-- The "no workflow-path leakage" rule (`my_work_tasks/`, `commands/`, `TASK_STATE.md`, etc. forbidden in the asset body).
+- The "no workflow-path leakage" rule (a path into the workflow repository or the task repository, `commands/`, `TASK_STATE.md`, etc. forbidden in the asset body).
 - The "no invented metrics" rule (only metrics anchored in task artifacts may appear).
 - The filename convention for multiple assets per task.
 - The Handoff contract.
@@ -85,7 +85,7 @@ Mode: Ask
 - The Body starts with a one-line standalone summary (some executives only read the first line).
 - The Body is short (length=`tight` means ≤200 words).
 - The Body cites concrete delivered work (the new endpoint, the 404 handling decision, the test coverage) without naming files, paths, or workflow internals.
-- The Body does NOT contain any of: `my_work_tasks/`, `commands/`, `TASK_STATE.md`, `DECISIONS.md`, `IMPLEMENTATION_PLAN.md`, `PR_PACKAGE.md`, `projects/<...>__<...>/`, `src/handlers/prices.ts`, slice numbers, commit SHAs, or other internal vocabulary.
+- The Body does NOT contain any of: a path into the workflow repository or the task repository, `commands/`, `TASK_STATE.md`, `DECISIONS.md`, `IMPLEMENTATION_PLAN.md`, `PR_PACKAGE.md`, `projects/<...>__<...>/`, `src/handlers/prices.ts`, slice numbers, commit SHAs, or other internal vocabulary.
 - The Body does NOT invent metrics (no "improves price query latency by 40%", no "saves 3 engineering hours per week", no "reduces support tickets by 25%") that are not in the task artifacts.
 - `### Handoff` block at the end. `Run now:` is `team-update` (the asset is one of several outputs and a quick team channel update may also be wanted), `pr-package` (if a PR update is needed alongside), or `state-reconcile` (if grounding revealed drift).
 
@@ -111,7 +111,7 @@ Mode: Ask
 
 ## Notes
 
-- Related ADRs: [ADR-0001](../../docs/adr/0001-proposed-by-default.md) (PROPOSED-by-default; the asset is PROPOSED in Ask mode), [ADR-0002](../../docs/adr/0002-paste-this-next-contract.md) (Handoff contract).
+- Related ADRs: [ADR-0001](../../docs/adr/0001-proposed-by-default.md) (the PROPOSED-by-default write gate, removed 2026-09-16; the asset is written and marked APPLIED), [ADR-0002](../../docs/adr/0002-paste-this-next-contract.md) (Handoff contract).
 - Related commands: `commands/delivery-asset.md`, `commands/team-update.md`, `commands/pr-package.md`. The three are complementary: pr-package for the GitHub PR, team-update for quick team-internal status, delivery-asset for audience-specific outward-facing artifacts.
 - The "no workflow-path leakage" rule is the single most important property of this command. Models that have been reading the workflow internals throughout the task tend to want to reference them; the rule says do not.
 - Multiple delivery assets per task are expected. A typical post-launch task might generate `DELIVERY_ASSET_executive-summary_executives.md`, `DELIVERY_ASSET_release-note_customers.md`, and `DELIVERY_ASSET_slack-post_engineering-broader.md` from the same task-memory base.

@@ -6,7 +6,7 @@
 
 ## Goal
 
-Validate that the `security-review` command, in combination with the `pii-encryption-boundary-leak` and `pii-last-4-only-rule-violation` bug-classes, correctly flags a P0 regression when a Right-Quote-style customer API returns a full bank account number in plaintext, and correctly passes when the same surface returns a masked last-4 representation. The bug-class pair encodes the canonical rule: any PII bank field crossing the API boundary must be masked to the last 4 digits unless the caller is explicitly inside the encryption zone.
+Validate that the `security-review` command, in combination with the `pii-encryption-boundary-leak` and `pii-last-4-only-rule-violation` bug-classes, correctly flags a P0 regression when a customer-facing financial API returns a full bank account number in plaintext, and correctly passes when the same surface returns a masked last-4 representation. The bug-class pair encodes the canonical rule: any PII bank field crossing the API boundary must be masked to the last 4 digits unless the caller is explicitly inside the encryption zone.
 
 This exercises:
 
@@ -17,7 +17,7 @@ This exercises:
 
 ## Setup
 
-A Right-Quote-style repo with two endpoints under review:
+A customer-facing financial app repo with two endpoints under review:
 
 - `GET /api/customers/<id>` -- regression case. Response body includes `"bank_account": "4532018273645091"` (full 16-digit account number) inside the customer object.
 - `GET /api/customers/<id>/confirmation` -- compliant case. Response body includes `"bank_account": "****1234"` only.
@@ -66,13 +66,13 @@ Mode: Ask
 
 ## Notes
 
-- Right-Quote-style here means a customer-facing financial app where bank account display is a legitimate UI need but full digits must never leave the encryption zone. This is the canonical motivating case for the encryption-boundary rule.
+- A customer-facing financial app here means one where bank account display is a legitimate UI need but full digits must never leave the encryption zone. This is the canonical motivating case for the encryption-boundary rule.
 - The two bug-classes are complementary, not redundant: `pii-encryption-boundary-leak` answers "should this value cross the boundary at all?" and `pii-last-4-only-rule-violation` answers "given that it crosses, is the format compliant?". A reviewer that conflates them will mis-route findings.
 - This scenario does not test write paths (POST/PUT). Encryption-boundary on inbound PII is a separate scenario.
 
 ## History
 
-- 2026-06-05: Scenario authored to cover the PII boundary bug-class pair after the Right-Quote regression motivated adding them to the global catalog.
+- 2026-06-05: Scenario authored to cover the PII boundary bug-class pair after a plaintext bank-field regression motivated adding them to the global catalog.
 
 ## References
 

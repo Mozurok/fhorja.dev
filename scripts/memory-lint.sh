@@ -35,7 +35,9 @@
 #     parent project dir) is also scanned for dead relative links.
 #
 # Read-only and advisory: always exits 0. A trailing "MEMORY-LINT: N finding(s)"
-# line lets callers grep the result; this command never blocks.
+# line lets callers grep the result; this command never blocks. When no task folder
+# was scanned the trailing line is "MEMORY-LINT: not scanned" instead, never a count
+# of 0, which read as a clean folder (ADR-0224).
 
 # No `set -e`: this scanner is advisory and must always exit 0.
 set -uo pipefail
@@ -64,6 +66,13 @@ if stat -f '%m' "$0" >/dev/null 2>&1; then STAT_MTIME=(stat -f '%m'); else STAT_
 mtime() { local v; v=$("${STAT_MTIME[@]}" "$1" 2>/dev/null || echo 0); case "$v" in ''|*[!0-9]*) v=0 ;; esac; echo "$v"; }
 
 task_dir="${1:-}"
+if [[ -n "$task_dir" && ! -d "$task_dir" ]]; then
+  # A folder was named and is not there. Saying "looked under ./projects" here reported a
+  # search that never ran, for a path the caller never asked about.
+  echo "memory-lint: no such task folder: $task_dir"
+  echo "MEMORY-LINT: not scanned"
+  exit 0
+fi
 if [[ -z "$task_dir" ]]; then
   best="" ; best_m=0
   while IFS= read -r ts_file; do
@@ -76,7 +85,7 @@ fi
 
 if [[ -z "$task_dir" || ! -d "$task_dir" ]]; then
   echo "memory-lint: no task folder to scan (looked under $tasks_root)."
-  echo "MEMORY-LINT: 0 finding(s)"
+  echo "MEMORY-LINT: not scanned"
   exit 0
 fi
 
@@ -234,9 +243,9 @@ fi
 # ---------------------------------------------------------------------------
 # Scan LEARNINGS.md (if present) for malformed reflexion entries: a missing or
 # empty Anchor: field, any mandatory bullet (Tried / Failed because / Next time /
-# Cross-project promotion) whose value after the colon is blank, and a missing or
-# empty Tags: line. The Tags: line is introduced by a sibling change; entries that
-# predate it are flagged, not errored. A missing LEARNINGS.md is not a finding.
+# Cross-project promotion) whose value after the colon is blank, and a Tags: line
+# that is present but empty. Tags is optional per ADR-0071, so an entry without one
+# is valid and is not reported. A missing LEARNINGS.md is not a finding.
 echo "LEARNINGS entry quality:"
 learnings_issues=0
 learnings="$task_dir/LEARNINGS.md"
@@ -269,7 +278,11 @@ finalize_learning_entry() {
   check_learning_field "Failed because" value-only
   check_learning_field "Next time" value-only
   check_learning_field "Cross-project promotion" value-only
-  check_learning_field "Tags" required
+  # value-only, not required: ADR-0071 made Tags OPTIONAL ("keeps the change backward
+  # compatible: every existing entry stays valid"), and `required` flagged every entry
+  # that predates the field as malformed. A Tags line that is present must still carry
+  # a value, which is what value-only asserts. Corrected 2026-09-22 (ADR-0214).
+  check_learning_field "Tags" value-only
 }
 
 if [[ -f "$learnings" ]]; then

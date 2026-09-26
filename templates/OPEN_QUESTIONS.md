@@ -4,10 +4,10 @@
 
 ## Triage levels
 
-- 🔴 **Blocking**: cannot proceed with implementation until resolved
-- 🟡 **Affects implementation**: can proceed but the answer will change the implementation
-- 🟢 **Nice-to-have**: does not block or change implementation; improves polish
-- ✅ **Resolved**: answered; decision recorded in the relevant spec's `## Decisions` section
+- `blocking`: cannot proceed with implementation until resolved
+- `affects-implementation`: can proceed but the answer will change the implementation
+- `nice-to-have`: does not block or change implementation; improves polish
+- `resolved`: answered; decision recorded in the relevant spec's `## Decisions` section
 
 ## ID prefixes
 
@@ -29,7 +29,7 @@ Extend as needed for your project. Common prefixes:
 
 | ID | Question | Source | Foundation / Spec | Priority | Status | Decision |
 |---|---|---|---|---|---|---|
-| `<PREFIX-NN>` | `<the question>` | `<where it came from>` | `<which spec it affects>` | 🔴 / 🟡 / 🟢 | open / resolved | `<answer, if resolved>` |
+| `<PREFIX-NN>` | `<the question>` | `<where it came from>` | `<which spec it affects>` | `blocking`, `affects-implementation`, or `nice-to-have` | open or resolved | `<answer, if resolved>` |
 
 ## Resolution process
 
@@ -41,8 +41,8 @@ Extend as needed for your project. Common prefixes:
 
 | Level | Count |
 |---|---|
-| 🔴 Blocking | 0 |
-| 🟡 Affects implementation | 0 |
-| 🟢 Nice-to-have | 0 |
-| ✅ Resolved | 0 |
+| `blocking` | 0 |
+| `affects-implementation` | 0 |
+| `nice-to-have` | 0 |
+| `resolved` | 0 |
 | **Total** | **0** |

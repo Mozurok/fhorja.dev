@@ -57,7 +57,7 @@ Phase 1 ships assertion scripts only for Steps 01 + 09 (the two highest-value va
 - **Inputs:** project = `wos__e2e-test`, slug = `email-validation`, objective = "Add email-format validation to /signup: reject empty + malformed emails with HTTP 400 + structured error body", product repo path = `/tmp/wos-e2e-fake-app/`, intended editor mode = `Agent`
 - **Expected artifacts (under `projects/wos__e2e-test/active/<YYYY-MM-DD>_email-validation/`):**
   - `README.md` (task name, project name, summary, objective, status)
-  - `TASK_STATE.md` (17 canonical sections + `## Recommended pipeline` per ADR-0025; complexity tier = Express or Standard given the scope)
+  - `TASK_STATE.md` (every section of `templates/TASK_STATE.template.md` in its order, `## Recommended pipeline` per ADR-0207 among them; `Escalations: none` is expected for this scope)
   - `SOURCE_OF_TRUTH.md` (with `## Active codebase` = `/tmp/wos-e2e-fake-app/`, `## Active branch` = `main`; NO `## Repositories` since single-repo)
   - `DECISIONS.md` (empty `## Locked decisions` stub, no D-N entries yet)
   - `IMPLEMENTATION_PLAN.md` (with `## Target behavior`, `## Current gaps`, `## Constraints`, `## Slices` empty stubs)
@@ -67,13 +67,13 @@ Phase 1 ships assertion scripts only for Steps 01 + 09 (the two highest-value va
 
 ### Step 04 -- `impact-analysis`
 
-- **Mode:** Ask (PROPOSED-by-default), then `approve-proposed` if accepted
+- **Mode:** Ask or Agent; the owned sections are written and marked APPLIED in every mode (ADR-0199)
 - **Inputs:** task folder path
 - **Expected artifacts:**
   - `IMPACT_ANALYSIS.md` with the canonical 12-item structure (per `commands/impact-analysis.md` line 73): (1) Request understanding, (2) Confirmed facts, (3) Assumptions / unresolved interpretations, (4) Affected areas, (5) Risks and failure modes, (6) Viable implementation directions, (7) Recommended path, (8) Open questions, (9) Suggested next step, (10) Recommended next command, (11) Recommended editor mode, (12) Why that is the correct next step. Single-repo task so NO per-repo `### Repo:` subsections.
-  - PROPOSED block under `TASK_STATE.md ## Active files in scope` (impact-analysis OWNS this section per the matrix; PROPOSED label per ADR-0001 in Ask mode -- `approve-proposed` promotes to APPLIED on the owner write)
+  - `TASK_STATE.md ## Active files in scope` written directly (impact-analysis OWNS this section per the matrix, so the write is APPLIED in every mode, ADR-0199)
   - PROPOSED block under `TASK_STATE.md ## Risks to watch` (impact-analysis is P-only CO-WRITER; OWNER is sync-task-state; only the co-writer block lands here)
-- **Expected substrate writes (after `approve-proposed` promotes them):**
+- **Expected substrate writes:**
   - `TASK_STATE.md ## Active files in scope` write by impact-analysis (OWNER); K.2 header + JSONL line
   - `TASK_STATE.md ## Risks to watch` PROPOSED block by impact-analysis (CO-WRITER); when later promoted by sync-task-state, K.2 header carries `owner=sync-task-state` not impact-analysis (substrate-peers ownership rule)
 - **Expected handoff `Run now`:** `decision-interview` (1 decision likely: error-body shape)
@@ -92,7 +92,7 @@ Phase 1 ships assertion scripts only for Steps 01 + 09 (the two highest-value va
 
 ### Step 06 -- `implementation-plan`
 
-- **Mode:** Plan (per command frontmatter `primary-cursor-mode: Plan`), then `approve-proposed`
+- **Mode:** Plan (per command frontmatter `primary-cursor-mode: Plan`); the plan is written APPLIED (ADR-0199) and `approve-plan` locks it
 - **Inputs:** task folder
 - **Expected artifacts:**
   - `IMPLEMENTATION_PLAN.md ## Slices` -- 2 slices, each with the canonical 7 per-slice fields (per `commands/implementation-plan.md` line 60-67): (a) objective, (b) exact scope (files + boundaries), (c) why-this-order-is-safe (ordering rationale), (d) key risks, (e) validation approach, (f) exit criteria using EARS template (`WHEN ... SHALL ...`; banned softeners: should/may/appropriate/sensible/reasonable), (g) work complexity = `LOW | MEDIUM | HIGH` plus one-line rationale (no model SKU names).
@@ -110,7 +110,7 @@ Phase 1 ships assertion scripts only for Steps 01 + 09 (the two highest-value va
 - **Expected artifacts:**
   - `/tmp/wos-e2e-fake-app/handlers/signup.py` -- modified to reject empty email (after Task 3 restructure; pre-restructure path was `/tmp/wos-e2e-fake-app/app.py`)
   - `projects/wos__e2e-test/active/<task>/SLICES/01_reject-empty-email.md` -- slice notes: implemented changes, evidence, exit-criteria verification checklist
-  - APPLIED-by-default in Agent mode per ADR-0026 (slice file + TASK_STATE updates default to APPLIED)
+  - Slice file and TASK_STATE updates are written and marked APPLIED in every mode (ADR-0199)
 - **Expected substrate writes:**
   - `TASK_STATE.md ## Last completed step` -- CO-WRITER mutation by implement-approved-slice (OWNER is sync-task-state per matrix); K.2 header + JSONL line carry `owner=sync-task-state` if promoted via approve-proposed, OR `owner=implement-approved-slice` if applied directly per its substrate access (verify against current substrate-peers matrix)
   - `IMPLEMENTATION_PLAN.md ### Slice 1` Status mutation only (`not-started` -> `implemented (pending closure)`) -- co-writer mutation per matrix; STATUS lines only
@@ -119,7 +119,7 @@ Phase 1 ships assertion scripts only for Steps 01 + 09 (the two highest-value va
 
 ### Step 7.5 -- `capture-observation` (covers the K.2 capture-observation writer)
 
-- **Mode:** Ask (PROPOSED) or Agent
+- **Mode:** Ask or Agent (the observation is written APPLIED in either, ADR-0199)
 - **Inputs:** task folder, observation text = "Slice 2 should reuse the empty-email guard pattern from Slice 1 to keep error shapes uniform" + tag = `hypothesis`
 - **Expected artifacts:**
   - `TASK_STATE.md ## Observations` -- append one dated bullet `- [YYYY-MM-DD] [hypothesis] Slice 2 should reuse...`

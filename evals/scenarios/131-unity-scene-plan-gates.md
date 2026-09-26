@@ -21,7 +21,7 @@ This exercises:
 
 No live harness or model turn needed; backed by one function in `evals/scripts/structural-evals.py` plus the widened scenario-129 check, run by the `structural-evals` CI job.
 
-- A checkout with the ADR-0132 changes applied: `commands/unity-scene-plan.md`, `wos/unity-mobile-rendering-and-performance.md`, the four registry rows, the `implementation-plan` route, the read-map entry, and the generated skill.
+- A checkout with the ADR-0132 changes applied: `commands/unity-scene-plan.md`, `wos/unity-mobile-rendering-and-performance.md`, the registry rows, the `implementation-plan` route, the read-map entry, and the generated skill.
 - A scratch copy of each file a step temporarily breaks or moves, restored at the end.
 
 ## Steps
@@ -39,7 +39,7 @@ No live harness or model turn needed; backed by one function in `evals/scripts/s
 
 - Both checks PASS on the unmodified tree.
 - Each of the six injected breakages in steps 2 to 7 produces a FAIL on the named check, and the suite returns to exit 0 only after restoring.
-- `count:commands` is 98 and the registry check reports 0 gaps, since ADR-0132 adds a command and pays all four registry rows.
+- `count:commands` is 98 and the registry check reports 0 gaps, since ADR-0132 adds a command and pays all three registry rows.
 
 ## FAIL conditions
 

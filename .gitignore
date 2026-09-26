@@ -26,6 +26,9 @@
 # Task memory (per clone; not part of the published workflow repo)
 projects/
 _internal/
+.local/
+evals/runs/
+evals/workspace/**/outputs/
 
 # User-level memory (per user; bootstrap from templates/USER_MEMORY.template.md; never commit)
 /USER_MEMORY.md
@@ -39,3 +42,19 @@ CLAUDE.md
 
 # private mirror codename list (consumed by check-mirror-codenames.sh; never commit)
 scripts/.mirror-codenames
+
+# substrate retention sidecar (backup destination and age limits; machine-local)
+scripts/.substrate-retention
+
+# Local MCP server config (per clone; server definitions and vet pins are machine-local)
+/.mcp.json
+/.mcp-vet-pins.json
+
+# Per-machine hook allow-list for scripts/hook-integrity-check.sh. Seeded from the
+# live settings of one machine (see templates/hook-integrity-check.template.md), so
+# it records that machine's tooling inventory and is not shared product config.
+/.claude/hooks-baseline.json
+evals/results/
+
+# Regenerable baseline snapshots from scripts/audit/run-baseline.sh (the folder itself stays tracked)
+docs/audit/*-baseline.*

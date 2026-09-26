@@ -1,6 +1,6 @@
 # ADR-0105: Dogfood round-3 folds (inline-close commit floor, locked Decision-ref, brief-supplied answers, reopen transition, delete-orphan check)
 
-- **Status**: Accepted
+- **Status**: Accepted; item 2 superseded in part by [ADR-0233](./0233-the-attended-chain-runs-to-the-draft-pr.md): a `Decision-ref:` citing a provisional P-N traces, labeled, and a citation that resolves only to a PROPOSED block still blocks.
 - **Date**: 2026-07-12
 - **Tags**: closure-enforcement, commit-evidence, approve-plan, unattended-doctrine, reopen, audit-trail, extends-adr-0100, amends-adr-0103, extends-adr-0044-doctrine, dogfood-driven, round-3
 

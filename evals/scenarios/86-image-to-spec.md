@@ -12,7 +12,7 @@ This exercises:
 
 - Mode selection: an explicit flag is honored; with no flag the command auto-detects and states the choice plus a one-line reason.
 - Proposed-only marking: nothing is `confirmed`; visible copy is the only verbatim content, and numeric or visual values are proposed estimates.
-- The no-Figma, no-web, no-code boundary: the command reads the image and writes a spec, nothing else.
+- The no-Figma, no-web, no-code boundary: the command reads local images and declared project context, then writes the selected spec and its declared companion artifacts; local frame extraction remains opt-in.
 - Template fidelity: component mode follows `COMPONENT_SPEC.md`, screen mode follows `SCREEN_SPEC.md`.
 
 ## Setup

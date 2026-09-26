@@ -1,0 +1,124 @@
+{
+  "findings": [
+    {
+      "command": "design-spec-review",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Check 7: TypeScript API.** Does the actual props interface match the spec's section 12? Are prop names, types, and defaults consistent?",
+      "defect": "The command explicitly accepts screen specs, but these section references only match templates/COMPONENT_SPEC.md. In templates/SCREEN_SPEC.md, section 12 is Decisions, section 3 is Spacing observed, section 9 is Error states, and section 14 does not exist. Consequently Checks 1, 7, 9 and 10 cannot review a valid screen spec as instructed.",
+      "proposed_fix": "Select the check mapping by spec type. Keep the existing numbered references for component specs; use the actual SCREEN_SPEC headings for screens and explicitly mark component-only checks not applicable.",
+      "family_sites": "rg -n 'spec.s section (3|9|12|14)' commands/ returned commands/design-spec-review.md:48,54,56,57.",
+      "chars_delta": 0
+    },
+    {
+      "command": "design-spec-review",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Check 11: Visual fidelity (P2-5, careers-page dogfooding 2026-06-23).** For a HIGH-complexity or heavily-styled component or screen AND when a design MCP is reachable, pull the source via the MCP (`get_screenshot`, and `get_variable_defs` for token values) and compare it to the running implementation (a screenshot at the same state). Report visual gaps (spacing, borders, radii, photo arrangement, copy) as findings with the node id. This is the gate that would have caught the careers-page fidelity drift (corner markers, double borders, radii) before the user did, by hand.",
+      "defect": "Check 11's operating rule applies only to HIGH-complexity or heavily styled targets, but lines 60, 66 and 105 allow deferral only when both source types are absent. A simple LOW-complexity component with a reachable Figma node is outside the operating trigger yet must receive passed or failed under the Required output and DoD. The file supplies incompatible applicability rules.",
+      "proposed_fix": "Use one applicability condition throughout: either perform Check 11 for every target with an available source, or explicitly allow not-applicable for targets below the stated complexity and styling trigger in the output and DoD.",
+      "family_sites": "rg -n 'HIGH-complexity or heavily-styled|Check 11.*deferred' commands/ returned commands/design-spec-review.md:58,60,66,105.",
+      "chars_delta": 0
+    },
+    {
+      "command": "verify-against-rubric",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 6: Emit handoff.** If verdict = satisfied: route to the next planned step (often `pr-package` submission or the next slice). If needs_revision: route to `implement-slice-complement` (with verdict feedback inline). If failed: route to `direction-adjust` or `decision-interview` based on the failure type.",
+      "defect": "The command advertises verification immediately after contract-signoff and accepts a contract document, which can precede any implementation plan or slice. Nevertheless every needs_revision verdict routes to implement-slice-complement. That command requires an existing anchor slice and explicitly handles work already belonging to a slice; it cannot perform an ordinary pre-planning contract revision. The fixed route does not support the verifier's own accepted artifact types.",
+      "proposed_fix": "Route needs_revision by artifact and task state: contract wording to contract-signoff, unresolved contract choices to resolve-contract-gaps or decision-interview, PR package revisions to pr-package, and bounded implementation fixes to implement-slice-complement only when an anchor slice exists. Align the routing DoD.",
+      "family_sites": "rg -n 'If needs_revision|needs_revision -> implement-slice-complement' commands/ returned commands/verify-against-rubric.md:57,112.",
+      "chars_delta": 0
+    },
+    {
+      "command": "verify-against-rubric",
+      "criterion": 5,
+      "severity": "medium",
+      "cited_line": "  - Instruction: \"Verify the artifact against each criterion. Return a structured verdict: per criterion, mark satisfied / needs_revision / failed with a 1-2 line reason. Then an overall verdict.\"",
+      "defect": "This is the entire verification instruction supplied to the isolated worker, and it requires only a reason, not the artifact passage or other evidence establishing that reason. The parent must persist the verdict without re-evaluating it. A worker can therefore return unsupported satisfied assertions that satisfy the output contract; the main command's shared grounding block is not among the worker's permitted inputs. ADR-0033 and the optional review scaffold do not add an evidence requirement to this worker instruction.",
+      "proposed_fix": "Require each per-criterion verdict to cite the decisive artifact location and observed text, or identify the missing evidence. Preserve those citations in VERIFICATION_LOG.md so the verdict can be checked without relying on the worker's assertion.",
+      "family_sites": "rg -n '1-2 line reason' commands/ returned commands/verify-against-rubric.md:52 and commands/verify-against-rubric-fleet.md:116; the fleet's per_criterion schema likewise contains verdict and reason without an evidence field.",
+      "chars_delta": 0
+    },
+    {
+      "command": "inventory-snapshot",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 2: Enumerate Figma components.** Call `get_libraries` (preferred for published libraries) or `get_metadata` (scan component sets from frames) to list every Figma component. Capture name, node ID, and any variant set info.",
+      "defect": "The preferred tool does not return the component inventory this step attributes to it. Figma documents get_libraries as returning subscribed and available libraries with library names, keys, descriptions and source types; component/node enumeration is a separate operation. Calling that preferred branch alone cannot supply the rows demanded by the Goal and DoD. Verified against [Figma's official tool documentation](https://developers.figma.com/docs/figma-mcp-server/tools-and-prompts/#get_libraries).",
+      "proposed_fix": "Use get_libraries only to discover libraries, then enumerate component nodes from the source file with get_metadata page/frame traversal or another verified component-enumeration capability. Require completion of that traversal before asserting every component was inventoried.",
+      "family_sites": "rg -n 'get_libraries' commands/ returned commands/inventory-snapshot.md:48 and commands/design-bootstrap.md:47; both present library discovery as component enumeration.",
+      "chars_delta": 0
+    },
+    {
+      "command": "inventory-snapshot",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 8: Write to file.** Update `docs/research/_inventory/figma_components.md` with new Last refresh date, refreshed tables, and delta section.",
+      "defect": "Required inputs line 39 accepts an inventory-file path and labels this path only the default. Step 8 instead unconditionally writes the default path, while Step 1 likewise reads the fixed figma_components.md name. A caller providing a different inventory path receives contradictory read/write instructions and can get a second inventory with a delta computed against the wrong snapshot.",
+      "proposed_fix": "Resolve inventory_path once from the supplied input or documented default, then use that resolved path in Steps 1 and 8, the first-snapshot check and the artifact output.",
+      "family_sites": "rg -n 'path to inventory file|Update `docs/research/_inventory/figma_components.md`' commands/ returned commands/inventory-snapshot.md:39,58.",
+      "chars_delta": 0
+    },
+    {
+      "command": "atom-audit",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "  - **memo (G-01):** is the component wrapped in `React.memo` or `forwardRef + memo`? Mark passing if memoed OR if props count is below threshold (rule states ≥5 props OR list-rendered). Use heuristic: count props in TS interface.",
+      "defect": "The pass condition drops the list-rendered half of the cited rule. templates/COMPONENT_GUIDELINES.md G-01 requires memoization when props arity is at least five OR the component renders inside a list. The command even quotes that condition, then allows every below-threshold component to pass. An un-memoized four-prop list row is therefore incorrectly passed.",
+      "proposed_fix": "Pass when memoized, or when both props arity is below five and the component is not list-rendered. Inspect usage sites for list rendering instead of deciding from the props interface alone.",
+      "family_sites": "rg -n 'props count is below threshold|prop count threshold' commands/ returned commands/atom-audit.md:50 and commands/atom-audit-fleet.md:104; the fleet checklist also omits the list-rendered condition.",
+      "chars_delta": 0
+    },
+    {
+      "command": "atom-audit",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "  - **inline-styles (G-03):** count `style={{...}}` (object-literal) occurrences. Read passes when 0.",
+      "defect": "templates/COMPONENT_GUIDELINES.md G-03 explicitly permits dynamic styles derived from a Reanimated shared value or a memoized runtime value. Counting every object-literal style and passing only zero rejects those allowed cases, so the audit is stricter than the guideline it claims to evaluate.",
+      "proposed_fix": "Count only G-03 violations after applying the source guideline's dynamic-style exception, and record the evidence for any exempt occurrence.",
+      "family_sites": "rg -n 'inline-styles \\(G-03\\)|inline_styles.*object-literal' commands/ returned commands/atom-audit.md:52 and commands/atom-audit-fleet.md:104.",
+      "chars_delta": 0
+    },
+    {
+      "command": "atom-audit",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "  - **touch-target (G-04):** does the component define minimum 44pt tap target (or compose via padding/hitSlop)?",
+      "defect": "The cited G-04 in templates/COMPONENT_GUIDELINES.md requires 44x44 pt on iOS and 48x48 dp on Android. The command substitutes a universal 44pt minimum, allowing an Android target below 48dp to pass. The platform distinction is also present in wos/design-system-conventions.md and the ATOM_AUDIT template legend.",
+      "proposed_fix": "Evaluate interactive targets against the applicable platform floor: 44x44 pt on iOS and 48x48 dp on Android, including effective padding or hitSlop.",
+      "family_sites": "rg -n 'minimum 44pt tap target|44pt touch target minimum|44pt touch target compliance' commands/ returned commands/atom-audit.md:54, commands/design-spec-review.md:49 and commands/component-spec.md:50. The fleet sibling at commands/atom-audit-fleet.md:104 already includes both platform floors.",
+      "chars_delta": 0
+    },
+    {
+      "command": "atom-audit",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "  - **a11y (G-06):** does the component have `accessibilityRole`, `accessibilityLabel` when icon-only, `accessibilityState` for interactive variants?",
+      "defect": "The G-06 checklist omits the source guideline's decorative-element branch. templates/COMPONENT_GUIDELINES.md requires decorative elements to be hidden from accessibility with accessibilityElementsHidden on iOS and importantForAccessibility=\"no\" on Android; roles are required for interactive atoms. The command instead starts with a role check for every component and never checks decorative hiding, allowing the actual G-06 violation to escape the audit.",
+      "proposed_fix": "Branch on interactive versus decorative atoms: inspect roles and icon-only labels for interactive atoms, and the platform-specific accessibility-hidden properties for decorative atoms. Keep any additional accessibilityState check identified separately from the cited G-06 requirement.",
+      "family_sites": "rg -n 'a11y \\(G-06\\)|a11y.*accessibilityRole.*accessibilityLabel' commands/ returned commands/atom-audit.md:55 and commands/atom-audit-fleet.md:104; both omit decorative hiding.",
+      "chars_delta": 0
+    },
+    {
+      "command": "contract-signoff",
+      "criterion": 1,
+      "severity": "low",
+      "cited_line": "- Each wording change is shown explicitly as a current → proposed pair with a one-line rationale; rewriting `DECISIONS.md` wholesale without showing the diff is silent intent drift and invalid output.",
+      "defect": "The DoD makes current/proposed pairs and a rationale per change mandatory, but no operating rule or Required output item instructs the model to produce that format. Required output instead asks for exact wording changes and exact DECISIONS.md content. A complete replacement plus a list of new wording can satisfy those production instructions while failing this explicit DoD gate.",
+      "proposed_fix": "Make Required output item 2 explicitly require current/proposed pairs with a one-line rationale for each, then let the DoD check that named output.",
+      "family_sites": "rg -n 'Each wording change is shown explicitly' commands/ returned commands/contract-signoff.md:120 only.",
+      "chars_delta": 0
+    },
+    {
+      "command": "targeted-questions",
+      "criterion": 6,
+      "severity": "low",
+      "cited_line": "- Prefer fewer, higher-value questions over exhaustive question lists.",
+      "defect": "This rule adds no action or check beyond the Goal's minimum set of high-value factual questions, line 53's ban on broad or redundant questions, and line 60's requirement that each question materially affect correctness, scope, testing, rollout or runtime behavior.",
+      "proposed_fix": "Delete this repeated preference; retain the earlier concrete filtering rules.",
+      "family_sites": "rg -n 'Prefer fewer, higher-value questions' commands/ returned commands/targeted-questions.md:74 only.",
+      "chars_delta": -71
+    }
+  ]
+}

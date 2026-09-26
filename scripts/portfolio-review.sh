@@ -48,8 +48,17 @@ if [[ "${JSON_FLAG:-0}" -eq 1 ]]; then
   if [[ "$MODE" == "initiative" ]]; then MODE="initiative-json"; else MODE="json"; fi
 fi
 
-# Repo root = parent of this script's dir.
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# The task repository is the directory this is run from. It was the parent of this
+# script's own directory until 2026-09-23, so an installed copy chdir'd into the docs
+# directory, found no projects/, and printed a well-formed board of 0 tasks with exit 0
+# (D-3 of the retro wave-1 task, ADR-0214, fixed in ADR-0224). A tree with no projects/
+# is refused by name, so an empty board always means "no active task" and never "wrong
+# directory".
+ROOT="$PWD"
+if [[ ! -d "$ROOT/projects" ]]; then
+  echo "portfolio-review: not scanned, no projects/ directory in $ROOT (run it from the task repository root)" >&2
+  exit 2
+fi
 cd "$ROOT"
 
 # --initiative mode: best-effort dependency view over projects/*/INITIATIVE_INDEX.md.
@@ -242,7 +251,7 @@ PHASE_ORDER = [
     "implementation_to_delivery_prep",
     "delivery_prep_to_close",
 ]
-KNOWN_STATUSES = ("merged", "waived", "not-merged", "reverted")
+KNOWN_STATUSES = ("merged", "waived", "not-merged", "reverted", "reopened")
 
 path = sys.argv[1]
 
@@ -250,7 +259,7 @@ path = sys.argv[1]
 # outcome wins when a task has more than one).
 outcome_latest = {}
 # task -> (ts, event) for the latest line of ANY event type, used to resolve
-# effective status: a later revert overrides an earlier outcome.
+# effective status: a later revert or reopen overrides an earlier outcome.
 overall_latest = {}
 
 with open(path) as f:
@@ -284,10 +293,19 @@ else:
     other = 0  # forward-compat: statuses this reader does not know yet
     totals = []
     phase_lists = {}
+    # Three groupings for the cycle-time medians, one per kind of row (D-12):
+    # a row carrying `escalations` groups by its escalation profile (none, or
+    # the fired set); a legacy row with no escalations but a `tier` groups by
+    # that tier; a row with neither goes to unknown.
+    by_profile = {}
+    by_tier = {}
+    unknown = []
     for task, (_o_ts, rec) in outcome_latest.items():
         latest = overall_latest.get(task)
         if latest and latest[1] == "revert":
             status_counts["reverted"] += 1
+        elif latest and latest[1] == "reopen":
+            status_counts["reopened"] += 1
         else:
             status = rec.get("merge_status")
             if status in status_counts:
@@ -299,17 +317,29 @@ else:
             total = phase_days.get("total")
             if isinstance(total, (int, float)):
                 totals.append(total)
+                # Measurement only. No threshold, no gate.
+                escalations = rec.get("escalations")
+                tier = rec.get("tier")
+                if isinstance(escalations, list):
+                    names = sorted({str(e) for e in escalations if e})
+                    profile = "+".join(names) if names else "none"
+                    by_profile.setdefault(profile, []).append(total)
+                elif tier:
+                    by_tier.setdefault(tier, []).append(total)
+                else:
+                    unknown.append(total)
             for phase in PHASE_ORDER:
                 v = phase_days.get(phase)
                 if isinstance(v, (int, float)):
                     phase_lists.setdefault(phase, []).append(v)
 
     print(f"  closed tasks: {len(outcome_latest)}")
-    line = "  status: merged={0} waived={1} not-merged={2} reverted={3}".format(
+    line = "  status: merged={0} waived={1} not-merged={2} reverted={3} reopened={4}".format(
         status_counts["merged"],
         status_counts["waived"],
         status_counts["not-merged"],
         status_counts["reverted"],
+        status_counts["reopened"],
     )
     if other:
         line += f" other={other}"
@@ -318,6 +348,20 @@ else:
         print(f"  median total cycle days: {median(totals):.2f}")
     else:
         print("  median total cycle days: n/a")
+    if by_profile:
+        ranked = sorted(by_profile, key=lambda p: (p != "none", p.count("+"), p))
+        parts = [f"{p}={median(by_profile[p]):.2f} (n={len(by_profile[p])})" for p in ranked]
+        print("  median total cycle days by escalation profile (rows with escalations): "
+              + " ".join(parts))
+    if by_tier:
+        order = ["Express", "Standard", "Disciplined", "Strict"]
+        ranked = sorted(by_tier, key=lambda t: (order.index(t) if t in order else len(order), t))
+        parts = [f"{t}={median(by_tier[t]):.2f} (n={len(by_tier[t])})" for t in ranked]
+        print("  median total cycle days by legacy tier (rows with a tier and no escalations): "
+              + " ".join(parts))
+    if unknown:
+        print(f"  median total cycle days, unknown (rows with neither): "
+              f"{median(unknown):.2f} (n={len(unknown)})")
     for phase in PHASE_ORDER:
         if phase in phase_lists:
             print(f"  median {phase}: {median(phase_lists[phase]):.2f}")

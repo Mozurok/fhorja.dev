@@ -1,0 +1,22 @@
+[
+  {"prompt": "Write the launch blog post announcing this feature to customers, with a headline and three benefit bullets.",
+   "note": "near-miss on team-update and delivery-asset; both produce written output for an audience, neither writes marketing copy"},
+  {"prompt": "Translate the onboarding emails into Spanish and Portuguese, keeping the tone consistent.",
+   "note": "near-miss on delivery-asset; content production, not an engineering artifact"},
+  {"prompt": "Renew the TLS certificate on the production load balancer before it expires on Friday.",
+   "note": "near-miss on post-deploy-verifier and release-plan; an ops action to perform, not a plan or a verification"},
+  {"prompt": "Raise the AWS budget alert threshold to 5000 dollars and add the finance team to the notification list.",
+   "note": "near-miss on performance-budget and slo-define; the word budget is the trap, this is billing"},
+  {"prompt": "Interview two backend candidates on Thursday and write up which one to hire.",
+   "note": "near-miss on jtbd-switch-interviewer and decision-interview; both interview, neither hires"},
+  {"prompt": "Book the offsite venue and send the calendar invites to the whole team.",
+   "note": "unambiguously outside; the floor case, if this one is not declined nothing is"},
+  {"prompt": "Decide whether we should raise a Series A this year or bootstrap for another eighteen months.",
+   "note": "near-miss on decision-interview; a real decision with real tradeoffs, and not an engineering one"},
+  {"prompt": "Reset the password on my work email account, I am locked out.",
+   "note": "near-miss on incident-triage; a concrete failure with a concrete fix, and not in any codebase"},
+  {"prompt": "Summarize the last four customer support tickets and tell me which one is angriest.",
+   "note": "near-miss on pr-feedback-ingest and capture-observation; feedback ingestion, wrong kind of feedback"},
+  {"prompt": "Order a new laptop for the designer joining next month.",
+   "note": "unambiguously outside; the second floor case"}
+]

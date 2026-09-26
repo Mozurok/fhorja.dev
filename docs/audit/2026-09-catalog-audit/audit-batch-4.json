@@ -1,0 +1,44 @@
+{
+  "findings": [
+    {
+      "command": "code-locate",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Mode C eligibility (parallel fanout, per ADR-0032):** when the search target is a codebase with >1000 files OR the task is multi-repo with `## Repositories` listed in `SOURCE_OF_TRUTH.md`, emit a `Delegate now:` directive in the handoff dispatching one sub-agent per repo (or per high-level dir for single-repo scale). Each sub-agent returns up to 3 candidate paths from its scope; the parent integrates the merged candidate list (still capped at 10 total) and emits the normal Mode A handoff for the next step. Skip Mode C when codebase is small (<1000 files) and single-repo: inline search is cheaper than dispatch overhead.",
+      "defect": "The multi-repo trigger dispatches one worker per repo, but Required inputs line 43, Operating rules line 67, and DoD line 127 require one explicit target repo and restrict the search to its workspace. WORKFLOW_OPERATING_SYSTEM.md line 218 and wos/multi-repo-support.md decision table likewise specify one repo per invocation. An invocation targeting backend in a two-repo task is therefore simultaneously told to search only backend and dispatch a frontend search.",
+      "proposed_fix": "Keep the explicit target-repo boundary. Trigger Mode C on the selected workspace having more than 1000 files and partition that workspace into disjoint directories; remove the mere presence of Repositories as a trigger for searching other repos.",
+      "family_sites": "rg -n 'one sub-agent per repo' commands/ -> commands/code-locate.md:55 (site-unique). Related Mode C rules are commands/external-research.md:53, commands/repo-consistency-sweep.md:49, and commands/feature-library-scout.md:68; none supplies an exception to code-locate's target-repo restriction.",
+      "chars_delta": -183
+    },
+    {
+      "command": "ai-feature-eval-harness",
+      "criterion": 1,
+      "severity": "low",
+      "cited_line": "- **Step 7: Persist and route.** Persist AI_EVAL_PLAN.md (APPLIED in Agent mode per ADR-0026; PROPOSED in Ask/Plan). Stage a PROPOSED DECISIONS.md block for any locked quality target that belongs in canonical decisions, and route via Handoff.",
+      "defect": "ADR-0026 explicitly scopes its APPLIED-by-default exception to implement-approved-slice, Agent mode, and slice execution notes plus TASK_STATE.md updates. It does not authorize AI_EVAL_PLAN.md persistence by ai-feature-eval-harness. ADR-0001 already supplies the general Agent-mode APPLIED policy that this line actually describes.",
+      "proposed_fix": "Replace ADR-0026 with ADR-0001 in this persistence clause; retain the stated Ask/Plan and Agent behavior.",
+      "family_sites": "rg -n 'ADR-0026' commands/ -> commands/ai-feature-eval-harness.md:61, commands/implement-approved-slice.md:176, commands/implement-fleet.md:101. The implement-approved-slice site is the exception ADR-0026 actually defines; the ai-feature-eval-harness attribution is outside that scope.",
+      "chars_delta": 0
+    },
+    {
+      "command": "delivery-asset",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- MCP egress (gated, opt-in; contract in `commands/_shared/mcp-capability-routing.md` rule 5, restated below under `### MCP capability routing (gated egress mode)`, per ADR-0149): the produced `DELIVERY_ASSET_<format>_<audience>.md` file is always the primary output. WHEN a vetted knowledge-base MCP is connected AND the user asks to publish the asset, the egress path opens: here the payload is that asset file and the destination is the server as locally named plus the PAGE OR SPACE. Rule 5 governs everything else about the publish and is not restated here. With no MCP connected or no publish request, this command reads exactly as it does today.",
+      "defect": "This rule sends the whole asset file. The mandatory wrapper includes Metadata with internal task-memory filenames and an optional section explicitly titled \"Notes for the sender (NOT to be sent)\" at lines 75-87. Line 90 says Metadata and Notes wrap the Body for the maintainer. Publishing the entire file therefore sends content the same command explicitly reserves for the sender. The shared egress confirmation rule and ADR-0149 do not strip those sections.",
+      "proposed_fix": "Define the outbound payload as only the exact content under ## Body. Keep the wrapped file as the primary local artifact, and show only that extracted payload for the existing egress confirmation.",
+      "family_sites": "rg -n 'payload is that asset file|Notes for the sender|payload.*Body|publish.*Body|publish.*Metadata' commands/ -> commands/delivery-asset.md:67 and :86 only. The same directory search across wos/, docs/adr/, and evals/ found the wrapper expectation in evals/scenarios/07-delivery-asset-executive.md:84,95 and no Body-only egress exception.",
+      "chars_delta": 79
+    },
+    {
+      "command": "direction-adjust",
+      "criterion": 1,
+      "severity": "low",
+      "cited_line": "- `Handoff` block is complete with all five fields non-empty; ending after the decision entry without a Handoff is invalid output.",
+      "defect": "Operating rules line 53 permits the adaptive Mode A or Mode B handoff, but this DoD unconditionally requires five non-empty fields. WORKFLOW_OPERATING_SYSTEM.md lines 560-590 defines Mode A with four fields and adds Resume context only in Mode B. A valid default Mode A output fails this command-owned DoD.",
+      "proposed_fix": "Require the fields of the selected adaptive mode: Run now, Mode, Work complexity, and Reason, plus Resume context only for Mode B.",
+      "family_sites": "rg -n 'all five fields non-empty' commands/ -> commands/direction-adjust.md:136 (site-unique).",
+      "chars_delta": 52
+    }
+  ]
+}

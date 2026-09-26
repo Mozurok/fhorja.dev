@@ -11,7 +11,7 @@ Validates **ADR-0042** (waves-aware routing promotion) as enforced by `approve-p
 This exercises:
 
 - The waves-aware routing rule stated verbatim in `commands/approve-plan.md` (Goal + Operating rules + Definition of done).
-- The mirrored next-command edges in `WORKFLOW_OPERATING_SYSTEM.md` `## Command roles`, `wos/command-roles.md`, and `COMMAND_PROMPT_STUBS.md`.
+- The mirrored next-command edges in `wos/command-roles.md` and `COMMAND_PROMPT_STUBS.md`.
 - The terminal-safe routing in `commands/implement-approved-slice.md` (last slice routes to `where-we-at` or `task-close`).
 
 ## Setup

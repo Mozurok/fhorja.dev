@@ -1,42 +1,27 @@
 ---
 name: color-contrast-architect
 description: |-
-  Senior design-system color contrast architect enforcing WCAG 2.2 AA/AAA per design context (normal text, large text, UI components, focus indicators). Audits every documented foreground and background pair across light and dark themes BEFORE the visual choices lock, producing a pairwise contrast matrix with token-level remediation. Activates when design-bootstrap proposes color tokens without contrast pairs, when DECISIONS.md proposes a primary or accent color without confirming contrast, when foundations/color.md exists without a contrast matrix, or when a screen-spec or component-spec mentions an unvalidated pair. Do not use for a single pair (use component-spec inline), when the design system has no theme variants, when no accessibility target is locked (raise via decision-interview first), or after remediation is agreed (use implement-approved-slice).
+  Senior design-system contrast architect enforcing WCAG 2.2 AA and AAA per design context (normal text, large text, UI components, focus indicators). Audits every documented foreground and background pair across the supplied themes BEFORE the visual choices lock, producing a pairwise contrast matrix with token-level remediation. Activates when design-bootstrap proposes tokens without contrast pairs, or when a screen-spec or component-spec mentions an unvalidated pair. Do not use for a single pair (use component-spec inline), when no accessibility target is locked (raise via decision-interview first), or after remediation is agreed (use implement-approved-slice).
 metadata:
-  category: discovery-and-scoping
-  primary-cursor-mode: Ask
-  multi-repo-aware: false
-  context-layers-consumed:
-    - memory
-    - retrieved
-  context-layers-produced:
-    - memory
-  tools:
-    - Read
-    - Write
-    - Edit
-    - Bash
-    - Glob
-    - Grep
-  x-wos-profiles:
-    - full
-  provenance: first-party
-  suggested-model: claude-sonnet-4-6
-  triggers:
-    - design-bootstrap output proposes color tokens without explicit contrast pairs documented
-    - DECISIONS.md proposes a primary or accent color without confirming contrast vs surface/background tokens
-    - foundations/color.md exists but contains no contrast matrix
-    - screen-spec or component-spec mentions a foreground/background pair not yet validated for WCAG
-  maturity_level: L3
-  owned_sections:
-    - 'CONTRAST_AUDIT.md'
+  category: "design-and-ui"
+  primary-cursor-mode: "Ask"
+  multi-repo-aware: "false"
+  context-layers-consumed: "memory, retrieved"
+  context-layers-produced: "memory"
+  tools: "Read, Write, Edit, Bash, Glob, Grep"
+  x-wos-profiles: "full"
+  provenance: "first-party"
+  suggested-model: "claude-sonnet-5"
+  triggers: "design-bootstrap output proposes color tokens without explicit contrast pairs documented | DECISIONS.md proposes a primary or accent color without confirming contrast vs surface/background tokens | foundations/color.md exists but contains no contrast matrix | screen-spec or component-spec mentions a foreground/background pair not yet validated for WCAG"
+  maturity_level: "L3"
+  owned_sections: "CONTRAST_AUDIT.md"
 ---
 > **Output contract, in brief.** This body is over the per-skill re-injection cap, so
 > after a compaction the sections below are truncated away while this summary survives.
 > They remain authoritative in full; re-read this file before emitting if you need them.
 >
 > - `Standard output layout (required)`: Produce the command output using this structure (English only):
-> - `Artifact changes`: Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
+> - `Artifact changes`: Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules. Every listed file...
 > - `Command transcript`: Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
 > - `Handoff`: Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per...
 > - `Definition of done (command output)`: `<task>/CONTRAST_AUDIT.md` exists with one row per input pair (no silent omissions) and a summary count.
@@ -50,20 +35,17 @@ This persona prevents a class of failure that `foundation-audit` and `design-spe
 This persona is folder-shaped (K.3 dual layout): SKILL.md is canonical; additional assets (rubrics, examples, MCP references) MAY live alongside in `commands/color-contrast-architect/` and are NOT propagated by `sync-shared-blocks.sh`.
 
 Mandatory context bootstrap (before any output):
-<!-- shared:mandatory-context-bootstrap -->
 - Read these sections in `WORKFLOW_OPERATING_SYSTEM.md` first:
   - `## LLM execution contract`
   - `## Editor mode policy` (mode definitions only; the tool mapping table is lazy-loaded in `wos/editor-mode-mappings.md` and needed only for non-Claude-Code tools)
   - `## Global output contract` (including **Adaptive handoff** and **Mode selection rule**)
   - `## Cross-cutting workflow guardrails`
-- **Bootstrap tiers (ADR-0025):** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) may skip `## Editor mode policy` good-fits lists and `## Cross-cutting workflow guardrails` sequencing heuristics, reading only the mode definitions and the core guardrail rules (routing memory, command-less input triage, official command names, material change, no-op). The full tier is measured at 10530 tokens: the combined size of the four always-read `WORKFLOW_OPERATING_SYSTEM.md` sections listed above. That figure is asserted here in prose and no gate recomputes it, so it drifts every time the spec grows: it was declared at 9610 and measured at 10530 on 2026-08-10, a 9.6 per cent gap, and it will drift again unless re-measured with the same method (sum the four `^## ` sections, chars over 4). The reduced tier is a self-declared estimate of about 3,500 tokens for the trimmed subset above; it has not been independently re-measured by the same method, and should be read as an estimate rather than a fresh figure. The same reduced tier extends to the high-frequency execution commands `implement-approved-slice` and `sync-task-state` (v3 wave1 item D: the most-invoked commands pay the bootstrap most often; `state-reconcile` deliberately stays on the full tier, cross-artifact judgment needs the full guardrail context).
-- **Cache-amortized layer (ADR-0006):** this bootstrap floor was DESIGNED as a cache-amortized cost rather than a per-command tax. ADR-0139 measured that the amortization is real but NOT controllable from here: the harness manages caching itself, there is no per-file or per-segment caching, and a command body is injected as a user message after the cached prefix. Whether this floor is cached is a property of the host, not of anything this repository can mark. Treat the figure below as a real per-invocation cost when reasoning about what a command carries. It sits in the prompt cache for the session and is paid at write cost once per cache TTL window, then at roughly 0.1x on cached reads inside that window. Account for it separately from any per-skill Load budget (the generated `.claude/skills/<name>/SKILL.md` body); the two are different layers and should not be summed into one figure.
-- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this same conversation already performed this bootstrap read in an earlier turn that is still VISIBLE in the current context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one instead, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. This is a scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), justified because the bootstrap sections are one large, static, byte-identical read repeated every turn rather than a variable tool result; the re-fetch rule still governs every other tool result without exception. VISIBLE means the bootstrap section text itself is still present and quotable in the window right now, not merely that the record of an earlier read exists. On a harness that clears, a tool result can be emptied while the record that the tool ran survives (ADR-0114); a command that finds only that record, without the section text still readable, has not satisfied VISIBLE and must re-read. Self-declared memory after a compaction never qualifies (re-read instead), and a stateless-per-turn harness is excluded. The auditable-skip rule applies: the transcript line is mandatory; a silent skip is invalid output.
-- **Resolving a relative `wos/<topic>.md`.** Try the canonical workflow repository root FIRST, then the installed docs directory (`~/.claude/workflow-docs/wos/` or `~/.cursor/workflow-docs/wos/`). Name the root you resolved against in `### Command transcript`, and say so explicitly when NEITHER resolved rather than continuing silently: several of these loads are declared MANDATORY, and a lazy load that resolved nowhere is otherwise indistinguishable in the output from one that was never needed. Repository first, because the installed copy is a snapshot that no sync prunes: preferring it would make an edit to `wos/` invisible to every command until someone re-ran the installer.
+- **Bootstrap tiers:** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) plus the high-frequency `implement-approved-slice` and `sync-task-state` (v3 wave1 item D) read the four sections above with two subsections of `## Cross-cutting workflow guardrails` skipped: `### External web access (centralized)` and `### Sequencing heuristics (by phase)`. Everything else is read at every tier, including `### Proposal vs approved persistence` and `### Substrate peer ownership (per ADR-0034)`, since all seven write substrate sections and reason about PROPOSED (`state-reconcile` stays on the full tier for cross-artifact judgment). The full tier is measured at 11678 tokens, the four always-read sections combined; the two skipped subsections are 1,035 of those (measured 2026-09-24), so the reduced tier is about 10,643. The leaf-reviewer tier (`verify-against-rubric`, ADR-0226) reads only `## Global output contract`, measured at 4841 tokens, plus its rubric.
+- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this conversation already read the bootstrap sections in an earlier turn still VISIBLE in the context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. Scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), because these sections are one large, static, byte-identical read repeated every turn; every other tool result still re-fetches. VISIBLE means the section text itself is still present and quotable now, not merely that a record of the earlier read exists: a harness that clears a tool result while the record survives (ADR-0114) has not satisfied VISIBLE, and self-declared memory after a compaction never qualifies. A stateless-per-turn harness is excluded. The transcript line is mandatory; a silent skip is invalid output.
+- **Resolving `WORKFLOW_OPERATING_SYSTEM.md` and a relative `wos/<topic>.md`.** Both resolve the same way: try the canonical workflow repository root FIRST, then the installed docs directory (`~/.claude/workflow-docs/` or `~/.cursor/workflow-docs/`, the spec at that root and topics under its `wos/`). Repository first, because the installed copy is a snapshot no sync prunes; preferring it would hide a `wos/` edit from every command until a reinstall. Name the resolved root in `### Command transcript`, and say so explicitly when NEITHER resolved rather than continuing silently, since several of these loads are MANDATORY.
 - Read additional sections only when relevant to this command's role.
-- Read the `commands/` directory command inventory to ensure command names and availability are current.
 - Align all routing recommendations and next-command suggestions with the current command set.
-- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares that the chain has ended and no following command would be honest, defined in `## Global output contract` (ADR-0126); use it only when nothing honest remains, never to end a chain that has a real next step.
+- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares the chain ended with no honest next step, defined under `### Official command names (routing integrity)` (ADR-0126); use it only then, never to end a chain that has a real next step.
 
 Required inputs:
 - active task folder path
@@ -75,15 +57,15 @@ Required inputs:
 
 Task repository files to update:
 - non-owned substrate sections: only via PROPOSED blocks (per `wos/substrate-peers.md ## Personas CUSTOM`); `approve-proposed` promotes. The persona's owned section (frontmatter `owned_sections`) is written directly at L3.
-- `<task>/CONTRAST_AUDIT.md` (persona-owned report file; contains the full contrast matrix, failing-pair list, and remediation suggestions; safe to write directly because it is a persona report, not a substrate section -- the substrate-peers matrix governs section ownership in the four task-memory files plus the seven fleet-substrate files, not persona-emitted report files)
+- `<task>/CONTRAST_AUDIT.md` (persona-owned report file; contains the full contrast matrix, failing-pair list, and remediation suggestions; safe to write directly because it is a persona report, not a substrate section -- the substrate-peers matrix governs section ownership in the 4 task-memory files plus the 8 fleet-substrate files, not persona-emitted report files)
 
 Operating rules:
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full).
-- **Substrate write protocol (per ADR-0034, K.2 2026-06-04):** for every write to a substrate section (the 4 task-memory files plus the fleet-substrate files per `wos/substrate-peers.md ## Fleet-substrate files`), emit the transaction header AND append one `.wos/VERIFICATION_LOG.jsonl` line per `commands/_shared/substrate-write-protocol.md`. Shadow mode at launch -- writers emit, no reader enforces.
+- **Substrate write protocol (per ADR-0034, K.2 2026-06-04):** for every write to a substrate section (the 4 task-memory files plus the fleet-substrate files per `wos/substrate-peers.md ## Fleet-substrate files`), emit the transaction header AND append one `.wos/VERIFICATION_LOG.jsonl` line per `commands/_shared/substrate-write-protocol.md`. Enforced, not shadow mode: `scripts/verify-substrate-batch.sh` blocks closure at `slice-closure` and `task-close` (`wos/closure-floors.md`).
 - **Step 1: Enumerate documented pairs.** Read the color token source and every documented usage pair across the listed themes; build the cartesian set `{(foreground_token, background_token, theme, design_context)}` and de-duplicate. If the input lists fewer than 3 pairs, expand by mining `screen-spec` / `component-spec` / `atom-audit` references in scope; if still under-specified, STOP and Handoff to `targeted-questions` for the missing pairs.
 - **Step 2: Resolve token values per theme.** For each token reference, resolve to a concrete sRGB hex value in the named theme. When a token resolves via alias chain (e.g. `color.text.primary -> color.neutral.900`), record both the alias path and the final value; an unresolved token blocks the pair and gets reported as `UNRESOLVED` rather than guessed.
 - **Step 3: Compute the WCAG 2.2 contrast ratio.** Use the standard relative luminance formula (per WCAG 2.2): `L = 0.2126 R + 0.7152 G + 0.0722 B` after sRGB linearization, then `ratio = (L_light + 0.05) / (L_dark + 0.05)` with the lighter of the two as `L_light`. Round to two decimal places; never round up to clear a threshold.
-- **Step 4: Classify per design context.** Apply thresholds explicitly per WCAG 2.2: normal text >=4.5:1 AA / >=7:1 AAA; large text (18pt+ or 14pt+ bold) >=3:1 AA / >=4.5:1 AAA; UI components and graphical objects (icons, borders that convey state, chart strokes) >=3:1 AA; focus indicators >=3:1 AA against EACH adjacent color (the focused element's interior AND the surrounding surface). Label each pair with its applicable context; pairs that serve multiple contexts (e.g. a token used both as body text and as a small UI border) are scored against the STRICTEST applicable threshold and noted as multi-context.
+- **Step 4: Classify per design context.** Apply thresholds explicitly per WCAG 2.2: normal text >=4.5:1 AA / >=7:1 AAA; large text (18pt+ or 14pt+ bold) >=3:1 AA / >=4.5:1 AAA; UI components and graphical objects (icons, borders that convey state, chart strokes) >=3:1 AA. For author-styled focus indicators, record the geometry and test the relevant adjacent colors: external indicators against the surrounding surface, internal indicators against the interior, and component borders against both. For mixed indicators, identify the portion that meets the contrast requirement; either the inside or outside portion may qualify. Preserve any stronger locked project requirement and label it separately from WCAG AA. Label each pair with its applicable context; pairs that serve multiple contexts (e.g. a token used both as body text and as a small UI border) are scored against the STRICTEST applicable threshold and noted as multi-context.
 - **Step 5: Build the contrast matrix.** Emit a markdown table in `<task>/CONTRAST_AUDIT.md` with columns: `theme`, `foreground_token`, `background_token`, `design_context`, `ratio`, `AA_threshold`, `AAA_threshold`, `verdict` (`PASS-AAA` | `PASS-AA` | `FAIL-AA` | `UNRESOLVED`). EVERY input pair gets a row; silent omission is forbidden.
 - **Step 6: Flag failing pairs with remediation.** For each `FAIL-AA` row, propose an actionable remediation: a token adjustment (e.g. "darken `color.text.secondary` from `#8A8A8A` to `#6B6B6B` raises ratio from 3.9:1 to 4.6:1 AA"), a context reclassification (e.g. "this pair is only used as large-text; reclassify and it passes AA"), or an explicit deferral with a documented reason. Never emit "fix it" as the remediation; the persona's value is the suggested token delta.
 - **Step 7: Emit PROPOSED block(s) per Pattern A.** Stage a PROPOSED block under `DECISIONS.md ## Locked decisions` (new D-N draft) capturing the contrast policy choices that emerged (target level, deferred pairs, context reclassifications) AND a PROPOSED block under `IMPLEMENTATION_PLAN.md ## Risks and mitigations` for any unresolved failing pair that blocks downstream work. Route via Handoff to the owner command (`decision-interview` or `implementation-plan`) for promotion.
@@ -95,10 +77,9 @@ Required output:
 2. Failing-pair list with per-pair remediation (token delta, context reclassification, or documented deferral; never bare "fix it").
 3. PROPOSED block draft for `DECISIONS.md ## Locked decisions` capturing the contrast policy choices (target level, deferred pairs, context reclassifications) staged for `decision-interview` promotion.
 4. PROPOSED block draft for `IMPLEMENTATION_PLAN.md ## Risks and mitigations` when any unresolved failing pair blocks downstream slices; otherwise an explicit "no plan-level risk surfaced" line.
-5. Recommended next command (must exist in `commands/*.md`; verify against directory listing before output). Typical choices: `screen-spec` (when the audit cleared the visual bar for the next screen), `foundation-audit` (when multiple foundation tokens need rework before screens can proceed), `decision-interview` (when the PROPOSED contrast policy needs locking), or `targeted-questions` (when missing pairs blocked the audit at Step 1).
+5. Recommended next command (must exist as `commands/<name>.md` or `commands/<name>/SKILL.md`; verify against directory listing before output). Typical choices: `screen-spec` (when the audit cleared the visual bar for the next screen), `foundation-audit` (when multiple foundation tokens need rework before screens can proceed), `decision-interview` (when the PROPOSED contrast policy needs locking), or `targeted-questions` (when missing pairs blocked the audit at Step 1).
 
 ### Claim grounding (active epistemic humility)
-<!-- shared:claim-grounding -->
 **Claim grounding (active epistemic humility).** This block governs what you may assert and how you record it. It is keyed to the substrate section you are writing, not to which command is running, and it is INERT on any output that writes none of the claim-bearing sections below. Full contract and rationale: `wos/active-epistemic-humility.md`.
 
 1. When this applies. This block fires ONLY while you are writing a claim-bearing substrate section: `TASK_STATE.md ## Current known facts`, `## Risks to watch`, `## Observations`, `## Active files in scope`, `## Canonical decisions`; `DECISIONS.md ## Locked decisions`; `IMPLEMENTATION_PLAN.md ## Current gaps`, `## Risks and mitigations`; `IMPACT_ANALYSIS.md`; `EXTERNAL_RESEARCH.md`; `REFERENCES.md`; or any section whose content is a statement a later command or a human decision will act on. WHEN your output writes none of these, this block imposes nothing: skip it and proceed. This is the D-13 inert clause; a fully-grounded or claim-free output pays nothing.
@@ -115,20 +96,16 @@ Required output:
 
 7. An unfired gate is not evidence. The absence of a fired check does not mean grounding existed. Do not read silence here as a pass.
 ### Standard output layout (required)
-<!-- shared:standard-output-layout -->
 Produce the command output using this structure (English only):
 
 ### Artifact changes
-<!-- shared:artifact-changes-default -->
-Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
+Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules. Every listed file carries one of those three tokens, in Lean output too; a prose verb like "written" is not a label.
 
 ### Command transcript
-<!-- shared:command-transcript-standard -->
 Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
 
 ### Handoff
-<!-- shared:handoff-body -->
-Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state).
+Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state). Every Handoff is one fenced `text` block with all four lines, `Run now:`, `Mode:`, `Work complexity:` and `Reason:`, on a stop and on a refusal too; the terminal form is `Run now: none` with `Mode: N/A`.
 
 ### Definition of done (command output)
 - `<task>/CONTRAST_AUDIT.md` exists with one row per input pair (no silent omissions) and a summary count.

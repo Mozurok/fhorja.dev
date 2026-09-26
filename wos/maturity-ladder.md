@@ -7,7 +7,7 @@ description: 5-level maturity ladder (L1-L5) gating section ownership escalation
 
 5-level maturity model gating section ownership escalation for CUSTOM personas (the SKILL.md files shipped in K.8 and beyond). Commands ship at full ownership equivalence by default; the ladder applies to personas only because their judgment is harder to validate without lived eval evidence.
 
-Per Epic K v2.1 K.6 (2026-06-04). Governing ADR: ADR-0034 (substrate peers + worker contract). Cross-references: `wos/substrate-peers.md ## Personas CUSTOM`, `wos/substrate-peers.md ## Maturity ladder hook`, `evals/skill-evals/README.md` (eval format), `_internal/eval-dashboard/README.md` (aggregation).
+Per Epic K v2.1 K.6 (2026-06-04). Governing ADR: ADR-0034 (substrate peers + worker contract). Cross-references: `wos/substrate-peers.md ## Personas CUSTOM`, `wos/substrate-peers.md ## Maturity ladder hook`, `evals/skill-evals/README.md` (eval format), `_internal/eval-dashboard/README.md` (aggregation; maintainer-local and gitignored).
 
 ## Why a ladder, not a binary
 
@@ -24,12 +24,12 @@ The ladder lets a persona earn ownership incrementally, matching evidence (from 
 | L1 | shadow | none (PROPOSED only via Pattern A handoff to owner command per `wos/substrate-peers.md`) | none | none | -- (entry level for every CUSTOM persona) |
 | L2 | advisory | PROPOSED blocks + append-only under `TASK_STATE.md ## Observations` | log written, not validated | none | >=1 K.7 iteration with `delta.pass_rate >= 0` AND zero VERIFICATION_LOG.jsonl validator errors over >=3 measured fleet runs |
 | L3 | gated | section ownership for ONE explicitly-declared low-risk section (substrate-H2 OR persona-owned report file, both valid per ADR-0036) | drift-guard validates | informational counts in `repo-consistency-sweep` Step 7 | EITHER **Path A** (`>=3 K.7 iterations with monotonic non-regressing delta.pass_rate`) **OR** **Path B** per ADR-0036 (`>=3 K.7 iterations all delta >= 0` + `>=5 clean fleet runs across >=2 distinct task folders`); BOTH paths also require `<=1 SYSTEMIC cluster in verify-against-rubric-fleet cohort verdicts` |
-| L4 | peer | full section ownership equivalence with commands across ALL persona-declared `owned_sections` | full validation + alerts on REFUSE conflicts | repo-consistency-sweep promotes drift-guard counts into bug-class findings (P2) | L3 -> L4 REQUIRES explicit user review-gate (per Bruno's confirmed decision 2026-06-04); NOT automated. Eligibility filter, review packet, verdict shape, and demotion path: `wos/l4-review-gate.md` |
+| L4 | peer | full section ownership equivalence with commands across ALL persona-declared `owned_sections` | full validation + advisory counts of out-of-row writes (ownership is descriptive, ADR-0232) | repo-consistency-sweep promotes drift-guard counts into bug-class findings (P2) | L3 -> L4 REQUIRES explicit user review-gate (per Bruno's confirmed decision 2026-06-04); NOT automated. Eligibility filter, review packet, verdict shape, and demotion path: `## L3 -> L4 review gate` below |
 | L5 | autonomous | may dispatch fleet workers under its own merger (orchestrator role; declares `orchestrator: true` + `workers:` + `max_fanout` + `convergence` + `merge_strategy` in frontmatter, same shape as `*-fleet` commands) | full validation | repo-consistency-sweep promotes counts to P1 findings | RESERVED in v2.1 -- not promoted in this epic; will require post-Epic-K research + ADR |
 
 ## Promotion criteria (machine-readable shape)
 
-Promotion is triggered by `_internal/eval-dashboard/portfolio-<YYYY-MM-DD>.md` aggregation. For a persona to advance:
+Promotion is triggered by `_internal/eval-dashboard/portfolio-<YYYY-MM-DD>.md` aggregation (maintainer-local and gitignored). For a persona to advance:
 
 ```yaml
 persona_id: <persona-slug>
@@ -61,12 +61,13 @@ A persona demotes one level (L4 -> L3, L3 -> L2, L2 -> L1) when ANY of:
 - one K.7 iteration shows `verification_log_validator_errors_per_run > 0` (the persona produces malformed audit lines -- it cannot be trusted to write substrate)
 - a `verify-against-rubric-fleet` cohort surfaces a SYSTEMIC cluster traceable to the persona's output (the rubric or the persona's heuristic is wrong; demote until rubric is reworked)
 - `state-reconcile` had to rescue persona-owned sections more than once in 30 days
+- no owner write in any `.wos/VERIFICATION_LOG.jsonl` for 90 days, counted from promotion (ADR-0181). Demand, not quality, so it is the only bullet here that fires on silence. Counted by `owner` and never by `invoked_by`: measured 2026-08-30 the two personas this exists to catch, `rls-auth-boundary-auditor` and `jtbd-switch-interviewer`, have 0 owner writes and 4 and 5 as `invoked_by`, so counting both makes the rule catch nobody. The three it does NOT catch, on the same reading, are `migration-safety-steward`, `color-contrast-architect` and `post-deploy-verifier`, with 1, 2 and 3 owner tasks; the boundary is written here so it stays visible. Telemetry lives under `projects/`, which is gitignored, so a tree without it is `not measured` and never zero: `python3 scripts/flow-audit.py --demand` reports the inputs and the lint carries them on the advisory `Ladder-demand:` line. Documentary until a lint hook enforces it; the advisory line decides nothing.
 
-Demotion is announced in the persona's SKILL.md frontmatter (`maturity_level:` field flipped) and documented in `_internal/maturity-ladder/<persona-id>.md` with rationale. Re-promotion follows the same criteria as initial promotion; prior demotion does NOT shorten the path.
+Demotion is announced in the persona's SKILL.md frontmatter (`maturity_level:` field flipped) and documented in `_internal/maturity-ladder/<persona-id>.md` with rationale (maintainer-local and gitignored; start one from `templates/MATURITY_LEDGER.template.md`). Re-promotion follows the same criteria as initial promotion; prior demotion does NOT shorten the path.
 
 ## Per-persona current-level tracking
 
-Every persona SKILL.md frontmatter declares `maturity_level: L1` at launch (see `templates/PERSONA_SKILL.template.md`). The original five K.8 personas have since been promoted to L3 via ADR-0036 Path B (rls-auth-boundary-auditor and post-deploy-verifier first, then migration-safety-steward, jtbd-switch-interviewer, and color-contrast-architect on multi-folder fleet evidence; ledgers under `_internal/maturity-ladder/<persona-id>.md` record `current_level: L3`). Two later personas, a11y-audit and performance-budget (2026-06-24 wave-1 capability expansion), launched at L1 and have not yet been promoted.
+Every persona SKILL.md frontmatter declares `maturity_level: L1` at launch (see `templates/PERSONA_SKILL.template.md`). The original five K.8 personas have since been promoted to L3 via ADR-0036 Path B (rls-auth-boundary-auditor and post-deploy-verifier first, then migration-safety-steward, jtbd-switch-interviewer, and color-contrast-architect on multi-folder fleet evidence; ledgers under `_internal/maturity-ladder/<persona-id>.md`, maintainer-local and gitignored, record `current_level: L3`). Four later personas, a11y-audit, performance-budget, slo-define, and postmortem-author, launched at L1 and have not yet been promoted.
 
 ### Current per-persona level state (canonical)
 
@@ -84,12 +85,103 @@ Every persona SKILL.md frontmatter declares `maturity_level: L1` at launch (see 
 
 This table is the canonical source of truth for per-persona current-level state. `wos/substrate-peers.md` mirrors this table; on any contradiction, this file wins.
 
-When a persona's frontmatter `maturity_level` is changed, `lint-commands.sh` (K.6 hook, planned post-v2.1) MUST verify:
-- the level is one of `L1 | L2 | L3 | L4 | L5`
-- the `owned_sections` field is empty for L1 / L2; has exactly one entry for L3; has 1+ entries for L4; has fleet declarations for L5
-- the corresponding `_internal/maturity-ladder/<persona-id>.md` exists and records the promotion
+When a persona's frontmatter `maturity_level` changes, `lint-commands.sh` checks the shape on every run, warn-only: the level is one of `L1 | L2 | L3 | L4 | L5`, and `owned_sections` is empty for L1 and L2, has exactly one entry for L3, and has one or more for L4 (L5 stays reserved). One rule stays documentary because the lint cannot see it: the corresponding `_internal/maturity-ladder/<persona-id>.md` exists and records the promotion (maintainer-local and gitignored; created from `templates/MATURITY_LEDGER.template.md`). Persona authors update the SKILL.md frontmatter and that ledger file in the same commit, with the promotion criteria YAML evidenced in the ledger body.
 
-Until the lint hook lands, the discipline is documentary: persona authors update both the SKILL.md frontmatter and the maturity-ladder/ file in the same commit, with the promotion criteria YAML evidenced in the file body.
+## L3 -> L4 review gate
+
+The L3 -> L4 transition is the only ladder step that is **not** auto-graduated. L4 grants a persona full peer ownership equivalence with commands: its writes participate in the same canonical artifacts, validation, and drift-guard treatment as first-party Fhorja commands. Because that bar is qualitative ("does this persona deserve to be trusted like Fhorja itself?"), promotion requires explicit user judgment over a structured review packet. No persona has reached L4 yet; this section is the contract the first one will meet. It used to be a topic file of its own with a separate fillable packet template, and both were folded in here on 2026-09-23.
+
+### Eligibility
+
+A persona is eligible for L3 -> L4 review only when **all** of the following hold at the moment the gate is opened:
+
+- The persona has been at L3 for **>= 30 days** of wall-clock time since its L2 -> L3 promotion.
+- The persona has produced **>= 10 lived substrate writes** (artifact edits captured in its ledger) across **>= 3 distinct task folders** (`projects/<client>__<project>/active/` or `archive/` entries). Writes inside a single task do not establish breadth; the three-folder floor exists to filter personas that only look mature on one engagement.
+- The persona has **zero K.5 errors** in its ledger over the L3 window. K.5 errors are contract violations (wrong owned section, schema-invalid output, refusal-protocol miss). A single one resets eligibility.
+- The persona has **zero SYSTEMIC clusters** flagged against it in K.7 trend analysis over the L3 window. LOCAL or per-run findings do not block eligibility.
+
+If any condition fails, the gate stays closed and Fhorja names the specific gap instead of presenting a packet.
+
+### Review packet
+
+When eligibility passes, Fhorja assembles a packet for the user. The packet is the sole source the user judges from; Fhorja never asks the user to remember context out of band. It is rendered once and kept stable across the review window, so it does not change underneath a user who takes days to decide. It carries, in this order:
+
+1. Persona identity: persona id, current level (L3), promotion path, current `owned_sections` at L3, proposed `owned_sections` at L4, L3 entry date, and days at L3.
+2. K.7 trend over the L3 window: one row per iteration (date, pass rate, delta against the previous one, notable failures), the latest pass rate, and a trend verdict of improving, flat, or regressing. The trend must be flat or improving.
+3. Fleet-run summary: runs the persona took part in, task folders touched, K.5 errors per run (mean and p90), runs with zero K.5 errors, and one row per task folder.
+4. Substrate write inventory: the last 20 writes attributed to the persona (date, substrate path, append, edit, or create, and the slice or run id), plus the count of writes outside its owned sections and of conflicts the substrate peers flagged.
+5. Sample outputs: 3 to 5 representative writes in full text, chosen to span the persona's owned sections, each rated strong, adequate, or thin on substance rather than formatting.
+6. Review questions, each marked Y or N, with every N addressed in the rationale: the K.7 trend is flat or improving; writes stayed inside the owned sections; the samples show substance rather than boilerplate; the substrate peers raised no unresolved conflict; the behavior fits the proposed L4 scope.
+7. Decision block: the verdict, a rationale of one to three sentences, the named conditions when the verdict is REQUEST_CHANGES, the reviewer, and the date.
+
+### User judgment
+
+The single question the user answers on the packet is:
+
+> **Does this persona deserve full peer ownership equivalence, commands-grade trust on its owned artifacts?**
+
+L4 is not "L3 plus a little more autonomy." It is the explicit decision that the persona's substrate writes carry the same operational weight as first-party command output: same validation, same drift-guard severity, same downstream consumer trust. The user is judging equivalence, not incremental improvement.
+
+### Verdict shape
+
+The verdict is one of three. This shape is defined here and nowhere else; no ADR carries it (ADR-0036 decides K.7 oscillation and the Path B evidence weighting for L3, not this verdict).
+
+- **APPROVE**: promote the persona to L4. The implications below take effect on the next dispatch.
+- **DECLINE**: the persona stays at L3. The gate is closed; it may be re-reviewed if conditions materially change, but DECLINE is not a deferred yes.
+- **REQUEST_CHANGES**: the persona stays at L3 with named concerns it must visibly address before the gate reopens. Fhorja surfaces those concerns in the next packet.
+
+The verdict, its rationale, and the packet snapshot are kept in the persona's ledger, `_internal/maturity-ladder/<persona-id>.md` (maintainer-local and gitignored; start one from `templates/MATURITY_LEDGER.template.md`).
+
+### L4 implications
+
+When APPROVE fires:
+
+- **owned_sections expansion**: the persona's `owned_sections` grows from the single L3 entry to the list locked in the verdict body, never an open-ended set.
+- **Full validation**: L4 output runs through the same schema and contract validators as command output, with no persona soft mode.
+- **Alerts on REFUSE**: an L4 persona returning REFUSE is a P3 operational alert, because a commands-grade persona should rarely refuse.
+- **Drift-guard escalates to P2**: a drift-guard finding against L4 output becomes a P2 bug finding, against P3 or informational at L3.
+
+After APPROVE, in one commit: set `maturity_level: L4` and the approved `owned_sections:` list in the `commands/<persona-id>/SKILL.md` frontmatter, and record the promotion (date, path, latest K.7 pass rate) with the packet in `_internal/maturity-ladder/<persona-id>.md` (maintainer-local and gitignored). Then run `./scripts/lint-commands.sh`, whose maturity-shape check reads the new level against the `owned_sections` count.
+
+### Demotion from L4
+
+L4 is revocable under the same rules as every other level (`## Demotion rules` above): each of the five takes an L4 persona back to L3, with the rationale written in its ledger. A K.5 error or a SYSTEMIC K.7 cluster traced to the persona demotes it at once, and no new review is needed, because the trust was conditional and the conditions failed.
+
+A demoted persona may re-enter the review cycle only after fresh eligibility is established from the demotion date: a new 30-day window, a new count of 10 writes across 3 folders, and zero new K.5 errors or SYSTEMIC clusters since demotion. A prior APPROVE does not carry forward.
+
+## Lifecycle: frozen
+
+A frozen command works and stays installed. It receives no further investment: an
+issue about it closes as wontfix, it is not extended in a capability wave, and its
+documentation is corrected only when it is wrong, never expanded. Frozen is not
+deprecated: removal needs an ADR of its own, and this field does not authorize one.
+Absence of the field means active. The field is optional so that freezing a command
+costs one line and unfreezing costs deleting it.
+
+Frozen surfaces today: <!-- count:frozen-commands -->7<!-- /count -->.
+
+### Frozen commands
+
+| Command | Frozen | Why |
+| --- | --- | --- |
+| `workflow-guide` | 2026-08-31 | 4 months of exposure, zero invocations, indegree 1. The one surface whose job is explaining the workflow, never reached by anyone who has it installed. |
+| `component-spec` | 2026-08-31 | design-system family; 3 months, zero invocations despite indegree 9 |
+| `design-bootstrap` | 2026-08-31 | design-system family; entry point of a cluster nothing entered |
+| `journey-map` | 2026-08-31 | design-system family |
+| `pattern-doc` | 2026-08-31 | design-system family; the only one of the seven no living command cites |
+| `design-spec-review` | 2026-08-31 | design-system family; exempt from the usage metric and still never reached |
+| `foundation-audit` | 2026-08-31 | design-system family |
+
+Frozen is not removal. Six of the <!-- count:frozen-commands -->7<!-- /count --> are cited by living commands, `design-bootstrap` by seven of them, so removing any of those rewrites routes rather than deleting a file. Removal is one deliberate decision about the design cluster, with its own ADR, and freezing first is the reversible order.
+
+### Frozen surfaces that are not commands
+
+| Surface | State | Why |
+| --- | --- | --- |
+| `scripts/autonomy/` (governor.sh, classify-slice.sh, stop-check.sh) | frozen | shipped, exercised once, no demand since |
+| `knowledge/` auto-load (ADR-0054) | frozen | the decision stands and the mechanism stays off |
+| `.claude/settings.json` hooks authorized but not wired | frozen | authorized in writing, not installed, and that gap is deliberate |
+| `scripts/s3-thin-skills.py` | never again | not frozen: it is a path this repository decided not to walk twice |
 
 ## Interaction with other Epic J/K artifacts
 
@@ -104,138 +196,12 @@ Until the lint hook lands, the discipline is documentary: persona authors update
 ## Scope of this epic
 
 K.6 ships the ladder model, promotion criteria, and demotion rules. K.6 does NOT ship:
-- the lint hook that enforces frontmatter `maturity_level` shape (post-v2.1)
-- automated promotion scripts (the discipline is manual: author K.7 evals, run them, read the dashboard, update SKILL.md + `_internal/maturity-ladder/<persona-id>.md` in one commit)
+- a failing lint for the frontmatter `maturity_level` shape (the check shipped later, warn-only)
+- automated promotion scripts (the discipline is manual: author K.7 evals, run them, read the dashboard, update SKILL.md + `_internal/maturity-ladder/<persona-id>.md`, which is maintainer-local and gitignored, in one commit)
 - L5 promotion criteria details (reserved; will require post-Epic-K research + ADR before any persona attempts the L4 -> L5 hop)
 
-The first live promotions of this ladder happened in the 2026-06-05 session: rls-auth-boundary-auditor and post-deploy-verifier promoted to L3 via ADR-0036 Path B; migration-safety-steward, jtbd-switch-interviewer, and color-contrast-architect reached L2 that session with strong K.7 floor evidence and have since satisfied the 2nd-distinct-task-folder gate to reach L3 (ledgers under `_internal/maturity-ladder/`). The original five K.8 personas are now at L3; a11y-audit and performance-budget launched later (2026-06-24) and remain at L1.
+The first live promotions of this ladder happened in the 2026-06-05 session: rls-auth-boundary-auditor and post-deploy-verifier promoted to L3 via ADR-0036 Path B; migration-safety-steward, jtbd-switch-interviewer, and color-contrast-architect reached L2 that session with strong K.7 floor evidence and have since satisfied the 2nd-distinct-task-folder gate to reach L3 (ledgers under `_internal/maturity-ladder/`, maintainer-local and gitignored). The original five K.8 personas are now at L3; a11y-audit, performance-budget, slo-define, and postmortem-author launched later and remain at L1.
 
+## Evidence history
 
-
-## Recent evidence
-
-### 2026-06-05 :: batch w6jozlzky :: 10-agent focused-prompt fleet
-
-- Date: 2026-06-05
-- Batch ID: w6jozlzky
-- Agents dispatched: 10 (focused-prompt pattern)
-- Outcome: 0 schema-skip, 100% structured-output success, 0 substrate orphans; all 10 outputs applied cleanly
-- Promotion path supported: Path B per ADR-0036 (multi-batch + multi-folder fleet evidence accumulation; floor + breadth rather than strict monotonic)
-- Significance: this is a Fhorja-produced batch where the dispatch shape (10 parallel workers, focused-prompt + StructuredOutput discipline) held under load with zero substrate-write defects. It supports K.6 promotion criteria for personas whose substrate writes have been validated via this exact dispatch shape -- the fleet_run_count and fleet_run_folder_count fields in the promotion YAML can now cite this batch as one qualifying iteration toward Path B thresholds (>=5 clean fleet runs across >=2 folders).
-- Next step: accumulate further clean batches in distinct task folders before any L1 -> L2 promotion proposal references this evidence row.
-
-
-### 2026-06-05 :: batch w5uxqr73l :: 8-agent focused-prompt fleet (PM 2nd push)
-
-- Date: 2026-06-05
-- Batch ID: w5uxqr73l
-- Agents dispatched: 8 (focused-prompt pattern)
-- Outcome: 0 schema-skip, 0 substrate orphans, 8/8 outputs applied cleanly
-- Promotion path supported: Path B per ADR-0036 (multi-batch fleet evidence accumulation continued; second clean batch of the day after w6jozlzky)
-- Significance: second consecutive clean fleet of the day at a smaller fan-out (8 vs 10) confirms that the focused-prompt + StructuredOutput dispatch shape holds across batch sizes, not only at the 10-agent ceiling. Counts as a second qualifying iteration toward Path B thresholds (>=5 clean fleet runs across >=2 folders) for substrate-write subsystems exercised in this batch.
-- Next step: continue accumulating clean batches in distinct task folders; do not propose L1 -> L2 promotion until cross-folder breadth requirement is met.
-
-### 2026-06-05 :: batch w3wne4tm3 :: 10-agent focused-prompt fleet (PM 3rd push)
-
-- Date: 2026-06-05
-- Batch ID: w3wne4tm3
-- Agents dispatched: 10 (focused-prompt pattern)
-- Outcome: 0 schema-skip, 0 substrate orphans, 10/10 outputs applied cleanly
-- Promotion path supported: Path B per ADR-0036 (third consecutive clean batch in the same day; reinforces dispatch shape reliability under repeated same-day load)
-- Significance: cumulative same-day evidence now totals 28 parallel agents across 3 batches (w6jozlzky 10 + w5uxqr73l 8 + w3wne4tm3 10) at 100% success with zero substrate-write defects. This is strong evidence for Path B promotion of substrate-write subsystems exercised by these batches, and empirically validates the 15-25 agent sweet spot codified in ADR-0039 -- each individual batch sits at or below the upper bound while the same-day cumulative stays inside the daily-throughput envelope without degradation.
-- Next step: ensure the next qualifying batch runs against a distinct task folder so Path B's fleet_run_folder_count threshold (>=2) is satisfied before any L1 -> L2 or L2 -> L3 promotion proposal cites this evidence cluster.
-
-
-### 2026-06-05 :: batch w4culd93t :: 7-agent fleet rewrite + ADR-0038 compliance push
-
-- Date: 2026-06-05
-- Batch ID: w4culd93t (commit 8ac7254)
-- Agents dispatched: 7 (5 fleet-command rewrites + CHANGELOG entry + sub-agent-orchestration update)
-- Outcome: 0 schema-skip, 0 substrate orphans, 7/7 outputs applied; lint clean post-apply
-- Promotion path supported: Path B per ADR-0036 (eighth clean batch in the current cumulative window; reinforces dispatch shape reliability across mixed agent shapes, not only homogeneous focused-prompt batches)
-- Significance: all 5 fleet commands now updated structurally for ADR-0038 Rule 1 (worker-prompt contract) + Rule 3 (orchestrator merger discipline) compliance. This closes the audit gap that previously blocked any fleet command from being L3-eligible -- the structural prerequisite for fleet L3 promotion is now MET. Cumulative session totals through batch 8: 8 batches, 71 parallel agents, 100% success, 0 schema-skip across all 8 batches, 0 substrate orphans across all 8 batches. This is strong evidence supporting Path B promotion per ADR-0036 and empirically codifies the 15-25 agent sweet spot in ADR-0039.
-- Next step: 5 fleet commands are now structurally L3-eligible; lived-run gate (>=5 clean fleet runs across >=2 distinct task folders, <=1 SYSTEMIC cluster in cohort verdicts) remains the only outstanding acceptance criterion before any fleet command is proposed for L3 promotion.
-
-
-
-### 2026-06-05 :: batch wra5hqaw2 :: 7-agent post-fix re-audit fleet
-
-- Date: 2026-06-05
-- Batch ID: wra5hqaw2
-- Agents dispatched: 7 (5 post-fix re-audits of the rewritten fleet commands + CHANGELOG entry + this maturity-ladder evidence row)
-- Outcome: 0 schema-skip, 0 substrate orphans, 7/7 outputs applied cleanly
-- Promotion path supported: Path B per ADR-0036 (ninth clean batch in the cumulative window; first batch in the window whose primary purpose is structural verification rather than authoring)
-- Significance: confirms that the 5 fleet commands rewritten in batch w4culd93t are now structurally ADR-0038 compliant -- the post-fix re-audits return PASS on Rules 1, 2, and 3 across all 5 commands. This converts batch w4culd93t's structural claim from "applied" to "independently verified", which is the readiness signal Path B promotion proposals require when citing fleet-command L3 eligibility. Cumulative session totals through batch 9: 9 batches, 78 parallel agents, 100% success, 0 schema-skip, 0 substrate orphans -- continued evidence for ADR-0036 Path B and the ADR-0039 15-25 agent dispatch sweet spot.
-- Next step: lived-run gate (>=5 clean fleet runs across >=2 distinct task folders, <=1 SYSTEMIC cluster in cohort verdicts) remains the only outstanding acceptance criterion before any of the 5 fleet commands is proposed for L3 promotion; structural prerequisite is now both applied and verified.
-
-
-### 2026-06-05 :: batch w8anmjon6 :: 8-agent audit-followup + ADR-0040 codification
-
-- Date: 2026-06-05
-- Batch ID: w8anmjon6
-- Agents dispatched: 8 (SUMMARY-postfix update + RECOMMENDED-FIXES authoring + ADR-0040 authoring + scenarios 40 and 41 + EOD state capture + cross-reference updates)
-- Outcome: 0 schema-skip, 0 substrate orphans, 8/8 outputs applied cleanly
-- Promotion path supported: Path B per ADR-0036 (tenth clean batch in the cumulative window; first batch in the window that produces a new ADR rather than only applying or verifying prior work)
-- Significance: ADR-0040 codifies the single-writer-per-folder amendment surfaced by the wra5hqaw2 audit follow-up, closing the open audit thread that would otherwise have remained as latent risk for any future fleet promotion proposal. Scenarios 40 and 41 give the amendment lived test coverage so the rule is observable, not only declared. Cumulative session totals through batch 10: 10 batches, 86 parallel agents, 100% success, 0 schema-skip, 0 substrate orphans -- the dispatch shape continues to hold under mixed authoring + verification + ADR workloads, not only homogeneous fleets.
-- Next step: ADR-0040's single-writer-per-folder rule must be referenced by any future fleet command that writes to shared substrate; orchestrators that violate it should now fail audit on a named rule rather than on ad-hoc reasoning.
-
-
-### 2026-06-05 :: batch wzj5du7g8 :: 5-agent bug-class + scenario 42 + token slim
-
-- Date: 2026-06-05
-- Batch ID: wzj5du7g8
-- Agents dispatched: 5 (CHANGELOG entry + scenario 42 authoring + token-budget slim pass + new bug-class authoring + bug-class index update)
-- Outcome: 0 schema-skip, 0 substrate orphans, 5/5 outputs applied cleanly
-- Promotion path supported: Path B per ADR-0036 (eleventh clean batch in the cumulative window; smallest batch of the day and still 100% clean, reinforcing that the dispatch shape holds across the full 5-10 agent range, not only at the upper bound)
-- Significance: the new bug-class catches stale-doc-sync defects -- a class of error that previously had no named diagnostic and was only discoverable by ad-hoc inspection. Scenario 42 validates ADR-0040's single-writer-per-folder rule end to end, giving the amendment a lived regression anchor in addition to its declarative form. Cumulative session totals through batch 11: 11 batches, 91 parallel agents, 100% success, 0 schema-skip, 0 substrate orphans across the entire day. This is the strongest continued evidence yet for ADR-0036 Path B and the ADR-0039 dispatch sweet spot, spanning 5 to 10 agents per batch and mixing authoring, verification, ADR codification, and substrate maintenance shapes without a single defect.
-- Next step: stale-doc-sync bug-class should now be referenced by repo-consistency-sweep and by any audit command whose surface includes cross-doc references; promotion proposals citing this evidence cluster should call out the 5-to-10 agent same-day breadth as the empirical envelope, not only the cumulative 91-agent figure.
-
-## Cumulative evidence (2026-06-05 session close)
-
-Session-close rollup of all batches dispatched 2026-06-05, plus the current per-persona L-level state surfaced by these batches. Per-batch rows above remain the per-event ledger; this section is the rollup that promotion proposals should cite.
-
-### Per-persona current level (rollup of all evidence accumulated through 2026-06-05)
-
-| Persona | Level | Path | First L-level evidence batch | Outstanding gate |
-|---|---|---|---|---|
-| rls-auth-boundary-auditor | L3 | Path B (ADR-0036) | substrate-H2-section ownership pattern; lived in 2026-06-05 batches | L3 -> L4 requires explicit user review-gate (not automated) |
-| post-deploy-verifier | L3 | Path B (ADR-0036) | persona-report-file ownership pattern; lived in 2026-06-05 batches | L3 -> L4 requires explicit user review-gate (not automated) |
-| jtbd-switch-interviewer | L3 | Path B (ADR-0036) | K.7 floor evidence; persona-report-file pattern (`JTBD_INTERVIEWS.md`) | L3 -> L4 requires explicit user review-gate (not automated) |
-| migration-safety-steward | L3 | Path B (ADR-0036) | K.7 floor evidence; persona-report-file pattern (`MIGRATION_SAFETY.md`) | L3 -> L4 requires explicit user review-gate (not automated) |
-| color-contrast-architect | L3 | Path B (ADR-0036) | K.7 floor evidence; persona-report-file pattern (`CONTRAST_AUDIT.md`) | L3 -> L4 requires explicit user review-gate (not automated) |
-
-### Per-batch rollup (2026-06-05 session, 14 batches)
-
-| Batch ID | Agents | Primary shape | Outcome |
-|---|---|---|---|
-| w6jozlzky | 10 | focused-prompt fleet | 100% success, 0 schema-skip, 0 orphans |
-| wgmt8m2gt | 10 | focused-prompt fleet | 100% success, 0 schema-skip, 0 orphans |
-| w5uxqr73l | 8 | focused-prompt fleet | 100% success, 0 schema-skip, 0 orphans |
-| w3wne4tm3 | 10 | focused-prompt fleet | 100% success, 0 schema-skip, 0 orphans |
-| w47d4om9y | 10 | focused-prompt fleet | 100% success, 0 schema-skip, 0 orphans |
-| w6uazb55a | 10 | focused-prompt fleet | 100% success, 0 schema-skip, 0 orphans |
-| wq3i1x12h | 6 | focused-prompt fleet | 100% success, 0 schema-skip, 0 orphans |
-| w4culd93t | 7 | fleet rewrite + ADR-0038 push | 100% success, 0 schema-skip, 0 orphans |
-| wra5hqaw2 | 7 | post-fix re-audit fleet | 100% success, 0 schema-skip, 0 orphans |
-| w8anmjon6 | 8 | audit-followup + ADR-0040 codification | 100% success, 0 schema-skip, 0 orphans |
-| wzj5du7g8 | 5 | bug-class + scenario 42 + token slim | 100% success, 0 schema-skip, 0 orphans |
-| wmse5fdnk | 5 | mixed authoring + maintenance | 100% success, 0 schema-skip, 0 orphans |
-| wwx9s24te | 4 | mixed authoring + maintenance | 100% success, 0 schema-skip, 0 orphans |
-| wv98roai4 | 25 | high-fan-out fleet | 100% success, 0 schema-skip, 0 orphans |
-
-**Cumulative session totals:** 14 batches, 125 parallel agents, 100% success, 0 schema-skip across all 14 batches, 0 substrate orphans across all 14 batches.
-
-This is the strongest continuous evidence cluster yet for ADR-0036 Path B and the ADR-0039 dispatch sweet spot, spanning 4 to 25 agents per batch (with the wv98roai4 batch at 25 agents demonstrating that the upper end of the ADR-0039 envelope holds without degradation) and mixing authoring, verification, ADR codification, substrate maintenance, and bug-class authoring shapes without a single defect.
-
-### Supporting scripts (shipped 2026-06-05)
-
-- `monitor-fleet-progress.sh` -- monitors active fleet runs for completion and surfaces stuck workers
-- `check-doc-sync.sh` -- detects stale cross-document references (the diagnostic that surfaced the contradictions resolved in this session)
-
-These scripts are now part of the standard fleet-dispatch hygiene loop and should be referenced by any future audit command whose surface includes cross-doc references or active fleet monitoring.
-
-### Promotion-relevant next steps
-
-- The 3 L2 personas (migration-safety-steward, jtbd-switch-interviewer, color-contrast-architect) each need exactly one additional fleet-run on a 2nd distinct task folder before L3 promotion proposals can cite the Path B `fleet_run_folder_count >= 2` threshold.
-- The 5 fleet commands now structurally ADR-0038 compliant (atom-audit-fleet, external-research-fleet, verify-against-rubric-fleet, screen-spec-fleet, task-init-fleet) remain PENDING lived runs before any L3 fleet-command promotion proposal can cite the Path B fleet-run gate.
-- L3 -> L4 promotion for rls-auth-boundary-auditor and post-deploy-verifier remains gated on the explicit user review-gate per Bruno's confirmed decision 2026-06-04; this gate is not automated and is the only outstanding criterion for these two personas.
+The per-batch log of the 2026-06-05 session behind the first L3 promotions (14 batches, 125 agents, no substrate orphan) left this file on 2026-09-23. It stays in the repository history at commit `052440cb`, and the current level of each persona is the canonical table above.

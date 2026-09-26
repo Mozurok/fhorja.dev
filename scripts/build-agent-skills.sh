@@ -9,7 +9,12 @@
 #   1. Copy the frontmatter block verbatim.
 #   2. Drop the H1 heading right after the closing `---` (Agent Skills
 #      uses the `name:` field; the H1 is redundant).
-#   3. Copy the rest of the body verbatim.
+#   3. Copy the rest of the body, minus the two maintenance markers the
+#      agent never reads: a `<!-- shared:<name> -->` line is dropped and a
+#      `<!-- count:<kind> -->N<!-- /count -->` wrapper becomes the bare N
+#      (ADR-0227). Both markers stay in commands/*.md, where
+#      sync-shared-blocks.sh, reconcile-counts.sh and the lint read them;
+#      nothing reads them in the generated copy. Fenced code is left alone.
 #
 # The result is byte-stable across runs (idempotent), so the script can
 # safely run in pre-commit hooks or in CI under `--check` mode.
@@ -105,6 +110,20 @@ fi
 # it costs about 390 chars instead of duplicating the contract.
 REINJECTION_CAP_CHARS=20000
 
+# Drop the maintenance markers from a rendered body (see step 3 in the header). The
+# patterns are the exact forms sync-shared-blocks.sh and the count-marker lint accept, so a
+# marker quoted inside prose or a backticked span in some other shape is left as written.
+strip_source_markers() {
+  perl -ne '
+    if (/^```/) { $fence = !$fence; print; next }
+    unless ($fence) {
+      next if /^<!-- shared:[a-z-]+ -->[ \t]*$/;
+      s/<!-- count:[a-z0-9-]+ -->(\d+)<!-- \/count -->/$1/g;
+    }
+    print;
+  '
+}
+
 render_skill() {
   local body_chars notice
   body_chars=$(wc -c < "$1" | tr -d ' ')
@@ -120,46 +139,17 @@ render_skill() {
     [ -s "$summary_file" ] || { rm -f "$summary_file"; summary_file=""; notice=0; }
   fi
 
+  # The frontmatter is emitted by emit-skill-frontmatter.py, not by this awk. The branch
+  # that used to turn a flow sequence into a BLOCK sequence is gone: the Agent Skills spec
+  # fixes metadata as a map from string keys to STRING values, and a block sequence is a
+  # list. awk now emits the BODY only, and the two are concatenated.
+  python3 "${SCRIPT_DIR}/emit-skill-frontmatter.py" "$1" || return 1
+
   awk -v notice="$notice" '
     BEGIN { fm_count = 0; first_body = 0 }
     {
       if (fm_count < 2) {
-        if ($0 == "---") { fm_count++; print; next }
-        # Inside frontmatter: normalize to spec-conformant YAML so the open
-        # Agent Skills validator (skills-ref) accepts it. Canonical command
-        # frontmatter uses flow style and unquoted descriptions; skills-ref
-        # rejects flow sequences and cannot parse a description containing a
-        # colon-space. Transform on emit (canonical files stay unchanged; see
-        # DECISIONS.md D-2).
-        # 1. description -> literal block scalar: colons and quotes stay literal
-        #    with no escaping.
-        if ($0 ~ /^description: /) {
-          val = substr($0, length("description: ") + 1)
-          print "description: |-"
-          print "  " val
-          next
-        }
-        # 2. flow sequence  key: [a, b]  -> block sequence.
-        if ($0 ~ /^[[:space:]]+[A-Za-z0-9_-]+: \[.*\]$/) {
-          match($0, /^[[:space:]]+/); indent = substr($0, 1, RLENGTH)
-          rest = substr($0, RLENGTH + 1)
-          ci = index(rest, ":")
-          key = substr(rest, 1, ci - 1)
-          inner = substr(rest, ci + 1)
-          sub(/^[[:space:]]*\[/, "", inner)
-          sub(/\][[:space:]]*$/, "", inner)
-          print indent key ":"
-          if (inner ~ /[^[:space:]]/) {
-            n = split(inner, arr, /,/)
-            for (i = 1; i <= n; i++) {
-              item = arr[i]
-              gsub(/^[[:space:]]+|[[:space:]]+$/, "", item)
-              print indent "  - " item
-            }
-          }
-          next
-        }
-        print
+        if ($0 == "---") { fm_count++ }
         next
       }
       if (!first_body) {
@@ -179,7 +169,7 @@ render_skill() {
     else
       cat
     fi
-  }
+  } | strip_source_markers
   [[ -n "$summary_file" ]] && rm -f "$summary_file"
   return 0
 }

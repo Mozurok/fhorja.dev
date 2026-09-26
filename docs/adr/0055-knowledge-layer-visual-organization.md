@@ -2,6 +2,7 @@
 
 - **Status**: Accepted
 - **Date**: 2026-06-26
+Supersedes, in part: ADR-0054 (the flat KNOWLEDGE.md shape and the close-write mechanism; the human-first layer and the no-auto-load invariant stand)
 - **Tags**: memory, knowledge-layer, visual-organization, wikilinks, map-of-content, generated-view, obsidian-compatible, no-app-dependency, additive, amends-adr-0054
 
 ## Context

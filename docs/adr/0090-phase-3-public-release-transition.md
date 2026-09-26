@@ -1,6 +1,6 @@
 # ADR-0090: Phase 3 public-release transition (fresh-history release, CLAUDE.md disposition, redaction exception, flip-day governance)
 
-- **Status**: Accepted
+- **Status**: Accepted The treatment of the public repository as a peer whose divergence from staging is a defect is superseded in part by [ADR-0188](./0188-the-public-tree-is-an-overwrite-target.md): it is a downstream overwrite target. The fresh-history transition and the exclusion list decided here stand.
 - **Date**: 2026-07-10
 - **Tags**: release, governance, phase-3, fresh-history, claude-md-disposition, redaction-exception, branch-protection, flip-day
 

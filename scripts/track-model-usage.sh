@@ -7,7 +7,9 @@
 # The config dir follows CLAUDE_CONFIG_DIR when set, else ~/.claude, so the audit
 # covers whichever Claude Code profile is active.
 #
-# Output: CSV at _internal/model-usage-baseline-2026-06.csv (or path passed as $1).
+# Output: CSV at _internal/model-usage-baseline-2026-06.csv when _internal/ exists; otherwise
+# .local/model-usage-baseline-2026-06.csv. Both are maintainer-local and gitignored, and the
+# script says on stderr which one it wrote. Pass a path as $1 to override.
 #
 # Per ADR-0025 model selection by tier — establishes the baseline for measuring whether
 # routing recommendations are being followed (B.4 of Fhorja improvement plan 2026-06-03).
@@ -21,7 +23,16 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-OUTPUT="${1:-${REPO_ROOT}/_internal/model-usage-baseline-2026-06.csv}"
+OUTPUT="${1:-}"
+if [[ -z "$OUTPUT" ]]; then
+  if [[ -d "${REPO_ROOT}/_internal" ]]; then
+    OUTPUT="${REPO_ROOT}/_internal/model-usage-baseline-2026-06.csv"
+  else
+    OUTPUT="${REPO_ROOT}/.local/model-usage-baseline-2026-06.csv"
+    echo "note: _internal/ is absent; writing to ${OUTPUT} instead (maintainer-local, gitignored)" >&2
+  fi
+fi
+mkdir -p "$(dirname "$OUTPUT")"
 LOOKBACK_DAYS="${2:-14}"
 PROJECTS_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects"
 

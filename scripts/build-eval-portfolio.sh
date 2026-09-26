@@ -7,7 +7,9 @@
 #   evals/workspace/<skill-name>-workspace/iteration-<N>/benchmark.json
 #
 # Writes:
-#   _internal/eval-dashboard/portfolio-<YYYY-MM-DD>.md (default)
+#   _internal/eval-dashboard/portfolio-<YYYY-MM-DD>.md when _internal/ exists; otherwise
+#   .local/eval-dashboard/portfolio-<YYYY-MM-DD>.md. Both are maintainer-local and gitignored,
+#   and the script says on stderr which one it wrote. --output overrides both.
 #
 # Usage:
 #   bash scripts/build-eval-portfolio.sh [--output <path>] [--date <YYYY-MM-DD>]
@@ -45,6 +47,10 @@ done
 TODAY="${DATE_OVERRIDE:-$(date +%Y-%m-%d)}"
 DASHBOARD_DIR="$REPO_ROOT/_internal/eval-dashboard"
 if [[ -z "$OUTPUT" ]]; then
+  if [[ ! -d "$REPO_ROOT/_internal" ]]; then
+    DASHBOARD_DIR="$REPO_ROOT/.local/eval-dashboard"
+    echo "note: _internal/ is absent; writing to ${DASHBOARD_DIR}/portfolio-$TODAY.md instead (maintainer-local, gitignored)" >&2
+  fi
   OUTPUT="$DASHBOARD_DIR/portfolio-$TODAY.md"
 fi
 

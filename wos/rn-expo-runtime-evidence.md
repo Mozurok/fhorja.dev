@@ -239,7 +239,9 @@ This reproduces a routing or decision defect in seconds and needs no simulator.
 It is a diagnostic, never committed, and never a substitute for the cold-start
 run: it proves what the decision layer does, not what the app does.
 
-## What to hand to `app-runtime-verify`
+## What the run captures
+
+`app-runtime-verify` captures its own evidence in this run (ADR-0204): every artifact below is written under the per-slice run directory `<task-folder>/evidence/<slice-id>/` and cited in the slice notes, per `wos/app-runtime-battery.md ## Evidence capture (the run directory)`. The commands that produce each capture stay in this file.
 
 - The run mechanism (device / emulator / headless / MCP run tool) and whether it
   was a clean rebuild or a JS reload.
@@ -247,7 +249,8 @@ run: it proves what the decision layer does, not what the app does.
   A launch-triggered behavior needs a cold-start observation; the gate caps a
   warm-only run at BLOCKED.
 - The real captured output: the native log block around the crash (verbatim) for
-  a native/navigation crash, and/or the Metro console for a JS error.
+  a native or navigation crash, and the Metro console for a JS error. Read whichever the
+  symptom points at, or both when it is unclear.
 - For an iOS Simulator run: the `simctl launch` log block (verbatim) plus the
   screenshot files produced during that same run. A screenshot kept from an
   earlier run is not evidence for this one (ADR-0048).
@@ -256,5 +259,7 @@ run: it proves what the decision layer does, not what the app does.
   neighborhood), not the raw video alone.
 - The slice's acceptance behavior (the observable outcome that means it works).
 
-Without the real output, `app-runtime-verify` STOPS and asks for it; it never
+WHEN no platform log capture is reachable for the target, `app-runtime-verify`
+returns BLOCKED naming the missing capture capability and routes to
+`incident-triage` as a CONFIG failure; it never waits for a pasted log and never
 asserts a PASS from a claimed run (ADR-0048).

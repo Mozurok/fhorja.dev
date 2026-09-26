@@ -40,20 +40,49 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Commands used but that write little/no substrate, so the write-log undercounts
 # them. Listing them here keeps them out of the actionable "cold" bucket.
+# Exempt from the never-invoked metric, each with the reason written down. A name
+# on this list is invisible to the usage signal by construction, so the reason has
+# to survive the person who added it: a bare set turns "we decided this is fine"
+# into "nobody remembers why".
+#
+# Being exempt is not the same as being reachable. A name here with an indegree of
+# 1 or 0 is exempt from the USAGE metric and still unreachable in the command
+# graph, which is a different defect and the one the review queue surfaces.
 READ_ONLY_BY_DESIGN = {
-    "api-contract-review", "atom-audit", "atom-audit-fleet", "autonomous-board",
-    "code-locate", "design-spec-review", "feature-library-scout-fleet",
-    "foundation-audit", "frontend-architecture-review", "graphql-contract-review",
-    "harvest-session-learnings", "im-stuck", "inventory-snapshot", "mcp-server-vet",
-    "portfolio-review", "prompt-shape", "resume-from-state", "skill-vet",
-    "state-reconcile", "verify-against-rubric", "verify-against-rubric-fleet",
-    "workflow-guide",
+    "api-contract-review": "read-only review; writes findings into the caller's artifact, not a task log",
+    "atom-audit": "read-only audit of a design surface; produces a report, not task state",
+    "atom-audit-fleet": "fleet variant of atom-audit; same read-only shape",
+    "autonomous-board": "read-only status view over the autonomous track",
+    "code-locate": "read-only lookup; answers where something is",
+    "design-spec-review": "read-only review of a spec against its surface",
+    "feature-library-scout-fleet": "read-only scout; reports what exists upstream",
+    "foundation-audit": "read-only audit of repository foundations",
+    "frontend-architecture-review": "read-only architecture review",
+    "graphql-contract-review": "read-only contract review",
+    "harvest-session-learnings": "reads a session and writes to project memory, not a task log",
+    "im-stuck": "conversational unblocking; writes nothing by design",
+    "inventory-snapshot": "read-only inventory of a codebase",
+    "mcp-server-vet": "read-only vetting of an MCP server before it is trusted",
+    "portfolio-review": "read-only report across projects",
+    "prompt-shape": "read-only prompt critique",
+    "resume-from-state": "reads state to re-enter a task; the writes belong to what it routes to",
+    "skill-vet": "read-only vetting of a skill before install",
+    "state-reconcile": "repairs artifacts in place; the repair is the output, not a log line",
+    "verify-against-rubric": "read-only verdict against a rubric",
+    "verify-against-rubric-fleet": "fleet variant; same read-only shape",
+    "workflow-guide": "read-only explainer of the workflow itself",
 }
+
+# The date this exemption list was last read end to end and each reason confirmed.
+# An exemption nobody has re-read is a decision that has stopped being one.
+READ_ONLY_REVIEWED = "2026-08-29"
 
 # Commands that run before or around a task folder, so they never write to a task
 # .wos/ log even when used (their writes land at project level or in child tasks).
 PRE_TASK_UNDERCOUNTED = {
-    "problem-framing", "project-bootstrap", "task-init-fleet",
+    "problem-framing": "runs before a task folder exists; writes at project level",
+    "project-bootstrap": "creates the project; there is no task log yet",
+    "task-init-fleet": "creates child tasks; the writes land in them, not in a parent log",
 }
 
 
@@ -96,10 +125,16 @@ def scan_telemetry():
     owner_tasks = collections.defaultdict(set)
     owner_writes = collections.Counter()
     edge = collections.Counter()          # (invoked_by -> owner)
+    # The repo's OWN root log counts. Globbing projects/ alone reported
+    # task-init-fleet as never invoked while it held 8 records at the root and
+    # none anywhere under projects/.
     logs = glob.glob(
         os.path.join(REPO, "projects", "*", "**", ".wos", "VERIFICATION_LOG.jsonl"),
         recursive=True,
     )
+    root_log = os.path.join(REPO, ".wos", "VERIFICATION_LOG.jsonl")
+    if os.path.isfile(root_log):
+        logs.append(root_log)
     invoked_parents = collections.Counter()
     tasks, total, bad = set(), 0, 0
     for lf in logs:
@@ -135,16 +170,44 @@ def scan_telemetry():
     }
 
 
-def classify(names, used_set):
+def classify(names, used_set, indeg=None):
+    """Six buckets, not four.
+
+    An exempt name used to vanish into one `read_only` list, which hid two
+    different things: a command that is genuinely reachable and simply does not
+    write a log, and a command nobody can reach at all. Splitting on indegree
+    separates them. `missing` catches an exemption whose command no longer exists,
+    which is how a stale entry would otherwise outlive its command in silence.
+    """
+    indeg = indeg or {}
     used = [n for n in names if n in used_set]
     never = [n for n in names if n not in used_set]
-    read_only = sorted(n for n in never if n in READ_ONLY_BY_DESIGN)
+    exempt = [n for n in never if n in READ_ONLY_BY_DESIGN]
+    read_only_reachable = sorted(n for n in exempt if indeg.get(n, 0) >= 2)
+    read_only_unreachable = sorted(n for n in exempt if indeg.get(n, 0) <= 1)
     pre_task = sorted(n for n in never if n in PRE_TASK_UNDERCOUNTED)
     cold = sorted(
         n for n in never
         if n not in READ_ONLY_BY_DESIGN and n not in PRE_TASK_UNDERCOUNTED
     )
-    return used, read_only, pre_task, cold
+    on_disk = set(names)
+    missing = sorted(n for n in list(READ_ONLY_BY_DESIGN) + list(PRE_TASK_UNDERCOUNTED)
+                     if n not in on_disk)
+    return used, read_only_reachable, read_only_unreachable, pre_task, cold, missing
+
+
+def exemption_audit(names, indeg):
+    """(unreachable, missing) over the exemption lists, from static signal only.
+
+    Deliberately reads indegree rather than telemetry: this has to give the same
+    answer in a clone with no projects/ directory.
+    """
+    on_disk = set(names)
+    unreachable = sorted(n for n in READ_ONLY_BY_DESIGN
+                         if n in on_disk and indeg.get(n, 0) <= 1)
+    missing = sorted(n for n in list(READ_ONLY_BY_DESIGN) + list(PRE_TASK_UNDERCOUNTED)
+                     if n not in on_disk)
+    return unreachable, missing
 
 
 def orphans(indeg, names):
@@ -154,12 +217,19 @@ def orphans(indeg, names):
 
 
 def brief_report(names, indeg):
-    """One-line-ish advisory for lint: zero-inbound orphan count + list."""
+    """Two static advisory lines for lint: orphan edges, then the exemption queue."""
     zero, low = orphans(indeg, names)
     print(f"orphan-edge advisory: {len(zero)} command(s) with 0 inbound "
           f"references, {len(low)} with exactly 1 (warn-only)")
     if zero:
         print("  0 inbound: " + ", ".join(zero))
+    unreachable, missing = exemption_audit(names, indeg)
+    print(f"exemption audit: {len(unreachable)} name(s) with indegree <= 1 (review), "
+          f"{len(missing)} name(s) not on disk")
+    if unreachable:
+        print("  review: " + ", ".join(unreachable))
+    if missing:
+        print("  not on disk: " + ", ".join(missing))
     return 0
 
 
@@ -168,7 +238,9 @@ def full_report(names, indeg, tel, out_lines):
         out_lines.append(s)
 
     used_set = set(tel["owner_writes"]) | set(tel["invoked_parents"])
-    used, read_only, pre_task, cold = classify(names, used_set)
+    used, read_only_reachable, read_only_unreachable, pre_task, cold, missing = classify(
+        names, used_set, indeg)
+    read_only = sorted(read_only_reachable + read_only_unreachable)
     zero, low = orphans(indeg, names)
     ot = tel["owner_tasks"]
 
@@ -208,6 +280,27 @@ def full_report(names, indeg, tel, out_lines):
     w("  " + (", ".join(cold) if cold else "(none)"))
     w("")
 
+    w("## Exempt but unreachable (review)")
+    w("Exempt from the usage metric AND hard to reach in the command graph. Being on")
+    w("the exemption list answers why the write-log does not see them; it does not")
+    w(f"answer how a user finds them. Exemption list last read end to end: {READ_ONLY_REVIEWED}.")
+    # Fed by exemption_audit, not by the classify bucket. The bucket is intersected
+    # with "never invoked", so a name that telemetry has seen drops out of it even
+    # though it is still unreachable in the graph. The section title promises the
+    # static predicate, so it has to answer the same question the brief line does,
+    # or the two outputs of one script disagree about the same word.
+    queue, _missing_dup = exemption_audit(names, indeg)
+    if queue:
+        for n in queue:
+            reason = READ_ONLY_BY_DESIGN.get(n, "(no reason recorded)")
+            w(f"  indeg={indeg.get(n, 0)}  {n}: {reason}")
+    else:
+        w("  (none)")
+    w("")
+    w(f"Referential integrity: {len(missing)} exemption name(s) with no command on disk.")
+    w("  " + (", ".join(missing) if missing else "(none)"))
+    w("")
+
     w("## Declared vs realized edges (low confidence)")
     w("invoked_by is sparse and user-driven, so treat this as a hint, not a verdict.")
     realized = {ib for (ib, _ow) in tel["edge"]}
@@ -221,6 +314,64 @@ def full_report(names, indeg, tel, out_lines):
       "above plus the cold-review commands that fit the work pattern.")
 
 
+def persona_maturity_level(path):
+    """Read `maturity_level` from a persona SKILL.md frontmatter.
+
+    The field is nested under `metadata:`, so it is indented and a column-zero
+    match finds nothing. That is the first way this was written and it reported
+    every persona as unknown while all nine carried a level.
+    """
+    try:
+        with open(path, encoding="utf-8") as fh:
+            for line in fh:
+                m = re.match(r"\s*maturity_level:\s*(L[1-5])\b", line)
+                if m:
+                    return m.group(1)
+    except OSError:
+        return None
+    return None
+
+
+def demand_report(paths):
+    """One line per folder-shaped persona: owner tasks, owner writes, maturity level.
+
+    The instrument the ladder's demand-based demotion rule would read. It reports
+    and decides nothing: no window, no verdict, no demotion.
+
+    Counting is by `owner`, which is what the ladder's ownership model means by a
+    persona doing its job, and NOT by `invoked_by`. Measured 2026-08-30 the two
+    differ enough to invert the answer: rls-auth-boundary-auditor and
+    jtbd-switch-interviewer have 0 owner writes and 4 and 5 invoked_by writes.
+
+    Telemetry lives under `projects/`, which is gitignored. On a clone that has
+    none, every line says `not measured` rather than `0`, because a zero read as
+    absence of demand would demote every persona in CI. Same rule and same words
+    as check-substrate-ownership.py.
+
+    Exactly one line per `commands/*/SKILL.md` on stdout, nothing else, so the
+    line count is the persona count. Anything explanatory goes to stderr.
+    """
+    personas = sorted(
+        (name, p) for name, p in paths.items()
+        if os.path.basename(p) == "SKILL.md"
+    )
+    tel = scan_telemetry()
+    measured = tel["n_logs"] > 0
+    if not measured:
+        print("flow-audit --demand: no .wos/VERIFICATION_LOG.jsonl found under "
+              "projects/, so demand is not measured here.", file=sys.stderr)
+    for name, path in personas:
+        level = persona_maturity_level(path) or "unknown"
+        if measured:
+            tasks = tel["owner_tasks"].get(name, 0)
+            writes = tel["owner_writes"].get(name, 0)
+            print(f"{name}\ttasks={tasks}\towner_writes={writes}\tmaturity_level={level}")
+        else:
+            print(f"{name}\ttasks=not measured\towner_writes=not measured\t"
+                  f"maturity_level={level}")
+    return 0
+
+
 def main(argv):
     paths = command_paths()
     names = command_names(paths)
@@ -231,6 +382,9 @@ def main(argv):
 
     if "--orphans-brief" in argv:
         return brief_report(names, reference_indegree(names, paths))
+
+    if "--demand" in argv:
+        return demand_report(paths)
 
     out_path = None
     if "--out" in argv:

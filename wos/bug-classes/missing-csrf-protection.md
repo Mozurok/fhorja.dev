@@ -46,12 +46,12 @@ Given the route and its auth mechanism:
 
 - P0: state-changing endpoint with cookie auth, no CSRF protection, and the action is destructive (delete, payment, admin privilege change)
 - P1: state-changing endpoint with cookie auth, no CSRF protection, and the action is non-destructive but modifies user data
-- P2: endpoint uses cookie auth but SameSite=Lax mitigates most CSRF vectors (only top-level navigations are vulnerable)
+- P2: endpoint uses cookie auth and the session cookie explicitly sets SameSite=Lax, so it is not sent on a cross-site POST, PUT, PATCH or DELETE. A same-site subdomain is still a vector, because a site is the registrable domain (https://developer.mozilla.org/en-US/docs/Glossary/Site)
 
 ## Confidence factors
 
 - HIGH: route uses cookie auth; no CSRF middleware; action is state-changing
-- MEDIUM: route uses cookie auth with SameSite=Lax; most vectors mitigated but not all
+- MEDIUM: route uses cookie auth with an explicit SameSite=Lax; the cookie is not sent cross-site on these methods, so what is left is a same-site subdomain an attacker controls
 - LOW: route uses Bearer token auth (not vulnerable); or endpoint is read-only despite being POST
 
 ## Examples

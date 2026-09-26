@@ -6,17 +6,17 @@
 
 ## Goal
 
-Validates the freshness-check contract for CSV-derived cache tables (e.g. `fex_quotes_cache`) as defined in `wos/bug-classes/stale-csv-cache-import.md` and the broader external-integration freshness pattern in `wos/external-integration-patterns.md`. The contract has two thresholds keyed off the table's declared expected refresh interval:
+Validates the freshness-check contract for CSV-derived cache tables (e.g. `quotes_cache`) as defined in `wos/bug-classes/stale-csv-cache-import.md` and the broader external-integration freshness pattern in `wos/external-integration-patterns.md`. The contract has two thresholds keyed off the table's declared expected refresh interval:
 
 - **Alert threshold**: `last_imported_at` age > 1.5x expected interval -- fire alert, continue to serve.
 - **Refuse-to-serve threshold**: `last_imported_at` age > 2x expected interval -- fire alert AND refuse to serve cached rows to consumers.
 - **NULL `last_imported_at`**: treated as never-imported -- immediate alert AND immediate refuse-to-serve, regardless of expected interval.
 
-Consumers under test: any read path that loads from `fex_quotes_cache`, plus the freshness-check job that runs on each read or on a scheduled cadence.
+Consumers under test: any read path that loads from `quotes_cache`, plus the freshness-check job that runs on each read or on a scheduled cadence.
 
 ## Setup
 
-- A `fex_quotes_cache` table with a declared `expected_refresh_interval_days = 30` (in the table's freshness contract or registry entry).
+- A `quotes_cache` table with a declared `expected_refresh_interval_days = 30` (in the table's freshness contract or registry entry).
 - Three rows or three runs of the freshness check, each with a different `last_imported_at`:
   - Row A: `last_imported_at = now() - interval '35 days'` (35 days old; > 1.5x of 30 == 45? No, 35 < 45, so this is the BELOW-alert baseline -- see scenario A).
   - Row B: `last_imported_at = now() - interval '50 days'` (between 1.5x and 2x, i.e. 45 <= age < 60).
@@ -27,7 +27,7 @@ Consumers under test: any read path that loads from `fex_quotes_cache`, plus the
 ## Input prompt
 
 ```text
-Run the freshness check against fex_quotes_cache.
+Run the freshness check against quotes_cache.
 Expected refresh interval: 30 days.
 Evaluate each of the four states (35d, 50d, 70d, NULL) and emit:
   - whether an alert fires

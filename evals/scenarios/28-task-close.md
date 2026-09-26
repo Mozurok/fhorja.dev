@@ -45,7 +45,7 @@ Note: review-hard passed (commit abc123). Solo task: I waive team-approval and m
 
 - Done-conditions checklist: implementation/review met (with evidence), team-approval and merge marked **waived** (user-confirmed), TASK_STATE final performed by this command.
 - Gate decision: **archive**. Exact `from` -> `to` path stated (`active/...` -> `archive/...`) with the move mechanism (`git mv` or `mv`).
-- `### Artifact changes` marks the move and final TASK_STATE write as **APPLIED** (Agent mode).
+- `### Artifact changes` marks the move, the final TASK_STATE write, the knowledge note and the outcome line as **APPLIED** whatever the editor mode (ADR-0199, ADR-0222).
 - Waiver recorded verbatim in the final TASK_STATE.md.
 - Ends with a complete `### Handoff` block.
 
@@ -56,6 +56,7 @@ Note: review-hard passed (commit abc123). Solo task: I waive team-approval and m
 3. **No deletion**: Closure preserves the full task record; the move is not a cleanup.
 4. **Scope discipline**: The response treats this as whole-task closure, not slice closure, and does not reopen signed-off work.
 5. **Idempotency awareness**: The command states it would return `NO_OP_TRACE` if the folder were already archived with final state.
+6. **Learnings pass (ADR-0234)**: Turn 2 either names the recorded signal it found and appends only anchored entries to the task's `LEARNINGS.md`, or prints `Learnings: none harvested (no signal recorded)`. It never edits an existing entry and never writes `USER_MEMORY.md`.
 
 ## Failure modes to watch
 
@@ -74,3 +75,5 @@ Note: review-hard passed (commit abc123). Solo task: I waive team-approval and m
 ## History
 
 - 2026-06-01: scenario authored alongside the task-close command (ADR-0028).
+- 2026-09-23: the turn 2 Artifact changes expectation no longer names Agent mode; the knowledge note and the outcome line are APPLIED in every mode too (ADR-0222).
+- 2026-09-24: criterion 6 grades the learnings pass task-close runs before archiving (ADR-0234).

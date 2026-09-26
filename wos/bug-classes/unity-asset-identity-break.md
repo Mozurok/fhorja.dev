@@ -2,7 +2,7 @@
 name: unity-asset-identity-break
 category: data-integrity
 default-severity: P1
-cwe: [CWE-1076, CWE-476]
+cwe: [CWE-476]  # CWE-1076 removed 2026-09-21: MITRE marks it Prohibited for mapping. CWE-476 is Base-level and Allowed, and it carries the mechanism anyway: the script reference resolves to null.
 languages: [csharp]
 file-patterns: ["**/*.meta", "**/*.unity", "**/*.prefab", "**/*.asset", ".gitignore", "Assets/**"]
 perspectives: [maintainer]
@@ -34,7 +34,7 @@ Look for:
 Exclude:
 - Files outside `Assets/` (under `Library/`, `Temp/`, `obj/`, `Logs/`), which are generated and correctly ignored.
 - A `.meta` for a file that was intentionally deleted in the same change, where both sides are removed together.
-- Packages resolved through the Package Manager, whose metas live inside the package, not the project tree.
+- Registry and Git packages resolved through the Package Manager: Unity treats them as immutable, and their metas ship inside the package rather than in the project's `Assets/` tree. An embedded package under `Packages/` is mutable and lives in the project, so this exclusion does not cover it (https://docs.unity3d.com/6000.5/Documentation/Manual/upm-concepts.html).
 
 ## Retrieval
 

@@ -67,6 +67,10 @@ Do not use it for:
 - brainstorming
 - long historical discussion
 
+Structure:
+- `## Locked decisions`: `### D-N` entries, the maintainer's own input. This is the only section a review reads as authorization.
+- `## Provisional decisions` (P-1): `### P-N: <title>` entries the agent chose from evidence when the request left a needed decision open, never recorded as the maintainer's input. Each entry carries an `Evidence:` line (a file and line on the task branch, or a quote from the request), an `Impact:` line (`high` when it touches data, security, payments or cost, else `normal`), and `Status: provisional`. A P-N is never edited or moved. The maintainer confirms it with a new `### D-N` under `## Locked decisions` carrying `Confirms: P-N`, or replaces it with a new `### D-N` there carrying `Supersedes: P-N`. WHILE a P-N is not yet confirmed or superseded by the maintainer, the agent SHALL correct it only by appending a new `### P-N` that carries a `Replaces: P-M` line and the reason, and SHALL leave P-M exactly as written (ADR-0235). Plans SHALL cite only the newest entry of a replacement chain. `Replaces:` links two P-Ns only, and the maintainer's `Confirms:` and `Supersedes:` paths are unchanged. Merging the draft PR that lists a P-N does not confirm it; the P-N stays provisional until the maintainer confirms it that way.
+
 ### IMPLEMENTATION_PLAN.md
 Purpose:
 - official incremental plan for the task
@@ -127,4 +131,4 @@ Create when:
 - a `post-review-pivot` happened (a pivot is a learning by definition)
 - an `incident-triage` HOTFIX or ESCALATE produced a root cause future tasks should avoid
 
-Task-scoped reflexion-style log per ADR-0017. Bootstrap from `templates/LEARNINGS.md`. Each entry is 4 bullets: `Tried:`, `Failed because:`, `Next time:`, `Cross-project promotion:`. Manual promotion path to `/USER_MEMORY.md ## Cross-project learnings` for durable cross-project lessons (slice 05 / ADR-0016).
+Task-scoped reflexion-style log per ADR-0017. Bootstrap from `templates/LEARNINGS.md`. Each entry is 5 required bullets, `Anchor:`, `Tried:`, `Failed because:`, `Next time:`, `Cross-project promotion:`, plus an optional `Tags:` bullet that `scripts/rank-learnings.sh` scores for retrieval (ADR-0071). Manual promotion path to `/USER_MEMORY.md ## Cross-project learnings` for durable cross-project lessons (slice 05 / ADR-0016).

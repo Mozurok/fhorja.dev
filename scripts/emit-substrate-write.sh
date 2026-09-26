@@ -37,13 +37,15 @@
 #         the section body from B, self-check sha_after against the intended
 #         body, append one JSONL line. Die rules: the exact section line must
 #         be UNIQUE in F (a duplicate, e.g. a code-fence decoy, refuses); the
-#         body must not contain H2 or wos:write lines (apply never creates
-#         sections); a caller-passed --sha-before that mismatches the measured
+#         body must not contain H2 or wos:write lines (an H2 would move the
+#         section boundary the hash covers); a caller-passed --sha-before that
+#         mismatches the measured
 #         value refuses (the measured value is authoritative). Event defaults
 #         to write when the section body was empty, overwrite otherwise.
 #         sha/emit/batch behavior is unchanged; apply is additive.
 #
 # Reason strings are capped at 80 chars (validator rule). Requires jq.
+# emit, batch and apply refuse a --task-root (default ".") that holds no TASK_STATE.md.
 #
 # Quick combined flow (capture sha_before, then emit after the write):
 #   SHA_BEFORE=$(scripts/emit-substrate-write.sh sha --file F --section '## X')
@@ -179,6 +181,15 @@ if [[ -n "$FILE" && "$FILE" != /* && ! -f "$FILE" && -f "$TASK_ROOT/$FILE" ]]; t
 fi
 
 [[ -n "$SUB" ]] || die "subcommand required: sha | emit | batch"
+# A subcommand that appends to the log needs a real task folder as its root. Before this,
+# append_line ran `mkdir -p "$task_root/.wos"` on whatever it was given, so a wrong
+# --task-root (or the default ".", run from the wrong directory) created a stray log that
+# no validator reads, and the write it recorded looked logged (ADR-0224). Checked before
+# any file is touched, so `apply` refuses without splicing.
+case "$SUB" in
+  emit|batch|apply)
+    [[ -f "$TASK_ROOT/TASK_STATE.md" ]] || die "not a task folder: no TASK_STATE.md found in --task-root '$TASK_ROOT' (pass the task folder that owns $FILE; nothing was written)" ;;
+esac
 [[ ${#REASON} -le 80 ]] || die "reason exceeds 80 chars (${#REASON})"
 TS=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
 [[ -n "$RUN_ID" ]] || RUN_ID=$(new_run_id)
@@ -313,11 +324,21 @@ USAGE
     [[ -n "$BODY_FILE" ]] || die "apply needs --body-file (the new section body)"
     [[ -f "$BODY_FILE" ]] || die "body file not found: $BODY_FILE"
     if grep -qE '^## |^<!-- wos:write ' "$BODY_FILE"; then
-      die "apply body must not contain H2 headings or wos:write lines (apply never creates sections; header lines are excluded from the section hash and would break the self-check)"
+      die "apply body must not contain H2 headings or wos:write lines (an H2 inside the body would move the section boundary the hash is taken over, and header lines are excluded from that hash, so either one breaks the self-check)"
     fi
     MATCHES=$(grep -cxF "$SECTION" "$FILE" || true)
-    [[ "$MATCHES" -eq 1 ]] || die "apply target '$SECTION' must match exactly one line in $FILE (found $MATCHES; a duplicate can be a code-fence decoy and the splice boundary is not fence-aware)"
-    SB=$(sha_of_section "$FILE" "$SECTION")
+    # A missing section is CREATED, not refused. Writing a new H2 is the ordinary
+    # case (task-init genesis, implementation-plan's '## Approval log'), and
+    # refusing it sent every caller back to hand-inserting the heading and its
+    # transaction header, which is the manual step apply exists to remove.
+    # A duplicate still refuses: the splice boundary is not fence-aware, so a
+    # code-fence decoy would corrupt the file. A typo in --section now creates a
+    # section instead of failing, so the success line says "created" rather than
+    # "applied" and the K.4 drift guard surfaces a section no matrix row owns.
+    CREATED=0
+    [[ "$MATCHES" -le 1 ]] || die "apply target '$SECTION' matches $MATCHES lines in $FILE; a duplicate can be a code-fence decoy and the splice boundary is not fence-aware"
+    if [[ "$MATCHES" -eq 0 ]]; then CREATED=1; fi
+    if [[ "$CREATED" -eq 1 ]]; then SB="null"; else SB=$(sha_of_section "$FILE" "$SECTION"); fi
     if [[ "$SB_EXPLICIT" == 1 && "$SHA_BEFORE" != "$SB" ]]; then
       die "apply sha_before mismatch for $(basename "$FILE") '$SECTION': caller expected '$SHA_BEFORE', measured '$SB' (the measured value is authoritative)"
     fi
@@ -327,6 +348,11 @@ USAGE
     HDR_LINE=$(printf '<!-- wos:write owner=%s section='\''%s'\'' run_id=%s ts=%s reason=%s mode=%s -->' \
       "$OWNER" "$SECTION" "$RUN_ID" "$TS" "$REASON" "$MODE")
     TMP_OUT=$(mktemp "${TMPDIR:-/tmp}/wos-apply.XXXXXX")
+    if [[ "$CREATED" -eq 1 ]]; then
+      # Append at the end: header, heading, body. Same shape the splice makes,
+      # so the self-check below is identical on both paths.
+      { cat "$FILE"; printf '\n%s\n%s\n' "$HDR_LINE" "$SECTION"; cat "$BODY_FILE"; } > "$TMP_OUT"
+    else
     awk -v sec="$SECTION" -v hdr="$HDR_LINE" -v bodyfile="$BODY_FILE" '
       BEGIN {
         n = 0
@@ -351,6 +377,7 @@ USAGE
         for (i = stop + 1; i <= NR; i++) print lines[i]
       }
     ' "$FILE" > "$TMP_OUT"
+    fi
     SA=$(sha_of_section "$TMP_OUT" "$SECTION")
     BODY_CONTENT=$(<"$BODY_FILE")
     if [[ -z "$BODY_CONTENT" ]]; then
@@ -364,6 +391,7 @@ USAGE
     fi
     mv "$TMP_OUT" "$FILE"
     append_line "$TASK_ROOT" "$OWNER" "$(basename "$FILE")" "$SECTION" "$EVENT" "$MODE" "$REASON" "$SB" "$SA" "$RUN_ID" "$TS" "$INVOKED_BY"
-    echo "applied '$SECTION' in $FILE (event=$EVENT sha_before=$SB sha_after=$SA run_id=$RUN_ID)" ;;
+    if [[ "$CREATED" -eq 1 ]]; then VERB="created"; else VERB="applied"; fi
+    echo "$VERB '$SECTION' in $FILE (event=$EVENT sha_before=$SB sha_after=$SA run_id=$RUN_ID)" ;;
   *) die "unknown subcommand: $SUB" ;;
 esac

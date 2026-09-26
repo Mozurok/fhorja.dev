@@ -12,9 +12,9 @@ This topic grounds the how of 3D rendering and performance in Godot 4.x. The fir
 Renderer choice is a capability decision, not a quality slider. https://docs.godotengine.org/en/stable/tutorials/rendering/renderers.html
 
 - **Forward+** is the most advanced and is the default on desktop.
-- **Mobile** targets, in the documentation's own words, "newer mobile devices, desktop XR, standalone XR, or desktop". It drops volumetric fog, screen-space reflections, SDFGI, and TAA.
-- **Compatibility** uses OpenGL and is "the least advanced renderer, suited for low-end desktop and mobile platforms". It is the only renderer available on web. On top of the Mobile gaps it also drops VoxelGI, SSIL, compute shaders, decals, and particle trails.
-- Neither Mobile nor Compatibility can access `RenderingDevice`. Anything built on it is a Forward+-only path.
+- **Mobile** targets, in the documentation's own words, "newer mobile devices, desktop XR, standalone XR, or desktop". It drops volumetric fog, screen-space reflections, SDFGI, VoxelGI, SSIL, and TAA.
+- **Compatibility** uses OpenGL and is "the least advanced renderer, suited for low-end desktop and mobile platforms". It is the only renderer available on web. On top of the Mobile gaps it also drops compute shaders, decals, and particle trails.
+- Forward+ and Mobile can access `RenderingDevice`; Compatibility cannot. That is from the renderer feature table, which covers the three renderers and says nothing about headless, so check headless on the target rather than assuming either way. Check individual effects and target-device support separately from API availability.
 
 Two consequences worth planning around rather than discovering:
 

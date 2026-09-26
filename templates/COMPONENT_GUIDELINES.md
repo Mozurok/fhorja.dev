@@ -12,7 +12,7 @@ Each rule has: ID, statement, rationale, scope, bug-class link (if exists).
 
 ---
 
-## G-01 — Memoize when children take ≥5 props
+## G-01: Memoize when children take ≥5 props
 
 **Rule:** Wrap component in `React.memo` when its props arity is ≥5 OR when it renders inside a list (FlatList row, mapped children).
 
@@ -20,11 +20,11 @@ Each rule has: ID, statement, rationale, scope, bug-class link (if exists).
 
 **Scope:** atoms + molecules. Organisms typically have container state and rarely benefit.
 
-**Bug class:** `component-memo-missing` (if exists).
+**Bug class:** none in the global library; `component-memo-missing` is a candidate project-local class (`projects/<client>__<project>/bug-classes/`, see `wos/bug-classes/_index.md`).
 
 ---
 
-## G-02 — Callbacks via `useCallback` with explicit deps
+## G-02: Callbacks via `useCallback` with explicit deps
 
 **Rule:** Never pass inline `onPress={() => doX(item)}` to a memoized child. Wrap in `useCallback` with the explicit dep array.
 
@@ -32,69 +32,69 @@ Each rule has: ID, statement, rationale, scope, bug-class link (if exists).
 
 **Scope:** any component receiving callbacks from a parent that owns list/array data.
 
-**Bug class:** `callback-inline` (if exists).
+**Bug class:** none in the global library; `callback-inline` is a candidate project-local class (`projects/<client>__<project>/bug-classes/`, see `wos/bug-classes/_index.md`).
 
 ---
 
-## G-03 — No object-literal `style={{...}}`
+## G-03: No object-literal `style={{...}}`
 
 **Rule:** Always use `StyleSheet.create({...})` and reference via `styles.x`. Never `<View style={{ padding: 16 }}>`.
 
 **Rationale:** Object literals create a new style object every render → breaks memo + adds work. `StyleSheet` IDs are reused.
 
-**Exception:** dynamic style derived from runtime value (e.g., `{ transform: [{ scale: animatedValue }] }`) — acceptable when the value is a Reanimated shared value or memoized.
+**Exception:** dynamic style derived from runtime value (e.g., `{ transform: [{ scale: animatedValue }] }`) is acceptable when the value is a Reanimated shared value or memoized.
 
-**Bug class:** `inline-style-object`.
+**Bug class:** none in the global library; `inline-style-object` is a candidate project-local class (`projects/<client>__<project>/bug-classes/`, see `wos/bug-classes/_index.md`).
 
 ---
 
-## G-04 — Touch target ≥44pt iOS / 48dp Android
+## G-04: Touch target ≥44pt iOS / 48dp Android
 
 **Rule:** Every interactive element must have a tappable area of at least 44x44 pt (iOS) or 48x48 dp (Android). Compose with padding or `hitSlop` when visual size is smaller.
 
 **Rationale:** WCAG 2.5.5 target size + platform HIG.
 
-**Bug class:** `touch-target-too-small`.
+**Bug class:** none in the global library; `touch-target-too-small` is a candidate project-local class (`projects/<client>__<project>/bug-classes/`, see `wos/bug-classes/_index.md`).
 
 ---
 
-## G-05 — Reduced-motion respect
+## G-05: Reduced-motion respect
 
 **Rule:** Any animation involving `transform`, `translate`, `scale`, `rotate` must check `useReducedMotion()` and fall back to opacity dip or instant snap.
 
 **Rationale:** Vestibular accessibility; respects user OS setting.
 
-**Bug class:** `motion-not-reduced-motion-safe`.
+**Bug class:** none in the global library; `motion-not-reduced-motion-safe` is a candidate project-local class (`projects/<client>__<project>/bug-classes/`, see `wos/bug-classes/_index.md`).
 
 ---
 
-## G-06 — Accessibility roles + labels
+## G-06: Accessibility roles + labels
 
 **Rule:** Every interactive atom MUST have `accessibilityRole` set; icon-only buttons MUST have `accessibilityLabel`. Decorative elements MUST be `accessibilityElementsHidden={true}` (iOS) / `importantForAccessibility="no"` (Android).
 
 **Rationale:** Screen-reader correctness; auditable via `axe` / built-in tooling.
 
-**Bug class:** `a11y-role-missing`, `a11y-label-missing`.
+**Bug class:** `component-missing-a11y-props` (role, label and state props); `missing-aria-label` for web icon-only controls.
 
 ---
 
-## G-07 — Token-only colors / spacing / typography
+## G-07: Token-only colors / spacing / typography
 
 **Rule:** Never use raw color values, raw spacing numbers, or raw font sizes in component code. Always reference `tokens.color.*` / `tokens.spacing.*` / `tokens.typography.*`.
 
 **Rationale:** Drift between Figma and code; dark mode breaks if not token-routed.
 
-**Bug class:** `raw-color`, `raw-spacing`, `raw-typography`.
+**Bug class:** `hardcoded-color-instead-of-token`, `spacing-magic-number`. Raw typography has no global class; `raw-typography` is a candidate project-local class (`projects/<client>__<project>/bug-classes/`, see `wos/bug-classes/_index.md`).
 
 ---
 
-## G-08 — Single source per artifact
+## G-08: Single source per artifact
 
 **Rule:** A component has exactly 1 spec doc (`docs/research/components/<tier>/<name>.md`), 1 code directory (`packages/design-system/src/<tier>/<Name>/`), 1 story (`apps/storybook/stories/<tier>/<Name>.stories.tsx`). Spec name, directory name, and story name must match.
 
 **Rationale:** Traceability. Code without spec = unreviewed component; spec without story = invisible to design review.
 
-**Bug class:** `storybook-story-missing`, `spec-doc-missing`.
+**Bug class:** `storybook-story-missing`. A missing spec doc has no global class; `spec-doc-missing` is a candidate project-local class (`projects/<client>__<project>/bug-classes/`, see `wos/bug-classes/_index.md`).
 
 ---
 

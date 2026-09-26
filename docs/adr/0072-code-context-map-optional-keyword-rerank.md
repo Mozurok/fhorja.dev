@@ -1,6 +1,6 @@
 # ADR-0072: code-context-map optional keyword rerank (ripgrep-only, no embeddings)
 
-- **Status**: Accepted
+- **Status**: Accepted; partially superseded by [ADR-0195](./0195-code-context-map-keeps-global-rrf-ordering.md) for the zero-keyword priority guarantee only
 - **Date**: 2026-07-01
 - **Tags**: code-context-map, ranking, reciprocal-rank-fusion, ripgrep, no-embeddings, extends-adr-0027, additive
 

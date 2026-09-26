@@ -51,7 +51,7 @@ adb logcat
 
 **No Unity-specific tag filter is documented on that page.** This is recorded as an absence, not filled in from memory: a filter expression that looks plausible and is wrong produces a quiet log and a false CLEAN. Filter on what you can justify from the run itself (the package name, a symbol from the reported symptom) and say in the report which filter was used.
 
-The alternative first-party path is the Android Logcat package, which "implements the logcat command-line tool and displays messages from the application in a dedicated window in Unity". It captures "messages such as stack traces and logs from an Android device in the Unity Editor" and ships Screen Capture, Stacktrace Utility, Input, and Memory windows alongside it (https://docs.unity3d.com/Packages/com.unity.mobile.android-logcat@1.4/manual/index.html).
+The alternative first-party path is the Android Logcat package, which the Unity manual says "implements the logcat command-line tool and displays messages from the application in a dedicated window in Unity" (https://docs.unity3d.com/Manual/android-debugging-on-an-android-device.html). It captures "messages such as stack traces and logs from an Android device in the Unity Editor" and ships Screen Capture, Stacktrace Utility, Input, and Memory windows alongside it (https://docs.unity3d.com/Packages/com.unity.mobile.android-logcat@1.4/manual/index.html).
 
 For debugging initialization code specifically, the **Wait for Managed Debugger** Android build setting attaches the debugger before the application runs.
 
@@ -93,7 +93,9 @@ Unity-specific addition:
 
 **Open extension, deliberately not written.** Two further Unity-specific classes were identified during research but have no captured source yet and are therefore absent rather than guessed: a shader compile or variant-stripping failure, and an Addressables reference-count lifecycle failure (double-release or premature unload). Until each has a captured `REFERENCES.md` entry documenting its log signature, classify an observation of either kind under the nearest shared code and say so in the report. Route the gap to `capture-references`.
 
-## What to hand to `app-runtime-verify`
+## What the run captures
+
+`app-runtime-verify` captures both streams itself in this run (ADR-0204) and writes them under the per-slice run directory `<task-folder>/evidence/<slice-id>/`, per `wos/app-runtime-battery.md ## Evidence capture (the run directory)`. WHEN no platform log capture is reachable, the verdict is BLOCKED naming the missing capability and routes to `incident-triage` as a CONFIG failure; it never waits for a pasted log.
 
 - The run mechanism (device, emulator, or a run tool) and the build type.
 - The real captured output from both streams, with the load-bearing lines quoted verbatim.

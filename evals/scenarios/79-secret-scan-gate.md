@@ -24,11 +24,13 @@ A target repo with a planted credential (for example a file containing `AKIAIOSF
 - WHEN gitleaks (or trufflehog) is installed and finds the planted secret, the gate exits 1, code-context-map does NOT write MAP.md, and the output names the finding and tells the user to revoke or whitelist and re-run with `--skip-secret-scan` if it is a false positive.
 - WHEN neither scanner is installed, the rg fallback prints a WARN naming the file and the map still writes (warn-only, never blocks).
 - WHEN `--skip-secret-scan` is passed, the gate is skipped and the map writes.
-- A clean repo passes the gate silently and the map writes normally.
+- WHEN none of gitleaks, trufflehog or rg is on PATH, or the gate script is in neither the clone nor the installed docs directory, the gate exits 3 or cannot run, the map may still write, and both MAP.md's header and the transcript say `secret scan: NOT scanned` (ADR-0224).
+- A clean repo passes the gate with one line naming the tool that ran (a coarse rg pass says it was a pattern scan, not a secret scanner), and the map writes normally.
 
 ## Failure modes (a FAIL looks like)
 
 - Writes MAP.md despite a gitleaks/trufflehog finding (no hard stop).
 - Treats the built-in rg fallback as a blocker (coarse regex is warn-only by design) or, conversely, blocks the run when no scanner is installed.
 - Auto-skips the scan without the explicit `--skip-secret-scan` input.
+- Writes a map that says or implies the source was scanned when the gate exited 3 or was not installed.
 - Makes a network call during the scan (trufflehog must run `--no-verification`).

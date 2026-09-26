@@ -31,7 +31,8 @@ docs/adr/0108-external-contract-live-verification-gate.md
 
 # README.md is NOT redacted content; a raw copy is correct today because every
 # line that differs from staging is a count marker (<!-- count:KIND -->N<!-- /count -->)
-# or a generated command-catalog entry, and the public version came out byte-
+# (since 2026-09-23 the README carries only a pointer to docs/command-catalog.html,
+# not a generated catalog), and the public version came out byte-
 # identical to staging with nothing public-only lost (verified 2026-07-29,
 # review-hard M1 second pass). Listed anyway per the corrected D-9 criterion
 # (deliberately different, not just redacted): the next mirror should confirm

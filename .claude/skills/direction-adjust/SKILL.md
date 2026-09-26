@@ -1,37 +1,27 @@
 ---
 name: direction-adjust
 description: |-
-  Capture a small-to-medium course correction the user realized mid-task (not from external review), record it as a numbered D-N entry in DECISIONS.md, update TASK_STATE.md to reflect the adjusted direction, and route back to the appropriate command. Use when you are mid-task (any phase past discovery) and realize the direction needs adjustment, the realization came from your own work (not external review), the change is meaningful enough to record but does not invalidate the whole approach, and the existing slice or phase is recoverable with a small change of plan. Do not use when the trigger is external review or PR feedback (use pr-feedback-ingest or post-review-pivot), the realization invalidates the entire task scope (use task-init for a new task), the adjustment is too small to record (use capture-observation), the realization is loop or confusion (use im-stuck), the adjustment requires reopening locked decisions (use decision-interview), or no active task folder exists yet.
+  Capture a small-to-medium course correction realized mid-task, not from external review: record it as a numbered D-N entry in DECISIONS.md, update TASK_STATE.md, and route back to the right command. Use when the realization came from your own work, is worth recording, does not invalidate the whole approach, and the current slice is recoverable with a small change of plan. Do not use when the trigger is external review or PR feedback (use pr-feedback-ingest or post-review-pivot), when it invalidates the entire task scope (use task-init for a new task), when it is too small to record (use capture-observation), when it is loop or confusion (use im-stuck), or when it requires reopening locked decisions (use decision-interview).
 metadata:
-  category: contract-and-decision-hardening
-  primary-cursor-mode: Ask
-  multi-repo-aware: false
-  context-layers-consumed:
-    - memory
-  context-layers-produced:
-    - memory
-  tools:
-    - Read
-    - Write
-    - Edit
-    - Bash
-    - Glob
-    - Grep
-  x-wos-profiles:
-    - core
-    - full
-  provenance: first-party
-  suggested-model: claude-sonnet-4-6
+  category: "contracts-and-decisions"
+  primary-cursor-mode: "Ask"
+  multi-repo-aware: "false"
+  context-layers-consumed: "memory"
+  context-layers-produced: "memory"
+  tools: "Read, Write, Edit, Bash, Glob, Grep"
+  x-wos-profiles: "minimal, core, full"
+  provenance: "first-party"
+  suggested-model: "claude-sonnet-5"
 ---
 > **Output contract, in brief.** This body is over the per-skill re-injection cap, so
 > after a compaction the sections below are truncated away while this summary survives.
 > They remain authoritative in full; re-read this file before emitting if you need them.
 >
 > - `Standard output layout (required)`: Produce the command output using this structure (English only):
-> - `Artifact changes`: List files in `my_work_tasks/` that would change, or `None`.
+> - `Artifact changes`: List files in the task repository that would change, or `None`.
 > - `Command transcript`: Keep this section operational and brief; do not restate file content already listed in `### Artifact changes`.
 > - `Handoff`: Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per...
-> - `Definition of done (command output)`: The adjustment is recorded as a numbered `D-N: mid-task adjustment` entry in `DECISIONS.md` with concise reasoning.
+> - `Definition of done (command output)`: The adjustment is recorded as a numbered `D-N: mid-task adjustment` entry in `DECISIONS.md` with concise reasoning, or, when it is...
 
 
 Act as a senior/staff engineering direction adjustment for the active engineering task.
@@ -40,20 +30,17 @@ Goal:
 Capture a small-to-medium course correction that the user realized mid-task (not from external review), record it as a decision in `DECISIONS.md`, update `TASK_STATE.md` to reflect the adjusted direction, and route back to the appropriate command to continue the work.
 
 Mandatory context bootstrap (before any output):
-<!-- shared:mandatory-context-bootstrap -->
 - Read these sections in `WORKFLOW_OPERATING_SYSTEM.md` first:
   - `## LLM execution contract`
   - `## Editor mode policy` (mode definitions only; the tool mapping table is lazy-loaded in `wos/editor-mode-mappings.md` and needed only for non-Claude-Code tools)
   - `## Global output contract` (including **Adaptive handoff** and **Mode selection rule**)
   - `## Cross-cutting workflow guardrails`
-- **Bootstrap tiers (ADR-0025):** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) may skip `## Editor mode policy` good-fits lists and `## Cross-cutting workflow guardrails` sequencing heuristics, reading only the mode definitions and the core guardrail rules (routing memory, command-less input triage, official command names, material change, no-op). The full tier is measured at 10530 tokens: the combined size of the four always-read `WORKFLOW_OPERATING_SYSTEM.md` sections listed above. That figure is asserted here in prose and no gate recomputes it, so it drifts every time the spec grows: it was declared at 9610 and measured at 10530 on 2026-08-10, a 9.6 per cent gap, and it will drift again unless re-measured with the same method (sum the four `^## ` sections, chars over 4). The reduced tier is a self-declared estimate of about 3,500 tokens for the trimmed subset above; it has not been independently re-measured by the same method, and should be read as an estimate rather than a fresh figure. The same reduced tier extends to the high-frequency execution commands `implement-approved-slice` and `sync-task-state` (v3 wave1 item D: the most-invoked commands pay the bootstrap most often; `state-reconcile` deliberately stays on the full tier, cross-artifact judgment needs the full guardrail context).
-- **Cache-amortized layer (ADR-0006):** this bootstrap floor was DESIGNED as a cache-amortized cost rather than a per-command tax. ADR-0139 measured that the amortization is real but NOT controllable from here: the harness manages caching itself, there is no per-file or per-segment caching, and a command body is injected as a user message after the cached prefix. Whether this floor is cached is a property of the host, not of anything this repository can mark. Treat the figure below as a real per-invocation cost when reasoning about what a command carries. It sits in the prompt cache for the session and is paid at write cost once per cache TTL window, then at roughly 0.1x on cached reads inside that window. Account for it separately from any per-skill Load budget (the generated `.claude/skills/<name>/SKILL.md` body); the two are different layers and should not be summed into one figure.
-- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this same conversation already performed this bootstrap read in an earlier turn that is still VISIBLE in the current context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one instead, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. This is a scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), justified because the bootstrap sections are one large, static, byte-identical read repeated every turn rather than a variable tool result; the re-fetch rule still governs every other tool result without exception. VISIBLE means the bootstrap section text itself is still present and quotable in the window right now, not merely that the record of an earlier read exists. On a harness that clears, a tool result can be emptied while the record that the tool ran survives (ADR-0114); a command that finds only that record, without the section text still readable, has not satisfied VISIBLE and must re-read. Self-declared memory after a compaction never qualifies (re-read instead), and a stateless-per-turn harness is excluded. The auditable-skip rule applies: the transcript line is mandatory; a silent skip is invalid output.
-- **Resolving a relative `wos/<topic>.md`.** Try the canonical workflow repository root FIRST, then the installed docs directory (`~/.claude/workflow-docs/wos/` or `~/.cursor/workflow-docs/wos/`). Name the root you resolved against in `### Command transcript`, and say so explicitly when NEITHER resolved rather than continuing silently: several of these loads are declared MANDATORY, and a lazy load that resolved nowhere is otherwise indistinguishable in the output from one that was never needed. Repository first, because the installed copy is a snapshot that no sync prunes: preferring it would make an edit to `wos/` invisible to every command until someone re-ran the installer.
+- **Bootstrap tiers:** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) plus the high-frequency `implement-approved-slice` and `sync-task-state` (v3 wave1 item D) read the four sections above with two subsections of `## Cross-cutting workflow guardrails` skipped: `### External web access (centralized)` and `### Sequencing heuristics (by phase)`. Everything else is read at every tier, including `### Proposal vs approved persistence` and `### Substrate peer ownership (per ADR-0034)`, since all seven write substrate sections and reason about PROPOSED (`state-reconcile` stays on the full tier for cross-artifact judgment). The full tier is measured at 11678 tokens, the four always-read sections combined; the two skipped subsections are 1,035 of those (measured 2026-09-24), so the reduced tier is about 10,643. The leaf-reviewer tier (`verify-against-rubric`, ADR-0226) reads only `## Global output contract`, measured at 4841 tokens, plus its rubric.
+- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this conversation already read the bootstrap sections in an earlier turn still VISIBLE in the context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. Scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), because these sections are one large, static, byte-identical read repeated every turn; every other tool result still re-fetches. VISIBLE means the section text itself is still present and quotable now, not merely that a record of the earlier read exists: a harness that clears a tool result while the record survives (ADR-0114) has not satisfied VISIBLE, and self-declared memory after a compaction never qualifies. A stateless-per-turn harness is excluded. The transcript line is mandatory; a silent skip is invalid output.
+- **Resolving `WORKFLOW_OPERATING_SYSTEM.md` and a relative `wos/<topic>.md`.** Both resolve the same way: try the canonical workflow repository root FIRST, then the installed docs directory (`~/.claude/workflow-docs/` or `~/.cursor/workflow-docs/`, the spec at that root and topics under its `wos/`). Repository first, because the installed copy is a snapshot no sync prunes; preferring it would hide a `wos/` edit from every command until a reinstall. Name the resolved root in `### Command transcript`, and say so explicitly when NEITHER resolved rather than continuing silently, since several of these loads are MANDATORY.
 - Read additional sections only when relevant to this command's role.
-- Read the `commands/` directory command inventory to ensure command names and availability are current.
 - Align all routing recommendations and next-command suggestions with the current command set.
-- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares that the chain has ended and no following command would be honest, defined in `## Global output contract` (ADR-0126); use it only when nothing honest remains, never to end a chain that has a real next step.
+- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares the chain ended with no honest next step, defined under `### Official command names (routing integrity)` (ADR-0126); use it only then, never to end a chain that has a real next step.
 
 Required inputs:
 - active task folder path
@@ -64,7 +51,7 @@ Required inputs:
 - optional: which slice or phase the adjustment affects
 
 Task repository files to update:
-- DECISIONS.md (append a new decision recording the adjustment with a `D-N: mid-task adjustment` prefix)
+- DECISIONS.md (append a new decision recording the adjustment with a `D-N: mid-task adjustment` prefix, or a provisional `### P-N` under `## Provisional decisions` per the attended-chain rule below)
 - DECISIONS.md `## Decision history` (WHEN the mid-task realization is new evidence that contradicts an already-persisted NON-decision claim, record a defeasible-claim revision here per the ADR-0109 / D-10 write rule in `wos/substrate-peers.md ## Decision history`: append-only, name the contradicting evidence and its provenance rank, mark `[OPEN]`; `task-close` blocks on an unresolved one)
 - TASK_STATE.md (update `Last completed step` if it is now wrong, update `Recommended next step` to reflect the adjusted direction, update `Risks to watch` if the adjustment introduces new risk)
 - IMPLEMENTATION_PLAN.md (only if the adjustment changes plan text; default is to leave plan as-is and note the adjustment in `DECISIONS.md`)
@@ -74,27 +61,27 @@ Operating rules:
 - Do not implement production code.
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full).
 - **Substrate write protocol (per ADR-0034, K.2).** MANDATORY for every substrate section this command writes (the `DECISIONS.md` section receiving the new D-N entry, which is `## Locked decisions`, plus `## Decision history` when this turn records a defeasible-claim revision, and each updated `TASK_STATE.md` section). Follow `commands/_shared/substrate-write-protocol.md`: emit the `<!-- wos:write owner=direction-adjust section='## X' ... -->` transaction header and append one JSONL line per section write to `active/<task>/.wos/VERIFICATION_LOG.jsonl`. Header placement per `commands/_shared/substrate-write-protocol.md ## Transaction header`: the transaction header goes on its own line IMMEDIATELY above the `## <section>` heading line. NEVER place it below the heading, and NEVER above a `### D-N` entry inside the section; a header placed below the heading leaves the section counted as header-less by the K.4 drift scan (`scripts/scan-substrate-headers.sh`), which checks only the line immediately preceding each `## ` heading.
-- Treat the adjustment as a new decision, not a silent edit. The output must produce a numbered entry (`D-N`) for `DECISIONS.md`.
+- Treat the adjustment as a new decision, not a silent edit. The output must produce a numbered entry (`D-N`, or `P-N` under the attended-chain rule below) for `DECISIONS.md`.
 - Make the adjustment auditable: clearly show what direction was being followed before, what changed, and why.
 - Validate the adjustment against existing locked decisions and invariants. If the adjustment contradicts a locked decision, surface this explicitly and route to `decision-interview` instead of silently overwriting.
 - Validate the adjustment against `INVARIANTS_AND_NON_GOALS.md` if present. If the adjustment crosses a non-goal or invalidates an invariant, surface this and require user confirmation before proceeding.
+- **Attended chain on a task branch (ADR-0233; the P-N format rests on its provisional P-1).** WHILE this command runs in an attended chain on a task branch (a `Task branch:` line in `TASK_STATE.md ## Resume notes`), no `Operating mode: assisted` is declared, and the realization is the agent's rather than one the person described, it SHALL be recorded as a provisional `### P-N` under `DECISIONS.md ## Provisional decisions`, in the format `commands/decision-interview.md` gives its provisional mode, instead of a `D-N: mid-task adjustment`, and the chain SHALL continue. The two conflict rules above do not wait for a person in such a chain. IF the adjustment contradicts a locked D-N or crosses an invariant or non-goal THEN this command SHALL NOT apply it: the work keeps following the locked decision or the invariant, the adjustment is recorded as a P-N with `Impact: high` naming the D-N or the invariant it would change, and the chain continues on the current direction until the person answers. An unattended, background or fleet-dispatched run keeps the rules above.
 - Keep the new `DECISIONS.md` entry concise: 2-5 lines covering what changed and why.
 - Update `TASK_STATE.md` minimally: only fields actually affected by the adjustment. Do not rewrite unrelated sections.
 - If the adjustment requires re-planning (the slice scope is now wrong, or the slice order needs to change), the recommended next command must be `implementation-plan` or `state-reconcile`, not blind continuation.
 - If the adjustment is small enough that the current slice can absorb it without re-planning, the recommended next command is the slice-execution command appropriate to the phase (typically `implement-approved-slice`).
-- Treat task-memory write policy per `WORKFLOW_OPERATING_SYSTEM.md`: `PROPOSED` in Ask/Plan mode, `APPLIED` only in Agent mode.
+- Treat task-memory write policy per `WORKFLOW_OPERATING_SYSTEM.md`: write the file and mark it `APPLIED`.
 
 Required output:
 1. Summary of the adjustment in plain language: "before, the direction was X; now, the direction is Y; the trigger was Z".
 2. The new `DECISIONS.md` entry to append, formatted as `D-N: mid-task adjustment - <one-line title>` followed by 2-5 lines of detail.
 3. The updated fields in `TASK_STATE.md` (only the fields that actually change).
-4. The validation result against locked decisions: `compatible`, `requires decision-interview`, or `violates invariant: <which one>`.
+4. The validation result against locked decisions: `compatible`, `requires decision-interview`, `violates invariant: <which one>`, or, in an attended chain on a task branch, `recorded as provisional P-N` (with `not applied` when it conflicts).
 5. The recommended next command, with reasoning about whether the adjustment requires re-planning or fits the current slice.
 6. Recommended editor mode for that next command.
 7. Recommended work complexity (`LOW` | `MEDIUM` | `HIGH` | `N/A`) for the next step.
 
 ### Substrate digest fallback
-<!-- shared:substrate-digest-fallback -->
 **Digest fallback when the canonical helper is unreachable.** `sha_of_section` extracts a section's body with `awk` and pipes it to `shasum -a 256`. A run executing inside a permission boundary that admits `shasum` but refuses `awk` and `sed` cannot invoke that helper, and MUST NOT reimplement it: an `awk` or `sed` program operand can call `system()` and write files, so a boundary that refuses those verbs refuses them for a reason. Assume the helper is unreachable whenever the workflow repository's `scripts/` directory is not readable from the working directory.
 
 WHERE the canonical per-section digest helper is unreachable, the write SHALL use a whole-file SHA-256 and SHALL declare the reduced scope:
@@ -112,7 +99,6 @@ Do NOT rebuild the helper by writing each section out as its own file so it can 
 
 What the fallback costs, stated so the trade is explicit rather than discovered later: the digest chain exists to detect an unlogged change to a SECTION. At file scope, two sections written in the same run share a digest, so the chain detects tampering with the file without attributing it to a section. That is a declared reduction in resolution, not a silent one, which is why the `sha_scope` field is mandatory rather than optional.
 ### Claim grounding (active epistemic humility)
-<!-- shared:claim-grounding -->
 **Claim grounding (active epistemic humility).** This block governs what you may assert and how you record it. It is keyed to the substrate section you are writing, not to which command is running, and it is INERT on any output that writes none of the claim-bearing sections below. Full contract and rationale: `wos/active-epistemic-humility.md`.
 
 1. When this applies. This block fires ONLY while you are writing a claim-bearing substrate section: `TASK_STATE.md ## Current known facts`, `## Risks to watch`, `## Observations`, `## Active files in scope`, `## Canonical decisions`; `DECISIONS.md ## Locked decisions`; `IMPLEMENTATION_PLAN.md ## Current gaps`, `## Risks and mitigations`; `IMPACT_ANALYSIS.md`; `EXTERNAL_RESEARCH.md`; `REFERENCES.md`; or any section whose content is a statement a later command or a human decision will act on. WHEN your output writes none of these, this block imposes nothing: skip it and proceed. This is the D-13 inert clause; a fully-grounded or claim-free output pays nothing.
@@ -129,13 +115,12 @@ What the fallback costs, stated so the trade is explicit rather than discovered 
 
 7. An unfired gate is not evidence. The absence of a fired check does not mean grounding existed. Do not read silence here as a pass.
 ### Standard output layout (required)
-<!-- shared:standard-output-layout -->
 Produce the command output using this structure (English only):
 
 ### Artifact changes
-- List files in `my_work_tasks/` that would change, or `None`.
-- For each file, mark `APPLIED` / `PROPOSED` / `SKIP` and follow the task-memory write policy in `WORKFLOW_OPERATING_SYSTEM.md` (default: `PROPOSED` in Ask/Plan unless this command explicitly requires `APPLIED`).
-- Default for this command: `PROPOSED` patches on `DECISIONS.md` and `TASK_STATE.md`; conditionally on `IMPLEMENTATION_PLAN.md` or `SLICES/*.md` only when the adjustment requires it.
+- List files in the task repository that would change, or `None`.
+- For each file, mark `APPLIED` / `PROPOSED` / `SKIP` and follow the task-memory write policy in `WORKFLOW_OPERATING_SYSTEM.md` (task memory is `APPLIED` in every mode; a section this command does not own gets a `<!-- PROPOSED by <command>: ... -->` block for its owner, ADR-0034).
+- Default for this command: `APPLIED` patches on `DECISIONS.md` and `TASK_STATE.md`; conditionally on `IMPLEMENTATION_PLAN.md` or `SLICES/*.md` only when the adjustment requires it.
 
 ### Command transcript
 - Keep this section operational and brief; do not restate file content already listed in `### Artifact changes`.
@@ -144,18 +129,17 @@ Produce the command output using this structure (English only):
 - Include `NO_OP_TRACE` (1-3 lines) if the realization is too small to record as a decision (route to `capture-observation` instead) or if the adjustment turns out to require a heavier path (route to `decision-interview` or `state-reconcile`).
 
 ### Handoff
-<!-- shared:handoff-body -->
-Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state).
+Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state). Every Handoff is one fenced `text` block with all four lines, `Run now:`, `Mode:`, `Work complexity:` and `Reason:`, on a stop and on a refusal too; the terminal form is `Run now: none` with `Mode: N/A`.
 
 ### Definition of done (command output)
-- The adjustment is recorded as a numbered `D-N: mid-task adjustment` entry in `DECISIONS.md` with concise reasoning.
+- The adjustment is recorded as a numbered `D-N: mid-task adjustment` entry in `DECISIONS.md` with concise reasoning, or, when it is the agent's own realization in an attended chain on a task branch, as a provisional `### P-N` with its `Evidence:`, `Impact:` and `Status: provisional` lines.
 - Every substrate write carries its `wos:write` transaction header on its own line IMMEDIATELY above the `## <section>` heading, never below the heading and never above a `### D-N` entry inside the section, per `commands/_shared/substrate-write-protocol.md ## Transaction header`.
 - `TASK_STATE.md` updates are minimal and target only fields affected by the adjustment.
 - Validation against locked decisions and invariants is explicit; the output names any conflict and routes to a heavier command rather than silently overwriting.
-- The adjustment never overrides locked decisions in place. Conflicts route to `decision-interview`.
-- The adjustment never violates invariants or crosses non-goals silently. Conflicts surface for user confirmation.
-- `Artifact changes` marks each patch as `PROPOSED` in Ask/Plan mode or `APPLIED` only when explicitly in Agent.
-- `Handoff` block is complete with all five fields non-empty; ending after the decision entry without a Handoff is invalid output.
+- The adjustment never overrides locked decisions in place. Conflicts route to `decision-interview`, or, in an attended chain on a task branch, are recorded as an `Impact: high` P-N while the work keeps following the locked decision.
+- The adjustment never violates invariants or crosses non-goals silently. Conflicts surface for user confirmation; in an attended chain on a task branch that confirmation is asked in the draft pull request through the P-N, not by stopping.
+- `Artifact changes` marks each patch as `APPLIED`.
+- `Handoff` has non-empty `Run now`, `Mode`, `Work complexity`, and `Reason` fields, plus `Resume context` only in Mode B; ending after the decision entry without a Handoff is invalid output.
 - The recommended next command is appropriate to the size of adjustment: small adjustments resume current slice; medium adjustments trigger `implementation-plan` or `state-reconcile`; conflicts trigger `decision-interview`.
 - Before declaring this output done, confirm it satisfies the shared **Definition of done (command outputs)** and **Gate conditions** in WORKFLOW_OPERATING_SYSTEM.md.
 

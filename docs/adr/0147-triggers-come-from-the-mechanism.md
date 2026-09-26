@@ -2,7 +2,7 @@
 
 Date: 2026-08-13
 
-Status: Accepted
+Status: Accepted; D-2's `Gate-provenance:` lint line is superseded by [ADR-0171](./0171-an-advisory-either-fails-the-build-or-leaves-the-lint.md); `scripts/check-gate-provenance.sh` stays on disk and the trigger rule D-2 states is unchanged.
 
 ## Context
 

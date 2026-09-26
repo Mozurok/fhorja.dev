@@ -24,8 +24,8 @@ Look for:
 - A grant that runs on `purchase_state == PURCHASED` without sending the `purchase_token` to a backend that verifies it against the Play Purchases API (Android) or StoreKit 2 signed transactions and the App Store Server API (iOS).
 - A rewarded-ad reward granted from an ad-loaded, ad-shown, or ad-closed handler instead of the `user_earned_reward` callback (godot-admob).
 - A consumable (coins, gems) granted but with no `consume_purchase(token)` call, or any Play purchase with no `acknowledge_purchase(token)` call inside the 3-day window.
-- Non-consumable products (remove-ads, premium unlock) with no Restore Purchases button and no `queryPurchases` path to recover entitlements after a reinstall.
-- A plugin added in `export_presets.cfg` or an SDK referenced in `.gd` (ads, analytics, attribution) that is absent from the Data Safety disclosure or from `PrivacyInfo.xcprivacy`, or an Android export not targeting API 35 or higher.
+- Non-consumable products (remove-ads, premium unlock) with no Restore Purchases button and no `query_purchases` path to recover entitlements after a reinstall.
+- A plugin added in `export_presets.cfg` or an SDK referenced in `.gd` (ads, analytics, attribution) that is absent from the Data Safety disclosure or from `PrivacyInfo.xcprivacy`, or an Android export not targeting API 36 or higher.
 
 On a Unity target (`**/*.cs`), the same mechanism with Unity call sites:
 - Entitlement state mutated directly inside the Unity In-App Purchasing purchase callback, with no network call: a premium flag set, currency added, or a feature unlocked before any backend response. The Unity-specific tell is a grant that runs on local validation alone, which Unity's own docs class as the weaker mode.
@@ -46,7 +46,7 @@ Exclude:
 - The backend verification call, or its absence, and where the grant waits on its result.
 - The `acknowledge_purchase` and `consume_purchase` call sites.
 - The rewarded-ad signal wiring and which callback grants the reward.
-- The Restore Purchases UI and the `queryPurchases` path.
+- The Restore Purchases UI and the `query_purchases` path (`queryPurchases` was removed in Play Billing Library 6; the Godot plugin spells it snake_case).
 - `export_presets.cfg` and `project.godot` for the enabled plugin list, plus the Data Safety and `PrivacyInfo.xcprivacy` configuration.
 
 ## Analysis prompt
@@ -58,7 +58,7 @@ Given the purchase or reward flow:
 4. Is every Play purchase acknowledged (non-consumables, subscriptions) or consumed (consumables) within 3 days, from the backend right after granting?
 5. For rewarded ads, is the reward granted only on the `user_earned_reward` callback, not on ad-load, ad-show, or ad-close?
 6. Do non-consumables have a Restore Purchases path, so a reinstall recovers entitlements? (Missing this is an iOS rejection.)
-7. Is every bundled SDK disclosed on the Data Safety form and in `PrivacyInfo.xcprivacy`, and is the Android export targeting API 35 or higher?
+7. Is every bundled SDK disclosed on the Data Safety form and in `PrivacyInfo.xcprivacy`, and is the Android export targeting API 36 or higher?
 8. Recommended fix: move the entitlement decision server-side. Send the `purchase_token` to a backend, verify it against the store API, dedupe by token, grant only on `PURCHASED`, and acknowledge or consume within 3 days. Keep the client display-only, and grant ad rewards only on `user_earned_reward`.
 
 ## Severity rubric

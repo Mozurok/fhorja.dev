@@ -30,7 +30,7 @@ Qualifications, each a boundary this ADR does not cross:
 - **ADR-0100's bounded deferral survives wherever `ref-attested` does not apply.** A workspace with no repository, a run whose attestation could not be made, a run whose target is not the tree holding the work: each of these still records `deferred: pending human commit (<context>)` and keeps the slice or task OPEN. That deferral is ADR-0098's bounded-vs-permanent shape, which ADR-0100 mirrored onto this floor, and the shape is exactly what makes a second route safe to add: a bounded deferral is an honest open state rather than a failure, so a route that does not reach falls back to something correct instead of to a waiver. This ADR adds a route; it removes none, and it never converts an unreachable attestation into a silent pass.
 - **The human gate is untouched at merge, push and draft-PR (D-2).** `ref-attested` is evidence that work is reachable, not authorization to publish it. Nothing in this decision lets an unattended run merge, push, or open a PR.
 - **`commands/branch-commit.md` does not change (D-4).** Its four refusal conditions hold exactly as scenario 125 pins them. A floor with an alternative route is not a command with a relaxed gate.
-- **The agent's git write set does not widen.** The attestation is written by the runner, outside the agent's adjudicated boundary. `fhorja-full-cycle:src/driver/safety.py`'s `_GIT_WRITE_FORMS` admits `git add` and `git commit -m` and nothing else, and `fhorja-full-cycle:tests/test_safety.py` pins that count at exactly two.
+- **The agent's git write set does not widen.** The attestation is written by the runner, outside the agent's adjudicated boundary. The paired external-consumer check records that its adjudicated write set admits `git add` and `git commit -m` and nothing else, and that its safety tests pin the count at exactly two.
 - **This ADR does not name the gitignored-Scope structural exemption as a further route.** That is a different question (whether work is committable at all, rather than who may attest it), and bundling them would produce one ADR that cannot be reverted without reverting both.
 
 Eval scenario 95 pins where the floor routes and is updated in the same change to admit both routes, the way ADR-0100 updated it when it narrowed the waiver. The mechanism enforcing the routing is `evals/scripts/structural-evals.py`, check `commit-evidence-apply-route`, which asserts PER HOME that the home routes to one of the two. It matches the phrase `route to <route>` rather than a bare token, because a sentence naming a route in order to EXCLUDE it must not satisfy the floor, and this ADR's own qualification above is exactly such a sentence. The prose in the floor's three homes must therefore write `route to \`ref-attested\`` in those words.
@@ -70,15 +70,15 @@ Eval scenario 95 pins where the floor routes and is updated in the same change t
 ### Alternative 3: have the AGENT create the attestation
 
 - The agent already writes git through an adjudicated allowlist, so the ref could be written there.
-- Rejected because `update-ref` is not an admitted verb and admitting it would widen the agent's write set for a mechanism that does not need it. The runner writes the ref AFTER the agent's turn has ended, from the single call site in the loop's terminal path (`fhorja-full-cycle:src/driver/loop.py:690`, inside `_finish`), so the agent's boundary stays exactly where it was. This also keeps the attestation outside anything the agent could be talked into: by the time the ref is written there is no agent turn left to influence it.
+- Rejected because `update-ref` is not an admitted verb and admitting it would widen the agent's write set for a mechanism that does not need it. The runner writes the ref AFTER the agent's turn has ended, from the single terminal-path call site verified by the paired external-consumer check, so the agent's boundary stays exactly where it was. This also keeps the attestation outside anything the agent could be talked into: by the time the ref is written there is no agent turn left to influence it.
 
 ## References
 
-This decision spans two repositories, a deliberate exception to this project's single-repo charter:
-the decision is Fhorja's and the mechanism it names is the driver's, and one decision across two
-repos is more coherent than two decisions sharing one mechanism. An unprefixed path below is in THIS
-repository; a path in the driver carries a `fhorja-full-cycle:` prefix. Without that marker half the
-file references here resolve nowhere for a reader standing in either repo.
+This decision spans Fhorja and an external execution layer, a deliberate exception to this
+project's single-repo charter. The decision is Fhorja's and the mechanism it names is the
+external runner's. ADR-0169 requires tracked files to omit that consumer's name and paths, so
+implementation details from the paired check are described generically. Every path below is in
+this repository.
 
 - [ADR-0084](./0084-godot-flow-completeness-wave.md): the commit-evidence floor's origin.
 - [ADR-0100](./0100-commit-evidence-floor-bounded-deferral.md): the bounded deferral this ADR supersedes at the closure point and preserves everywhere else.
@@ -91,7 +91,7 @@ file references here resolve nowhere for a reader standing in either repo.
 
 ## Notes
 
-The decision was locked as D-5 in the task `2026-08-07_ref-attested-commit-evidence-autonomous-track`, which also carries D-2 (the human gate stays whole), D-4 (`branch-commit` does not change), D-6 (the ref key) and D-7 (what the attested object holds).
+The decision was locked as D-5 in the task `2026-08-07_ref-attested-commit-evidence-autonomous-track`, which also carries D-2 (the human gate stays whole), D-4 (`branch-commit` does not change), D-6 (the ref key) and D-7 (what the attested object holds). ADR-0197 later scopes this runner-owned route to an external execution layer; direct-use `autonomous-run` does not create an attestation ref.
 
 Sequencing is expand-migrate-contract and deliberate: the eval was widened to accept both routes BEFORE this ADR and before the floor's prose changed, so the suite is green on both sides of the prose edit and the only irreversible step in the path lands last.
 

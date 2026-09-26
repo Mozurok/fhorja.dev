@@ -1,12 +1,12 @@
 # Eval scenario 17: routing-edge: decision-interview vs targeted-questions
 
-- **Tags**: routing-edge, decision-interview, targeted-questions, decision-vs-factual-gap
-- **Last reviewed**: 2026-05-18
+- **Tags**: routing-edge, decision-interview, targeted-questions, decision-vs-factual-gap, adr-0233
+- **Last reviewed**: 2026-09-24
 - **Status**: active
 
 ## Goal
 
-Validates that the model correctly distinguishes decision-driven gaps (would change runtime behavior, data integrity, rollout safety, test strategy) from factual gaps (information not yet confirmed; no policy choice). The scenario presents an ambiguous prompt that could be read as either; the model must read it carefully and pick the right command.
+Validates that the model correctly distinguishes decision-driven gaps (would change runtime behavior, data integrity, rollout safety, test strategy) from factual gaps (information not yet confirmed; no policy choice). The scenario presents an ambiguous prompt that could be read as either; the model must read it carefully and pick the right command. This turn asks for routing advice in Ask mode, on a task with no `Task branch:` line, so both commands still ask their questions rather than recording provisional picks: ADR-0233's provisional mode only fires inside an attended chain on a task branch with nobody answering question by question, and naming that mode here is out of scope for a routing answer.
 
 ## Setup
 
@@ -51,7 +51,7 @@ Mode: Ask
 
 ## Notes
 
-- Related ADRs: [ADR-0002](../../docs/adr/0002-paste-this-next-contract.md).
+- Related ADRs: [ADR-0002](../../docs/adr/0002-paste-this-next-contract.md), [ADR-0233](../../docs/adr/0233-the-attended-chain-runs-to-the-draft-pr.md) (provisional mode for both commands, inert here since this task carries no `Task branch:` line and the mode is Ask).
 - Related commands: `commands/decision-interview.md`, `commands/targeted-questions.md`.
 
 ## History

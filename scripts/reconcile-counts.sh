@@ -46,7 +46,7 @@ done
 
 # On-disk count for a KIND. Mirrors lint-commands.sh disk_count().
 disk_count() {
-  local n
+  local n blk tpl tplf lvl
   case "$1" in
     commands)           n=$(( $(ls "${COMMANDS_DIR}"/*.md 2>/dev/null | wc -l) + $(ls "${COMMANDS_DIR}"/*/SKILL.md 2>/dev/null | wc -l) )) ;;
     commands-minimal)   n=$(grep -h '^  x-wos-profiles:' "${COMMANDS_DIR}"/*.md "${COMMANDS_DIR}"/*/SKILL.md 2>/dev/null | grep -cw minimal) ;;
@@ -62,18 +62,52 @@ disk_count() {
     entry-points)       n=$(grep -c '^## ' "${REPO_ROOT}"/wos/entry-points.md 2>/dev/null) ;;
     fleet-commands)     n=$(ls "${COMMANDS_DIR}"/*-fleet.md 2>/dev/null | wc -l) ;;
     personas)           n=$(ls "${COMMANDS_DIR}"/*/SKILL.md 2>/dev/null | wc -l) ;;
+    frozen-commands)    n=$( { grep -l 'lifecycle: frozen' "${COMMANDS_DIR}"/*.md "${COMMANDS_DIR}"/*/SKILL.md 2>/dev/null || true; } | wc -l) ;;
+    commands-flat)      n=$(ls "${COMMANDS_DIR}"/*.md 2>/dev/null | wc -l) ;;
+    commands-multi-repo) n=$( { grep -l '^  multi-repo-aware: true' "${COMMANDS_DIR}"/*.md 2>/dev/null || true; } | grep -vc -- '-fleet\.md$') ;;
+    commands-history)   n=$( { grep -lE '^  context-layers-consumed: \[.*history' "${COMMANDS_DIR}"/*.md "${COMMANDS_DIR}"/*/SKILL.md 2>/dev/null || true; } | wc -l) ;;
+    runtime-verify-commands) n=$(ls "${COMMANDS_DIR}"/*-runtime-verify.md 2>/dev/null | wc -l) ;;
+    editor-modes)       n=$(grep -h '^  primary-cursor-mode:' "${COMMANDS_DIR}"/*.md "${COMMANDS_DIR}"/*/SKILL.md 2>/dev/null | sed 's/.*primary-cursor-mode:[[:space:]]*//' | sort -u | wc -l) ;;
+    personas-shadow|personas-advisory|personas-gated|personas-peer|personas-autonomous)
+                        # Persona count at one maturity level, named as wos/maturity-ladder.md names it
+                        # (L1 shadow ... L5 autonomous); the marker grammar allows no digit in a kind.
+                        case "$1" in
+                          personas-shadow) lvl=1 ;; personas-advisory) lvl=2 ;; personas-gated) lvl=3 ;;
+                          personas-peer) lvl=4 ;; *) lvl=5 ;;
+                        esac
+                        n=$( { grep -l "^  maturity_level: L${lvl}\$" "${COMMANDS_DIR}"/*/SKILL.md 2>/dev/null || true; } | wc -l) ;;
+    design-review-checks) n=$(grep -cE '^- \*\*Check [0-9]+:' "${COMMANDS_DIR}"/design-spec-review.md 2>/dev/null) ;;
+    closure-pattern-sections) n=$(sed '/^Optional/q' "${COMMANDS_DIR}"/_shared/task-state-slice-closure-pattern.md 2>/dev/null | grep -cE '^[0-9]+\. `#') ;;
+    closure-floors)     n=$(cat "${REPO_ROOT}"/wos/closure-floors.md "${REPO_ROOT}"/wos/platform-runtime-floors.md 2>/dev/null | grep -c '^On missing evidence:') ;;
+    closure-floors-recording) n=$(cat "${REPO_ROOT}"/wos/closure-floors.md "${REPO_ROOT}"/wos/platform-runtime-floors.md 2>/dev/null | grep -cE '^On missing evidence: (record|reconcile)([^a-z]|$)') ;;
+    closure-floors-record) n=$(cat "${REPO_ROOT}"/wos/closure-floors.md "${REPO_ROOT}"/wos/platform-runtime-floors.md 2>/dev/null | grep -cE '^On missing evidence: record([^a-z]|$)') ;;
+    task-shapes)        n=$(grep -c '^## ' "${REPO_ROOT}"/wos/workflow-shapes.md 2>/dev/null) ;;
+    task-memory-files)  n=$(awk '/^## Section ownership matrix/{f=1;next} /^## /{f=0} f && /^### [^ ]+\.md/' "${REPO_ROOT}"/wos/substrate-peers.md 2>/dev/null | wc -l) ;;
+    fleet-substrate-files) n=$(awk '/^## Fleet-substrate files/{f=1;next} /^## /{f=0} f && /^### [^ ]+\.md/' "${REPO_ROOT}"/wos/substrate-peers.md 2>/dev/null | wc -l) ;;
+    log-fields)         n=$(sed -n '/^REQUIRED_FIELDS = {/,/^}/p' "${REPO_ROOT}"/scripts/verify-log-validator.py 2>/dev/null | grep -o '"[a-z_]*"' | wc -l) ;;
+    task-cost-phases)   n=$(sed -n '/^PHASES = \[/,/^\]/p' "${REPO_ROOT}"/scripts/measure-task-cost.py 2>/dev/null | grep -c '^    ("') ;;
+    spine-scenarios)    n=$(grep -c '"file":' "${REPO_ROOT}"/evals/spine-evals.json 2>/dev/null) ;;
+    shared-*)           blk="${1#shared-}"
+                        [[ -f "${COMMANDS_DIR}/_shared/${blk}.md" ]] || { printf '__UNKNOWN__'; return 0; }
+                        n=$( { grep -l "<!-- shared:${blk} -->" "${COMMANDS_DIR}"/*.md "${COMMANDS_DIR}"/*/SKILL.md 2>/dev/null || true; } | wc -l) ;;
+    sections-*)         tpl="$(printf '%s' "${1#sections-}" | tr 'a-z-' 'A-Z_')"
+                        tplf="${REPO_ROOT}/templates/${tpl}.md"
+                        [[ -f "$tplf" ]] || tplf="${REPO_ROOT}/templates/${tpl}.template.md"
+                        [[ -f "$tplf" ]] || { printf '__UNKNOWN__'; return 0; }
+                        n=$(grep -c '^## ' "$tplf") ;;
     *)                  printf '__UNKNOWN__'; return 0 ;;
   esac
   printf '%s' "$n" | tr -d '[:space:]'
 }
 
-# The scan-set MIRRORS lint-commands.sh COUNT_SCAN_FILES exactly: the 10 root doc
-# files, every wos/*.md topic, and four docs/evals files. It is deliberately NARROW
+# The scan-set MIRRORS lint-commands.sh COUNT_SCAN_FILES exactly: the root doc files,
+# every wos/*.md topic, four docs/evals files, and the command sources (flat, folder-shaped
+# and commands/_shared/). It is deliberately NARROW
 # and must NOT be a repo-wide grep: files like `_internal/audit-*/` and
 # `scripts/baseline-*.md` carry count markers frozen at a past snapshot and must
 # never be reconciled to the live count. Keep this list in sync with lint.
 ROOT_DOC_FILES=(
-  README.md WORKFLOW_OPERATING_SYSTEM.md WORKFLOW_DEMO.md CONTRIBUTING.md CLAUDE.md
+  AGENTS.md README.md WORKFLOW_OPERATING_SYSTEM.md WORKFLOW_DEMO.md CONTRIBUTING.md CLAUDE.md
   CHANGELOG.md ROADMAP.md CODE_OF_CONDUCT.md SECURITY.md COMMAND_PROMPT_STUBS.md
 )
 FILES=()
@@ -81,6 +115,9 @@ for rf in "${ROOT_DOC_FILES[@]}"; do FILES+=("${REPO_ROOT}/${rf}"); done
 for wf in "${REPO_ROOT}"/wos/*.md; do [[ -f "$wf" ]] && FILES+=("$wf"); done
 FILES+=("${REPO_ROOT}/docs/FAQ.md" "${REPO_ROOT}/docs/MIGRATION.md" \
         "${REPO_ROOT}/docs/adr/README.md" "${REPO_ROOT}/evals/README.md")
+for cf in "${COMMANDS_DIR}"/*.md "${COMMANDS_DIR}"/*/SKILL.md "${COMMANDS_DIR}"/_shared/*.md; do
+  [[ -f "$cf" ]] && FILES+=("$cf")
+done
 
 fixed=0
 drift=0

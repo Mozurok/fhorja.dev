@@ -2,18 +2,24 @@
 name: <persona-id-kebab-case>
 description: <one-line description of the persona's expertise and when it activates; <=1024 chars per Agent Skills spec; should mention concrete triggers and explicit "do not use" conditions, mirroring the command-description convention>
 metadata:
-  category: <one of: project-initialization | state-and-navigation | discovery-and-scoping | database-context | contract-and-decision-hardening | planning-and-validation | execution-and-closure | delivery-and-communication | prompt-tooling>
+  category: <one category from WORKFLOW_OPERATING_SYSTEM.md ## Command categories, the set lint checks as VALID_CATEGORIES in scripts/lint-commands.sh; the shipped personas mostly use audit-and-sweep>
   primary-cursor-mode: Ask
   multi-repo-aware: false
   context-layers-consumed: [memory, retrieved]
   context-layers-produced: [memory]
-  suggested-model: claude-sonnet-4-6
+  tools: [Read, Write, Edit, Bash, Glob, Grep]
+  x-wos-profiles: [full]
+  provenance: first-party
+  suggested-model: claude-sonnet-5
   # Persona-specific fields (K.6/K.8). Optional at L1 launch; required by L3+:
   triggers:
     - <one-line description of a substrate signal that activates this persona>
     - <example: "DECISIONS.md mentions auth without an RLS policy locked">
-  maturity_level: L1   # L1=shadow, L2=advisory, L3=gated, L4=peer, L5=autonomous (per wos/substrate-peers.md ## Maturity ladder hook)
-  owned_sections: []   # empty at L1/L2; one low-risk section at L3; full ownership at L4 (per the maturity ladder)
+  # maturity_level: L1=shadow, L2=advisory, L3=gated, L4=peer, L5=autonomous (per wos/maturity-ladder.md)
+  maturity_level: L1
+  # owned_sections: empty at L1/L2; one low-risk section at L3; full ownership at L4. Keep comments off
+  # this line: lint parses the value as a YAML inline list.
+  owned_sections: []
 ---
 # <persona-id-kebab-case>
 
@@ -26,16 +32,13 @@ This persona is folder-shaped (K.3 dual layout): SKILL.md is canonical; addition
 
 Mandatory context bootstrap (before any output):
 <!-- shared:mandatory-context-bootstrap -->
-- Read these sections in `WORKFLOW_OPERATING_SYSTEM.md` first:
-  - `## LLM execution contract`
-  - `## Editor mode policy` (mode definitions only; the tool mapping table is lazy-loaded in `wos/editor-mode-mappings.md` and needed only for non-Claude-Code tools)
-  - `## Global output contract` (including **Adaptive handoff** and **Mode selection rule**)
-  - `## Cross-cutting workflow guardrails`
-- **Bootstrap tiers (ADR-0025):** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) may skip `## Editor mode policy` good-fits lists and `## Cross-cutting workflow guardrails` sequencing heuristics, reading only the mode definitions and the core guardrail rules (routing memory, official command names, material change, no-op). This reduces bootstrap from ~6,750 to ~3,500 tokens for these commands.
-- Read additional sections only when relevant to this command's role.
-- Read the `commands/` directory command inventory to ensure command names and availability are current.
-- Align all routing recommendations and next-command suggestions with the current command set.
-- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names.
+<Filled by `scripts/sync-shared-blocks.sh`. After copying this template to `commands/<persona-id>/SKILL.md`, run it once: it replaces every `<!-- shared:<name> -->` block with the current text of `commands/_shared/<name>.md`.>
+
+Required inputs:
+- active task folder path
+- <persona-specific input 1>
+- <persona-specific input 2>
+- optional: <any optional inputs>
 
 Substrate access (per `wos/substrate-peers.md ## Personas CUSTOM`):
 - R access: TASK_STATE.md, DECISIONS.md, IMPLEMENTATION_PLAN.md, SOURCE_OF_TRUTH.md (all four task-memory files).
@@ -46,14 +49,8 @@ Substrate access (per `wos/substrate-peers.md ## Personas CUSTOM`):
   - `IMPLEMENTATION_PLAN.md ## Risks and mitigations`
 - NEVER write substrate at L1. Emit Handoff routing to the owner command per Pattern A in `wos/substrate-peers.md`.
 
-Required inputs:
-- active task folder path
-- <persona-specific input 1>
-- <persona-specific input 2>
-- optional: <any optional inputs>
-
 Task repository files to update:
-- non-owned substrate sections: only via PROPOSED blocks (per `wos/substrate-peers.md ## Personas CUSTOM`); `approve-proposed` promotes. The persona's owned section (frontmatter `owned_sections`), once promoted to L3, is written directly.
+- non-owned substrate sections: only via PROPOSED blocks (per `wos/substrate-peers.md ## Personas CUSTOM`); the owner command promotes them, or `approve-proposed` on request (ADR-0199). The persona's owned section (frontmatter `owned_sections`), once promoted to L3, is written directly.
 - <persona-specific output file if any, e.g. `<task>/<PERSONA_REPORT>.md`>
 
 Operating rules:
@@ -71,21 +68,25 @@ Required output:
 3. <Output item 3>
 4. Recommended next command (must exist in `commands/*.md`; verify against directory listing before output).
 
+### Claim grounding (active epistemic humility)
+<!-- shared:claim-grounding -->
+<Filled by `scripts/sync-shared-blocks.sh`.>
+
 ### Standard output layout (required)
 <!-- shared:standard-output-layout -->
-Produce the command output using this structure (English only):
+<Filled by `scripts/sync-shared-blocks.sh`.>
 
 ### Artifact changes
 <!-- shared:artifact-changes-default -->
-Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
+<Filled by `scripts/sync-shared-blocks.sh`.>
 
 ### Command transcript
 <!-- shared:command-transcript-standard -->
-Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
+<Filled by `scripts/sync-shared-blocks.sh`.>
 
 ### Handoff
 <!-- shared:handoff-body -->
-Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state).
+<Filled by `scripts/sync-shared-blocks.sh`.>
 
 ### Definition of done (command output)
 - <Persona-specific success criterion 1>
@@ -96,4 +97,3 @@ Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global ou
 Quality bar:
 <One paragraph stating what "good" looks like for this persona. Be concrete about the failure mode the persona prevents and what signal proves the output is load-bearing.>
 
-<!-- cache-breakpoint -->

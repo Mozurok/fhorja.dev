@@ -17,17 +17,19 @@ VERBOSE=0
 [[ "${1:-}" == "--verbose" || "${1:-}" == "-v" ]] && VERBOSE=1
 
 # Always-loaded root files to check. USER_MEMORY.md is gitignored/optional.
-FILES=("CLAUDE.md" "USER_MEMORY.md")
+FILES=("AGENTS.md" "CLAUDE.md" "USER_MEMORY.md")
 
 # Advisory thresholds (soft). Codex hard cap is 32 KiB; warn earlier.
 MAX_BYTES=24576   # ~24 KiB
 MAX_LINES=250     # CLAUDE.md guidance is to stay lean (~200 lines)
 
 hits=0
+measured=0
 details=()
 for f in "${FILES[@]}"; do
   path="${REPO_ROOT}/${f}"
   [[ -f "$path" ]] || continue
+  measured=$((measured+1))
   bytes=$(wc -c < "$path" | tr -d ' ')
   lines=$(wc -l < "$path" | tr -d ' ')
   over=""
@@ -39,10 +41,21 @@ for f in "${FILES[@]}"; do
   fi
 done
 
-if (( hits > 0 )); then
-  echo "Instruction-budget: ${hits} advisory hit(s) (warn-only; always-loaded context files over budget)"
+# Say what was MEASURED, not only what was found. Both target files are excluded from some
+# checkouts by design: USER_MEMORY.md is gitignored everywhere, and CLAUDE.md is untracked in the
+# public mirror per ADR-0090. Until 2026-08-21 all three states printed the same sentence, so
+# "clean" covered "measured both and both fit", "measured one", and "measured nothing at all". A
+# reader had no way to tell coverage from compliance, which is the failure this line now prevents.
+# This stays warn-only and still ALWAYS exits 0: the budget is a soft context-rot threshold (W-15),
+# and lint consumes this line through a grep pipeline that discards the exit code anyway. The fix is
+# honesty about scope, not a new gate; treat it as advisory and do not read it as enforcement.
+scope="measured ${measured} of ${#FILES[@]} always-loaded file(s)"
+if (( measured == 0 )); then
+  echo "Instruction-budget: not measured (none of the ${#FILES[@]} always-loaded files are present in this checkout)"
+elif (( hits > 0 )); then
+  echo "Instruction-budget: ${hits} advisory hit(s) (warn-only; ${scope}, over budget)"
   (( VERBOSE == 1 )) && printf '%s\n' "${details[@]}"
 else
-  echo "Instruction-budget: clean (always-loaded files within budget)"
+  echo "Instruction-budget: clean (warn-only; ${scope}, within budget)"
 fi
 exit 0

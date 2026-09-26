@@ -2,7 +2,7 @@
 name: n-plus-one-query
 category: performance
 default-severity: P1
-cwe: [CWE-400]
+cwe: [CWE-405]  # CWE-400 is Discouraged; CWE-405 Asymmetric Resource Consumption (Amplification) is the shape, one request turning into N queries (2026-09-21)
 languages: [typescript, javascript, python, go]
 file-patterns: ["controllers/**", "services/**", "handlers/**", "api/**", "consumers/**"]
 perspectives: [operator]

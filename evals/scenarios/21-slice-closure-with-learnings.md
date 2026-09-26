@@ -53,7 +53,7 @@ Status: implemented. Read the tokenized PAN from the customer record; rendered w
 ## Expected response shape
 
 - Response begins with slice-closure's persona line.
-- Response proposes slice closure (PROPOSED status; Plan mode default).
+- Response writes the slice closure and marks it APPLIED.
 - **Variant A**: response emits an optional `### Learnings` section with a 4-bullet entry to be appended to `LEARNINGS.md`. The entry shape matches the locked format from ADR-0017.
 - **Variant B**: response OMITS the `### Learnings` section (the slice was routine; nothing to record).
 - Both variants produce the standard slice-closure output (status, completed, deferred, blockers, next action, TASK_STATE update block, Handoff).
@@ -70,7 +70,7 @@ Status: implemented. Read the tokenized PAN from the customer record; rendered w
 4. **Variant A no empty bullets**: each bullet has concrete content; vague phrases like "Tried: stuff" or "Next time: be careful" disqualify the entry per ADR-0017.
 5. **Variant B omits Learnings section**: no `### Learnings` section appears. The output contract explicitly allows skipping when the slice was routine. A NO_OP_TRACE or "(no learning to record for this slice)" annotation in the transcript is acceptable but not required.
 6. **Both variants: standard slice-closure output**: the Required output 1-13 from `commands/slice-closure.md` are produced regardless of Learnings emission (Variant A item 14 is the Learnings section; Variant B item 14 is absent).
-7. **Both variants: PROPOSED status**: artifact changes are `PROPOSED`, not `APPLIED` (Plan mode default per ADR-0001).
+7. **Both variants: APPLIED status**: artifact changes are `APPLIED` in every mode. A `PROPOSED` mark justified by the editor mode is the removed gate returning.
 8. **Variant A: LEARNINGS.md change marked**: `### Artifact changes` lists `LEARNINGS.md` as PROPOSED (created if absent; appended-to if exists).
 
 ## Failure modes to watch

@@ -20,9 +20,9 @@
 #      asking the model to propose named recurring-pattern groups, each group
 #      listing its member entries by heading and anchor (the kura naming-stage
 #      contract: the LLM sees names/descriptions of the children, not vectors).
-#   3. Pipes the prompt to an external CLI AI tool exactly the way
-#      evals/scripts/judge.py's call_tool() does: printf the prompt on stdin,
-#      let the tool command do the rest.
+#   3. Pipes the prompt to an external CLI AI tool the way every tool call in
+#      this repository works: printf the prompt on stdin, let the configurable
+#      --tool command do the rest. No vendor is named in the code path.
 #   4. Writes the result plus a header (date, corpus size, corpus SHA-256) to
 #      a cache file under <project-dir>/.wos-mined-patterns/patterns.md.
 #      When the corpus hash is unchanged since the cached run, the cached
@@ -39,8 +39,8 @@
 #   - project-dir: a projects/<client>__<project> directory containing active/
 #     and/or archive/ task folders.
 #   - --tool: shell command that takes the grouping prompt on stdin and emits
-#     the model's response on stdout. Default: "claude code --print" (ADR-0019
-#     convention; same default as evals/scripts/judge.py).
+#     the model's response on stdout. Default: "claude code --print" (the
+#     ADR-0019 convention; the default is a convenience, not a dependency).
 #   - --dry-run: print the assembled prompt and corpus stats; no tool call, no
 #     cache write.
 #   - --max-entries: cap on how many entries go into the prompt (default 120).
@@ -289,8 +289,8 @@ if [[ -f "$cache_file" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 5. Call the tool exactly the way evals/scripts/judge.py's call_tool() does:
-#    pipe the prompt in on stdin, read the response on stdout.
+# 5. Call the tool the same way everything else here does: pipe the prompt in
+#    on stdin, read the response on stdout.
 # ---------------------------------------------------------------------------
 err_tmp="$(mktemp 2>/dev/null || echo "${TMPDIR:-/tmp}/mine-learnings-patterns.err.$$")"
 trap 'rm -f "$entries_tmp" "$capped_tmp" "$err_tmp"' EXIT

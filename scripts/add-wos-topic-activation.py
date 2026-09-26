@@ -55,7 +55,7 @@ ACTIVATIONS = [
      "Multi-repo task schema, locked decisions, invariants, decision table. Load when SOURCE_OF_TRUTH.md contains a ## Repositories section.",
      []),
     ("operating-modes.md", "model_decision",
-     "Operating modes (minimal / strict / teaching). Load when the task posture needs to change.",
+     "Operating modes (minimal, strict, teaching, assisted). Load when the task posture needs to change.",
      []),
     ("output-depth-policy.md", "always_on",
      "Lean / Balanced / Deep per-command depth assignment. Small and routing-relevant.",

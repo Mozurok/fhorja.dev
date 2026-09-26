@@ -1,6 +1,6 @@
 # ADR-0074: Opt-in per-task git worktree isolation
 
-- **Status**: Accepted
+- **Status**: Accepted; superseded in part by [ADR-0233](./0233-the-attended-chain-runs-to-the-draft-pr.md) on attended runs: `task-init` creates the task branch in place without a worktree. Worktree isolation, its teardown and its guard stay opt-in and unchanged.
 - **Date**: 2026-07-01
 - **Tags**: git-worktree, workspace-isolation, parallel-tasks, task-lifecycle, opt-in, additive, task-workspace, task-close
 

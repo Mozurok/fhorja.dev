@@ -1,37 +1,18 @@
 ---
 name: frontend-system-design
 description: |-
-  Produce a staff-grade frontend system-design RFC for the active task: a 12-section design document (problem, requirements, architecture, data model, API and interface contract, rendering and delivery, state management, performance budget, accessibility, security, rollout, trade-offs) covering web and mobile, persisted as FRONTEND_SYSTEM_DESIGN.md. The default mode writes the design doc for real work; an --interview mode reframes the same structure for a frontend system-design interview round (RADIO-aligned). Capability-routed, not React-specific. Use when a frontend feature or surface needs an architecture-level design before planning and slicing, or when preparing a system-design interview artifact. Do not use to frame whether the problem is right (use problem-framing), to slice an already-designed change (use implementation-plan), to analyze blast radius (use impact-analysis), to review an API contract in isolation (use api-contract-review), or with no active task folder (run task-init first).
+  Produce a staff-grade frontend system-design RFC for the active task: a 12-section design document (problem, requirements, architecture, data model, API contract, rendering and delivery, state, performance, accessibility, security, rollout, trade-offs) covering web and mobile, persisted as FRONTEND_SYSTEM_DESIGN.md. An --interview mode reframes the same structure for an interview round. Do not use to frame whether the problem is right (use problem-framing), to slice an already-designed change (use implementation-plan), to analyze blast radius (use impact-analysis), to review an API contract in isolation (use api-contract-review), or with no active task folder (run task-init first).
 metadata:
-  category: discovery-and-scoping
-  primary-cursor-mode: Agent
-  multi-repo-aware: false
-  context-layers-consumed:
-    - memory
-  context-layers-produced:
-    - memory
-  tools:
-    - Read
-    - Write
-    - Edit
-    - Bash
-    - Glob
-    - Grep
-  x-wos-profiles:
-    - full
-  provenance: first-party
-  suggested-model: claude-sonnet-4-6
+  category: "design-and-ui"
+  primary-cursor-mode: "Agent"
+  multi-repo-aware: "false"
+  context-layers-consumed: "memory"
+  context-layers-produced: "memory"
+  tools: "Read, Write, Edit, Bash, Glob, Grep"
+  x-wos-profiles: "full"
+  provenance: "first-party"
+  suggested-model: "claude-sonnet-5"
 ---
-> **Output contract, in brief.** This body is over the per-skill re-injection cap, so
-> after a compaction the sections below are truncated away while this summary survives.
-> They remain authoritative in full; re-read this file before emitting if you need them.
->
-> - `Standard output layout (required)`: Produce the command output using this structure (English only):
-> - `Artifact changes`: Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
-> - `Command transcript`: Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
-> - `Handoff`: Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per...
-> - `Definition of done (command output)`: All 12 sections are present (default mode) or the RADIO-framed answer covers them (`--interview` mode); a dropped section is inval...
-
 
 Act as a staff frontend engineer writing the system-design document for a frontend feature or surface, so the architecture is decided and reviewable before any slicing or code.
 
@@ -39,20 +20,17 @@ Goal:
 Produce a 12-section frontend system-design RFC for the active task, grounded in the task's decisions and constraints, and persist it as `FRONTEND_SYSTEM_DESIGN.md`. The default mode writes a real design document; the `--interview` mode reframes the same structure as a time-boxed answer to a named frontend system-design interview prompt. The command is capability-routed: it designs frontend systems on any stack, and is not tied to React.
 
 Mandatory context bootstrap (before any output):
-<!-- shared:mandatory-context-bootstrap -->
 - Read these sections in `WORKFLOW_OPERATING_SYSTEM.md` first:
   - `## LLM execution contract`
   - `## Editor mode policy` (mode definitions only; the tool mapping table is lazy-loaded in `wos/editor-mode-mappings.md` and needed only for non-Claude-Code tools)
   - `## Global output contract` (including **Adaptive handoff** and **Mode selection rule**)
   - `## Cross-cutting workflow guardrails`
-- **Bootstrap tiers (ADR-0025):** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) may skip `## Editor mode policy` good-fits lists and `## Cross-cutting workflow guardrails` sequencing heuristics, reading only the mode definitions and the core guardrail rules (routing memory, command-less input triage, official command names, material change, no-op). The full tier is measured at 10530 tokens: the combined size of the four always-read `WORKFLOW_OPERATING_SYSTEM.md` sections listed above. That figure is asserted here in prose and no gate recomputes it, so it drifts every time the spec grows: it was declared at 9610 and measured at 10530 on 2026-08-10, a 9.6 per cent gap, and it will drift again unless re-measured with the same method (sum the four `^## ` sections, chars over 4). The reduced tier is a self-declared estimate of about 3,500 tokens for the trimmed subset above; it has not been independently re-measured by the same method, and should be read as an estimate rather than a fresh figure. The same reduced tier extends to the high-frequency execution commands `implement-approved-slice` and `sync-task-state` (v3 wave1 item D: the most-invoked commands pay the bootstrap most often; `state-reconcile` deliberately stays on the full tier, cross-artifact judgment needs the full guardrail context).
-- **Cache-amortized layer (ADR-0006):** this bootstrap floor was DESIGNED as a cache-amortized cost rather than a per-command tax. ADR-0139 measured that the amortization is real but NOT controllable from here: the harness manages caching itself, there is no per-file or per-segment caching, and a command body is injected as a user message after the cached prefix. Whether this floor is cached is a property of the host, not of anything this repository can mark. Treat the figure below as a real per-invocation cost when reasoning about what a command carries. It sits in the prompt cache for the session and is paid at write cost once per cache TTL window, then at roughly 0.1x on cached reads inside that window. Account for it separately from any per-skill Load budget (the generated `.claude/skills/<name>/SKILL.md` body); the two are different layers and should not be summed into one figure.
-- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this same conversation already performed this bootstrap read in an earlier turn that is still VISIBLE in the current context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one instead, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. This is a scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), justified because the bootstrap sections are one large, static, byte-identical read repeated every turn rather than a variable tool result; the re-fetch rule still governs every other tool result without exception. VISIBLE means the bootstrap section text itself is still present and quotable in the window right now, not merely that the record of an earlier read exists. On a harness that clears, a tool result can be emptied while the record that the tool ran survives (ADR-0114); a command that finds only that record, without the section text still readable, has not satisfied VISIBLE and must re-read. Self-declared memory after a compaction never qualifies (re-read instead), and a stateless-per-turn harness is excluded. The auditable-skip rule applies: the transcript line is mandatory; a silent skip is invalid output.
-- **Resolving a relative `wos/<topic>.md`.** Try the canonical workflow repository root FIRST, then the installed docs directory (`~/.claude/workflow-docs/wos/` or `~/.cursor/workflow-docs/wos/`). Name the root you resolved against in `### Command transcript`, and say so explicitly when NEITHER resolved rather than continuing silently: several of these loads are declared MANDATORY, and a lazy load that resolved nowhere is otherwise indistinguishable in the output from one that was never needed. Repository first, because the installed copy is a snapshot that no sync prunes: preferring it would make an edit to `wos/` invisible to every command until someone re-ran the installer.
+- **Bootstrap tiers:** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) plus the high-frequency `implement-approved-slice` and `sync-task-state` (v3 wave1 item D) read the four sections above with two subsections of `## Cross-cutting workflow guardrails` skipped: `### External web access (centralized)` and `### Sequencing heuristics (by phase)`. Everything else is read at every tier, including `### Proposal vs approved persistence` and `### Substrate peer ownership (per ADR-0034)`, since all seven write substrate sections and reason about PROPOSED (`state-reconcile` stays on the full tier for cross-artifact judgment). The full tier is measured at 11678 tokens, the four always-read sections combined; the two skipped subsections are 1,035 of those (measured 2026-09-24), so the reduced tier is about 10,643. The leaf-reviewer tier (`verify-against-rubric`, ADR-0226) reads only `## Global output contract`, measured at 4841 tokens, plus its rubric.
+- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this conversation already read the bootstrap sections in an earlier turn still VISIBLE in the context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. Scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), because these sections are one large, static, byte-identical read repeated every turn; every other tool result still re-fetches. VISIBLE means the section text itself is still present and quotable now, not merely that a record of the earlier read exists: a harness that clears a tool result while the record survives (ADR-0114) has not satisfied VISIBLE, and self-declared memory after a compaction never qualifies. A stateless-per-turn harness is excluded. The transcript line is mandatory; a silent skip is invalid output.
+- **Resolving `WORKFLOW_OPERATING_SYSTEM.md` and a relative `wos/<topic>.md`.** Both resolve the same way: try the canonical workflow repository root FIRST, then the installed docs directory (`~/.claude/workflow-docs/` or `~/.cursor/workflow-docs/`, the spec at that root and topics under its `wos/`). Repository first, because the installed copy is a snapshot no sync prunes; preferring it would hide a `wos/` edit from every command until a reinstall. Name the resolved root in `### Command transcript`, and say so explicitly when NEITHER resolved rather than continuing silently, since several of these loads are MANDATORY.
 - Read additional sections only when relevant to this command's role.
-- Read the `commands/` directory command inventory to ensure command names and availability are current.
 - Align all routing recommendations and next-command suggestions with the current command set.
-- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares that the chain has ended and no following command would be honest, defined in `## Global output contract` (ADR-0126); use it only when nothing honest remains, never to end a chain that has a real next step.
+- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares the chain ended with no honest next step, defined under `### Official command names (routing integrity)` (ADR-0126); use it only then, never to end a chain that has a real next step.
 
 Required inputs:
 - active task folder path
@@ -70,7 +48,7 @@ Operating rules:
 - Do not implement product code. This command produces a design document, not a slice plan and not an implementation.
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full).
 - **Capability-routed, not stack-locked.** Design for the stack the task actually uses (read it from SOURCE_OF_TRUTH.md or DECISIONS.md). Name React, React Native, or any framework only when the task already chose it; never assume one. The structure below holds for any frontend stack.
-- **The 12 sections (default mode).** Produce every section; mark a section `not applicable` with a one-line reason rather than dropping it:
+- **The 12 sections (default mode; the fill-in shape is `templates/FRONTEND_SYSTEM_DESIGN.template.md`).** Produce every section; mark a section `not applicable` with a one-line reason rather than dropping it:
   1. Problem statement and context: the user or business problem, scope boundaries, who consumes this surface.
   2. Requirements: functional and non-functional, split explicitly; core versus nice-to-have; success metrics.
   3. High-level architecture: the components and their relationships (view layer, state or store, data-access or networking layer, server or BFF), and the rendering surface boundary.
@@ -78,7 +56,7 @@ Operating rules:
   5. API and interface contract: client-server transport (REST, GraphQL, WebSocket, SSE), payload shape, pagination, error and retry semantics, and the inter-component contracts.
   6. Rendering and delivery: the rendering strategy per surface (SSR, SSG, ISR, streaming, server components, or client-side) with a TTFB, SEO, or personalization rationale; CDN or edge where relevant. For mobile, the navigation and screen-load strategy.
   7. State management: local versus global versus server-cache state; real-time sync transport when relevant; optimistic updates.
-  8. Performance: a numeric budget. For web, Core Web Vitals (LCP, INP, CLS) plus bundle size; for mobile, startup or TTI, frame budget, and list performance. State the percentile and the measurement source; do not assert a number without a source (mark `PROPOSED-pending-baseline` when unmeasured). Compose with `performance-budget` rather than duplicating it when a budget artifact already exists.
+  8. Performance: a numeric budget. For web, Core Web Vitals (LCP, INP, CLS) plus bundle size; for mobile, startup or TTI, frame budget, and list performance. State the metric-specific statistic and the measurement source: distributions name their percentile, population, and window; rates and ratios name their aggregation window; fixed and snapshot metrics name a concrete maximum, total, per-build, per-frame, configured constant, or binary invariant. Do not assert a number without a source (mark `PROPOSED-pending-baseline` when unmeasured), invent a percentile for a non-distribution, or replace a required distribution tail with a bare average. Compose with `performance-budget` rather than duplicating it when a budget artifact already exists.
   9. Accessibility and i18n: the conformance target, keyboard and focus handling, and localization needs. Compose with `a11y-audit` for a per-criterion ledger.
   10. Security: the client-boundary threats (XSS, CSRF, CSP, token handling); when a BFF is in play, that tokens stay server-side.
   11. Rollout and migration: feature flags, incremental adoption, backward compatibility, deploy independence.
@@ -88,20 +66,19 @@ Operating rules:
 - **Ground external contracts.** When the design commits to an external library, SDK, or protocol, ground it in a captured `REFERENCES.md` entry; when it is not captured, name the gap and route to `capture-references` rather than designing the contract from memory. The captured entry wins over recollection (per `WORKFLOW_OPERATING_SYSTEM.md` `## Evidence priority`).
 - **Respect locked decisions.** Read DECISIONS.md; the design must not silently reopen a locked decision. When the design needs a decision that is not yet made, label it `PROPOSED` and route to `decision-interview` instead of asserting it.
 - **No invented metrics.** Performance thresholds, adoption numbers, and SLAs must cite a source (a measured baseline, a published standard, or a user-supplied target) or be marked `PROPOSED-pending-baseline`.
-- Treat task-memory write policy per `WORKFLOW_OPERATING_SYSTEM.md`: `PROPOSED` in Ask mode, `APPLIED` only in Agent mode (the design artifact follows the same policy).
+- Treat task-memory write policy per `WORKFLOW_OPERATING_SYSTEM.md`: write the file and mark it `APPLIED`.
 - **Self-review before emit.** Before writing the file, check it for placeholders, contradictions, an empty trade-offs section, and any section asserting a number without a source; fix them inline.
 
 Required output:
 1. The mode used (default RFC or `--interview`) and the surface or prompt being designed
 2. The 12-section design (or the RADIO-framed interview answer), every section present
-3. Exact `FRONTEND_SYSTEM_DESIGN.md` (or `FRONTEND_SYSTEM_DESIGN_INTERVIEW.md`) content, marked PROPOSED or APPLIED per editor mode
+3. Exact `FRONTEND_SYSTEM_DESIGN.md` (or `FRONTEND_SYSTEM_DESIGN_INTERVIEW.md`) content, marked `APPLIED`
 4. Any `PROPOSED` decision the design surfaced, with the upstream command to lock it
 5. Recommended next command
 6. Recommended editor mode
 7. Why that is the correct next step
 
 ### Reference grounding (design gate)
-<!-- shared:reference-grounding-design -->
 **Reference grounding (design gate, ADR-0043 D-3).** This command does not edit code, so it does NOT refuse. It marks. Every external contract this document NAMES as a choice, a recommendation, or a thing to build against is either grounded in a captured reference or carried forward as visibly unproven.
 
 1. Detect. Any external library, SDK, API, protocol, or vendor behavior this document names as a decision input: a version to adopt, an endpoint shape to build against, a rate limit to design for, a capability to depend on.
@@ -110,7 +87,6 @@ Required output:
 4. Route, do not block. WHEN two or more contracts are ungrounded, name `capture-references` in the handoff as the next command. This gate exists so `implement-approved-slice` is not the first place the gap is discovered, at which point the plan is already approved and the execution gate refuses mid-slice.
 5. Carry the marks forward. Every `[ungrounded: ...]` marker SHALL survive into the persisted artifact. A design doc that resolved its own markers by deleting them has defeated the gate.
 ### Claim grounding (active epistemic humility)
-<!-- shared:claim-grounding -->
 **Claim grounding (active epistemic humility).** This block governs what you may assert and how you record it. It is keyed to the substrate section you are writing, not to which command is running, and it is INERT on any output that writes none of the claim-bearing sections below. Full contract and rationale: `wos/active-epistemic-humility.md`.
 
 1. When this applies. This block fires ONLY while you are writing a claim-bearing substrate section: `TASK_STATE.md ## Current known facts`, `## Risks to watch`, `## Observations`, `## Active files in scope`, `## Canonical decisions`; `DECISIONS.md ## Locked decisions`; `IMPLEMENTATION_PLAN.md ## Current gaps`, `## Risks and mitigations`; `IMPACT_ANALYSIS.md`; `EXTERNAL_RESEARCH.md`; `REFERENCES.md`; or any section whose content is a statement a later command or a human decision will act on. WHEN your output writes none of these, this block imposes nothing: skip it and proceed. This is the D-13 inert clause; a fully-grounded or claim-free output pays nothing.
@@ -127,27 +103,23 @@ Required output:
 
 7. An unfired gate is not evidence. The absence of a fired check does not mean grounding existed. Do not read silence here as a pass.
 ### Standard output layout (required)
-<!-- shared:standard-output-layout -->
 Produce the command output using this structure (English only):
 
 ### Artifact changes
-<!-- shared:artifact-changes-default -->
-Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
+Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules. Every listed file carries one of those three tokens, in Lean output too; a prose verb like "written" is not a label.
 
 ### Command transcript
-<!-- shared:command-transcript-standard -->
 Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
 
 ### Handoff
-<!-- shared:handoff-body -->
-Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state).
+Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state). Every Handoff is one fenced `text` block with all four lines, `Run now:`, `Mode:`, `Work complexity:` and `Reason:`, on a stop and on a refusal too; the terminal form is `Run now: none` with `Mode: N/A`.
 
 ### Definition of done (command output)
 - All 12 sections are present (default mode) or the RADIO-framed answer covers them (`--interview` mode); a dropped section is invalid output unless marked `not applicable` with a reason.
 - The trade-offs and alternatives section is non-empty and names the rejected options.
 - No performance or scale number is asserted without a cited source or a `PROPOSED-pending-baseline` mark.
 - The design respects DECISIONS.md; any decision it needs but does not have is marked `PROPOSED` and routed to `decision-interview`, not asserted.
-- The artifact is marked PROPOSED (Ask) or APPLIED (Agent); the default and `--interview` modes write distinct files.
+- The artifact is written and marked `APPLIED` in every mode (ADR-0199); the default and `--interview` modes write distinct files.
 - Output ends with a complete `### Handoff` block per the adaptive format in `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract`.
 - Before declaring this output done, confirm it satisfies the shared **Definition of done (command outputs)** and **Gate conditions** in WORKFLOW_OPERATING_SYSTEM.md.
 

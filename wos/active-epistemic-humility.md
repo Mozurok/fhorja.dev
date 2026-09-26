@@ -46,6 +46,15 @@ A status whose referent slot is empty is read as **unknown**, not as a weak yes.
 
 Why: a self-reported confidence signal is not usable as a control signal. Frontier models articulate uncertainty and then act as if certain, and they do not abstain more as the penalty for being wrong rises. A reliability estimate derived from how confident the text sounds is also manipulable. A referent is checkable by a human or a script; a feeling is not.
 
+The scope of that sentence is this contract, the claim status. A command that grades its own output against a stated, checkable criterion is doing something else, and these commands do it:
+
+- `code-locate` grades each candidate `HIGH` on a direct match of a function name, comment, or type signature, `MEDIUM` on a name or context match that is not definitive, and `LOW` on a contextual adjacency. The search trail is printed with the grades.
+- `repo-consistency-sweep` grades each finding by the rubric of the bug class that produced it.
+- `external-research-fleet` grades each claim in the worker payload, and requires `unclear-from-source` whenever the claim carries no `source_ref`.
+- `stack-recommend` grades each layer in a table whose `Reason` column carries the ground for the grade.
+
+What keeps these out of the prohibition is the same thing rule 1.3 rests on: every grade names a referent someone can check, so it is a reading of the evidence rather than a feeling about the answer. A grade with no stated basis is the forbidden form whatever it is called. This list is the whole carve-out, and `evals/scripts/structural-evals.py` fails both when a command outside it declares a graded confidence field and when a command on it stops declaring one, so the list cannot drift from the commands in either direction.
+
 Enforced by: `commands/_shared/claim-grounding.md`, plus a static check in `evals/scripts/structural-evals.py`.
 
 ### 1.4 Where the status is mandatory

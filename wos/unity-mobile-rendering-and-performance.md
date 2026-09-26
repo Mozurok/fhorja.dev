@@ -38,9 +38,9 @@ Reason from those two sentences and the platform list, not from a blanket claim.
 
 ## The declaration a mobile 3D plan carries
 
-`unity-scene-plan` requires a declared pipeline for a 3D target, mirroring the Godot renderer-tier gate (ADR-0117 D-9, hardened by ADR-0118 and ADR-0119). The declaration states:
+`unity-scene-plan` requires a declared pipeline for a 3D target, mirroring the Godot renderer-tier declaration (ADR-0117 D-9, hardened by ADR-0118 and ADR-0119). The mirror is at plan time only: since ADR-0209 the Godot closure floor records a missing declaration rather than blocking, and this Unity rule has no closure floor at all; a 3D plan without it is incomplete output of `unity-scene-plan`. The declaration states:
 
-1. **The pipeline**: URP, HDRP, or Built-in.
+1. **The pipeline**: URP, HDRP, or Built-in (deprecated, supported through Unity 6.7 LTS; https://docs.unity3d.com/6000.5/Documentation/Manual/built-in-render-pipeline.html).
 2. **The target graphics API** on each shipping platform, because HDRP's constraint is expressed in those terms (compute shader support; not OpenGL or OpenGL ES).
 3. **Why**, in one line, when the choice is anything other than URP on a mobile target, since that is the case where the platform list argues against it.
 

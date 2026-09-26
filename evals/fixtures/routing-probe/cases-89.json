@@ -1,0 +1,358 @@
+[
+ {
+  "expect": "ai-feature-eval-harness",
+  "prompt": "A gente ligou o resumo automático de conversa no app e o suporte reclama que às vezes vem errado, mas cada vez que eu mexo no prompt a saída muda e eu não consigo provar se melhorou ou piorou. Preciso de um jeito de medir isso de verdade antes de liberar pra todo mundo."
+ },
+ {
+  "expect": "api-contract-review",
+  "prompt": "Escrevi no plano as seis rotas novas de cobranca (POST /cobranca, GET /cobranca/:id e mais quatro) e ainda nao codei uma linha. Antes de comecar queria que alguem olhasse com olho critico, porque cada parte da nossa API hoje devolve erro de um jeito diferente e eu nao quero repetir isso."
+ },
+ {
+  "expect": "api-runtime-verify",
+  "prompt": "Terminei os quatro endpoints de pedido do slice 2, compila e o lint passa, mas ninguem chamou nenhuma dessas rotas de verdade ainda. O serviço ta de pé em localhost:8080 e eu quero ver com meus olhos o que cada uma responde antes de dar isso por pronto."
+ },
+ {
+  "expect": "app-runtime-verify",
+  "prompt": "Fechei a parte do onboarding no app Expo e já instalei no simulador do iPhone 15, abre e navega normal. Antes de dar isso como pronto eu queria ver de verdade o que o aparelho reclama enquanto eu uso a tela, porque o build passou limpo e isso nunca me garantiu nada."
+ },
+ {
+  "expect": "apply-sweep-triage",
+  "prompt": "Fui no arquivo dos achados da última revisão automática e marquei um por um: esse eu arrumo, esse eu não quero, esse a gente discute depois. Só que na rodada seguinte as mesmas cinco reclamações sobre o logger voltaram, e eu não quero ficar dizendo não pra elas toda semana."
+ },
+ {
+  "expect": "approve-plan",
+  "prompt": "Reli o plano das 4 fatias e concordo com a ordem, não quero mais mexer nele. Quero deixar isso travado como acordado antes de encostar em código, senão daqui a duas semanas eu não vou lembrar em que ponto a gente parou de discutir e começou a executar."
+ },
+ {
+  "expect": "approve-proposed",
+  "prompt": "Li os quatro arquivos que você montou na resposta anterior, incluindo o de decisões, e concordo com o conteúdo de todos. Pode gravar todos em disco de uma vez, não quero ir um por um."
+ },
+ {
+  "expect": "atom-audit",
+  "prompt": "Escrevemos as regras dos componentes base faz umas três semanas e desde então entraram uns 9 botões e campos novos no pacote de design. Aposto que metade tá fora do combinado e eu queria enxergar quais estão irregulares e em quê, sem sair arrumando agora."
+ },
+ {
+  "expect": "atom-audit-fleet",
+  "prompt": "Temos 23 componentes base no pacote de design system e faz umas 4 semanas que ninguem confere se eles seguem as regras que a gente escreveu (memo, area de toque minima, animacao de press, movimento reduzido). Queria varrer todos de uma vez, porque olhar um por um leva o dia inteiro."
+ },
+ {
+  "expect": "autonomous-board",
+  "prompt": "Deixei a execucao rodando sozinha a noite toda e acordei com nove pedacos do plano em estados diferentes. Quero uma visao unica de quais estao parados esperando eu decidir alguma coisa e quais ja sairam com diff pronto, sem ter que abrir arquivo por arquivo."
+ },
+ {
+  "expect": "autonomous-readiness",
+  "prompt": "Tava pensando em deixar essa fila de slices rodando sozinha hoje à noite enquanto eu durmo, mas bateu um receio: o projeto ainda tem uns pontos meio no ar e não quero acordar amanhã e descobrir que gastou a madrugada inteira travado esperando uma resposta minha."
+ },
+ {
+  "expect": "autonomous-run",
+  "prompt": "O plano das 9 fatias já está aprovado e as dependências entre elas mapeadas, e eu preciso sair agora. Queria que fosse tocando fatia por fatia sozinho enquanto isso e deixasse os diffs parados me esperando, sem commitar nem subir nada."
+ },
+ {
+  "expect": "backend-system-design",
+  "prompt": "Vou construir do zero o serviço de cobrança recorrente e não decidi nada ainda: onde guardar os dados, como tratar retry quando o gateway cai, o que fica síncrono e o que vira fila. Preciso fechar isso no papel antes de picar em tarefa e sair codando."
+ },
+ {
+  "expect": "branch-commit",
+  "prompt": "Mexi em 3 arquivos aqui e está tudo solto ainda, travo sempre na hora de batizar a branch e escrever a mensagem. Olha o que eu realmente mudei e me dá os dois nomes, não precisa de descrição de PR nem nada disso agora."
+ },
+ {
+  "expect": "capture-observation",
+  "prompt": "Enquanto eu mexia no webhook de pagamento percebi que um timeout provavelmente gera evento duplicado. Não é pra resolver agora, só não quero perder isso até eu chegar na parte de testes."
+ },
+ {
+  "expect": "capture-references",
+  "prompt": "O cliente mandou tres links agora: a doc de webhooks do gateway de pagamento, a pagina de rate limit da API deles e um post do blog de engenharia sobre idempotencia. Quero isso resumido e guardado no contexto do projeto, senao daqui a duas semanas eu vou caçar tudo de novo."
+ },
+ {
+  "expect": "code-context-map",
+  "prompt": "Peguei ontem o repositório do backend de pagamentos, são umas 800 pastas e arquivos e eu não faço ideia de por onde começar a ler antes de encostar em qualquer coisa. Queria uma visão do esqueleto do projeto pra saber o que vale abrir de verdade."
+ },
+ {
+  "expect": "code-locate",
+  "prompt": "O app dispara um push quando o pedido vira 'a caminho', mas eu nunca mexi nessa parte e nao faco ideia de onde isso mora. Sao uns 800 arquivos e meu grep por push devolveu 200 resultados inuteis."
+ },
+ {
+  "expect": "compact-task-memory",
+  "prompt": "A memória dessa task passou de 400 linhas depois de seis slices e mais da metade é coisa que já foi resolvida e não importa mais. Toda vez que eu volto pra ela perco uns dez minutos relendo lixo, quero isso mais leve sem perder o que foi decidido."
+ },
+ {
+  "expect": "component-spec",
+  "prompt": "A designer subiu o Chip novo no Figma, com 4 variantes e 3 tamanhos, e o pessoal de mobile pega isso na segunda. Preciso deixar registrado estados, tokens, área de toque e leitor de tela, senão eles vão ficar abrindo o arquivo pra medir padding no olho."
+ },
+ {
+  "expect": "contract-signoff",
+  "prompt": "As decisões desse task já estão todas tomadas, ninguém tem dúvida sobre o que fazer, mas o texto ficou cheio de \"provavelmente\" e \"por enquanto\" e cada vez que releio o item 4 eu entendo uma coisa diferente. Quero deixar isso sem margem pra interpretação antes de partir pro planejamento."
+ },
+ {
+  "expect": "db-context-postgres",
+  "prompt": "Essa tarefa vai mexer nas tabelas de cobrança do nosso Postgres no Cloud SQL e eu estou chutando de cabeça quais colunas existem e quais são nullable. Conecta via psql e deixa isso confirmado e guardado junto da tarefa antes de eu planejar em cima de suposição."
+ },
+ {
+  "expect": "db-context-supabase",
+  "prompt": "Preciso ver como as tabelas de assinatura e as policies estão de fato no Supabase antes de seguir, porque boa parte do que escrevi eu chutei de cabeça e já errei nome de coluna duas vezes."
+ },
+ {
+  "expect": "decision-interview",
+  "prompt": "Antes de eu montar o plano do fluxo de cancelamento de assinatura, ninguem nunca bateu o martelo se o cancelamento vale na hora ou so no fim do ciclo, e o que acontece com os creditos que sobraram. Nao quero chutar isso e descobrir depois que o financeiro esperava outra coisa."
+ },
+ {
+  "expect": "delivery-asset",
+  "prompt": "Terminei a integração de boleto e a diretoria pediu meia página pra reunião de quinta, sem nenhum termo técnico. A descrição do PR não serve, é jargão do início ao fim."
+ },
+ {
+  "expect": "design-bootstrap",
+  "prompt": "Recebi hoje o link do Figma do produto novo e do lado do codigo nao existe absolutamente nada ainda, nenhuma pasta, nenhum doc, nenhum token. Preciso sair desse arquivo com o basico organizado pra o time conseguir comecar amanha."
+ },
+ {
+  "expect": "design-spec-review",
+  "prompt": "Codei o Button do design system ontem com as cinco variantes. Tem um documento nosso que descreve ele inteiro (variantes, estados, tokens, props) e eu quero saber onde a implementação fugiu do que está escrito lá, principalmente se sobrou hex chumbado."
+ },
+ {
+  "expect": "direction-adjust",
+  "prompt": "Estou no meio da fatia 3 e percebi sozinho, mexendo no código, que o histórico devia ir pra uma tabela própria em vez de versionar a mesma linha. Não invalida a task, mas quero isso registrado com o motivo antes de eu seguir, senão daqui a duas semanas ninguém lembra por que mudou."
+ },
+ {
+  "expect": "external-research",
+  "prompt": "Já juntei uns 6 links sobre SQS, RabbitMQ e Redis Streams pro pipeline de ingestão e continuo com 6 abas abertas e zero conclusão. Preciso que isso vire uma comparação com uma indicação clara, citando de onde saiu cada afirmação, senão não consigo fechar a decisão dessa tarefa."
+ },
+ {
+  "expect": "external-research-fleet",
+  "prompt": "Preciso avaliar a troca do provedor de pagamento por cinco frentes que quase não conversam entre si: custo, compliance no Brasil, esforço de migração, qualidade do suporte e o que a comunidade reclama em produção. Já separei uns 20 links agrupados por frente e sozinho eu perco dois dias lendo tudo em sequência."
+ },
+ {
+  "expect": "extract-foundations-from-screens",
+  "prompt": "Tenho 14 telas já documentadas e cada uma lista hex e px soltos, escritos na mão. Queria consolidar isso num lugar só, dizendo qual cinza é fundo e qual é texto, sem atropelar o que já tinha sido definido antes."
+ },
+ {
+  "expect": "feature-library-scout",
+  "prompt": "O stack já tá fechado em React Native com Expo. Agora tenho que resolver lista com muitos itens, câmera e gráfico, e não quero escolher no chute como da última vez, que caí num pacote parado há dois anos."
+ },
+ {
+  "expect": "feature-library-scout-fleet",
+  "prompt": "Stack ja fechada em Expo e tenho cinco frentes onde nao faz sentido escrever do zero: lista longa, camera, formularios, bottom sheet e cache offline. Queria saber o que o pessoal usa de verdade hoje em cada uma delas, olhando download, ultima release e manutencao, nao a primeira coisa que aparece no Google."
+ },
+ {
+  "expect": "foundation-audit",
+  "prompt": "Os docs das nossas fundacoes foram escritos ha uns tres meses e desde entao o pessoal foi jogando cor e espacamento direto no arquivo de tokens. Desconfio que metade do que ta no codigo nao ta escrito em lugar nenhum, e que tem valor que mudou sem ninguem avisar."
+ },
+ {
+  "expect": "frontend-architecture-review",
+  "prompt": "Somos quatro times mexendo no mesmo app web e um deles quer quebrar tudo em pedaços que cada time sobe sozinho. Antes de eu comprar essa briga na reunião de quinta, queria uma opinião dura sobre se isso se justifica aqui ou se a gente só tá copiando o que a Spotify faz."
+ },
+ {
+  "expect": "frontend-system-design",
+  "prompt": "Vamos fazer o painel de acompanhamento ao vivo dos pedidos na web e ninguém decidiu ainda de onde vem o dado, onde mora o estado, o que renderiza no servidor nem qual o teto de tempo de carregamento. Antes de quebrar em fatias eu queria isso tudo escrito num documento que o time possa contestar."
+ },
+ {
+  "expect": "godot-runtime-verify",
+  "prompt": "Dei play na cena do inventário no Godot e o debugger cuspiu um monte de erro de nó nulo no _ready, mas o item ainda aparece certinho na tela. Não sei se isso conta como funcionando ou se eu tenho que segurar o fechamento dessa etapa; tenho o log inteiro aqui pra colar."
+ },
+ {
+  "expect": "godot-scene-plan",
+  "prompt": "Vou fazer o chefão da fase 2 no Godot e antes de escrever uma linha de GDScript quero decidir como isso vai ser montado: o que é nó, o que vira cena separada, o que precisa ser global. Da última vez eu fui montando direto no editor e virou um emaranhado que ninguém consegue mexer."
+ },
+ {
+  "expect": "graphql-contract-review",
+  "prompt": "Fechei o desenho do schema do BFF novo, uns 12 tipos e dois subgraphs, e ninguém começou a implementar ainda. Queria um olhar crítico agora, porque depois que o app mobile depender disso fica caro mudar."
+ },
+ {
+  "expect": "harvest-session-learnings",
+  "prompt": "Queimei umas 3 horas hoje numa abordagem de cache no worker que nunca ia funcionar por causa de como o processo reinicia, e no fim tive que voltar tudo. Antes dessa sessao acabar quero deixar registrado esse aprendizado pra proxima tarefa nao cair no mesmo buraco."
+ },
+ {
+  "expect": "im-stuck",
+  "prompt": "Faz duas horas que eu tô girando em círculo nessa tarefa, revisei a mesma coisa três vezes e continuo trocando de ideia sobre se o problema é o plano ou o código. Nem sei mais se eu tô no passo certo aqui."
+ },
+ {
+  "expect": "image-to-spec",
+  "prompt": "Nao tenho Figma nenhum, so um print que o cliente mandou no WhatsApp da tela de checkout que ele quer. Queria transformar essa imagem num documento que o time consiga usar pra construir, deixando claro o que ali e leitura e o que e chute meu."
+ },
+ {
+  "expect": "impact-analysis",
+  "prompt": "Abri a task ontem pra trocar o formato do telefone que a gente guarda no banco e sinceramente não faço ideia de quantos lugares dependem daquele campo. Antes de encostar o dedo eu preciso entender o tamanho do estrago, tem integração com o SMS e com o CRM no meio."
+ },
+ {
+  "expect": "implement-approved-slice",
+  "prompt": "A fatia 2 (só o endpoint de reenvio do código SMS e o teste dele) foi aprovada ontem e os arquivos já estão listados no plano. Pode escrever o código dela agora, sem encostar em mais nada, que eu reviso o diff depois."
+ },
+ {
+  "expect": "implement-fleet",
+  "prompt": "O plano está aprovado e as quatro primeiras etapas não encostam num arquivo em comum: duas são telas diferentes, uma é o worker de notificação e a outra é o template de e-mail. Fazer uma de cada vez consome a semana inteira, queria tocar as quatro ao mesmo tempo sem uma atropelar a outra."
+ },
+ {
+  "expect": "implement-slice-complement",
+  "prompt": "A fatia 3 já está implementada e funcionando, só sobraram três coisinhas: o texto de erro está com typo, falta um log no catch do handler e o teste do caso de lista vazia. É tudo dentro da mesma intenção, não quero abrir escopo novo por causa disso."
+ },
+ {
+  "expect": "implementation-plan",
+  "prompt": "Já entendi o tamanho da mudança e as regras de comportamento estão fechadas. Agora preciso partir isso em entregas pequenas que dê pra revisar e subir uma de cada vez sem parar a produção, e saber por onde começar."
+ },
+ {
+  "expect": "incident-triage",
+  "prompt": "O deploy de ontem as 18h quebrou o checkout em prod, esta dando 500 e o stack trace aponta pra um null no campo tax_id na linha 87 do service de pagamento. Preciso decidir agora se solto correcao direto ou se isso vira trabalho com plano completo."
+ },
+ {
+  "expect": "invariants-and-non-goals",
+  "prompt": "Antes de encostar no fluxo de checkout eu quero deixar escrito o que não pode mudar de jeito nenhum e o que eu não vou fazer nessa rodada. Se eu não travar isso agora, eu conheço meu vício e vou acabar refatorando o módulo de cupom junto."
+ },
+ {
+  "expect": "inventory-snapshot",
+  "prompt": "O pessoal de design publicou ontem uma atualizacao da biblioteca do Figma e eu nao sei o que entrou, o que trocou de nome e o que a gente ja tem feito do nosso lado. Preciso de um retrato atual disso pra decidir por onde comecar a semana."
+ },
+ {
+  "expect": "journey-map",
+  "prompt": "O cadastro do entregador passa por umas cinco telas até ele conseguir aceitar a primeira corrida, e ninguém escreveu em lugar nenhum onde o cara cai quando o documento é recusado no meio do caminho. Preciso disso desenhado de ponta a ponta, com os desvios."
+ },
+ {
+  "expect": "mcp-server-vet",
+  "prompt": "Um colega mandou um servidor pra eu colocar no .mcp.json que promete puxar os tickets do Jira, e ele pede um token com permissão total. Baixei numa pasta isolada e não quero ligar isso na minha máquina antes de alguém ler o que aquelas ferramentas realmente fazem."
+ },
+ {
+  "expect": "pattern-doc",
+  "prompt": "Toda tela nova aqui reinventa o jeito de mostrar lista vazia e a gente já tem três desenhos diferentes de estado vazio no mesmo app. Queria escrever de uma vez como isso deveria funcionar, de um jeito genérico que sirva também pro próximo produto que a gente pegar."
+ },
+ {
+  "expect": "portfolio-review",
+  "prompt": "Tenho coisa aberta em quatro projetos diferentes e já perdi a conta de quais estão parados esperando resposta de outra pessoa e quais eu simplesmente abandonei em maio. Me mostra tudo lado a lado pra eu escolher o que pegar hoje e ver o que já acabou e nunca foi arquivado."
+ },
+ {
+  "expect": "post-review-pivot",
+  "prompt": "O review do PR derrubou a modelagem: era pra ser por usuário e não por conta, então a migration e o contrato mudam junto. A lógica de cálculo eu quero manter. Preciso separar o que fica e o que volta atrás antes de sair mexendo no código."
+ },
+ {
+  "expect": "pr-feedback-ingest",
+  "prompt": "O PR #412 voltou com 14 comentarios, parte do bot de review e parte do Rafa, tudo coisa dentro do que ja combinamos (campo errado, teste faltando, nome de variavel). Quero isso organizado numa lista rastreavel amarrada nas fatias antes de eu sair corrigindo item por item."
+ },
+ {
+  "expect": "pr-package",
+  "prompt": "Terminei os dois pedaços e a branch tá em cima da origin/develop, com o diff estável. Preciso mandar pra revisão ainda hoje com uma descrição decente e apontando onde o pessoal deve olhar com mais cuidado."
+ },
+ {
+  "expect": "problem-framing",
+  "prompt": "O CEO chegou pedindo 'um dashboard de metricas pro comercial' e eu acho que o problema real nem e esse, e o relatorio que a Ana monta na mao toda sexta. Antes de eu abrir qualquer coisa aqui, queria apertar esse pedido ate sobrar um objetivo que se sustente."
+ },
+ {
+  "expect": "project-bootstrap",
+  "prompt": "Fechei um cliente novo essa semana, um app de agendamento pra clínicas, e não tem absolutamente nada montado ainda do lado de cá. Queria deixar o contexto do produto registrado antes de abrir a primeira demanda pra não ficar repetindo o mesmo briefing toda vez."
+ },
+ {
+  "expect": "prompt-shape",
+  "prompt": "Sei que o próximo passo é revisar o que mexi no módulo de pagamento, mas do jeito que eu ia escrever (\"dá uma olhada geral aí\") volta resposta genérica igual da última vez. Me ajuda a montar o pedido direito, com os arquivos e o que eu espero de retorno, antes de eu mandar."
+ },
+ {
+  "expect": "release-plan",
+  "prompt": "Semana que vem entra o fluxo novo de login e se der errado é o app inteiro parado. Quero decidir antes como libero isso aos poucos e qual sinal me faz voltar atrás, porque da última vez a gente só descobriu o problema com 100% dos usuários já dentro."
+ },
+ {
+  "expect": "repo-consistency-sweep",
+  "prompt": "Terminei as duas fatias e antes de abrir o PR queria uma passada no diff atrás daquelas besteiras repetidas que o bot de review sempre acha depois: argumento na ordem trocada, query sem filtro de tenant, catch engolindo erro. Não é revisão de arquitetura, é aquele tipo de coisa chata e padronizada mesmo."
+ },
+ {
+  "expect": "resolve-contract-gaps",
+  "prompt": "A doc do produto diz que cupom vencido barra o checkout, o código atual só mostra um aviso e o suporte trabalha como se valesse mais 24h. Não falta informação, falta cravar uma regra única, e sem isso eu não sigo."
+ },
+ {
+  "expect": "resume-from-state",
+  "prompt": "Voltei de duas semanas fora e abri um chat novo nessa tarefa do importador de CSV. Nao lembro em que pe parou nem o que ja tinha sido decidido, me poe a par do quadro atual antes de eu encostar em qualquer arquivo."
+ },
+ {
+  "expect": "review-hard",
+  "prompt": "Acabei de mexer no serviço de agendamento e fiquei com aquela sensação ruim de que deixei passar algum caso torto. Antes de mandar pro time queria uma leitura bem cética do que pode quebrar de verdade, não apontamento de estilo."
+ },
+ {
+  "expect": "screen-spec",
+  "prompt": "A designer finalizou o frame do checkout no Figma e me mandou o link do nó. Quero tirar dali tudo que o dev precisa pra montar a tela (quais componentes, espaçamentos, textos, estados de erro) sem depender de mim pra cada dúvida."
+ },
+ {
+  "expect": "screen-spec-fleet",
+  "prompt": "Tenho 11 frames do fluxo do entregador ja mapeados no Figma, com o node id de cada um anotado numa planilha, tudo da mesma persona. Fazer um de cada vez vai comer minha tarde inteira e eu preciso dos 11 documentados hoje."
+ },
+ {
+  "expect": "security-review",
+  "prompt": "Terminei o login com refresh token e o fluxo de recuperar senha, umas 400 linhas mudadas. Antes de abrir o PR quero alguém pensando como atacante em cima disso: quem consegue acessar dado de quem, o que está indo parar no log, se dá pra sequestrar sessão dos outros."
+ },
+ {
+  "expect": "self-critique-and-revise",
+  "prompt": "Acabei de escrever o plano de fatias e ele ficou frouxo, tem etapa sem critério de pronto e duas que dependem uma da outra sem dizer isso. Antes de mostrar pro time queria que alguém apontasse os furos e já me devolvesse a versão corrigida pra eu comparar."
+ },
+ {
+  "expect": "skill-vet",
+  "prompt": "Baixei de um repo do GitHub uma pasta com SKILL.md mais uns scripts auxiliares e deixei ela isolada fora do projeto. Antes de eu ligar isso no meu setup, lê tudo que veio junto e me diz se dá pra confiar, porque o README pode estar dizendo uma coisa e os arquivos fazendo outra."
+ },
+ {
+  "expect": "slice-closure",
+  "prompt": "Terminei a terceira etapa e validei na mão em staging porque teste automatizado não pegava esse caso. Sobraram dois ajustes menores que não são dela. Isso já conta como encerrado ou tenho que resolver antes?"
+ },
+ {
+  "expect": "stack-currency-check",
+  "prompt": "Vou comecar a escrever a parte de auth com Next 15 e Supabase e desconfio que o padrao que eu tenho na cabeca e de duas versoes atras. Confere na doc oficial qual e o jeito recomendado hoje antes de eu sair codando algo que ja foi depreciado."
+ },
+ {
+  "expect": "stack-recommend",
+  "prompt": "Vou tocar um projeto novo do zero pra um cliente, um sistema web de gestão de frota, e ainda não decidi framework, banco nem autenticação. Não quero escolher de cabeça e descobrir depois que a versão que eu chutei já é velha."
+ },
+ {
+  "expect": "state-reconcile",
+  "prompt": "O TASK_STATE diz que estou na etapa 3, as notas mostram a 4 e a 5 ja fechadas, e o plano ainda lista uma coisa que eu descartei semana passada. Nao confio em nada disso pra decidir o que fazer agora."
+ },
+ {
+  "expect": "sync-task-state",
+  "prompt": "Fechei o slice 3 agora de tarde e vou parar por hoje, mas o registro da task ainda diz que eu estou no slice 2. Atualiza isso pro que realmente aconteceu, senão amanhã de manhã eu volto perdido."
+ },
+ {
+  "expect": "targeted-questions",
+  "prompt": "Antes de eu montar o plano da troca do webhook do parceiro, prefiro que você me pergunte o que ainda falta confirmar (qual versão da API eles estão, se o retry é do lado deles ou do nosso, se o payload vem assinado) em vez de assumir. Só o que realmente muda o resultado, não quero questionário de 20 itens."
+ },
+ {
+  "expect": "task-close",
+  "prompt": "O PR do reprocessamento de boletos foi mergeado ontem, todas as etapas estão fechadas e não sobrou nenhuma pendência. Essa pasta continua aparecendo como coisa em andamento e eu quero tirar ela da minha frente de vez."
+ },
+ {
+  "expect": "task-init",
+  "prompt": "Vou começar a migração do envio de email pro provedor novo no projeto da acme. Ainda não existe nada aberto pra esse trabalho e quero a estrutura e o registro inicial no lugar antes de tocar em código."
+ },
+ {
+  "expect": "task-init-fleet",
+  "prompt": "Ficou decidido que a migração de REST pra GraphQL vai acontecer no api-server, no app mobile e no site, e as três frentes andam separadas, cada uma com dono diferente. Quero abrir tudo de uma vez com a estrutura de pastas e memória de cada uma, sem ficar repetindo o mesmo setup três vezes na mão."
+ },
+ {
+  "expect": "task-workspace",
+  "prompt": "Estou tocando duas tarefas no mesmo repo e toda hora tenho que dar stash pra trocar de branch, ja perdi alteracao assim uma vez essa semana. Queria que essa tarefa aqui tivesse a propria copia do repo e o proprio branch, sem atrapalhar a outra."
+ },
+ {
+  "expect": "team-update",
+  "prompt": "Preciso mandar um recado curto no canal do time contando como está a tarefa do login, já me perguntaram duas vezes hoje. Umas três linhas, direto, sem virar um documento."
+ },
+ {
+  "expect": "test-strategy",
+  "prompt": "A proxima etapa do plano mexe no calculo de repasse e no reprocessamento de cobranca com retry. Nao tenho tempo de cobrir tudo e nao sei onde vale gastar esforco pra nao quebrar dinheiro de cliente depois."
+ },
+ {
+  "expect": "unity-scene-plan",
+  "prompt": "Vou começar a parte de dirigir o carro no nosso projeto Unity, com câmera perseguindo e input no gamepad, e não quero sair criando script no chute igual da última vez. Preciso fechar antes o que é objeto na cena, o que vira prefab e qual script cuida de quê."
+ },
+ {
+  "expect": "verify-against-rubric",
+  "prompt": "Esse pacote de entrega da migração de pagamentos é a coisa mais arriscada do trimestre e eu já reli tantas vezes que não enxergo mais defeito nele. Queria um olhar de fora, de quem não sabe nada do histórico dessa task, batendo item por item contra os critérios que a gente travou."
+ },
+ {
+  "expect": "verify-against-rubric-fleet",
+  "prompt": "Tenho 7 notas de fatia fechadas nesse ciclo e um único checklist de qualidade que a gente combinou no começo. Queria cada uma julgada em separado, por quem não viu as outras nem o histórico da task, e no fim saber quais itens do checklist caem em várias delas."
+ },
+ {
+  "expect": "web-runtime-verify",
+  "prompt": "O build da landing passou e o typecheck está limpo, mas isso não me diz nada sobre estourar em tela estreita ou soltar erro no console ao carregar. Sobe o dist aí num servidor e confere de verdade no navegador antes de eu dar a fatia por encerrada."
+ },
+ {
+  "expect": "what-next",
+  "prompt": "Acabei de fechar a validação da etapa 2 e os registros da tarefa estão atualizados. Só me diz qual é a próxima coisa a fazer, sem explicar o processo todo nem revisar tudo de novo."
+ },
+ {
+  "expect": "where-we-at",
+  "prompt": "O plano dessa tarefa tem 6 fatias, fechei 3 e a quarta esta pela metade. Antes da call de amanha quero uma leitura honesta do que realmente falta pra terminar, porque minha sensacao e que estou mais atrasado do que os arquivos dizem."
+ },
+ {
+  "expect": "workflow-guide",
+  "prompt": "É minha segunda semana usando esse processo e eu ainda não entendi por que umas etapas têm que vir antes das outras. Me explica em que ponto dessa tarefa eu estou e o que vem depois, porque amanhã eu vou ter que ensinar isso pro Gabriel."
+ }
+]

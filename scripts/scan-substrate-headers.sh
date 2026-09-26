@@ -33,7 +33,13 @@
 #     /path/to/repo/projects/bmazurok__foo/active/2026-06-04_bar
 #
 # Exit codes:
-#   0 always; the count is the signal, not the exit code (informational per K.4 v2.1)
+#   0 when files were scanned, whatever the count: the count is the signal, not the
+#     exit code (informational per K.4 v2.1; ADR-0034 says header-less sections are
+#     never errors, and the closure integrity floor keys on exit codes only)
+#   2 on a usage error, or when no substrate file was found to scan. That case used to
+#     print a drift count of 0 with exit 0, which reads as clean on a folder nobody
+#     read (ADR-0224). It now prints
+#     `substrate_header_drift_count: not scanned (no substrate files under <dir>)`.
 
 set -uo pipefail
 
@@ -76,12 +82,12 @@ PROJECT_DIR="$(cd "$TASK_DIR/../.." && pwd)"  # active/<task>/.. -> active/ then
 # never runs. Detecting once with stdout redirected is what makes the probe a probe.
 if stat -f '%m' "$0" >/dev/null 2>&1; then STAT_MTIME=(stat -f '%m'); else STAT_MTIME=(stat -c '%Y'); fi
 
-# Resolve Fhorja repo root (substrate lives inside; for git log we need the repo root)
+# Resolve the owning repo root (substrate lives inside; for git log we need the repo root).
+# A task folder outside any git repository is scanned too, every file through the
+# untracked (mtime) cutover path below. This used to exit 2, which was harmless while the
+# script lived only in this clone; once it ships, a task repository that is not a git
+# repository would fail the closure integrity floor on every close (ADR-0224).
 WOS_ROOT="$(cd "$TASK_DIR" && git rev-parse --show-toplevel 2>/dev/null || true)"
-if [[ -z "$WOS_ROOT" ]]; then
-  echo "ERROR: task folder is not inside a git repo (cannot run git log for cutover check)" >&2
-  exit 2
-fi
 
 # Helper: resolve product-repo root paths from SOURCE_OF_TRUTH.md.
 # Reads either `## Active codebase / repo` (single-repo) or `## Repositories`
@@ -180,9 +186,11 @@ if [[ $INCLUDE_PRODUCT_REPOS -eq 1 ]]; then
 fi
 
 if [[ ${#SUBSTRATE_FILES[@]} -eq 0 ]]; then
-  echo "substrate_header_drift_count: 0"
-  [[ $VERBOSE -eq 1 ]] && echo "(no substrate files found at $TASK_DIR, $PROJECT_DIR, or any product repo)" >&2
-  exit 0
+  # Nothing was read, so there is no count to report. A 0 here could not be told apart
+  # from a clean scan (ADR-0224).
+  echo "substrate_header_drift_count: not scanned (no substrate files under $TASK_DIR)"
+  [[ $VERBOSE -eq 1 ]] && echo "(looked in $TASK_DIR, $PROJECT_DIR, and any declared product repo)" >&2
+  exit 2
 fi
 
 # The canonical inline header pattern per substrate-write-protocol.md:
@@ -226,8 +234,15 @@ for file in "${SUBSTRATE_FILES[@]}"; do
     owning_root="$WOS_ROOT"
   fi
 
-  rel_to_root=$(realpath --relative-to="$owning_root" "$file" 2>/dev/null || echo "$file")
-  is_tracked=$(cd "$owning_root" && git ls-files --error-unmatch "$rel_to_root" 2>/dev/null && echo yes || true)
+  is_tracked=""
+  if [[ -n "$owning_root" ]]; then
+    rel_to_root=$(realpath --relative-to="$owning_root" "$file" 2>/dev/null || echo "$file")
+    is_tracked=$(cd "$owning_root" && git ls-files --error-unmatch "$rel_to_root" 2>/dev/null && echo yes || true)
+  else
+    # No repository owns this file: the mtime path below decides, and the drift log
+    # shows paths relative to the file's own folder.
+    owning_root="$(dirname "$file")"
+  fi
   if [[ -n "$is_tracked" ]]; then
     last_post_cutoff=$(cd "$owning_root" && git log -1 --since="$CUTOFF" --format=%cI -- "$rel_to_root" 2>/dev/null || true)
     if [[ -z "$last_post_cutoff" ]]; then
@@ -283,8 +298,10 @@ done
 echo "substrate_header_drift_count: $DRIFT_COUNT"
 
 if [[ $VERBOSE -eq 1 ]]; then
-  echo "--- drift detail (${#DRIFT_LOG[@]:-0} sections) ---" >&2
-  if [[ ${#DRIFT_LOG[@]:-0} -gt 0 ]]; then
+  # `${#DRIFT_LOG[@]:-0}` was a bad substitution: under --verbose with any drift the
+  # script died here with exit 1 after printing its count.
+  echo "--- drift detail (${#DRIFT_LOG[@]} sections) ---" >&2
+  if [[ ${#DRIFT_LOG[@]} -gt 0 ]]; then
     printf '%s\n' "${DRIFT_LOG[@]}" >&2
   fi
 fi

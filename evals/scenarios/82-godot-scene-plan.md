@@ -1,6 +1,6 @@
 # Eval scenario 82: godot-scene-plan produces an MCP-agnostic Godot scene plan
 
-- **Tags**: ADR-0069, godot, game-dev, 2d-mobile, scene-plan, mcp-agnostic, capability-routed, discovery-and-scoping
+- **Tags**: ADR-0069, godot, game-dev, 2d-mobile, scene-plan, mcp-agnostic, capability-routed, game-and-engine
 - **Last reviewed**: 2026-06-30
 - **Status**: active
 
@@ -28,7 +28,7 @@ Run @commands/godot-scene-plan.md for projects/acme__game/active/2026-06-30_play
 
 ## Expected response shape
 
-- Response includes a `### Artifact changes` section listing `GODOT_SCENE_PLAN.md` (APPLIED in Agent mode, PROPOSED in Ask/Plan).
+- Response includes a `### Artifact changes` section listing `GODOT_SCENE_PLAN.md` (APPLIED in every mode, ADR-0199).
 - The plan contains a scene tree where each node has a Godot type (for example `CharacterBody2D`, `AnimatedSprite2D`, `CollisionShape2D`, `Camera2D`) and a one-line responsibility.
 - The plan has an autoloads section, a signals section (emitter, signal, listener, payload), an input map section (with touch mapping), and a resources/sub-scenes section.
 - Response includes a `### Handoff` block with a fenced region containing `Run now:`, `Mode:`, `Work complexity:`, `Reason:`, routing to `implementation-plan`, `decision-interview`, or `targeted-questions`.

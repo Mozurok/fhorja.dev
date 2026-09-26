@@ -29,19 +29,24 @@ Use the greenfield POC sequence (see `wos/workflow-shapes.md` -> Greenfield POC 
 ## New task
 Use:
 - `task-init`
-- `task-init` will assess complexity and recommend a pipeline tier (Express / Standard / Disciplined / Strict; see ADR-0025)
-- follow the recommended next command from the handoff
+- `task-init` emits the fired disqualifier rather than a tier label, one rule line such as `Adding impact-analysis: scope needs more than one sentence` (ADR-0184). ADR-0025's four-tier vocabulary is retired by ADR-0207: Express, Standard and Disciplined dissolve into the announced disqualifiers, and Strict survives as a categorical trip condition on a fixed surface list rather than as a tier
+- the session then runs the handoff `Run now` itself; you are not the transport
 
 ## New task with clear scope and all decisions known
-Use:
-- `task-init` (complexity assessment will recommend Express tier)
+Use the default pipeline (ADR-0184):
+- `task-init` (no disqualifier fires here, so nothing is added to the pipeline)
 - then `implementation-plan` (skip `impact-analysis` and `decision-interview`)
+- then `approve-plan`, which runs on every plan `implementation-plan` writes and approves it through a blinded review with no human turn (ADR-0208)
+- when the change also fits one sentence and touches at most two named files, `task-init` takes the one-slice route instead: it writes the approved slice and hands straight to `implement-approved-slice`, which runs `check-doc-sync.sh --against HEAD` at its inline close in place of the plan review (ADR-0225)
 - then `implement-approved-slice`
+- then `branch-commit --apply` after the last slice, to create the commit (ADR-0163)
 
 ## New task and still very unclear
 Use:
-- `task-init`
-- then `impact-analysis`
+- `problem-framing` first, to shape a fuzzy or possibly mis-scoped objective into a `BRIEF.md` before any task folder exists
+- then `task-init`, which consumes the brief
+
+Uncertainty alone does not add `impact-analysis`. It enters the pipeline only when its disqualifier fires: the scope needs more than one sentence to state, or the change touches 5 or more files (ADR-0184).
 
 ## New task but you do not yet know which files to touch
 Use:
@@ -104,7 +109,7 @@ Closes the whole task: gates on the done-conditions, writes the final `TASK_STAT
 
 ## Specialized but valuable when their trigger arrives
 
-These commands are not part of the default pipeline; invoke them when their specific trigger condition applies. A 60-day audit (2026-06-04, `_internal/command-classification-2026-06.md`) showed they are underused relative to when they would help. Fleet variants (`atom-audit-fleet`, `external-research-fleet`, `verify-against-rubric-fleet`, `screen-spec-fleet`, `task-init-fleet`) dispatched 2026-06-05; lived runs pending per ADR-0038.
+These commands are not part of the default pipeline; invoke them when their specific trigger condition applies. A 60-day audit (2026-06-04, `_internal/command-classification-2026-06.md`, maintainer-local and gitignored) showed they are underused relative to when they would help.
 
 ### Reviewing an API contract before locking it
 - `api-contract-review` -- run when you have a draft API or schema spec that needs to be locked into `DECISIONS.md` but want a structured review of edge cases, error shapes, versioning, and contract clarity first.
@@ -123,9 +128,6 @@ These commands are not part of the default pipeline; invoke them when their spec
 
 ### Sharing async progress with non-coding stakeholders
 - `team-update` -- run when stakeholders need a status update but not a delivery package. Distinct from `delivery-asset` (formal deliverable).
-
-### Locking a plan before execution begins
-- `approve-plan` -- run after `implementation-plan` (or `self-critique-and-revise`) when the user wants to atomically lock the plan as the approved baseline and stamp `TASK_STATE.md` with the approval signal. Symmetric to `approve-proposed` but plan-specific. Refuses on `[NEEDS CLARIFICATION:]` markers.
 
 ### Auditing design system atoms against shared guidelines
 - `atom-audit` -- run every 2-4 weeks or when 5+ new atoms shipped to refresh `docs/research/ATOM_AUDIT.md` table (memo, callbacks, inline styles, press anim, touch target, a11y, reduced motion). Distinct from `foundation-audit` (token drift) and `design-spec-review` (single component).
@@ -149,11 +151,11 @@ When NOT to use: the slice DAG is a pure chain (every wave has size one) -- use 
 
 A hand-authored Workflow script over already-approved slices is a contract bypass: it skips slice notes, wave computation, and the `TASK_STATE.md` writes the fleet owns. Route to `implement-fleet` instead.
 
-### Fanning out 15-25 identical research or audit items (batch dispatch)
+### Fanning out 15-25 identical research or audit items via the workflow tool (batch dispatch)
 
 Recommended first command: review wos/workflow-patterns.md and check ADR-0038 + ADR-0039.
 
-When to use: 15-25 independent items requiring identical read-only processing (e.g. eval batch updates, multi-doc consolidation, fleet audits, atom-by-atom analysis).
+When to use: 15-25 independent items requiring identical read-only processing dispatched via the workflow tool (e.g. eval batch updates, multi-doc consolidation, atom-by-atom analysis). The example list used to name fleet audits, which the next line already excludes: a fleet command dispatches on the `Agent`-tool path, where its own `max_fanout` binds and the ceiling is 20.
 
 When NOT to use: tasks with shared substrate writes (use sequential), <10 items (overhead dominates), >25 items (split into 2 batches). This sizing is for research/audit batches, not for slice fleets.
 

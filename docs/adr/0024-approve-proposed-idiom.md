@@ -1,6 +1,6 @@
 # ADR-0024: /approve-proposed batch-persist idiom
 
-- **Status**: Accepted
+- **Status**: Accepted. Superseded by ADR-0199: the three-path rule described the mode gate, which is gone.
 - **Date**: 2026-05-19
 - **Tags**: proposed-by-default, ergonomics, batch-persist, addendum-adr-0001, single-turn-write
 

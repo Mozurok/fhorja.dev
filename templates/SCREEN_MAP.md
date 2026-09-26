@@ -20,12 +20,12 @@
 
 | Route | Persona | Screen name | Spec doc | Status | Figma frame | Notes |
 |---|---|---|---|---|---|---|
-| `/auth/login` | auth | Login | `docs/app/screens/auth/login.md` | documented | `<node-id>` | — |
-| `/auth/onboarding/1` | auth | Onboarding Step 1 | `docs/app/screens/auth/onboarding-1.md` | drafted | `<node-id>` | — |
-| `/home` | operative | Home (Operative) | `docs/app/screens/operative/home.md` | documented | `<node-id>` | — |
-| `/home` | client | Home (Client) | `docs/app/screens/client/home.md` | deferred | — | persona variant; pending design |
+| `/auth/login` | auth | Login | `docs/app/screens/auth/login.md` | documented | `<node-id>` | - |
+| `/auth/onboarding/1` | auth | Onboarding Step 1 | `docs/app/screens/auth/onboarding-1.md` | drafted | `<node-id>` | - |
+| `/home` | operative | Home (Operative) | `docs/app/screens/operative/home.md` | documented | `<node-id>` | - |
+| `/home` | client | Home (Client) | `docs/app/screens/client/home.md` | deferred | - | persona variant; pending design |
 | `/settings` | shared | Settings | `docs/app/screens/shared/settings.md` | documented | `<node-id>` | shared across personas |
-| `/super/admin/users` | super-admin | User Admin | `docs/app/screens/super-admin/users.md` | pending | — | route reserved |
+| `/super/admin/users` | super-admin | User Admin | `docs/app/screens/super-admin/users.md` | pending | - | route reserved |
 
 ## Counts (per status)
 
@@ -51,7 +51,7 @@
 
 ## Sync with routes + navigation
 
-This map is the canonical screen list; `routes.md` is the canonical route → screen mapping; `navigation.md` is the navigator structure (tab bars, modal stack, deep-link rules). The three docs must be consistent — the `screen-spec` command and any route-adding edit should update all three in the same slice.
+This map is the canonical screen list; `routes.md` is the canonical route → screen mapping; `navigation.md` is the navigator structure (tab bars, modal stack, deep-link rules). The three docs must be consistent: the `screen-spec` command and any route-adding edit should update all three in the same slice.
 
 ## How a screen enters the map
 

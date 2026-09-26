@@ -77,22 +77,62 @@ mtime() {
   echo "$v"
 }
 
+# Search scope. `projects/` holds the tasks of EVERY project, so "most recently
+# modified across the tree" is not the task in hand once more than one is open.
+# Wired unscoped in a tree with 32 active tasks across 84 projects, this printed
+# an unrelated client task's resume notes into SessionStart context and wrote a
+# session-end marker into that task's sidecar. Scope is therefore explicit:
+#
+#   WOS_ACTIVE_TASK     absolute path to one task folder; wins outright
+#   WOS_ACTIVE_PROJECT  a projects/<name> directory; restricts the search
+#
+# With neither set, a single active task is unambiguous and still works. More than
+# one is ambiguous, and the hook declines rather than guessing, because guessing
+# costs context on the wrong task and, on stop, writes state into it.
+search_root="$tasks_root"
+if [[ -n "${WOS_ACTIVE_PROJECT:-}" ]]; then
+  if [[ -d "$tasks_root/${WOS_ACTIVE_PROJECT}" ]]; then
+    search_root="$tasks_root/${WOS_ACTIVE_PROJECT}"
+  else
+    # A scope that does not resolve must NOT widen back to the whole tree. Silently
+    # falling back is how a typo in one variable restores the exact behavior the
+    # scope was added to prevent, and the output would look like it had worked.
+    [[ "$mode" == "start" ]] && echo "session-continuity: WOS_ACTIVE_PROJECT names '${WOS_ACTIVE_PROJECT}', which is not a directory under $tasks_root; standing down rather than searching the whole tree."
+    exit 0
+  fi
+fi
+
 active_state=""
 active_mtime=0
 active_count=0
-while IFS= read -r ts_file; do
-  [[ -n "$ts_file" ]] || continue
-  active_count=$((active_count + 1))
-  m="$(mtime "$ts_file")"
-  if [[ "$m" -ge "$active_mtime" ]]; then
-    active_mtime="$m"
-    active_state="$ts_file"
-  fi
-done < <(find "$tasks_root" -type f -path '*/active/*/TASK_STATE.md' 2>/dev/null)
+if [[ -n "${WOS_ACTIVE_TASK:-}" && -f "${WOS_ACTIVE_TASK%/}/TASK_STATE.md" ]]; then
+  active_state="${WOS_ACTIVE_TASK%/}/TASK_STATE.md"
+  active_count=1
+else
+  while IFS= read -r ts_file; do
+    [[ -n "$ts_file" ]] || continue
+    active_count=$((active_count + 1))
+    m="$(mtime "$ts_file")"
+    if [[ "$m" -ge "$active_mtime" ]]; then
+      active_mtime="$m"
+      active_state="$ts_file"
+    fi
+  done < <(find "$search_root" -type f -path '*/active/*/TASK_STATE.md' 2>/dev/null)
+fi
 
 if [[ -z "$active_state" ]]; then
   # No active task. Stay quiet on stop; a light note on start is enough.
-  [[ "$mode" == "start" ]] && echo "session-continuity: no active Fhorja task under $tasks_root."
+  [[ "$mode" == "start" ]] && echo "session-continuity: no active Fhorja task under $search_root."
+  exit 0
+fi
+
+if [[ "$active_count" -gt 1 ]]; then
+  # Ambiguous. One line on start naming the fix, nothing at all on stop: an
+  # unwanted sidecar write into someone else's task is the harm worth avoiding,
+  # and 20 lines about the wrong task is the cost worth avoiding.
+  if [[ "$mode" == "start" ]]; then
+    echo "session-continuity: $active_count active tasks under $search_root, so the task in hand is ambiguous and this hook is standing down. Set WOS_ACTIVE_PROJECT (a projects/<name> directory) or WOS_ACTIVE_TASK (a task folder) to enable it."
+  fi
   exit 0
 fi
 

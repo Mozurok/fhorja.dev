@@ -29,7 +29,9 @@ Five signals, each checkable without running anything:
 4. **Constraints buried mid-body.** Enum values, required keys, and the no-preamble instruction stated once in the middle and never repeated at the tail. Models attend to the tail.
 5. **Chat-style preamble in the response.** A reply that opens with "Sure, I'll do that" instead of going straight to the tool call is the same failure seen from the other end.
 
-A grep that finds dispatch sites building long prompts with no closing reminder:
+Signals 2 and 3 are mechanical for a prompt kept as a Markdown file. `scripts/detect-workflow-prompt-too-long.sh <dir> [<dir> ...]` strips front matter and fenced code from every `*.md` under the directories you name, then reports `<file>:<line>: <words> words over 600` for a long body and, as a separate finding, `<file>:<line>: no typed-return reminder in the last 5 lines` when none of the last five body lines names `Return one payload matching worker_output_schema`, `Write one JSON payload matching worker_output_schema`, or `StructuredOutput`. It exits 1 on any finding and 2 on a directory that is missing or holds no `*.md`. Pass `--threshold N` to move the length line. Scenario 39 grades it on `evals/fixtures/workflow-prompt/`. It reads the file as written, so a prompt composed at runtime from includes still needs the composed text (see Retrieval).
+
+For prompts built in code, a grep that finds dispatch sites building long prompts with no closing reminder:
 
 ```
 # Find dispatch sites that build long prompts without a closing schema reminder
@@ -99,7 +101,9 @@ ${inputsBulleted}
 - artifact: ${artifactPath}
 - content: ${contentShape}
 
-IMPORTANT: Call StructuredOutput exactly once with {artifact, mode, content}. No preamble outside the tool call. NEVER use em-dash; use -- or : instead.`;
+IMPORTANT: Return one payload matching the declared output schema and nothing else. NEVER use em-dash; use -- or : instead.`;
 ```
+
+On the native Agent path, replace that final reminder with `Write one JSON payload matching worker_output_schema to fleet_inbox_artifact and nothing else`; supply the schema and resolved destination from the worker-contract envelope. The dynamic-workflow runtime supplies its typed result without a worker-side tool call (ADR-0158).
 
 One objective, the reusable context behind a shared include so the body stays short, and the reminder in the last position where recency works for it rather than against it.

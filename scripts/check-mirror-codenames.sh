@@ -18,7 +18,8 @@
 #
 # Usage:  scripts/check-mirror-codenames.sh <target-dir>
 #   e.g.  scripts/check-mirror-codenames.sh ../fhorja.dev
-# Exit:   0 clean, 1 leak(s) found, 2 usage error.
+# Exit:   0 clean (every scan ran), 1 leak(s) found, 2 usage error,
+#         3 structural scans clean but the codename scan did not run (no sidecar).
 
 set -uo pipefail
 
@@ -31,10 +32,21 @@ if [ -z "$TARGET" ] || [ ! -d "$TARGET" ]; then
   exit 2
 fi
 
+# A missing sidecar disables ONLY the codename loop. It must never disable the two structural scans
+# below it, because neither reads the sidecar at all.
+#
+# Until 2026-08-21 this block was `exit 2`. The sidecar is gitignored (.gitignore:38) and untracked, so
+# CI never has one: the guard exited 2, lint-commands.sh mapped 2 to "skipped", and lint exited 0 over
+# a real absolute /Users path and a real tracker ticket id planted in a TRACKED file. The file's mere
+# EXISTENCE was gating checks that never consumed its contents. Measured both ways on a fresh clone:
+# with no sidecar, lint exit 0 and "Mirror-guard: skipped"; with a sidecar holding only a comment and
+# zero codenames, guard exit 1 with both leak classes named and lint exit 1.
+HAVE_LIST=1
 if [ ! -f "$LIST" ]; then
-  echo "check-mirror-codenames: no codename list at ${LIST}." >&2
-  echo "  copy scripts/.mirror-codenames.example to scripts/.mirror-codenames and fill it in." >&2
-  exit 2
+  HAVE_LIST=0
+  echo "check-mirror-codenames: no codename list at ${LIST}; the CODENAME scan is skipped." >&2
+  echo "  copy scripts/.mirror-codenames.example to scripts/.mirror-codenames to enable it." >&2
+  echo "  the absolute-path and ticket-id scans below still run and can still fail this gate." >&2
 fi
 
 hits=0
@@ -99,15 +111,25 @@ scan_word() {  # identifier-boundary match of a codename token; mode widens it
   printf '%s' "$out"
   return 0
 }
-scan_ere() {  # arbitrary ERE (no word boundary), e.g. an absolute path
-  local pat="$1"
+scan_ere() {  # scan_ere <ERE> [pathspec-to-exclude]; arbitrary ERE, no word boundary
+  # The optional second argument excludes one path from THIS scan only. It exists
+  # because a redaction tool names, by construction, the strings it removes, so it
+  # matches the engagement ERE forever. The exclusion is never applied inside this
+  # helper for every caller: the absolute-path and ticket-id scans must keep covering
+  # that file, and both were measured clean on it when the exclusion was introduced.
+  local pat="$1" extra="${2:-}"
   if git -C "$TARGET" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    ( cd "$TARGET" && git grep -InE "$pat" -- . 2>/dev/null || true )
+    ( cd "$TARGET" && git grep -InE "$pat" -- . ${extra:+"$extra"} 2>/dev/null || true )
   else
-    grep -rInE "$pat" "$TARGET" --exclude-dir=.git 2>/dev/null || true
+    if [ -n "$extra" ]; then
+      grep -rInE "$pat" "$TARGET" --exclude-dir=.git --exclude="$(basename "${extra#:!}")" 2>/dev/null || true
+    else
+      grep -rInE "$pat" "$TARGET" --exclude-dir=.git 2>/dev/null || true
+    fi
   fi
 }
 
+if [ "$HAVE_LIST" -eq 1 ]; then
 while IFS= read -r line; do
   case "$line" in ''|'#'*) continue ;; esac
   raw="${line%%|*}"
@@ -138,6 +160,7 @@ while IFS= read -r line; do
     printf '%s\n' "$found" | sed 's/^/  /'
   fi
 done < "$LIST"
+fi
 
 # A real absolute home path (an actual username), not the generic "/Users/..."
 # example used in docs. Matches /Users/<lowercase-name> but not /Users/... or <.
@@ -167,9 +190,35 @@ if [ -n "$tickets" ]; then
   printf '%s\n' "$tickets" | sed 's/^/  /'
 fi
 
+# An engagement provenance trace: the tree naming WHOSE work a run was performed for.
+# Structural, like the two scans above, and for the same reason: a sidecar entry cannot
+# express it (the leak is a phrase, not a token) and the sidecar is gitignored, so a
+# sidecar-gated scan is skipped in CI and against the public tree, which is exactly where
+# this class shipped. Measured 2026-08-29 before the redaction: 12 lines in 5 files in BOTH
+# trees, and this ERE matches all 12 and nothing else in either tree. After the redaction:
+# zero, with zero false positives.
+# Deliberately NOT covered: the bare token `client`, which is ordinary technical English
+# (`the HTTP client`, `the Supabase client`). A false positive turns a guard off, which is
+# worse than having no guard.
+ENGAGEMENT_ERE="${ENGAGEMENT_ERE:-[Cc]lient[ _-]pilot|[Cc]lient [a-z][a-z0-9]*-app|[Cc]lient [a-z-]+-fleet}"
+engagement="$(scan_ere "$ENGAGEMENT_ERE" ":!scripts/redact-engagement-provenance.py" || true)"
+if [ -n "$engagement" ]; then
+  hits=$((hits + 1))
+  echo "LEAK: engagement provenance trace (describe the work, not whose work it was)"
+  printf '%s\n' "$engagement" | sed 's/^/  /'
+fi
+
 if [ "$hits" -eq 0 ]; then
-  echo "check-mirror-codenames: clean (${TARGET})"
-  exit 0
+  if [ "$HAVE_LIST" -eq 1 ]; then
+    echo "check-mirror-codenames: clean (${TARGET})"
+    exit 0
+  fi
+  # Exit 3, not 0. Both states used to exit 0, so a caller could not tell "every scan ran and
+  # found nothing" from "one scan never ran", and lint-commands.sh printed "clean (tracked tree)"
+  # on every CI runner, where the sidecar is gitignored and therefore always absent. The message
+  # said the true thing and the exit code did not, and the exit code is the half callers read.
+  echo "check-mirror-codenames: clean on the structural scans (${TARGET}); codename scan not measured (no sidecar)"
+  exit 3
 fi
 
 echo "check-mirror-codenames: ${hits} leak class(es) found in ${TARGET}" >&2

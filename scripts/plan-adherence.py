@@ -33,7 +33,8 @@ verdict changed. A check that cries drift on healthy tasks trains its reader to
 ignore it, which costs more than the check is worth.
 
 Writes nothing. Prints a report to stdout; exit 0 by default (informational),
-exit 1 on FAIL under --strict.
+exit 1 on FAIL under --strict, exit 2 when the folder is missing or holds no
+IMPLEMENTATION_PLAN.md (nothing was checked, so no verdict is printed).
 
 Usage:
   python3 scripts/plan-adherence.py <task-folder>
@@ -290,6 +291,12 @@ def main(argv):
     task = args[0].rstrip("/")
     if not os.path.isdir(task):
         print(f"plan-adherence: not a directory: {task}", file=sys.stderr)
+        return 2
+
+    # No plan means there is nothing to adhere to, so nothing was checked. An empty folder
+    # used to report VERDICT: CONFORMANT with exit 0 (ADR-0224).
+    if not os.path.isfile(os.path.join(task, "IMPLEMENTATION_PLAN.md")):
+        print(f"plan-adherence: not checked, no IMPLEMENTATION_PLAN.md in {task}", file=sys.stderr)
         return 2
 
     log_path = os.path.join(task, ".wos", "VERIFICATION_LOG.jsonl")

@@ -19,6 +19,8 @@ WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 cd "$WORK"
 mkdir -p .wos
+# The emitter refuses a --task-root that is not a task folder (ADR-0224), so the fixture is one.
+printf '# TASK_STATE\n' > TASK_STATE.md
 
 make_fixture() {
   cat > DOC.md <<'FIXTURE_EOF'
@@ -49,11 +51,23 @@ make_fixture
 printf 'new body\n' > body.txt
 BEFORE_HASH=$(shasum -a 256 DOC.md | awk '{print $1}')
 BEFORE_LOG=$(log_lines)
-bash "$EMIT" apply --owner tester --file DOC.md --section '## Missing' --reason t1 --body-file body.txt --task-root . >/dev/null 2>&1
+# An absent section is CREATED, not refused (2026-08-31). The old contract died
+# here and sent every caller back to hand-inserting the heading and its header,
+# which is the manual step apply exists to remove. These assertions replace the
+# three that asserted the die; they are stricter, not looser: the section has to
+# appear, carry the body, log exactly one line, and log it as a genesis write.
+OUT=$(bash "$EMIT" apply --owner tester --file DOC.md --section '## Missing' --reason t1 --body-file body.txt --task-root . 2>&1)
 rc=$?
-check "die on absent section (exit non-zero)" $([[ $rc -ne 0 ]]; echo $?)
-check "die on absent section leaves file unchanged" $([[ "$(shasum -a 256 DOC.md | awk '{print $1}')" == "$BEFORE_HASH" ]]; echo $?)
-check "die on absent section appends no JSONL" $([[ "$(log_lines)" -eq "$BEFORE_LOG" ]]; echo $?)
+check "absent section: exits 0" $([[ $rc -eq 0 ]]; echo $?)
+check "absent section: says created, not applied" $(grep -q "^created '## Missing'" <<<"$OUT"; echo $?)
+check "absent section: the heading now exists exactly once" $([[ "$(grep -cxF '## Missing' DOC.md)" -eq 1 ]]; echo $?)
+check "absent section: the body landed" $(grep -q "$(head -1 body.txt)" DOC.md; echo $?)
+check "absent section: a transaction header sits above it" $(grep -B1 -xF '## Missing' DOC.md | grep -q '<!-- wos:write '; echo $?)
+check "absent section: exactly one JSONL line appended" $([[ "$(log_lines)" -eq "$((BEFORE_LOG + 1))" ]]; echo $?)
+check "absent section: logged as a genesis write (sha_before null, event write)" $(tail -1 .wos/VERIFICATION_LOG.jsonl | python3 -c "
+import json,sys
+d=json.loads(sys.stdin.read())
+sys.exit(0 if d.get('sha_before') in (None,'null') and d.get('event')=='write' else 1)"; echo $?)
 
 # ---------- 2. die on code-fence decoy (non-unique exact line) ----------
 make_fixture
@@ -115,7 +129,7 @@ check "caller sha_before mismatch dies (measured is authoritative)" $([[ $rc -ne
 printf '## Sneaky new section\n' > body.txt
 bash "$EMIT" apply --owner tester --file DOC.md --section '## Omega' --reason t6 --body-file body.txt --task-root . >/dev/null 2>&1
 rc=$?
-check "body with an H2 line dies (apply never creates sections)" $([[ $rc -ne 0 ]]; echo $?)
+check "body with an H2 line dies (an H2 would move the hashed boundary)" $([[ $rc -ne 0 ]]; echo $?)
 printf '<!-- wos:write owner=x section=y -->\n' > body.txt
 bash "$EMIT" apply --owner tester --file DOC.md --section '## Omega' --reason t7 --body-file body.txt --task-root . >/dev/null 2>&1
 rc=$?
@@ -135,6 +149,23 @@ BEFORE_LOG=$(log_lines)
 bash "$EMIT" emit --owner tester --file DOC.md --section '## Alpha' --mode applied --reason legacy --sha-before "$SB" --first-logged-write --task-root . >/dev/null 2>&1
 rc=$?
 check "legacy emit still works (first-logged-write path since the v3 wave3 derive default)" $([[ $rc -eq 0 && "$(log_lines)" -eq $((BEFORE_LOG+1)) ]]; echo $?)
+
+# ---------- 9. a --task-root that is not a task folder refuses (ADR-0224) ----------
+# Before this, the emitter ran `mkdir -p <root>/.wos` on whatever root it was given, so a
+# wrong root grew a stray log no validator reads and the write looked logged. On the old
+# emitter every assertion below fails: exit 0, a new stray log, and a changed DOC.md.
+STRAY="$WORK/not-a-task"; mkdir -p "$STRAY"
+printf 'refused body\n' > body.txt
+DOC_BEFORE=$(shasum -a 256 DOC.md | awk '{print $1}')
+OUT=$(bash "$EMIT" apply --owner tester --file DOC.md --section '## Omega' --reason t9 --body-file body.txt --task-root "$STRAY" 2>&1)
+rc=$?
+check "apply with a --task-root holding no TASK_STATE.md refuses" $([[ $rc -ne 0 ]]; echo $?)
+check "the refusal names the missing TASK_STATE.md" $(grep -q 'no TASK_STATE.md found' <<<"$OUT"; echo $?)
+check "the refusal writes no stray log" $([[ ! -e "$STRAY/.wos" ]]; echo $?)
+check "the refusal leaves the target file untouched" $([[ "$(shasum -a 256 DOC.md | awk '{print $1}')" == "$DOC_BEFORE" ]]; echo $?)
+OUT=$(bash "$EMIT" emit --owner tester --file DOC.md --section '## Alpha' --mode applied --reason t9 --task-root "$STRAY" 2>&1)
+rc=$?
+check "emit with the same root refuses too, with no stray log" $([[ $rc -ne 0 && ! -e "$STRAY/.wos" ]]; echo $?)
 
 echo
 echo "pass=$PASS fail=$FAIL"

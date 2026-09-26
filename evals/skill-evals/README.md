@@ -91,6 +91,14 @@ evals/workspace/<skill-name>-workspace/
     benchmark.json              -- aggregate, written by compute-benchmark.sh
 ```
 
+### What is versioned, and what is not
+
+Versioned: `eval.json`, `timing.json`, `grading.json` and `benchmark.json`, for every iteration including new ones. They are small, they are structured, and the `grading` to `benchmark` chain is the only committed evidence behind the L3 persona promotions asserted in `wos/maturity-ladder.md`, because the per-persona ledgers live under `_internal/maturity-ladder/`, which is maintainer-local and gitignored. Deleting that chain would leave the repository making a claim nobody who clones it can check.
+
+Not versioned: `outputs/` from any new run. `evals/workspace/**/outputs/` is in `.gitignore`, so a fresh iteration adds kilobytes of JSON rather than megabytes of model prose.
+
+The 102 `output.md` files already tracked stay tracked, as a snapshot frozen on 2026-07-10. Git ignores `.gitignore` for files it already follows, so they need no action and get none: `git rm --cached` over them is the deletion this policy exists to prevent. See [ADR-0174](../../docs/adr/0174-eval-workspace-evidence-stays-versioned.md).
+
 ## Workflow
 
 1. Author `evals/skill-evals/<skill>/evals.json` (3-5 scenarios minimum per K.7 gate).
@@ -129,10 +137,10 @@ Rules:
 
 ## Dashboard
 
-Per-skill `benchmark.json` files aggregate at `_internal/eval-dashboard/` -- see that README.
+Per-skill `benchmark.json` files aggregate at `_internal/eval-dashboard/` (maintainer-local and gitignored) -- see that README. On a clone where that directory does not exist, `scripts/build-eval-portfolio.sh` writes to `.local/eval-dashboard/` instead and says so on stderr.
 
 ## References
 
 - `wos/substrate-peers.md` -- VERIFICATION_LOG.jsonl schema (separate audit log)
-- `_internal/epic-k-v2.1-implementation-ready-2026-06-04.md` -- K.7 spec
-- `_internal/epic-j-multi-agent-research-2026-06-04.md` -- J.11 spec
+- `_internal/epic-k-v2.1-implementation-ready-2026-06-04.md` -- K.7 spec (maintainer-local and gitignored)
+- `_internal/epic-j-multi-agent-research-2026-06-04.md` -- J.11 spec (maintainer-local and gitignored)

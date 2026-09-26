@@ -1,4 +1,4 @@
-Canonical worker contract for any orchestrator-dispatched sub-agent (Claude Code Task tool, Cursor agent subagent, Codex agents, Anthropic Dynamic Workflows `spawn()`).
+Canonical worker contract for any orchestrator-dispatched sub-agent (Claude Code `Agent` tool, renamed from `Task` in v2.1.63 with the old name still resolving as an alias; Cursor agent subagent; Codex agents; a dynamic-workflow script's `agent()` call).
 
 Per ADR-0034 (Substrate peers + worker contract) and ADR-0038 (Workflow tool primitive; Rule 1 mandates typed StructuredOutput transport, prose-file returns FORBIDDEN). Status taxonomy verbatim from Anthropic Outcomes API (2026-05-06).
 
@@ -6,7 +6,7 @@ Per ADR-0034 (Substrate peers + worker contract) and ADR-0038 (Workflow tool pri
 
 ```yaml
 worker_role: <persona-slug | command-name | fleet-worker-id>
-worker_tier: claude-haiku-4-5 | claude-sonnet-4-6 | claude-opus-4-7 | claude-opus-4-8
+worker_tier: claude-haiku-4-5 | claude-sonnet-5 | claude-opus-5-5
 context_injection:
   task_state_excerpt: <relevant TASK_STATE.md sections, read-only>
   decisions_excerpt: <relevant DECISIONS.md D-N entries, read-only>
@@ -14,7 +14,7 @@ context_injection:
   parent_artifact_paths: [<path>, ...]
 parent_artifacts: read-only mounted
 substrate_writes: forbidden (workers NEVER write substrate directly)
-fleet_inbox_artifact: fleet-inbox/<run_id>/<worker_id>   # StructuredOutput artifact key (ADR-0038 Rule 1), NOT a prose file
+fleet_inbox_artifact: fleet-inbox/<run_id>/<worker_id>.json   # Agent-path carrier (ADR-0158 D-1); on the dynamic-workflow path the runtime's typed return carries it and this field is unused. Never a prose file
 task_input:
   <orchestrator-specific structured input; declared in orchestrator command's frontmatter `worker_input_schema`>
 timeout_ms: <integer | null>
@@ -23,7 +23,13 @@ max_iterations: <integer | null>
 
 ## Output shape (worker emits)
 
-Per ADR-0038 Rule 1, the worker returns its result by invoking the `StructuredOutput` tool exactly once with `artifact=fleet-inbox/<run_id>/<worker_id>` and a JSON payload matching the orchestrator's `worker_output_schema`. Free-form prose returns and `.partial.md` file writes are FORBIDDEN; the orchestrator consumes the typed payload, not parsed prose. A typed `.partial.json` may be written only as a replay aid, never as the transport.
+Per ADR-0038 Rule 1, the worker returns its result as a typed payload matching the orchestrator's `worker_output_schema`, and the orchestrator consumes that payload rather than parsed prose. Free-form prose returns are FORBIDDEN.
+
+  **Which transport carries it depends on the dispatch path, and the two are not interchangeable.** On the dynamic-workflow path the SCRIPT declares the shape, `agent(prompt, {schema})`, and the runtime drives a `StructuredOutput` call internally; the worker is never told about that tool and there is no `artifact=` key in that API. On the `Agent`-tool path there is no typed-return primitive at all: `Agent` takes `{description, isolation, model, prompt, subagent_type}` and no schema, so a worker dispatched that way returns text and the orchestrator persists it. A command that mandates `StructuredOutput` MUST name the workflow path it depends on, or it is instructing a worker to call a tool it does not have.
+
+  On disk, 27 `.md` worker returns sit under `.wos/fleet-inbox/`, written between 2026-06-11 and 2026-06-26, which is 6 to 21 days AFTER ADR-0038 forbade that shape, alongside 46 `.json`. Of 27 run ids only 4 carry the platform's generated `wf_<hex>` form. The fleets ran, and they ran by writing files, because the mandated tool was not on the path they took. **The carrier, decided in ADR-0158 D-1.** The typed payload is mandatory either way and prose returns stay FORBIDDEN. On the dynamic-workflow path the runtime's `StructuredOutput` call carries it. On the `Agent` path the worker writes it to `fleet-inbox/<run_id>/<worker_id>.json` and the orchestrator reads that file. Name the path before mandating a carrier.
+
+  This is the ONE place a worker may write, and the exception is scoped to `fleet-inbox/<run_id>/` keyed to this run (ADR-0158 D-2). It grants nothing outside that directory. The scoping matters more than it looks: a background sub-agent retains `Edit` and `Write`, and this repository ships no agent definition withholding them, so every other line of this contract rests on the worker refusing rather than on the platform stopping it. Widening this exception would remove the only rule holding that boundary.
 
 The payload carries these fields (orchestrator declares the full schema in `worker_output_schema`):
 
@@ -67,7 +73,7 @@ When `status: failed`, the StructuredOutput payload MUST also include an `error`
 
 ## Partial shape (Epic J fleet merger consumption)
 
-The orchestrator-merger consumes ALL workers' StructuredOutput payloads (keyed by `artifact=fleet-inbox/<run_id>/<worker_id>`) after convergence (J.4) and merges per declared `merge_strategy`:
+The orchestrator-merger consumes ALL workers' typed payloads (keyed by `<worker_id>`, from the runtime's `StructuredOutput` result on the dynamic-workflow path or from `fleet-inbox/<run_id>/<worker_id>.json` on the `Agent` path, per ADR-0158 D-1) after convergence (J.4) and merges per declared `merge_strategy`:
 
 - `union`: aggregate all deliverables across workers, deduplicate by canonical key declared in `worker_output_schema`.
 - `last-by-timestamp`: when two workers emit deliverables targeting the same section, keep the latest by `ts_completed`.
@@ -84,7 +90,7 @@ A worker MUST refuse with `status: failed`, `error_class: contract-violation` wh
 - `task_input` violates the orchestrator's declared `worker_input_schema`.
 - `worker_tier` is below the minimum declared in the orchestrator command's `min_worker_tier` field.
 - `parent_artifact_paths` references files outside `active/<task>/` or violates read-only mount.
-- `substrate_writes` is requested (impossible: workers have no Edit/Write on substrate; this is a sanity check).
+- `substrate_writes` is requested. This is a real gate, NOT a sanity check: a background sub-agent retains `Edit` and `Write` (Claude Code documents the background tool filter as keeping `Read, Grep, Glob, Bash, PowerShell, Edit, Write, NotebookEdit, ...`), so nothing in the platform prevents a worker from writing substrate. Withholding those tools requires an agent definition carrying `disallowedTools`, which this repository does not ship. Treat the refusal as the only thing standing between a worker and a substrate write.
 
 ## Idempotency
 
@@ -98,7 +104,7 @@ A worker debugging a failing validation step MUST bound the effort instead of gr
 - Include, in the deliverable, the exact failing check, the minimal reproduction command, and a one-line hypothesis for the cause. Name the suspected coupling or shared-state source when the failure is order-dependent (see the bug-class `order-dependent-test-pollution-via-shared-async-state`).
 - Do NOT keep re-running an expensive suite past the budget hoping it goes green; a slow grind that the orchestrator cannot see is indistinguishable from a hang and wastes the run.
 
-The orchestrator consumes the honest early return and routes the slice (retry with revised input, hand to sequential `implement-approved-slice`, or surface to the user). An interrupted or killed worker returns nothing; a budgeted return preserves the structured-data contract. This is the worker-level form of the K.7 oscillation rule (ADR-0036): stop and report beats loop and hide.
+The orchestrator consumes the honest early return and routes the slice (retry with revised input, hand to sequential `implement-approved-slice`, or surface to the user). An interrupted or killed worker returns nothing; a budgeted return preserves the structured-data contract.
 
 ## Suite-cost-aware validation
 
@@ -112,4 +118,4 @@ The goal is to spend validation time on signal, not on repeatedly paying the ful
 
 ## Maturity ladder gate
 
-Per `wos/substrate-peers.md` § Maturity ladder hook, fleet workers (this contract) operate at L4 (peer equivalence) by design — they have explicit ownership of their `fleet-inbox` namespace and the orchestrator-merger has explicit ownership of substrate merges. Personas (Epic K) operate at L1-L4 depending on graduation evidence; L5 (autonomous dispatch of own workers) is reserved.
+Per `wos/substrate-peers.md` § Maturity ladder hook, fleet workers (this contract) operate at L4 (peer equivalence) by design: they have explicit ownership of their `fleet-inbox` namespace and the orchestrator-merger has explicit ownership of substrate merges. Personas (Epic K) operate at L1-L4 depending on graduation evidence; L5 (autonomous dispatch of own workers) is reserved.

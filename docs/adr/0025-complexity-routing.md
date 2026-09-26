@@ -1,6 +1,6 @@
 # ADR-0025: Complexity-based routing at task-init
 
-Status: Accepted (2026-05-26)
+- **Status**: Accepted; the default that Express is a recommendation the user must opt into is Superseded by [ADR-0159](./0159-express-binds-by-default.md). The conservative default (when uncertain, classify as Standard) remains in force; the "classify as Standard when uncertain" tie-breaker is superseded by [ADR-0184](./0184-express-is-the-default-tier.md), which makes Express the default and requires an escalation to name its disqualifier (the four tiers and their pipelines stand). The four-tier vocabulary is Superseded in part by ADR-0207: the escalations survive, the tier labels do not.
 
 ## Context
 
@@ -40,36 +40,11 @@ The assessment is a recommendation. The user can override by choosing a differen
 - Existing task shapes remain valid; Express is additive
 - No changes to the mandatory file set (5 files still created at task-init)
 
-## Model selection by tier (addendum 2026-06-03)
+## Model selection: moved to wos/model-routing.md
 
-Each tier maps to a recommended Claude model. This is non-normative guidance — the user may override at runtime — but defaults reduce the "always use Opus" anti-pattern (Claude Max 20x users routinely waste plan capacity by running Opus for Express tasks).
+The tier-to-SKU table, its override rules, its verification cadence and its rationale now live in `wos/model-routing.md`. They moved there on 2026-08-30 under [ADR-0172](./0172-operational-tables-live-in-wos-not-in-adrs.md), because the table carries its own six-week refresh cadence and an accepted ADR is not a file anyone is allowed to update.
 
-| Tier | Default model | Codex reasoning-effort default | Rationale |
-|---|---|---|---|
-| **Express** | `claude-haiku-4-5` | `low` | Single-file, known decisions, <5 files. Haiku 4.5 is >4x faster output and handles trivial-to-moderate edits without quality loss. |
-| **Standard** | `claude-sonnet-4-6` | `medium` | Multi-file, some research. Sonnet 4.6 hit 79.8% SWE-Bench at ~1/10 the cost of Opus 4.7. Sweet spot for most coding work. |
-| **Disciplined** | `claude-sonnet-4-6` (default) → `claude-opus-4-7` (escalate) | `medium` → `high` (escalate) | Multi-package or non-obvious tradeoffs. Start Sonnet; escalate to Opus when integration risk is high. |
-| **Strict** | `claude-opus-4-7` or `claude-opus-4-8` | `high` | Auth/payments/compliance/multi-tenant. Opus 4.8 (released 28-mai-2026) is 88.6% SWE-Bench Verified and ~4x less likely to miss failures. Worth the cost when blast radius is large. |
-
-Codex column note (v3 wave1, item I): the effort defaults are a PROPOSED mapping, not validated. The only cross-model dogfood to date (bv3, 2026-07-20/21) ran a single effort setting for the whole session, undifferentiated by tier. The Override rules below apply to the effort column textually (escalating up is always valid; do not demote below the tier's default; per-task, recorded in TASK_STATE.md).
-
-### Override rules
-
-- Escalating UP (Express → Standard, Standard → Disciplined → Strict) is always valid. When in doubt, pick stronger.
-- Demoting DOWN past Disciplined (Strict → Sonnet) is NOT recommended. If the user feels the tier is wrong, fix the tier classification at task-init; do not demote the model.
-- Override is per-task, not per-session. The chosen model is recorded in `TASK_STATE.md` next to the tier so it survives session breaks.
-
-### Verification cadence
-
-Every 6 weeks, check Anthropic's latest coding-model SWE-Bench numbers and update the recommended SKUs in this table. Coding-model SOTA moves fast (Claude 4.7 → 4.8 was 6 weeks; GPT-5 → 5.5 was months). Stale SKUs degrade the routing more than no routing at all.
-
-### Why hardcode SKUs here
-
-The "no model SKUs in handoff lines" rule in `WORKFLOW_OPERATING_SYSTEM.md` → `## Global output contract` → `### Work complexity (capability routing)` exists for *runtime handoff lines* read by external tools (Cursor, others) that need vendor-neutral routing. This ADR is the project-level configuration ADR where SKU choice belongs; updating one file is cheaper than updating handoff lines across 53 commands when SOTA shifts.
-
-### Tracking
-
-`scripts/track-model-usage.sh` (planned, B.4 of WOS improvement plan 2026-06-03) emits per-task records of `{tier, model_used, token_estimate}` so the team can measure whether the routing recommendation is being followed and what cost delta it produces.
+The decision this ADR records does not change. Work is still routed by complexity tier, the four tiers are still Express, Standard, Disciplined and Strict, and the classification rules above stand as written. What moved is a non-normative table, not a decision.
 
 ## References
 - ADR-0009 (Task shape system): Express is a new shape within the existing framework

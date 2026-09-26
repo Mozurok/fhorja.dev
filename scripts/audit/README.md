@@ -72,7 +72,7 @@ Python stdlib only, no third-party dependency, no network access.
 | # | Key | What it reports |
 |---|---|---|
 | 1 | `check_01_counts` | Command count per surface; every count marker against disk. |
-| 2 | `check_02_registry_integrity` | The four registries both ways; cluster membership; the two taxonomies. |
+| 2 | `check_02_registry_integrity` | The three registries both ways; cluster membership; the two taxonomies. |
 | 3 | `check_03_shared_block_drift` | Each inlined copy against `commands/_shared/`; blocks with no consumer. |
 | 4 | `check_04_cross_reference_integrity` | Path references that resolve, break, or point outside the tree; unreferenced templates, topics, scripts. |
 | 5 | `check_05_adr_coverage` | Files against the index, numbering, superseded status, command citations. |

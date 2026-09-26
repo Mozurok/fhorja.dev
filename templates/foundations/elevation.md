@@ -14,7 +14,7 @@ Shadow tokens, surface layer hierarchy, z-index policy. Does NOT cover blur (see
 
 Shadow style (Material 3 tonal vs iOS drop shadow), number of elevation steps, dark-mode strategy (shadows may need adjustment or tonal swap).
 
-## 3. Tokens — Shadow scale
+## 3. Tokens: Shadow scale
 
 | Token | Shadow (CSS / RN equivalent) | Use |
 |---|---|---|
@@ -50,13 +50,13 @@ Avoid arbitrary z-index numbers. Use a documented stack:
 
 ## 6. Dark mode
 
-Shadows on dark surfaces are typically less visible — consider tonal elevation (slight surface color shift) instead of, or in addition to, drop shadow.
+Shadows on dark surfaces are typically less visible; consider tonal elevation (slight surface color shift) instead of, or in addition to, drop shadow.
 
 ## 7. Research
 
 - Material 3 tonal elevation
 - Apple HIG depth + materials
-- iOS blur (vibrant materials) — links to `effects.md`
+- iOS blur (vibrant materials): links to `effects.md`
 
 ## 8. How to use
 

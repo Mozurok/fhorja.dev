@@ -1,6 +1,6 @@
 # ADR-0056: A deliverable-coverage ledger so user-named deliverables survive brief-to-closure
 
-- **Status**: Accepted
+- **Status**: Accepted; the D-5 de-scope clause superseded in part by [ADR-0233](./0233-the-attended-chain-runs-to-the-draft-pr.md) on attended runs: the chain never de-scopes provisionally and lists the deliverable under "Not delivered, needs you" in the draft PR instead of stopping. The ledger, the reconcile block and the finalization gate stand.
 - **Date**: 2026-06-26
 - **Tags**: deliverable-coverage, no-silent-de-scope, completeness-check, task-memory, shared-block, hard-gate, additive, dogfood
 

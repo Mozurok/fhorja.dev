@@ -1,0 +1,14 @@
+[
+  {
+    "index": 0,
+    "refuted": false,
+    "reason": "Verified commands/apply-sweep-triage.md:51-55 and templates/REVIEW_PREFERENCES.template.md:18-35. Step 6 explicitly replaces appending with updating date, file_hash, and reason for any duplicate in the target table, but Applied findings has action_taken and Discussed findings has note instead. Step 5 supplies the correct append schemas but does not resolve the incompatible update instruction. Directory searches across commands, wos, docs/adr, and evals, plus the spec, found no table-specific duplicate-update override. The matching shared bootstrap occupies lines 24-34, measured against commands/_shared/mandatory-context-bootstrap.md; line 55 is outside it. Independent exact-string search confirmed the claimed unique site. The replacement preserves declined-row hash and reason updates and deduplication, so the observed suppression and eval dependencies remain supported.",
+    "corrected_claim": ""
+  },
+  {
+    "index": 1,
+    "refuted": true,
+    "reason": "The identical sentence exists at commands/im-stuck.md:69 and commands/incident-triage.md:81, confirmed by independent directory search, and both sites are outside all shared blocks after matching their canonical source lengths. However, the finding is an editorial preference rather than a verifiable defect: the final sentence illustrates the preceding qualitative rule with concrete time and token-cost scales. It is consistent with the rule and imposes no conflicting behavior. Whether that explanatory example is worth retaining is a matter of taste; lack of a new action or exception does not establish a defect. Searches of evals, wos, docs/adr, and the spec found no additional requirement that makes the illustration invalid.",
+    "corrected_claim": ""
+  }
+]

@@ -46,7 +46,7 @@ Given the external dependency:
 ## Confidence factors
 
 - HIGH: catch block re-throws or returns 500; no fallback value; external service is non-essential
-- MEDIUM: catch block logs but the caller does not handle the error (implicit 500 from Express error handler)
+- MEDIUM: catch block logs but the caller does not handle the error (on Express 5 a rejected async handler reaches the error handler and becomes a 500; on Express 4 it does not, and the request hangs instead, which is the worse of the two)
 - LOW: catch block has a fallback but it may not cover all failure modes
 
 ## Examples

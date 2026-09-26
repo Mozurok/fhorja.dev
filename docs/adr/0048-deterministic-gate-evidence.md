@@ -1,6 +1,6 @@
 # ADR-0048: A passing deterministic gate satisfies Layer 1 evidence
 
-- **Status**: Accepted
+- **Status**: Accepted; superseded on the evidence-tier question by ADR-0175, which keeps the deterministic-gate rule and replaces its grounding with measurement. Superseded by ADR-0175. ADR-0175's held-out assertion tier was withdrawn by [ADR-0231](./0231-the-held-out-tier-is-withdrawn.md) before it was wired; this decision is unchanged.
 - **Date**: 2026-06-22
 - **Tags**: verification, evidence, deterministic-gate, hooks, three-layer-gate, additive, human-in-the-loop
 

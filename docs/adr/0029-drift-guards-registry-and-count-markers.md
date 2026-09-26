@@ -1,6 +1,6 @@
 # ADR-0029: lint drift guards - registry membership and count markers
 
-Status: Accepted (2026-06-02)
+Status: Accepted (2026-06-02); superseded in part by ADR-0211 (the nine-value canonical category set it named; the registry-membership and count-marker guards stand)
 
 ## Context
 

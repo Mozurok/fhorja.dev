@@ -49,7 +49,7 @@ Mode: Ask
 2. **Variant B picks slice-closure**: slice 3 just closed; the next move is to formalize the slice-closure for slice 3 specifically before moving to slice 4. `where-we-at` would be appropriate at end-of-Wave (multi-slice retrospective) but not after a single mid-plan slice close.
 3. **Acceptable alternative for Variant B**: route to slice-closure (for slice 3) first, then `where-we-at` macro checkpoint if the user has not run one since the task started (heuristic: "have we checked task-level progress recently?"). If both are recommended, slice-closure is primary.
 4. **No invented results**: response does not claim the slice was OK (or NOT OK); the user only said "just closed cleanly" (Variant B) or "just implemented" (Variant A). Closing requires the closure command to actually run.
-5. **Handoff complete**: adaptive handoff block starts with `Run @commands/<chosen>.md` and includes the task folder path.
+5. **Handoff complete**: the block's first line is `Run now: <chosen>`, a real `commands/` basename, and in Mode B the `Resume context:` body carries the task folder path.
 6. **Mode aligned**: Mode is Ask (review-shaped); not Plan; not Agent.
 
 ## Failure modes to watch

@@ -56,4 +56,4 @@ The trigger is deliberately narrower than "the slice touched a file the browser 
 - Generalizes ADR-0106 (mobile-runtime-gate), which generalized ADR-0085 (Godot runtime-gate) onto ADR-0087.
 - Conforms `commands/web-runtime-verify.md` to ADR-0112 decision 3; consumes ADR-0099's topic as the single serving doctrine.
 - Binds to ADR-0091 (generalized experience verdict) and inherits ADR-0098's bounded-versus-permanent skip rule.
-- Dogfood evidence: Kimi K3 session `a6f1a135`, 2026-08-06, `beaufort__landing-page/archive/2026-08-06_astro-landing-page-c/`. Prior occurrence of the wrong-page class: the archived 2026-07-16 run's `LEARNINGS.md`.
+- Dogfood evidence: Kimi K3 session `a6f1a135`, 2026-08-06, `acme__landing-page/archive/2026-08-06_astro-landing-page-c/`. Prior occurrence of the wrong-page class: the archived 2026-07-16 run's `LEARNINGS.md`.

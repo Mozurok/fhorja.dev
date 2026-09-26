@@ -6,7 +6,7 @@ Per Epic K v2.1 post-K.8 hardening (2026-06-05). Anchors on the **K.2 cutover da
 
 ## What it tests
 
-The walkthrough drives a curated 12-step spine over the 67-command registry (62 flat at `commands/<name>.md` + 5 folder-shaped K.8 personas at `commands/<slug>/SKILL.md`). The 12 spine commands cover the canonical project-lifecycle path (init -> plan -> implement -> sweep -> deliver -> close) plus three additional micro-steps (Step 7.5, 8.5, 12.5) that exercise the K.2 writers not otherwise hit by the main spine. The walkthrough validates:
+The walkthrough drives a curated 12-step spine over the command registry (flat commands at `commands/<name>.md` plus the folder-shaped personas at `commands/<slug>/SKILL.md`; the registry had 67 commands when this walkthrough was written and has grown since, so read the count from `commands/` rather than from here). The 12 spine commands cover the canonical project-lifecycle path (init -> plan -> implement -> sweep -> deliver -> close) plus three additional micro-steps (Step 7.5, 8.5, 12.5) that exercise the K.2 writers not otherwise hit by the main spine. The walkthrough validates:
 
 1. **Artifact shapes** -- each command produces the expected output files with the canonical section structure per its `commands/<name>.md` contract (e.g. IMPACT_ANALYSIS.md follows the 12-item ordered list, IMPLEMENTATION_PLAN.md slices carry all 7 canonical fields including EARS exit criteria + work complexity).
 2. **Substrate ownership** -- writes land in the right files per `wos/substrate-peers.md`; only declared owners apply mutations; co-writers emit PROPOSED blocks routed via Pattern A handoff.
@@ -16,7 +16,7 @@ The walkthrough drives a curated 12-step spine over the 67-command registry (62 
 
 ## What it does NOT test
 
-- **K.8 personas** (`jtbd-switch-interviewer`, `color-contrast-architect`, `rls-auth-boundary-auditor`, `migration-safety-steward`, `post-deploy-verifier`). All five ship at L1 shadow per `wos/maturity-ladder.md` and emit PROPOSED-only via Pattern A handoff. They are validated via the K.7 eval harness (`evals/skill-evals/<persona>/evals.json`), NOT this E2E walkthrough.
+- **K.8 personas** (`jtbd-switch-interviewer`, `color-contrast-architect`, `rls-auth-boundary-auditor`, `migration-safety-steward`, `post-deploy-verifier`). All five shipped at L1 shadow and have since been promoted to L3 via ADR-0036 Path B, each owning one declared low-risk section or report file (see the per-persona table in `wos/maturity-ladder.md`). They are validated via the K.7 eval harness (`evals/skill-evals/<persona>/evals.json`), NOT this E2E walkthrough.
 - **Fleet orchestrators** (`atom-audit-fleet`, `screen-spec-fleet`, `task-init-fleet`, `external-research-fleet`, `verify-against-rubric-fleet`). Each has its own track (Phase 4 deferred for J.6 / J.7 -- both require Figma MCP).
 - **Multi-repo paths** (`SOURCE_OF_TRUTH.md ## Repositories`). Single-repo only in v1.
 - **Mode C parallel fanout** (would need a wide-diff scenario).
@@ -76,8 +76,8 @@ bash evals/e2e/bootstrap.sh --clean
 - After modifying any shared block in `commands/_shared/`
 - After modifying any K.1-K.8 substrate / persona artifact (`wos/substrate-peers.md`, `wos/maturity-ladder.md`, `commands/_shared/substrate-write-protocol.md`, any K.8 persona SKILL.md)
 - After shipping a new fleet orchestrator (J.x slice)
-- After modifying ADR-0025 (recommended-pipeline tier model that gates Step 03 task-init's `## Recommended pipeline` section), ADR-0026 (APPLIED-by-default in Agent mode that gates Step 07 inline closure), or ADR-0031 (EARS form that gates Step 06 exit criteria)
-- After a Claude Code skill-cache invalidation event (e.g. running `scripts/sync-workflow-slash-commands.sh --with-skills` then restarting the session)
+- After modifying ADR-0207 (the escalations that gate Step 03 task-init's `## Recommended pipeline` section), ADR-0199 (task-memory writes APPLIED in every mode, which Step 07 inline closure relies on), or ADR-0031 (EARS form that gates Step 06 exit criteria)
+- After a Claude Code skill-cache invalidation event (e.g. running `scripts/sync-workflow-slash-commands.sh`, which syncs skills by default, then restarting the session)
 - Before a release tag
 
 ## Shipped vs deferred
@@ -95,6 +95,6 @@ bash evals/e2e/bootstrap.sh --clean
 
 - `wos/substrate-peers.md` -- ownership matrix + audit trail schema
 - `commands/_shared/substrate-write-protocol.md` -- K.2 inline header + JSONL bash helpers
-- `wos/maturity-ladder.md` -- L1-L5; K.8 personas at L1 shadow
+- `wos/maturity-ladder.md`: L1-L5; the five K.8 personas are at L3
 - `commands/repo-consistency-sweep.md` -- current Step ordering with Pre-flight substrate audit before Step 1
 - `scripts/scan-substrate-headers.sh` + `scripts/verify-log-validator.py` -- the K.4 + K.5 validators the walkthrough's Step 09 invokes

@@ -1,0 +1,12 @@
+# Copy to scripts/.substrate-retention (gitignored) and fill in.
+# check-substrate-retention.sh reads these three and measures against them. It never copies
+# anything: choosing, paying for and configuring the destination is yours, and so is key custody.
+
+# Where the substrate is backed up. The checker only reads the mtime of the newest file here.
+# BACKUP_DEST=/Volumes/backup/task-repository
+
+# A backup older than this many days makes the checker exit 1.
+# MAX_BACKUP_AGE_DAYS=7
+
+# Archived tasks older than this are counted and reported. Deleting them is your decision.
+# ARCHIVE_MAX_AGE_DAYS=365

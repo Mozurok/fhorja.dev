@@ -1,0 +1,116 @@
+[
+  {
+    "index": 0,
+    "refuted": true,
+    "reason": "The transport premise is real, but the proposed command-only replacement removes a requirement still enforced by evals/scenarios/40-fleet-command-adr0038-compliance.md:20,44,55. Under the verification contract's dependent-eval rule, refute that uncoordinated fix. ADR-0158 D-1 already sanctions the two carriers and expressly says the runtime, not the worker, calls StructuredOutput; this is a stale mechanism attribution, not a new policy decision. The citation is present at screen-spec-fleet.md:185 and outside every exact-length shared span.",
+    "corrected_claim": "Coordinate the transport correction with scenario 40, retaining the typed-payload invariant and the path declaration required by structural-evals.py:2879-2905. Own directory grep expands the stale worker-tool family beyond the reported three files: screen-spec-fleet.md:124-125,185,194; feature-library-scout-fleet.md:88,179-180,188; external-research-fleet.md:198,200,208; task-init-fleet.md:123-124,183; verify-against-rubric-fleet.md:115-116,178,189; and implement-fleet.md:104. Hold a command-only fix; no reversal of ADR-0158 is needed."
+  },
+  {
+    "index": 1,
+    "refuted": true,
+    "reason": "Permission to merge a partial result is not permission to declare full completion. convergence-policy.md expressly defines partial_ok as permission to merge fewer than expected partials and requires named gaps; it never waives the command's coverage completion criterion. screen-spec-fleet.md:194 ensures failed entries remain visible, while :180 can still describe what full completion requires. A partial result can be persisted and accurately reported as incomplete. The audit has not demonstrated that the command must claim done after such a merge.",
+    "corrected_claim": "Own directory grep confirms the two fleet coverage statements at screen-spec-fleet.md:180 and atom-audit-fleet.md:158, plus atom-audit.md:104, whose single-agent coverage rule is not a partial-fleet defect. Changing full completion to successful entries only would change the acceptance policy; hold that change unless partial-run completion is explicitly intended. Preserve the existing gap reporting."
+  },
+  {
+    "index": 2,
+    "refuted": false,
+    "reason": "Required inputs at screen-spec-fleet.md:105-106 accept custom index paths, but Step 10.5 at :129 names the literal defaults. scripts/scan-substrate-orphans.py:70-75 warns and skips missing explicit files, and its zero-orphan branch exits 0, so a scan of absent defaults can pass without inspecting the actual index files. The TASK_STATE part is overstated: Step 12 invokes the canonical five-section pattern, which requires substrate-write-protocol.md; that protocol requires post-batch verify-substrate-batch.sh, whose directory scan includes TASK_STATE.md.",
+    "corrected_claim": "Use the resolved SCREEN_MAP and routes targets for the explicit fleet scan, existence checks, rollback and evidence. This is a path-resolution repair, not a policy change. Own directory grep confirms this hard-coded-default invocation in screen-spec-fleet.md:129; the claimed atom TASK_STATE ordering issue is covered by the inherited post-batch scan. Broader grep also finds SOURCE_OF_TRUTH omissions in the explicit scans of feature-library-scout-fleet.md:127-129 and external-research-fleet.md:143-145, and a separate pre-TASK_STATE explicit scan in verify-against-rubric-fleet.md:121-123; those are not the same default-path defect."
+  },
+  {
+    "index": 3,
+    "refuted": true,
+    "reason": "This is an editorial preference, not a checkable behavioral defect. Required inputs, pre-dispatch validation and a durable operating invariant can legitimately repeat the same persona restriction. The cited sentence also explains the merge-key reason. Own directory grep finds the repetition in screen-spec-fleet.md:104,119,133 and the independent ownership rule in wos/substrate-peers.md:140.",
+    "corrected_claim": "No correctness fix established. A discretionary shortening could retain the input, validation and ownership rules, but repetition alone does not prove the paragraph adds no value."
+  },
+  {
+    "index": 4,
+    "refuted": false,
+    "reason": "The boundary contradiction is literal: feature-library-scout-fleet.md:3 both accepts 3 or more and forbids 1 to 3; :88 and :118 also accept exactly 3. feature-library-scout.md:68 explicitly routes only more than 3 deep problems and keeps 3 or fewer inline. Scenario 59's fleet case uses greater than 3. ADR-0045 does not lock a different numeric threshold.",
+    "corrected_claim": "Align the fleet positive description, Goal and Step 1, plus its upstream numeric routing references, to more than 3 problems. Independent directory grep and source reads confirm the affected family is commands/feature-library-scout-fleet.md:3,88,118; commands/task-init.md:120; and commands/impact-analysis.md:86. The latter two explicitly route exactly 3 to the fleet and are outside their files' exact-length shared spans, so they share the same boundary defect. commands/feature-library-scout.md:68 is already consistent; wos/command-roles.md:769 uses no numeric threshold. This reconciles the existing routing boundary and requires no accepted-ADR reversal."
+  },
+  {
+    "index": 5,
+    "refuted": true,
+    "reason": "The premise stands: feature-library-scout-fleet.md:122-123 admits the file carrier, while :179-180 and :188 still require tool-carried returns. However, the proposed replacement omits dependent acceptance text: scenario 40 still requires worker tool invocation and scenario 59's fleet expected response still names StructuredOutput. The verification contract requires refuting a cut that leaves dependent eval requirements behind. ADR-0158 D-1 already authorizes a coordinated correction; no new carrier policy is required.",
+    "corrected_claim": "Hold the command-only fix and update the dependent fleet eval expectations with the path-aware contract. Preserve typed JSON, the prohibition on prose, and the structural check's required path-declaration text. Own directory grep confirms the reported screen-spec and external-research siblings and additionally finds the stale mechanism family in task-init-fleet, verify-against-rubric-fleet and implement-fleet; feature-library-scout-fleet.md:88 also carries the older Goal wording."
+  },
+    {
+    "index": 6,
+    "refuted": true,
+    "reason": "The explicit Step 12 argument list omits SOURCE_OF_TRUTH.md, but the claimed absence of post-write verification is supplied elsewhere. The canonical substrate-write protocol requires verify-substrate-batch.sh once per batch of writes; that helper invokes scan-substrate-orphans.py in directory mode, whose SUBSTRATE_FILES includes SOURCE_OF_TRUTH.md. The command's own :182 also requires clean scans on touched files post-apply. Reading only the local two-file invocation does not establish an unverified final SOURCE_OF_TRUTH under the complete contract.",
+    "corrected_claim": "A local clarification could name SOURCE_OF_TRUTH in Step 12, but no missing end-to-end scan requirement is established. Own directory grep confirms the explicit-list pattern at feature-library-scout-fleet.md:127-129 and the additional sibling external-research-fleet.md:143-145. atom-audit-fleet and screen-spec-fleet also inherit the post-batch task-memory scan. Do not invent a new safety gate to replace the existing protocol."
+  },
+  {
+    "index": 7,
+    "refuted": true,
+    "reason": "The proposed deletion is taste. The paragraph states the persistent single-writer invariant and why it exists; Step 5 addresses worker dispatch and Step 8 addresses application. Repetition across those contexts is not a demonstrated defect. ADR-0038 Rule 2 and scenario 40 explicitly depend on maintaining the sole-writer rule.",
+    "corrected_claim": "Own directory grep confirms the explanatory family at feature-library-scout-fleet.md:130, external-research-fleet.md:146 and atom-audit-fleet.md:111. No correctness repair is justified merely by those repetitions; preserve the ownership invariant and its accepted policy."
+  },
+  {
+    "index": 8,
+    "refuted": false,
+    "reason": "The universal reads-only-image and writes-only-spec sentence at image-to-spec.md:52 misstates the actual local I/O explicitly required at :45-46,59-64: foundation reads, open questions, the screen index, gameplay notes and opt-in frame extraction. Scenario 86 itself requires foundation token mapping and a SCREEN_MAP row; scenarios 94 and 101 cover gameplay frames. This is a stale scope summary, not authorization to add unrelated outputs.",
+    "corrected_claim": "Describe the already-declared local inputs and artifacts while preserving no Figma, no web fetch and no production-code generation. Own directory grep found the full misleading sentence only in commands/image-to-spec.md:52, but also found the shorter writes-only-spec claim in wos/command-roles.md:1041; scenario 86's boundary summary repeats it despite its later index-write expectation. Coordinate those summaries. No accepted decision must be reversed."
+  },
+  {
+    "index": 9,
+    "refuted": false,
+    "reason": "Fetched the official OWASP ASVS index at https://cheatsheetseries.owasp.org/IndexASVS.html, which identifies itself as ASVS 5.0.x. Its chapter headings contradict every cited old chapter-number pairing in security-review.md:54. The command's relevant-category and failed-or-unclear instructions do not repair incorrect chapter identities.",
+    "corrected_claim": "Use the ASVS 5 mappings: authentication V6, sessions V7, authorization V8, validation V2, data protection V14, APIs V4, architecture V15, and logging/error handling V16. Own directory grep confirms commands/security-review.md:54 is the sole command with the wrong pairs; wos/command-roles.md:480 declares the standard but does not repeat the pairs. This is factual correction within the selected standard, not a policy migration."
+  },
+  {
+    "index": 10,
+    "refuted": false,
+    "reason": "project-bootstrap.md:157 prescribes [not consumed yet] in an exact format reminder that claims to follow capture-references. The canonical capture format and its operating and completion rules at capture-references.md:67,93,164 require TBD for an unknown consumer, corroborated by external-research.md:62,79. ADR-0056 does not prescribe the competing bracketed sentinel.",
+    "corrected_claim": "Replace only the unknown-consumer sentinel with TBD. Own directory grep confirms project-bootstrap.md:157 is the sole Consumes-by occurrence using [not consumed yet]. The change restores the existing canonical value and does not change a locked decision."
+  },
+  {
+    "index": 11,
+    "refuted": false,
+    "reason": "compact-task-memory.md:43-46 names only TASK_STATE and then forbids all other writes, while :94 explicitly requires an APPLIED snapshot write and its own Artifact changes row. ADR-0141's Decision requires that pre-pruning snapshot, and scenario 20 criterion 6b requires evidence of its creation. These references establish the intended exception; the declared scope has not caught up.",
+    "corrected_claim": "Add the mandatory .wos/compaction/<timestamp>_TASK_STATE.md snapshot to the write inventory and exempt it from the no-other-files sentence. Preserve the named task-artifact immutability and the existing substrate audit protocol. Own directory grep confirms this exact scope/snapshot conflict only in compact-task-memory.md:43-46,94. ADR-0141 already authorizes the exception; do not edit ADR-0015's accepted Decision text."
+  },
+  {
+    "index": 12,
+    "refuted": false,
+    "reason": "compact-task-memory.md:61 puts Last completed step in the never-change set, while :100 explicitly orders replacing it. The completion clause at :151 incorporates all preserved categories. ADR-0141's Decision explicitly says compact-task-memory records itself in Last completed step, and resume-from-state.md:64 and sync-task-state.md:56 consume the prior-step value for warning suppression.",
+    "corrected_claim": "Remove Last completed step from the verbatim set and identify the required recovery-anchor update, keeping the prior bytes in the mandatory snapshot. Own directory grep also confirms stale preserve wording at wos/command-roles.md:244. Scenario 20's generic preserve-categories expectation should continue referring to the corrected set. ADR-0141 already decided this exception despite ADR-0015's narrower supersession metadata; no new reversal is necessary."
+  },
+  {
+    "index": 13,
+    "refuted": false,
+    "reason": "The unconditional SHA requirement at compact-task-memory.md:152 conflicts with the snapshot-backed route at :92-96 and .gitignore:27. ADR-0141 explicitly supersedes git-only reversibility and scenario 20 criterion 6b fails a git-only pointer for ignored tasks. The issue is the remaining unconditional promise, not absence of an existing recovery mechanism.",
+    "corrected_claim": "Make the already-required snapshot the primary recovery reference and git evidence additional only when a recoverable pre-compaction version is verified. Own directory grep finds stale command wording at :20,82,98,101,152,154,158 and doctrine at wos/context-budget.md:168 and wos/command-roles.md:245; :92,94,96-99 already partly carry the corrected route. Preserve ADR-0093's append-only provenance requirement. This implements ADR-0141 without changing either accepted Decision text."
+  },
+  {
+    "index": 14,
+    "refuted": false,
+    "reason": "Read ADR-0002's Decision: it defines the Paste-this-next handoff format and contains no canonical-decision immutability rule. Its Status is also superseded by adaptive handoff. The attribution at compact-task-memory.md:60 is unsupported even though the local preserve-verbatim rule is independently valid. wos/substrate-peers.md:80 supplies an actual append-only locked-decision rule.",
+    "corrected_claim": "Remove the ADR-0002 attribution while preserving the local rule, or cite the precise applicable decision-preservation contract. Own directory grep confirms this attribution occurs only at compact-task-memory.md:60. This is citation repair, not alteration of an accepted decision."
+  },
+  {
+    "index": 15,
+    "refuted": false,
+    "reason": "atom-audit-fleet.md:13 declares suggested-model as Sonnet and :15-17 declares the atom-auditor worker as Haiku. Steps 4-5 at :102-103 point to suggested-model for the worker tier, which cannot yield Haiku. wos/sub-agent-orchestration.md's frontmatter example explicitly distinguishes suggested-model for the orchestrator from workers[].tier for workers.",
+    "corrected_claim": "Resolve the worker tier from its workers[].tier entry and the orchestrator tier from suggested-model. Own directory grep confirms the unequal-tier attribution also in implement-fleet.md:100; equal-tier wording occurs in external-research-fleet.md:135 and feature-library-scout-fleet.md:121. The shared orchestrator-bootstrap block names the workers map, so its convention wording is not the same wrong-field instruction. No model-tier policy change is required."
+  },
+  {
+    "index": 16,
+    "refuted": true,
+    "reason": "partial_ok permits saving surviving partials with gaps; it does not assert that an incomplete audit satisfies full-coverage completion. atom-audit-fleet.md:105-106 can merge a partial audit while :158 remains the condition for calling the entire audit done. The proposed missing-atom rows also need care: worker_output_schema requires actual audit-result fields, so manufacturing rows for unaudited atoms would not be justified by the schema. The audit has not demonstrated an unavoidable contradiction rather than distinct partial and complete outcomes.",
+    "corrected_claim": "Own directory grep confirms the two fleet coverage statements and the non-fleet atom-audit.md:104 counterpart. Keep explicit gap reporting from convergence-policy.md; hold any change that redefines full completion as successful atoms only. If partial-run completion is a desired new acceptance policy, decide and represent it explicitly without invented audit results."
+  },
+  {
+    "index": 17,
+    "refuted": true,
+    "reason": "The local Step 10.5 runs before Step 11, but the finding overlooks the protocol Step 11 explicitly inherits. task-state-slice-closure-pattern.md requires substrate-write-protocol.md for every update; its Batch verification paragraph requires verify-substrate-batch.sh once after the write batch. That script invokes scan-substrate-orphans.py on the task directory, and the scanner includes TASK_STATE.md. Thus final TASK_STATE bytes have a specified later scan; the earlier scan is not the only evidence available to the completion contract.",
+    "corrected_claim": "No missing final TASK_STATE scan requirement is established. Own directory grep confirms the local ordering in atom-audit-fleet.md:109-110 and screen-spec-fleet.md:129-131, and also in verify-against-rubric-fleet.md:121-123. Keep the inherited final batch verification. The separate existing rollback restores only Summary Table despite the Audit history write, but that is not proof of this finding's unverified-TASK_STATE claim and was not independently raised here."
+  },
+  {
+    "index": 18,
+    "refuted": false,
+    "reason": "Fetched npm's official versioned npm-exec documentation at https://docs.npmjs.com/cli/v11/commands/npm-exec/ and Repomix's CLI documentation at https://repomix.com/guide/command-line-options. npm documents that a specified package version must match the local dependency and otherwise requested packages can be installed into its cache; Repomix defines --remote as clone-and-pack. Presence of an older repomix alone therefore does not enforce the command's no-install promise, and without cloning is factually incorrect for the specified invocation.",
+    "corrected_claim": "Use the resolved already-installed executable or an explicitly non-installing invocation, and describe remote cloning accurately; keep the raw-manifest fallback. Own directory grep finds repomix only in feature-library-scout.md:57 and code-context-map.md:69 across commands and wos. The latter uses unversioned npx with presence in the target repo, so the evidence does not establish the same version-mismatch defect there. ADR-0027 and ADR-0057 preserve optional-already-present augmentation; this repair need not reverse that policy."
+  }
+]

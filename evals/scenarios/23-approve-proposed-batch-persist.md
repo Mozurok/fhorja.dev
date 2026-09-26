@@ -1,12 +1,12 @@
 # Eval scenario 23: /approve-proposed persists prior turn's PROPOSED files atomically
 
-- **Tags**: approve-proposed, batch-persist, proposed-by-default, addendum-adr-0024, atomic-write
+- **Tags**: approve-proposed, batch-persist, peer-ownership, adr-0034, adr-0232, atomic-write
 - **Last reviewed**: 2026-05-19
 - **Status**: active
 
 ## Goal
 
-Validate the canonical batch-persist idiom introduced in ADR-0024. The user reviews proposed artifacts in Ask/Plan mode, then runs `/approve-proposed` once; every PROPOSED file with fully inline content is written in a single turn, with a locked-format recap. Drift here breaks the "single command to close the proposed-mode loop" property that addresses the first real-world session friction.
+Validate the batch-persist idiom. The premise changed on 2026-09-16 and the mechanism did not: the ADR-0001 mode gate is gone, so nothing is PROPOSED because a mode said so. What remains is the staged write, and it is the one this scenario now grades: one or more commands chose to stage `<!-- PROPOSED by ... -->` blocks inside sections they do not conventionally own, so the user could read them before they land, and the user runs `/approve-proposed` once to promote every one of them atomically. Staging is a choice, not a requirement: since ADR-0232 ownership is descriptive, and a co-writer may also write such a section directly, logging the conventional owner in `reason`. The command is invoked on request and is in no default chain.
 
 ## Setup
 
@@ -120,7 +120,7 @@ Run @commands/approve-proposed.md against projects/<test_client>__<test_project>
 - **Walk back to older Artifact-changes turns**: model finds an older PROPOSED block from earlier in the chat and persists THAT instead of (or in addition to) the most recent one. Source-of-truth turn rule must be "latest only".
 - **Conflict-rollback skipped**: if the proposed `TASK_STATE.md` had contradicted the locked D1 (e.g., changed it to Postgres -> MySQL), the command should FAIL with a clear error and persist NOTHING. A scenario variant should test this; for this scenario, no conflict exists.
 - **No-PROPOSED-block silent success**: if the prior turn happened to have all `APPLIED` (everything already persisted), the command must emit NO_OP_TRACE explaining "no PROPOSED files in prior block". Silent success is invalid.
-- **Path resolution failure**: paths in the prior block must resolve to inside the active task folder OR `my_work_tasks/`. Persisting to absolute paths (`/Users/...`) or paths outside the workspace is forbidden.
+- **Path resolution failure**: paths in the prior block must resolve to inside the active task folder OR inside the workflow repository (for workflow meta-edits). Persisting to absolute paths (`/Users/...`) or paths outside the workspace is forbidden.
 
 ## Notes
 

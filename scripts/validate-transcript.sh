@@ -136,12 +136,18 @@ validate_transcript() {
 
     if [[ -n "$run_now_line" ]]; then
       local run_now_value command_basename
-      run_now_value="$(printf '%s' "$run_now_line" | sed -E 's/^Run now:[[:space:]]*//')"
+      run_now_value="$(printf '%s' "$run_now_line" | sed -E 's/^Run now:[[:space:]]*//; s/[[:space:]]+$//' | tr -d '\r')"
+      # A handoff may carry flags, and exactly one in the catalog does:
+      # `Run now: branch-commit --apply` (commands/implement-approved-slice.md, the ADR-0159
+      # Express lock). Cut the argument list BEFORE resolving. The previous form ran
+      # `tr -d '[:space:]'` over the whole value, which glued the flag to the name and asked
+      # the filesystem for `branch-commit--apply.md`: the one handoff the spine tells a run to
+      # emit was the one this validator rejected, measured 2026-08-30 at exit 1.
+      run_now_value="${run_now_value%% *}"
       case "$run_now_value" in
         /*) command_basename="${run_now_value#/}" ;;
         *)  command_basename="$run_now_value" ;;
       esac
-      command_basename="$(printf '%s' "$command_basename" | tr -d '[:space:]')"
 
       # ADR-0126. `none` is the one value that names no command: it declares the
       # chain ended. The pairing with `Mode: N/A` is checked in both directions,
@@ -215,6 +221,34 @@ run_self_test() {
   local self_test_commands_dir="$DEFAULT_COMMANDS_DIR"
   self_test_dir="$(mktemp -d "${TMPDIR:-/tmp}/validate-transcript-selftest.XXXXXX")"
   trap 'rm -rf "$self_test_dir"' RETURN
+
+  cat >"${self_test_dir}/handoff_with_flag.md" <<'EOF'
+### Artifact changes
+- TASK_STATE.md: APPLIED
+
+### Command transcript
+Last slice implemented; routing to the apply commit.
+
+### Handoff
+Run now: branch-commit --apply
+Mode: Agent
+Work complexity: LOW
+Reason: The last slice is done; create the local commit.
+EOF
+
+  cat >"${self_test_dir}/mutation_invented_command_with_flag.md" <<'EOF'
+### Artifact changes
+None
+
+### Command transcript
+Routing to a command that does not exist, with an argument attached.
+
+### Handoff
+Run now: not-a-real-command --apply
+Mode: Agent
+Work complexity: LOW
+Reason: Cutting the argument list must not turn an invented name into a pass.
+EOF
 
   cat >"${self_test_dir}/conforming.md" <<'EOF'
 ### Artifact changes
@@ -380,6 +414,11 @@ EOF
   check_fixture "mutation: invented command basename" "${self_test_dir}/mutation_invented_command.md" 1 "does not resolve to a real command" "$self_test_commands_dir" || overall_rc=1
   check_fixture "mutation: terminal form with a routing mode" "${self_test_dir}/mutation_terminal_routing_mode.md" 1 "requires Mode: N/A" "$self_test_commands_dir" || overall_rc=1
   check_fixture "mutation: Mode N/A on a routing handoff" "${self_test_dir}/mutation_na_mode_while_routing.md" 1 "valid only with" "$self_test_commands_dir" || overall_rc=1
+  # ADR-0159 emits `Run now: branch-commit --apply`, the one handoff in the catalog that carries a
+  # flag. Both halves are asserted: the flag form must resolve, AND cutting the argument list must
+  # not turn an invented name into a pass, which is the way this fix could have loosened the check.
+  check_fixture "handoff carrying a flag (ADR-0159)" "${self_test_dir}/handoff_with_flag.md" 0 "" "$self_test_commands_dir" || overall_rc=1
+  check_fixture "mutation: invented command with a flag" "${self_test_dir}/mutation_invented_command_with_flag.md" 1 "does not resolve to a real command" "$self_test_commands_dir" || overall_rc=1
 
   if [[ "$overall_rc" -eq 0 ]]; then
     printf 'self-test: all fixtures behaved as expected\n'

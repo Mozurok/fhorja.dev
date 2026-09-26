@@ -30,7 +30,7 @@ Mode: Ask
 
 - Response routes to exactly one of `what-next`, `workflow-guide`, or `im-stuck`.
 - Routing rationale names the signal that disqualifies the other two.
-- `### Handoff` is complete with adaptive handoff block that starts with `Run @commands/<chosen>.md`.
+- `### Handoff` is complete and its first line is `Run now: <chosen>`, a real `commands/` basename.
 
 ## Pass criteria
 

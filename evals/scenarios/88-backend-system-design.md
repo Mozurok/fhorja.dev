@@ -29,7 +29,7 @@ Run `@commands/backend-system-design.md` for an active task designing a new "sav
 - Any latency or SLO target cites a source or is marked `PROPOSED-pending-baseline`.
 - Reliability routes to `slo-define`; the endpoint contract composes with `api-contract-review`; any schema change routes to `migration-safety-steward`; the rollout composes with `release-plan`.
 - The trade-offs section names the rejected options (for example cron digest vs event-driven) citing `wos/architecture-tradeoffs.md`.
-- The artifact is marked APPLIED (Agent) or PROPOSED (Ask); no product code is emitted; the response ends with a complete Handoff.
+- The artifact is written and marked APPLIED in every mode (ADR-0199); no product code is emitted; the response ends with a complete Handoff.
 
 ## Pass criteria
 
@@ -37,7 +37,7 @@ Run `@commands/backend-system-design.md` for an active task designing a new "sav
 2. The design is scale-honest: no sharding, multi-region, or message-bus machinery without a stated requirement; a solo or small-team scale gets a single-Postgres-shaped answer.
 3. No scale, latency, or SLO number is asserted without a cited source or a `PROPOSED-pending-baseline` mark.
 4. The command composes with (does not duplicate) `slo-define`, `api-contract-review`, `migration-safety-steward`, and `release-plan`, and cites the two new `wos/` topics where relevant.
-5. No product code is written; `BACKEND_SYSTEM_DESIGN.md` is persisted per editor mode; the Handoff `Run now` line names a real `commands/<name>.md` basename.
+5. No product code is written; `BACKEND_SYSTEM_DESIGN.md` is written and marked APPLIED whatever the editor mode; the Handoff `Run now` line names a real `commands/<name>.md` basename.
 
 ## Fail signals
 

@@ -35,29 +35,36 @@ Role:
 - mandatory start of every task
 - creates the task folder and required base files
 - when `PROJECT_CHARTER.md` exists, seeds `SOURCE_OF_TRUTH.md` automatically from project-level memory; when it does not, warns and proceeds with placeholders (does not block)
-- can run in Ask for drafting or Agent for file creation in `my_work_tasks`
+- writes the five files `APPLIED` in every mode (ADR-0199), so the Handoff is `Run now: implementation-plan`, `Mode: Agent`, in every mode
+- sets the default pipeline `task-init` -> `implementation-plan` -> `approve-plan` -> `implement-approved-slice` -> `branch-commit --apply` -> `pr-package --apply` (ADR-0184, ADR-0208, ADR-0233) and records the fired disqualifiers, or none, on the `Escalations:` line (ADR-0207)
+- in an attended git repository with a configured remote, on the default branch and without requested isolation, creates `task/<task-dir>` in place and records it on a `Task branch:` line (ADR-0233)
+- lists the decisions it expects to assume and continues without waiting; an answer that arrives while the chain runs replaces the matching provisional `P-N`
+- on the one-slice route (attended, no escalation, one sentence, at most two named files, no decision beyond the brief, no provisional `P-N`) writes the single approved slice, both lock signals and a `Route: one-slice` line itself (ADR-0225)
 
-Typical next command:
-- `impact-analysis`
+Typical next commands:
+- `implementation-plan` (default)
+- `implement-approved-slice` (the one-slice route, ADR-0225)
+- `impact-analysis` only when the scope disqualifier fires (the scope needs more than one sentence, or the change touches 5 or more files); `decision-interview` or the strict-surface commands when their own disqualifier fires
+- `task-workspace` first when the user asked for worktree isolation
 
 ### task-workspace
 Role:
-- opt-in, git-gated provisioning of one durable git worktree and a `task/<task-slug>` branch for the active task (ADR-0074)
+- opt-in, git-gated provisioning of one durable git worktree and a `task/<task-dir>` branch for the active task (ADR-0074); the branch alone needs no opt-in, since `task-init` creates it in place when isolation is not requested (ADR-0233)
 - records the `## Workspace` section (worktree path, task branch, base branch) in `SOURCE_OF_TRUTH.md`
 - runs standalone to retrofit a task already in progress; `task-init` routes to it when isolation is requested
 - never tears down (that is `task-close`); distinct from the ephemeral slice-level worktrees `implement-fleet` creates
 
 Typical next command:
-- `impact-analysis` (or the task's discovery step)
+- the next step of the task's recorded pipeline (`implementation-plan` by default; `impact-analysis` only when an escalation added it)
 
 ### task-init-fleet
 Role:
-- orchestrator-workers variant of `task-init` per ADR-0034 (J.8 PILOT, 2026-06-04), structural contract per ADR-0038 (PENDING lived runs)
+- orchestrator-workers variant of `task-init` per ADR-0034 (J.8 PILOT, 2026-06-04), structural contract per ADR-0038, worker return carrier per ADR-0158
 - Opus orchestrator decomposes a multi-stream brief into N >= 3 independent sub-tasks; dispatches N Sonnet workers
 - each worker runs the full task-init flow for ONE sub-task (5 mandatory files + `## Recommended pipeline` per ADR-0025)
 - max_fanout 10; barrier convergence 10-min timeout; union merge
 - orchestrator owns `INITIATIVE_INDEX.md` (cross-task index, one row per sub-task with date, slug, objective, status, cross-links, recommended next command)
-- decomposition validation pre-dispatch: unique slugs, scope disjointness, cross_links form a DAG, complexity tier declared
+- decomposition validation pre-dispatch: unique slugs, scope disjointness, cross_links form a DAG, escalations declared per sub-task (an empty list means none fired; ADR-0207)
 - workers NEVER write INITIATIVE_INDEX.md; orchestrator is SOLE writer
 
 Guard rails:
@@ -68,7 +75,7 @@ Guard rails:
 - when `PROJECT_CHARTER.md` is missing, warn but proceed; workers use explicit placeholders
 
 Typical next commands:
-- per-sub-task: `impact-analysis` or per the complexity tier emitted in that sub-task's TASK_STATE.md `## Recommended pipeline`
+- per-sub-task: `implementation-plan`, or the first command an escalation added in that sub-task's TASK_STATE.md `## Recommended pipeline`
 - overall coordination: `where-we-at` on each in sequence; `decision-interview` if cross-task conflicts surfaced
 
 ### code-locate
@@ -110,7 +117,7 @@ Typical next commands:
 - `targeted-questions`
 - `decision-interview`
 - `implementation-plan`
-- `approve-proposed` (when this command emitted a PROPOSED `IMPACT_ANALYSIS.md` and the user reviewed and accepts the inline content; batch-persist idiom from ADR-0024)
+- `approve-proposed` only on request, to promote the PROPOSED co-writer blocks this command staged under `TASK_STATE.md ## Current known facts` and `## Risks to watch` without waiting for their owner (ADR-0034); `IMPACT_ANALYSIS.md` itself is written `APPLIED` in every mode (ADR-0199)
 
 ### invariants-and-non-goals
 Role:
@@ -121,7 +128,6 @@ Typical next commands:
 - `targeted-questions`
 - `decision-interview`
 - `implementation-plan`
-- `approve-proposed` (when this command emitted a PROPOSED `INVARIANTS_AND_NON_GOALS.md` and the user accepts the inline content as-is)
 
 ### targeted-questions
 Role:
@@ -135,17 +141,17 @@ Typical next commands:
 ### decision-interview
 Role:
 - ask the minimum decision-level questions that affect behavior, data, or rollout safety
-- two modes: interview (no LOCK picks in this turn; PROPOSED-by-default per ADR-0001) and persist (LOCK picks present; APPLIED in the same turn per the `LOCK-pick recognition` operating rule)
+- two modes: interview (no LOCK picks in this turn) and persist (LOCK picks present; APPLIED in the same turn per the `LOCK-pick recognition` operating rule)
+- in an attended chain on a task branch, the interview takes no human turn: it picks the recommended option from the evidence, writes a provisional `### P-N` under `## Provisional decisions`, and continues; the P-N is never edited or moved, and a later LOCK confirms it with a new `D-N` carrying `Confirms: P-N` or replaces it with one carrying `Supersedes: P-N` (ADR-0233). It never records a provisional de-scope of a deliverable the user named
 
 Typical next commands:
 - `resolve-contract-gaps`
 - `implementation-plan`
-- `approve-proposed` (alternative to LOCK picks: when interview-mode emits a PROPOSED `DECISIONS.md`, the user can also batch-persist via this sibling command instead of re-typing LOCK picks)
 
 ### problem-framing
 Role:
 - optional pre-task intake (Phase 0.5, ADR-0058); question whether the stated objective is the right problem before any task folder exists
-- socratic, one question per message, prefer multiple choice; explore the goal before proposing a solution, propose 2-3 approaches, then write a five-field task-level BRIEF.md (problem, success criteria, non-goals, recommended approach, named deliverables) that task-init consumes and moves into the new task folder
+- socratic, one question per message, prefer multiple choice; explore the goal before proposing a solution, propose 2-3 approaches, then write a <!-- count:sections-brief -->5<!-- /count -->-field task-level BRIEF.md (problem, success criteria, non-goals, recommended approach, named deliverables) that task-init consumes and moves into the new task folder
 - strong do-not-use-when gate (anti-ceremony): NO_OP straight to task-init for an already-one-sentence-clear objective, a bug fix or hotfix, or when an active task already exists
 - distinct from decision-interview (in-task decision locking) and targeted-questions (in-task factual gaps): problem-framing precedes the task
 
@@ -215,11 +221,10 @@ Role:
 - assign **work complexity** per slice (`LOW` / `MEDIUM` / `HIGH`) so execution and resumption can pick an appropriate editor capability tier without naming model SKUs
 
 Typical next commands:
-- `test-strategy`
-- `sync-task-state`
-- `implement-approved-slice`
-- `approve-proposed` (when this command emitted a PROPOSED `IMPLEMENTATION_PLAN.md` and the user accepts the inline plan as-is; batch-persist idiom from ADR-0024)
-- `self-critique-and-revise` (when the user wants a locked-rubric self-critique on the proposed plan before persisting; ADR-0021)
+- `approve-plan` (default, for every plan, with or without a recorded escalation; the inline Approval log is gone, ADR-0208)
+- under `Operating mode: strict`, the next missing of `invariants-and-non-goals`, `test-strategy`, `approve-plan` (ADR-0162)
+- `self-critique-and-revise` (one locked-rubric critique-and-revision pass on the plan before approval; ADR-0021)
+- the smallest decisive upstream command (`targeted-questions`, `decision-interview`) when clarification markers or open decisions remain
 
 ### test-strategy
 Role:
@@ -241,10 +246,10 @@ Typical next commands:
 ### compact-task-memory
 Role:
 - lossy compaction of `TASK_STATE.md` when task memory has grown beyond a useful working size
-- preserves canonical decisions, recommended next step, current phase, objective, invariants, source of truth, constraints, last completed step, resume notes, and work complexity verbatim
-- filters stale facts, resolved questions, and mitigated risks into a `## Compaction history` audit entry with git-SHA pointer for reversibility
+- preserves canonical decisions, recommended next step, current phase, objective, invariants, source of truth, constraints, resume notes, and work complexity verbatim; updates last completed step to record this compaction
+- filters stale facts, resolved questions, and mitigated risks into a `## Compaction history` audit entry with the required pre-compaction snapshot pointer for reversibility; git is additional only for verified matching bytes
 - distinct from `sync-task-state` (incremental, append-only, never lossy) and `state-reconcile` (drift repair, no shrinking)
-- primary editor mode is Plan (PROPOSED-by-default per ADR-0001); the user reviews the slimmed proposal before persisting
+- primary editor mode is Plan; the one command that keeps the editor-mode gate (ADR-0220): the slimmed `TASK_STATE.md` is `APPLIED` only when persisting in Agent mode and `PROPOSED` for review in Ask or Plan mode, because the compaction is lossy and a later read cannot recover what it dropped
 - ADR-0015 codifies the contract; ADR-0023 names the per-phase thresholds that warn when compaction is recommended
 
 Typical next commands:
@@ -253,32 +258,36 @@ Typical next commands:
 
 ### approve-plan
 Role:
-- atomically lock `IMPLEMENTATION_PLAN.md` as the approved execution baseline
+- atomically lock `IMPLEMENTATION_PLAN.md` as the approved execution baseline; runs on every plan `implementation-plan` produces or `self-critique-and-revise` revises (ADR-0208), and never on the one-slice route, whose plan `task-init` writes (ADR-0225)
 - symmetric counterpart to `approve-proposed` but plan-specific (not for arbitrary PROPOSED artifacts)
-- appends `## Approval log` entry with date + slice count + first slice id
-- updates `TASK_STATE.md` per the canonical 5-section pattern (`commands/_shared/task-state-slice-closure-pattern.md`)
+- before the log, runs `scripts/check-plan-coverage.sh <task-folder>`, then dispatches one blinded `verify-against-rubric` pass against the locked rubric "does this plan commit the product to anything `DECISIONS.md ## Locked decisions` does not authorize?"; on the strict surface (auth, payments, compliance, PII, multi-tenant isolation) it runs a second blinded pass against `INVARIANTS_AND_NON_GOALS.md`
+- keeps `## Locked decisions` as the only authorization; a slice resting on a provisional `P-N` passes labeled "rests on provisional P-N", and the review asks per `P-N` whether its cited evidence exists on the task branch and supports the choice (ADR-0233)
+- ends on one of the five exits of `commands/_shared/grounded-residue-termination.md` (ADR-0202) and takes no human turn; only ESCALATED hands back to the maintainer, and in an attended chain on a task branch a missing product decision becomes a provisional `P-N` rather than ESCALATED
+- appends `## Approval log` entry with date + slice count + first slice id, and records one `plan_review` line per pass in the project's `OUTCOMES.jsonl`
+- updates `TASK_STATE.md` per the canonical <!-- count:closure-pattern-sections -->5<!-- /count -->-section pattern (`commands/_shared/task-state-slice-closure-pattern.md`)
 
 Guard rails:
 - refuses with NO_OP_TRACE when IMPLEMENTATION_PLAN.md contains `[NEEDS CLARIFICATION:]` markers
 - refuses when the plan was not last touched by `implementation-plan` or `self-critique-and-revise`
 - idempotent: refuses to re-approve a plan already marked APPROVED for the same revision
-- does not modify slice content or decision content (locking-only)
+- does not modify slice content or decision content; the review routes a fix to `implementation-plan` or `decision-interview` rather than editing the plan
 
 Typical next commands (waves-aware per ADR-0042):
-- `implement-fleet` when the first remaining wave in the plan's `## Execution waves` has size 2 or more with `Scope` and `Depends-on` declared
+- `implement-fleet` when a remaining wave in the plan's `## Execution waves` has size 2 or more with `Scope` and `Depends-on` declared
 - `implement-approved-slice` (for the first slice in the locked plan) otherwise, or whenever the slice DAG is a chain
 
 ### approve-proposed
 Role:
 - atomically persist every file marked `PROPOSED` in the most recent prior assistant turn's `### Artifact changes` block
-- single-command batch-persist idiom (ADR-0024 adendum to ADR-0001) that closes the two-step latency described in ADR-0001
+- invoked on request only, never part of a default chain; the ADR-0001 mode gate it once serviced is gone (ADR-0199)
+- what remains is the ADR-0034 ownership case: a non-owner staged a PROPOSED block inside a section it does not own, and the user wants it promoted without waiting for the owner command
 - Agent mode by definition (writes files); does NOT propose anything
 - locked five-line recap in `### Command transcript`: Persisted / Skipped (already current) / Skipped (incomplete inline) / Skipped (path outside scope) / Skipped (no PROPOSED marker). Lines with zero entries are omitted; lines with entries appear in the locked order
 - atomic semantics: if any proposal contradicts a locked decision in `TASK_STATE.md ## Canonical decisions`, NO writes happen and the command emits a FAIL naming the contradiction (no partial persist)
 - three explicit no-op cases emit `NO_OP_TRACE`: prior turn has no `### Artifact changes`; prior block has no `PROPOSED` files; all PROPOSED files already match on-disk content
 - source-of-truth turn rule: "prior turn" means the MOST RECENT assistant message containing an `### Artifact changes` block; intervening turns without it are skipped; older Artifact-changes turns are not walked back
 - inline-content requirement: only files with FULL final content inline under their bullet are persisted; "see above" or partial fragments are skipped with a recap-line reason
-- does NOT replace ADR-0001; users can still re-run source commands in Agent mode (path a) or copy-paste manually (path c)
+- for partial approval, run the original command again in Agent mode instead
 - guard rail: refuses to accept new content via user input; only executes the prior batch
 
 Typical next commands:
@@ -298,7 +307,7 @@ Role:
 Typical next commands:
 - `sync-task-state` (if only `TASK_STATE.md` still needs a clean write pass)
 - `compact-task-memory` (when the reconciled state is correct but heavy; cleanup follows after patches land)
-- `approve-proposed` (when the proposed patches are accepted as-is and the user wants to batch-persist them)
+- `approve-proposed` only on request, to promote a PROPOSED block this command staged in a section it does not own without waiting for that owner (ADR-0034); its own task-memory patches are written `APPLIED` in every mode (ADR-0199)
 - `what-next`
 - `resume-from-state`
 - upstream contract/plan commands when drift is `BLOCKING`
@@ -314,7 +323,8 @@ Typical next commands (waves-aware and terminal-safe per ADR-0042):
 - `sync-task-state` for the LOW/MEDIUM inline-close path (keeps `TASK_STATE.md` fresh without a separate prompt)
 - `slice-closure` (HIGH complexity or exit criteria not fully verifiable inline)
 - `review-hard`
-- `where-we-at` (multi-slice) or `task-close` when this was the last slice in the plan
+- on the last slice, when the run is attended and no `commit-ref` exists yet, whatever `Escalations:` records: `branch-commit --apply` (ADR-0159, ADR-0184, ADR-0233), before `where-we-at` or `task-close`
+- `where-we-at` (multi-slice) or `task-close` when this was the last slice in the plan otherwise
 
 ### implement-fleet
 Role:
@@ -324,7 +334,7 @@ Role:
 
 Typical next commands:
 - `slice-closure` per completed slice
-- `pr-package` when all waves pass
+- `branch-commit --apply` when all waves pass and the run is attended, which hands to `pr-package --apply` where a remote is configured (ADR-0233)
 - `implement-approved-slice` for a slice held or failed by a wave (dependency, scope overlap, worker failure, or integration-gate failure)
 
 ### implement-slice-complement
@@ -349,12 +359,11 @@ Typical next commands:
 - `pr-package`
 - `where-we-at` only if the task is larger or still ambiguous
 - `task-close` when this was the last slice and the whole task is ending
-- `approve-proposed` (when slice-closure emitted PROPOSED slice notes plus `TASK_STATE.md` updates and the user accepts them as-is)
 
 ### task-close
 Role:
 - terminal task lifecycle transition; the symmetric counterpart to `task-init` and the only official way to close a whole task
-- verifies the spec done-conditions (implementation complete, review complete, team approval, merge into integration branch), each met with evidence or explicitly waived in solo / Phase-1 contexts
+- verifies the spec done-conditions (implementation complete, review complete, team approval, merge into integration branch), each met with evidence or waived; team approval is auto-waived under the solo or local routes of ADR-0191 (a purely local tree, or a declared single-maintainer model), and merge is checked, never auto-waived
 - on pass: sets `TASK_STATE.md` to its final closed state and moves the task folder `active/YYYY-MM-DD_<slug>/` -> `archive/YYYY-MM-DD_<slug>/` (`archive/` canonical, `done/` legacy alias)
 - on a failed gate: blocks (does not move) and routes to the smallest unblocking action
 - idempotent (`NO_OP_TRACE` when already archived with final state); never deletes artifacts
@@ -446,9 +455,8 @@ Guard rails:
 - a URL source is captured via `capture-references` first; skill-vet points at the local copy
 - read the description and every file, not just the body (payloads ride in on test or auxiliary files and hidden Unicode)
 
-Next:
-- `capture-references` (if the source is a URL not yet captured)
-- human approval of the verdict
+Typical next command:
+- `capture-references` (if the source is a URL not yet captured), then human approval of the verdict.
 
 ### mcp-server-vet
 Role:
@@ -463,9 +471,8 @@ Guard rails:
 - inspect the declared surface, not a README (the attack rides in tool descriptions, scopes, and hidden Unicode)
 - static pre-trust inspection only; runtime egress monitoring is out of scope (external tools own that)
 
-Next:
-- `capture-references` (if the source is a URL not yet captured)
-- human approval of the verdict
+Typical next command:
+- `capture-references` (if the source is a URL not yet captured), then human approval of the verdict.
 
 ### security-review
 Role:
@@ -511,17 +518,18 @@ Typical next commands:
 
 ### autonomous-run
 Role:
-- controller for the autonomous delivery track (ADR-0044; `wos/autonomous-track.md`)
-- drives an approved, waved `IMPLEMENTATION_PLAN.md` through bounded execution behind two human gates (plan-approval upstream via `approve-plan`, draft-diff merge downstream via `approve-proposed` / `review-hard`) and a runtime governor
-- a thin dispatcher over existing primitives: runs `implement-approved-slice` as the single writer per slice, calls `scripts/autonomy/` (stop-check, governor, classify-slice) between slices, emits PROPOSED diffs only and never merges
+- full-profile direct-use reference controller for the autonomous delivery track (ADR-0044, ADR-0197; `wos/autonomous-track.md`)
+- drives one approved, waved task through one continuous foreground or detached session behind two human gates (plan approval upstream via `approve-plan`; downstream, the PROPOSED slice diffs go to `review-hard` and a human performs the merge, ADR-0221) and a runtime governor
+- a thin dispatcher over existing primitives: runs `implement-approved-slice` as the single writer per slice, calls `scripts/autonomy/` (stop-check, governor, classify-slice) between slices, emits PROPOSED diffs only and never creates a commit, attestation ref, or merge
+- refuses invocation from another execution loop; an external execution layer consumes ordinary command handoffs plus `autonomous-readiness` and `autonomous-board`, and implements any durable queue, cross-session resume, sandbox, credential, remote-control, commit, attestation-ref or publication capability outside Fhorja
+- keeps the ADR-0044 reversibility limit: ADR-0200's bounded-audience test covers attended sessions, not this track (ADR-0221)
 - escalates any boundary slice (schema, contract, migration, security) or any test/eval-touching slice to the human gate mid-run (D6/D12); defaults to escalate on uncertainty
 - distinct from `implement-fleet` (parallel slices, still human-gated per wave, not an end-to-end loop) and from `implement-approved-slice` (executes one slice; `autonomous-run` sequences many under the governor)
 - refuses any permissive headless or auto-merge mode (D9); refuses an unapproved plan and routes to `approve-plan`
 - takes a second precondition alongside approval: a BOOT verdict from `autonomous-readiness` for the current plan revision; its absence is a refusal routed there, and it never relaxes the approval gate
 
 Typical next commands:
-- `approve-proposed`
-- `review-hard`
+- `review-hard` (for the produced PROPOSED diffs; a human then performs the merge)
 - `implement-approved-slice` (for an escalated slice the human approves)
 
 ### resume-from-state
@@ -536,6 +544,9 @@ Typical next commands:
 Role:
 - fast routing answer
 - should stay short and operational
+
+Typical next command:
+- depends on phase.
 
 ### portfolio-review
 Role:
@@ -555,9 +566,15 @@ Role:
 - pedagogical explanation of current phase and next 2-3 steps
 - audience: users still learning the workflow (onboarding, first few sessions); experienced users default to `what-next` (single answer, lower overhead)
 
+Typical next command:
+- depends on phase.
+
 ### im-stuck
 Role:
 - recovery from loops, false progress, stale state, or phase confusion
+
+Typical next command:
+- depends on diagnosis.
 
 ### incident-triage
 Role:
@@ -596,19 +613,31 @@ Role:
 - distinct from `sync-task-state` (does not reflect progress, only memory) and from `targeted-questions` (does not ask the model to produce questions, records the user's own observation verbatim)
 - routing: defaults back to whatever command was running before this capture; falls back to `what-next`
 
+Typical next command:
+- prior command; `what-next` fallback.
+
 ### autonomous-board
 Role:
 - read-only board-of-record view for an `autonomous-run` task (ADR-0044 D7; `wos/autonomous-track.md`)
 - maps each slice and wave to a column (to-do, in-progress, escalated, proposed, done) sourced only from the Fhorja artifacts (spec, `IMPLEMENTATION_PLAN.md`, `TASK_STATE.md`, `SLICES/`)
 - the Fhorja-internal substitute for an external work tracker; reads no tracker and writes nothing (`context-layers-produced: []`)
 - distinct from `where-we-at` (progress judgment against the plan, may write `TASK_STATE.md`) and from `what-next` (routing only); `autonomous-board` is a pure status render for autonomous runs
-- routing: back to `autonomous-run` to continue, or `approve-proposed` for diffs at the merge gate
+- routing: back to `autonomous-run` to continue, or `review-hard` for PROPOSED diffs at the merge gate, which a human then merges (ADR-0221)
+
+Typical next command:
+- `autonomous-run`, `review-hard`, `what-next`.
 
 ### pr-package
 Role:
 - prepare delivery artifacts based on the real diff vs an explicit base branch
-- must require the base branch explicitly
+- must require the base branch explicitly, except in an attended chain on a task branch, where it reads the recorded `Base branch:` line and falls back to `origin/HEAD` only when none was recorded, stating which it used (ADR-0233)
+- `--apply` (Agent mode only, ADR-0185) is the only route to the branch push and the draft PR: it displays the remote name and URL, branch, base, title and body first, refuses on any of its named conditions (unattended run, no remote, base branch, uncommitted changes in scope, mirror or distribution remote), checks who the `pull_request` and `push` workflows reach, asks in the same turn before pushing to a branch already on the remote that is not the task's own, then pushes and opens the PR as a DRAFT; never ready-for-review, never merge, never force-push
+- in an attended chain with a configured remote and no declared `Operating mode: assisted` it runs right after the last `branch-commit --apply` without waiting (ADR-0233); the body lists `Decisions made without you`, `Not verified` and `Not delivered, needs you`, and after the draft opens the chain ends with `Run now: none`
 - multi-repo support (G4 v1): when `SOURCE_OF_TRUTH.md` has a `## Repositories` section, requires explicit `target repo` input; produces `PR_PACKAGE.<repo>.md` per invocation; uses the base branch declared in the matched `## Repositories` entry; multi-repo tasks invoke this command once per repo; cross-repo coordination notes live in `TASK_STATE.md` plus per-PR body cross-references (`Related PR: <url>`)
+
+Typical next command:
+- none in the chain once the draft is open: ready for review and merge are the person's (stop reason 1)
+- `pr-feedback-ingest` or `post-review-pivot` when review returns
 
 ### pr-feedback-ingest
 Role:
@@ -643,15 +672,28 @@ Typical next commands:
 Role:
 - lightweight naming support grounded in the real `git diff` (one of `git diff`, `git diff --staged`, or `git diff <base>...HEAD`)
 - summarizes the actual change in a branch name + ≤3-line commit message; never paraphrases the task summary as a substitute for inspecting the diff
+- `--apply` (attended Agent runs only) creates the local commit in the same turn after the staged display, with a bare commit carrying message flags only and a tree-hash proof that the commit holds what was shown (ADR-0163, ADR-0167); a staged index on entry is the selection (ADR-0219)
+- the default pipeline's local commit and the route the commit-evidence closure floor takes where a human turn is available (ADR-0184); reads the branch from the `Task branch:` line when `task-init` recorded one
+
+Typical next commands:
+- `pr-package --apply` when the run is attended and the repository has a configured remote (ADR-0233)
+- `task-close` when there is no remote and the commit delivered the whole task (the auto-deliver rule set `TASK_STATE.md` to delivered)
+- `pr-package` without `--apply` when only the package text is wanted
 
 ### team-update
 Role:
 - short status communication for any team channel (Slack, Discord, Teams, email, PR comment, standup)
 - channel-portable: no channel-specific markup injected; user adds decoration manually if needed
 
+Typical next command:
+- depends on context.
+
 ### prompt-shape
 Role:
 - shape the exact next prompt when precision or handoff quality matters
+
+Typical next command:
+- target command.
 
 ### external-research
 Role:
@@ -671,7 +713,7 @@ Typical next commands:
 
 ### external-research-fleet
 Role:
-- orchestrator-workers variant of `external-research` per ADR-0034 (J.9 PILOT, 2026-06-04), structural contract per ADR-0038 (PENDING lived runs)
+- orchestrator-workers variant of `external-research` per ADR-0034 (J.9 PILOT, 2026-06-04), structural contract per ADR-0038, worker return carrier per ADR-0158
 - promotes the inline Mode C delegation in `external-research` (ADR-0032) to a first-class orchestrator with worker contract + provenance
 - Sonnet orchestrator dispatches N >= 3 Sonnet workers (one per angle or source-group), barrier convergence 15-min timeout, union merge
 - caller pre-decomposes the parent question into angles AND pre-assigns sources to angles; orchestrator does NOT auto-decompose
@@ -711,7 +753,7 @@ Typical next commands:
 ### stack-currency-check
 Role:
 - verify the patterns the model is about to use for a given framework+version are current per official docs, before greenfield implementation
-- caches the result as project-level `CURRENT_PATTERNS.md`; treats an existing one as stale after 30 days
+- caches the result as project-level `CURRENT_PATTERNS.md`; reuses only verified entries for the active framework version accessed within 30 days
 - prevents the "gold-standard audit" anti-pattern where training-data defaults ship outdated patterns (e.g. Supabase `getSession` when `getUser` is current; sequential `await` when `Promise.all` is recommended)
 - distinct from `stack-recommend` (choosing the stack itself) and `capture-references` (fetching an arbitrary URL)
 
@@ -739,7 +781,7 @@ Typical next commands:
 Role:
 - orchestrator-workers variant of `feature-library-scout` (ADR-0038, ADR-0045) for products whose feature set decomposes into N >= 3 distinct feature problems
 - the orchestrator (the authorized fetcher and the sole writer) decomposes the feature set, captures adoption signals for each problem's candidates into project-level `REFERENCES.md`, then dispatches one Sonnet worker per problem
-- each worker ranks its problem's candidate libraries by adoption signal grounded strictly in captured sources and returns a typed payload via the `StructuredOutput` tool; workers never fetch the web and never write `FEATURE_LIBRARIES.md` or `REFERENCES.md`
+- each worker ranks its problem's candidate libraries by adoption signal grounded strictly in captured sources and returns a typed payload through the selected ADR-0158 carrier (runtime result or assigned run-inbox JSON file); workers never fetch the web and never write `FEATURE_LIBRARIES.md` or `REFERENCES.md`
 - the orchestrator merges per-problem rankings into one `FEATURE_LIBRARIES.md` (union merge, dedup sources by URL, one recommended pick per problem) and runs `scripts/scan-substrate-orphans.py` as the apply gate
 - recommendations are optional guidance; the boundary with `stack-recommend` (stack layers) is preserved
 - distinct from `feature-library-scout` (the inline single-agent variant for 1-3 problems)
@@ -785,7 +827,7 @@ Typical next commands:
 
 ### frontend-system-design
 Role:
-- produce a staff-grade frontend system-design RFC for the active task: a 12-section design document covering web and mobile (problem, requirements, architecture, data model, API and interface contract, rendering and delivery, state management, performance budget, accessibility, security, rollout, trade-offs)
+- produce a staff-grade frontend system-design RFC for the active task: a <!-- count:sections-frontend-system-design -->12<!-- /count -->-section design document covering web and mobile (problem, requirements, architecture, data model, API and interface contract, rendering and delivery, state management, performance budget, accessibility, security, rollout, trade-offs)
 - default RFC mode writes the design doc for real work; an `--interview` mode reframes the same structure for a frontend system-design interview round (RADIO-aligned)
 - capability-routed, not stack-locked: designs on whatever stack the task uses, never assumes React
 - distinct from `problem-framing` (questions whether the problem is right, pre-task), `implementation-plan` (slices an already-designed change), `impact-analysis` (blast radius of an existing codebase), and `api-contract-review` (reviews one API contract in isolation)
@@ -823,27 +865,27 @@ Typical next commands:
 
 ### verify-against-rubric
 Role:
-- spawn a stateless sub-agent (Claude Code `Task` tool, Cursor agent mode subagent, or equivalent) with ONLY the artifact path + locked rubric
+- spawn a stateless sub-agent (Claude Code `Agent` tool, Cursor agent mode subagent, or equivalent) with ONLY the artifact path + locked rubric
 - sub-agent has no access to TASK_STATE.md, DECISIONS.md, or conversation history (isolated context)
 - returns structured per-criterion verdict (satisfied / needs_revision / failed) plus 1-2 line reason per criterion
 - main thread does NOT re-evaluate; persists verdict to VERIFICATION_LOG.md and updates TASK_STATE.md to reference the verdict id
 
 Guard rails:
 - refuses (NO_OP_TRACE) when rubric is vague ("feature works", "looks good"); routes to `resolve-contract-gaps`
-- never on LOW or MEDIUM complexity slices (use `self-critique-and-revise` instead -- cheaper, same-context, sufficient)
+- not as a routine pass on LOW or MEDIUM slices (use `self-critique-and-revise` there, cheaper and same-context); always when `approve-plan` (ADR-0208) or a zero-finding `review-hard` verdict on product code (ADR-0145) dispatches it, whatever the complexity
 - sub-agent context isolation is the load-bearing differentiator vs `self-critique-and-revise`; do not collapse them
 
 Typical next commands:
 - on `satisfied`: `pr-package` submission, or the next planned slice
-- on `needs_revision`: `implement-slice-complement` with verdict feedback inline
+- on `needs_revision`: route by artifact with verdict feedback inline: `contract-signoff` for contract wording, `resolve-contract-gaps` for unresolved contract gaps, `pr-package` for packaging, or the artifact's owning command. Use `implement-slice-complement` for bounded implementation fixes only with an existing anchor slice and `IMPLEMENTATION_PLAN.md`; otherwise route those fixes to `implementation-plan`.
 - on `failed`: `direction-adjust` or `decision-interview` per failure type
 
 ### verify-against-rubric-fleet
 Role:
-- orchestrator-workers generalization of `verify-against-rubric` per ADR-0034 (J.10 PILOT, 2026-06-04), structural contract per ADR-0038 (PENDING lived runs)
+- orchestrator-workers generalization of `verify-against-rubric` per ADR-0034 (J.10 PILOT, 2026-06-04), structural contract per ADR-0038, worker return carrier per ADR-0158
 - Sonnet orchestrator dispatches N >= 4 stateless Sonnet workers in parallel against ONE shared locked rubric
 - each worker receives ONLY artifact + rubric + criteria (no sibling artifacts, no TASK_STATE, no DECISIONS, no prior history); independence is the load-bearing property -- the Anthropic Outcomes +10pp uplift collapses to groupthink if cohort tally leaks into worker prompts
-- max_fanout 20; barrier convergence 10-min timeout; union merge
+- max_fanout 16; barrier convergence 10-min timeout; union merge
 - orchestrator emits ONE VERIFICATION_LOG.md cohort entry with per-artifact verdict table, aggregate pass/fail/needs_revision counts, AND failure clustering (criteria with >= 50% failure rate -> SYSTEMIC; < 50% -> LOCALIZED)
 - failure clustering is the novel deliverable: difference between "N artifacts to fix" (downstream) vs "criterion C3 fails on 14 of N artifacts -> rubric or spec is the root cause" (upstream remediation)
 
@@ -862,25 +904,25 @@ Typical next commands:
 
 ### self-critique-and-revise
 Role:
-- evaluator-optimizer pattern (ADR-0021) applied to one of three draft artifact types: `IMPLEMENTATION_PLAN.md`, `SLICES/<NN>-*.md`, or `PR_PACKAGE.md`
+- evaluator-optimizer pattern (ADR-0021) applied to one of three draft artifact types: `IMPLEMENTATION_PLAN.md`, `SLICES/<NN>_<slug>.md` (legacy `SLICES/<NN>-*.md` also accepted), or `PR_PACKAGE.md`
 - runs a LOCKED per-artifact-type rubric (7 criteria per type with verdicts `PASS | FAIL | WEAK`) and emits both a `## Critique` and a `## Revised draft`
 - includes a `## Diff summary` of changes the revision applied AND a `## Not applied` section listing judgment-driven items deferred to the user (not auto-applied because they require human input)
-- PROPOSED-by-default in Plan mode; the user reviews the revised draft before persisting
+- the revised draft is written and marked APPLIED in every mode (ADR-0199, ADR-0220: the critique is shown in the response and the version history is the undo); a revision the command does not own is staged as a PROPOSED block for the owner to promote (ADR-0034)
 - distinct from `review-hard` (judges only, no revision), `direction-adjust` (records D-N entry, no artifact revision), `post-review-pivot` (external feedback, not self-critique), and `state-reconcile` (multi-artifact drift repair, not single-artifact revision)
 - other artifact types (`TASK_STATE.md`, `DECISIONS.md`, `commands/*.md`) are out of scope; the command emits `NO_OP_TRACE` and routes the user to the right command
 
 Typical next commands:
-- `implementation-plan` again (Plan mode) when the revision is approved and lands in `IMPLEMENTATION_PLAN.md`
+- `approve-plan` after revising `IMPLEMENTATION_PLAN.md` (it runs on every revised plan, ADR-0208)
 - `implement-approved-slice` when the revised slice is now approval-ready
 - `pr-package` when the revised PR package is approval-ready
 - `direction-adjust` when the critique surfaced a decision-level realization beyond artifact revision
 
 ### godot-scene-plan
 Role:
-- plan the Godot scene and node structure for a 2D game feature before any GDScript: the scene tree and node types and responsibilities, autoloads (singletons), signal wiring, the input map, and the resources and sub-scenes to create
-- produces `GODOT_SCENE_PLAN.md`, a design-time plan an MCP-driven editor or a human builds against
+- plan the Godot scene and node structure for a 2D or 3D game feature before any GDScript: the scene tree and node types and responsibilities, autoloads (singletons), signal wiring, the input map, and the resources and sub-scenes to create
+- produces `GODOT_SCENE_PLAN.md`, a design-time plan an MCP-driven editor or a human builds against; a 3D plan SHALL declare its renderer tier or it is incomplete (ADR-0117 D-9)
 - capability-routed and MCP-agnostic: names no specific MCP server, because the contract is the scene design, not the tool that applies it (DECISIONS D-1, D-4)
-- part of the Godot 2D-mobile game-dev cluster (ADR-0069); GDScript default, version-flexible
+- part of the Godot game-dev cluster, 2D-mobile and 3D (ADR-0069); GDScript default, version-flexible
 - distinct from `problem-framing` in its game-design mode (frames whether the game idea is right), `implementation-plan` (slices an already-planned build), `impact-analysis` (blast radius of an existing project), and `godot-runtime-verify` (verifies a running scene at runtime)
 
 Typical next commands:
@@ -889,19 +931,25 @@ Typical next commands:
 - `targeted-questions` when a factual gap blocks the plan
 
 ### unity-scene-plan
-
+Role:
 - plans the Unity GameObject hierarchy and component architecture for a 3D feature before any C# exists: hierarchy, per-MonoBehaviour responsibility, prefab decisions, input model, test-assembly placement
 - REQUIRED declarations: the render pipeline for a 3D target (reasoned from HDRP's enumerated platform list and its compute-shader requirement, not from a blanket mobile claim), and the networked-authority set for a multiplayer feature (topology, per-object ownership, sync primitive per datum, tick rate, determinism posture)
 - names which steps are human-applied, because the Unity MCP surface vetted on 2026-08-07 had no tool for assembly definitions, project settings, or render-pipeline configuration
 - distinct from `godot-scene-plan` (a different engine sharing no vocabulary, deliberately not merged per ADR-0069 D-4), `implementation-plan` (slices an already-decided architecture), `impact-analysis` (blast radius of an existing project), and `app-runtime-verify` (verifies the built app at runtime via its Unity adapter)
+
+Typical next commands:
+- `implementation-plan` to slice the build from the scene plan
+- `decision-interview` when the plan surfaced an architecture decision to lock
+- `mcp-server-vet` before trusting an MCP server to apply the plan
+
 ### godot-runtime-verify
 Role:
-- verify a built Godot 2D scene at runtime: run it (press-play in the editor or a headless run), read the captured debugger output, classify any runtime errors against a Godot taxonomy, and decide a PASS/FAIL runtime gate for the slice's acceptance behavior
+- verify a built Godot 2D or 3D scene at runtime: run it (press-play in the editor or a headless run), read the captured debugger output, classify any runtime errors against a Godot taxonomy, and decide a PASS/FAIL runtime gate for the slice's acceptance behavior
 - the run's actual output IS the Layer-1 runtime evidence (ADR-0048, `wos/gate-conditions.md`); a claimed-but-not-shown run is `unverified`, exactly like an asserted "tests pass"
 - this is the "feedback edge": it catches the runtime bugs the static checks (lint, typecheck) never see (EXTERNAL_RESEARCH.md A2)
 - MCP-agnostic about the runner (an MCP run tool, the Godot CLI `--headless`, or a human pressing play); it verifies the output, it does not prescribe the runner (DECISIONS D-1)
 - verifies and routes the fix; it does not write or fix code; a hold-until-pass loop carries the bounded-retry cap (`wos/gate-conditions.md` interactive bounded retry)
-- part of the Godot 2D-mobile game-dev cluster (ADR-0069)
+- part of the Godot game-dev cluster, 2D-mobile and 3D (ADR-0069)
 - distinct from `godot-scene-plan` (plans the scene pre-code), `implement-approved-slice` and `implement-slice-complement` (write or fix code), `incident-triage` (sizes a fix from a concrete failure), and `review-hard` (Layer 2 design risk, after this Layer 1 gate)
 
 Typical next commands:
@@ -913,7 +961,7 @@ Typical next commands:
 Role:
 - verify a built mobile/app runtime: run it (device, emulator/simulator, or headless), read the captured runtime output, classify runtime errors against a per-stack taxonomy, and decide a PASS/FAIL runtime gate for the slice's acceptance behavior
 - the run's actual output IS the Layer-1 runtime evidence (ADR-0048, `wos/gate-conditions.md`); a claimed-but-not-shown run is `unverified`, exactly like an asserted "tests pass"
-- React Native/Expo is the first documented adapter (taxonomy: NATIVE_CRASH, NAVIGATION_TEARDOWN, JS_ERROR, MISSING_NATIVE_MODULE, STARTUP_CRASH, ANR, PERMISSION_OR_CONFIG, CLEAN); a native crash class is judged from the native log, not the JS console; `wos/rn-expo-runtime-evidence.md` documents the capture path
+- React Native/Expo and Unity mobile are the documented adapters (ADR-0130); each adapter's error taxonomy lives in `wos/app-runtime-battery.md` and is not copied here; a native crash class is judged from the native log, not the JS console; `wos/rn-expo-runtime-evidence.md` and `wos/unity-runtime-evidence.md` document the capture paths
 - capability-routed and MCP-agnostic about the runner (an MCP run tool, an emulator, a device, or a headless run); it verifies the output, it does not prescribe the runner
 - verifies and routes the fix; it does not write or fix code; a hold-until-pass loop carries the bounded-retry cap (`wos/gate-conditions.md` interactive bounded retry)
 - capability-routed, not part of the Godot cluster (ADR-0087)
@@ -935,6 +983,9 @@ Role:
 - verifies and routes the fix; never writes code; bounded-retry cap on a hold-until-pass loop; under Codex CLI the browser step fires early in the turn (`wos/editor-mode-mappings.md ## Harness operational quirks`)
 - distinct from `godot-runtime-verify` (Godot scenes), `app-runtime-verify` (mobile), the ADR-0091 experience-verdict floor (human judgment over the same served build), `performance-budget` (numeric thresholds), and `a11y-audit` (full WCAG ledger; this gate surfaces axe findings and routes clusters there)
 
+Typical next command:
+- `slice-closure` / `review-hard` (on PASS), `incident-triage` / `implement-slice-complement` / `a11y-audit` (on FAIL).
+
 ### api-runtime-verify
 Role:
 - verify an implemented backend HTTP surface at runtime: the backend half of the runtime-gate set, added because no command owned runtime HTTP behavior (DECISIONS D-6, 2026-07-27)
@@ -942,7 +993,7 @@ Role:
 - the probe's actual output IS the Layer-1 runtime evidence (ADR-0048); a route whose output is not shown is `unverified`, never PASS, and an absent tool reports an honest `n/a (tool absent)` rather than a fabricated status
 - confirms the target before probing, and runs a non-idempotent route only where its side effect was stated and acceptable; redacts secrets and personal data, keeping the recorded shape rather than a full payload dump
 - capability-routed: names no specific HTTP client and no specific MCP server; verifies and routes the fix, never writes code; bounded-retry cap on a hold-until-pass loop
-- writes `API_RUNTIME_VERIFY.md` (PROPOSED in Ask or Plan mode per ADR-0001)
+- writes `API_RUNTIME_VERIFY.md` and marks it APPLIED in every mode (ADR-0199)
 - distinct from `api-contract-review` and `graphql-contract-review` (design-time contract review, before implementation), and from `web-runtime-verify`, `app-runtime-verify` and `godot-runtime-verify` (browser, mobile, and Godot surfaces)
 
 Typical next commands:
@@ -969,7 +1020,7 @@ Typical next commands:
 
 ### component-spec
 Role:
-- generates a 15-section component spec from a Figma component via MCP
+- generates a <!-- count:sections-component-spec -->15<!-- /count -->-section component spec from a Figma component via MCP
 - sections: purpose, anatomy, variants, sizes, states (6 mandatory), a11y, motion, haptics, platform, security, performance, API, usage, anti-patterns, decisions
 - marks every observation as confirmed (from Figma) or proposed (inferred)
 
@@ -985,7 +1036,7 @@ Typical next commands:
 
 ### screen-spec
 Role:
-- generates a 12-section screen spec from a Figma frame via MCP
+- generates a <!-- count:sections-screen-spec -->12<!-- /count -->-section screen spec from a Figma frame via MCP
 - sections: purpose, layout sketch, spacing, components used, data deps, copy, a11y, interactions, error states, related screens, open questions, decisions
 - maps elements to DS components by name and tier
 
@@ -1002,7 +1053,7 @@ Typical next commands:
 Role:
 - generates a spec from a raw image file (a screenshot, mockup, captured screen) when there is no Figma source
 - `--component` produces a COMPONENT_SPEC-shaped doc; `--screen` produces a SCREEN_SPEC-shaped doc; no flag auto-detects (single element vs full screen) and states the choice
-- reads the image with vision; writes only a spec doc
+- reads local images and declared project context; writes the selected spec and its declared question, screen-index, and gameplay artifacts; local frame extraction is opt-in
 
 Guard rails:
 - marks every observation `(proposed)`, never `confirmed`, since an image is an inference source not a source of truth; visible copy is the only verbatim content
@@ -1037,7 +1088,7 @@ Typical next commands:
 ### design-spec-review
 Role:
 - verifies component/screen implementation against its spec doc
-- 10 checks: variants, sizes, states, a11y, tokens, motion/haptics, TypeScript API, Storybook story, anti-patterns, platform specifics
+- <!-- count:design-review-checks -->11<!-- /count --> checks: variants, sizes, states, a11y, tokens, motion/haptics, TypeScript API, Storybook story, anti-patterns, platform specifics, visual fidelity
 - distinct from `review-hard` (general risk) and `repo-consistency-sweep` (pattern matching)
 
 Guard rails:
@@ -1098,9 +1149,9 @@ Typical next commands:
 
 ### atom-audit-fleet
 Role:
-- orchestrator-workers variant of `atom-audit` per ADR-0034 (J.6 PILOT, 2026-06-04), structural contract per ADR-0038 (PENDING lived runs)
+- orchestrator-workers variant of `atom-audit` per ADR-0034 (J.6 PILOT, 2026-06-04), structural contract per ADR-0038, worker return carrier per ADR-0158
 - Sonnet orchestrator dispatches N Haiku workers, each auditing 3-5 atoms
-- batch by batch_size (default 4); max_fanout 20; barrier convergence with 10-min timeout; union merge by `component` key
+- batch by batch_size (default 4); max_fanout 16; barrier convergence with 10-min timeout; union merge by `component` key
 - workers check the same 7 rules as `atom-audit`: memo, callbacks, inline styles, press anim, touch target, a11y, reduced motion
 - orchestrator is SOLE writer of `ATOM_AUDIT.md` per `wos/substrate-peers.md`
 - per-worker classification events + one fleet-merge line logged to `.wos/VERIFICATION_LOG.jsonl`
@@ -1118,10 +1169,10 @@ Typical next commands:
 
 ### screen-spec-fleet
 Role:
-- orchestrator-workers variant of `screen-spec` per ADR-0034 (J.7 PILOT, 2026-06-04; Bruno's primary multi-agent scenario), structural contract per ADR-0038 (PENDING lived runs)
+- orchestrator-workers variant of `screen-spec` per ADR-0034 (J.7 PILOT, 2026-06-04; Bruno's primary multi-agent scenario), structural contract per ADR-0038, worker return carrier per ADR-0158
 - Sonnet orchestrator dispatches N Sonnet workers (1 screen each) in parallel
 - each worker runs the full 12-step `screen-spec` flow for ONE Figma frame: `get_design_context` -> `get_screenshot` -> components -> layout -> spacing -> data -> copy -> a11y -> interactions -> error states -> related -> write file
-- max_fanout 20; barrier convergence with 15-min timeout (Figma MCP latency); union merge
+- max_fanout 16; barrier convergence with 15-min timeout (Figma MCP latency); union merge
 - workers write their own spec file directly (no overlap by construction since `(screen_number, persona, slug)` is unique)
 - orchestrator is SOLE writer of `SCREEN_MAP.md` and `routes.md` per `wos/substrate-peers.md`
 - one persona per fleet run (mixing personas FORBIDDEN to keep merge keys unambiguous)
@@ -1142,7 +1193,7 @@ Typical next commands:
 
 ### inventory-snapshot
 Role:
-- enumerate every Figma component in the upstream library via MCP (`get_libraries` / `get_metadata`)
+- use `get_libraries` for library discovery, then enumerate component nodes by traversing the source file's pages and frames with `get_metadata`; report inaccessible or truncated scope before claiming a complete inventory
 - classify each by tier (atom / molecule / organism / layout) per `wos/design-system-conventions.md`
 - check WOS-UI traceability per row: spec doc / code dir / Storybook story present or empty
 - compute delta vs previous snapshot (ADDED / RENAMED / DEPRECATED / RESCOPED)
@@ -1258,12 +1309,13 @@ Typical next commands:
 Role:
 - K.8 CUSTOM persona (L1 at launch; folder-shaped layout) per ADR-0034 + `wos/maturity-ladder.md`
 - senior performance-budget auditor declaring numeric non-functional budgets (Core Web Vitals, latency percentiles, payload/bundle size, key-operation cost) before a change ships
-- per-metric budget: threshold + percentile + measurement source + regression action
+- per-metric budget: threshold + metric-specific statistic + measurement source + regression action
 - declares numbers only; routes enforcement to the consuming repo's deterministic gate (ADR-0048) and post-deploy-verifier; never runs a load test itself
 - produces `<task>/PERFORMANCE_BUDGET.md` with the budget table (no silent omission) + PROPOSED budget policy under DECISIONS.md
 
 Guard rails:
 - every threshold cites a source (measured/standard/SLA/user-target) or is marked PROPOSED-pending-baseline; never a guessed number asserted as measured
+- each statistic matches its metric: distributions name percentile, population and window; rates and ratios name an aggregation window; fixed and snapshot metrics name a concrete measurement basis
 - every row has a concrete regression action; never bare "monitor it"
 - a no-performance-surface task returns SKIP/NO_OP routing to decision-interview, never an empty budget
 - spec-only; never runs a load test or profiler (that collides with the ADR-0048 gate contract)
@@ -1281,12 +1333,12 @@ Role:
 - K.8 CUSTOM persona (L1 at launch; folder-shaped layout) per ADR-0034 + `wos/maturity-ladder.md`
 - senior accessibility auditor mapping a UI surface (screen, flow, or component set) to WCAG 2.2 at a named conformance level (A/AA/AAA)
 - whole-surface per-criterion conformance ledger; every applicable success criterion gets a row, labeled machine-checkable or manual-review
-- delegates contrast (1.4.3/1.4.11) to color-contrast-architect and single-component spec fidelity to design-spec-review
+- delegates contrast (1.4.3/1.4.11) to color-contrast-architect for at least three documented pairs; smaller sets use supplied pair evidence or the compatible evidence route in a11y-audit Step 3; single-component spec fidelity goes to design-spec-review
 - produces `<task>/ACCESSIBILITY_AUDIT.md` with the full ledger (no silent omission) + a manual-review queue + PROPOSED conformance target under DECISIONS.md
 
 Guard rails:
 - never assert a machine verdict for a manual-judgment criterion; no checker ran means MANUAL-REVIEW, not a guessed PASS/FAIL
-- never recompute contrast; cite CONTRAST_AUDIT.md or Handoff to color-contrast-architect
+- never recompute contrast; cite external pair evidence or keep the rows PENDING and route by pair count and available inputs per a11y-audit Step 3
 - surface-type labeling mandatory (web ARIA/DOM vs native accessibility API); never assume a DOM on a native surface
 - a no-UI-surface task returns SKIP/NO_OP routing to decision-interview, never an empty ledger
 - never write substrate directly at L1; PROPOSED blocks only + Handoff routing
@@ -1324,19 +1376,19 @@ Role:
 - K.8 CUSTOM persona (L3; folder-shaped; multi-repo-aware) per ADR-0034 + `wos/maturity-ladder.md`
 - senior database security architect auditing Supabase RLS policies for tenant isolation gaps BEFORE the migration ships
 - follow-the-data discipline: traces EVERY relationship (FK, join table, materialized view, audit/log table) to confirm policy chain is unbroken
-- catches: USING without WITH CHECK (insert path bypass), RLS without FORCE ROW LEVEL SECURITY (table-owner bypass), missing policies on join/audit tables, missing tenant predicates, SECURITY DEFINER functions without RLS-aware guards, unjustified service_role bypass paths
-- produces `<task>/RLS_AUDIT.md` with per-table posture table (PASS / GAP / FAIL) + migration-shaped remediation (concrete CREATE POLICY / ALTER TABLE statements)
+- checks effective write predicates, including implicit USING fallback when WITH CHECK is absent, RLS without FORCE ROW LEVEL SECURITY (table-owner bypass), missing policies on join/audit tables, missing tenant predicates, SECURITY DEFINER functions without RLS-aware guards, unjustified service_role bypass paths
+- produces `<task>/RLS_AUDIT.md` with per-table posture table (PASS / GAP / FAIL) + concrete SQL for database gaps and file-and-symbol remediation for application bypass gaps
 
 Guard rails:
 - never silently omit a tenant-scoped table touched by the migration set
-- never emit prose advice ("consider tightening") as remediation; every fix MUST be migration-shaped SQL
+- never emit vague advice ("consider tightening"); database fixes MUST be migration-shaped SQL and application fixes MUST name the file, symbol, and required change
 - gaps MUST cite a concrete failure mode tied to the SQL under audit (not "looks weak")
 - never write substrate directly at L1; PROPOSED blocks only + Handoff routing
 
 Typical next commands:
 - `implementation-plan` (slice the remediation work)
 - `decision-interview` (multi-policy tradeoffs need user input)
-- `approve-proposed` (findings clear-cut; no decisions need locking)
+- `approve-proposed` (findings clear-cut; no decisions need locking; it promotes the persona's PROPOSED blocks in sections it does not own, the ADR-0034 case)
 
 ### migration-safety-steward
 Role:
@@ -1357,7 +1409,7 @@ Guard rails:
 Typical next commands:
 - `implementation-plan` (re-slice migration into safe phases when NEEDS-PHASING surfaced)
 - `decision-interview` (IRREVERSIBLE confirmation or non-trivial tradeoffs)
-- `approve-proposed` (all statements SAFE; only output is verdict table + risk acknowledgements)
+- `approve-proposed` (all statements SAFE; promotes the persona's PROPOSED risk acknowledgements in sections it does not own, the ADR-0034 case)
 
 ### post-deploy-verifier
 Role:
@@ -1367,7 +1419,7 @@ Role:
 - signal classes: structured log query (with exact field filters), dashboard panel (URL + scoped tags + time bounded by deploy window), smoke-test user flow (exact route + form inputs + expected DOM/API shape), feature-flag toggle check (exact key), DB invariant query (exact SQL or view name)
 - includes at least one NEGATIVE CHECK that would prove the change did NOT ship (catches silent no-op deploys)
 - rollback trigger checklist names specific humans (or named on-call rotation handle) + exact rollback command / flag-flip syntax
-- multi-repo split: backend signals to `POST_DEPLOY_PLAN.backend.md`, frontend to `POST_DEPLOY_PLAN.frontend.md`, cross-repo correlation notes in backend file
+- multi-repo split: signals go to `POST_DEPLOY_PLAN.<repo>.md` using the affected repository identifiers, with cross-repo ordering notes linking the actual peer plans
 - produces `<task>/POST_DEPLOY_PLAN.md` (or per-repo variants) + PROPOSED `## Post-deploy checks` block for slice file via Pattern A handoff to `slice-closure`
 
 Guard rails:
@@ -1381,4 +1433,4 @@ Typical next commands:
 - `verify-against-rubric` (plan revealed a frozen rubric is now authorable)
 - `slice-closure` (apply ## Post-deploy checks PROPOSED block, close slice)
 - `direction-adjust` (plan surfaced a needed follow-up slice)
-- `approve-proposed` (land PROPOSED blocks immediately)
+- `approve-proposed` (land the persona's PROPOSED blocks in sections it does not own without waiting for their owner, the ADR-0034 case)

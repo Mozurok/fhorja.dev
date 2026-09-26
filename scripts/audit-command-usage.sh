@@ -10,14 +10,25 @@
 # Optimization: instead of N greps per file (slow for 600+ JSONL × 56 commands),
 # we do ONE pass per file extracting all command mentions, then tally.
 #
-# Output: CSV at _internal/command-usage-audit-2026-06.csv
+# Output: CSV at _internal/command-usage-audit-2026-06.csv when _internal/ exists; otherwise
+# .local/command-usage-audit-2026-06.csv. Both are maintainer-local and gitignored, and the
+# script says on stderr which one it wrote. Pass a path as $1 to override.
 # Per Epic C.1 of Fhorja improvement plan 2026-06-03.
 
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-OUTPUT="${1:-${REPO_ROOT}/_internal/command-usage-audit-2026-06.csv}"
+OUTPUT="${1:-}"
+if [[ -z "$OUTPUT" ]]; then
+  if [[ -d "${REPO_ROOT}/_internal" ]]; then
+    OUTPUT="${REPO_ROOT}/_internal/command-usage-audit-2026-06.csv"
+  else
+    OUTPUT="${REPO_ROOT}/.local/command-usage-audit-2026-06.csv"
+    echo "note: _internal/ is absent; writing to ${OUTPUT} instead (maintainer-local, gitignored)" >&2
+  fi
+fi
+mkdir -p "$(dirname "$OUTPUT")"
 LOOKBACK_DAYS="${2:-60}"
 PROJECTS_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects"
 
@@ -33,74 +44,52 @@ echo "Auditing $TOTAL_CMDS commands, last $LOOKBACK_DAYS days, one-pass scan." >
 # Single regex alternation for all command names (used per file)
 CMD_ALT="$(IFS='|'; echo "${COMMAND_NAMES[*]}")"
 
-# Phase 1: transcripts pass (1 grep -hoE per file, then tally)
-declare -A TRANSCRIPT_COUNT
-for cmd in "${COMMAND_NAMES[@]}"; do
-  TRANSCRIPT_COUNT[$cmd]=0
-done
+# Tallies live in files, not associative arrays: `declare -A` needs bash 4, and macOS ships
+# bash 3.2, where it fails at the first declaration (H14). Each tally file holds one command
+# name per line, one line per mention; count_of counts them.
+TALLY_DIR="$(mktemp -d)"
+trap 'rm -rf "$TALLY_DIR"' EXIT
+: > "$TALLY_DIR/transcripts"; : > "$TALLY_DIR/git"; : > "$TALLY_DIR/task_state"
+count_of() {  # count_of <tally> <command>
+  awk -v c="$2" '$0 == c { n++ } END { print n + 0 }' "$TALLY_DIR/$1"
+}
 
+# Phase 1: transcripts pass (1 grep -hoE per file, then tally)
 if [[ -d "$PROJECTS_DIR" ]]; then
   echo "Scanning transcripts..." >&2
   # For each JSONL, extract all command name occurrences in one grep -oE pass.
   # Match /<cmd> or @commands/<cmd>.md or command-name>/<cmd>< patterns.
+  # Count one mention per file per command (presence, not multi-occurrence).
   while IFS= read -r jsonl; do
-    # Count one mention per file per command (presence, not multi-occurrence)
-    matches=$(grep -hoE "/(${CMD_ALT})\b|@commands/(${CMD_ALT})\.md|command-name>/(${CMD_ALT})<" "$jsonl" 2>/dev/null | sed -E 's|^/|::|; s|^@commands/|::|; s|\.md$||; s|^command-name>/|::|; s|<$||' | sort -u || true)
-    while IFS= read -r m; do
-      cmd_match="${m##*::}"
-      [[ -z "$cmd_match" ]] && continue
-      if [[ -n "${TRANSCRIPT_COUNT[$cmd_match]+isset}" ]]; then
-        TRANSCRIPT_COUNT[$cmd_match]=$((TRANSCRIPT_COUNT[$cmd_match] + 1))
-      fi
-    done <<< "$matches"
+    grep -hoE "/(${CMD_ALT})\b|@commands/(${CMD_ALT})\.md|command-name>/(${CMD_ALT})<" "$jsonl" 2>/dev/null \
+      | sed -E 's|^/||; s|^@commands/||; s|\.md$||; s|^command-name>/||; s|<$||' | sort -u \
+      >> "$TALLY_DIR/transcripts" || true
   done < <(find "$PROJECTS_DIR" -name "*.jsonl" -type f -mtime -"$LOOKBACK_DAYS" 2>/dev/null)
 fi
 
 # Phase 2: git log pass (one shot)
 echo "Scanning git log..." >&2
-declare -A GIT_COUNT
-for cmd in "${COMMAND_NAMES[@]}"; do
-  GIT_COUNT[$cmd]=0
-done
 if git -C "${REPO_ROOT}" rev-parse --git-dir >/dev/null 2>&1; then
   git_log_text="$(git -C "${REPO_ROOT}" log --oneline --all --since="${LOOKBACK_DAYS}.days.ago" 2>/dev/null || true)"
   for cmd in "${COMMAND_NAMES[@]}"; do
-    n=$(echo "$git_log_text" | grep -cE "${cmd}" 2>/dev/null || echo 0)
-    n=$(echo "$n" | head -1 | tr -dc '0-9')
-    GIT_COUNT[$cmd]="${n:-0}"
+    n=$(printf '%s\n' "$git_log_text" | grep -cE "${cmd}" 2>/dev/null || true)
+    n=$(printf '%s' "$n" | head -1 | tr -dc '0-9')
+    for ((i = 0; i < ${n:-0}; i++)); do echo "$cmd"; done >> "$TALLY_DIR/git"
   done
 fi
 
-# Phase 3: TASK_STATE.md mentions
+# Phase 3: TASK_STATE.md mentions (presence per file)
 echo "Scanning TASK_STATE files..." >&2
-declare -A TS_COUNT
-for cmd in "${COMMAND_NAMES[@]}"; do
-  TS_COUNT[$cmd]=0
-done
-
-TASK_STATE_FILES=()
-while IFS= read -r f; do
-  TASK_STATE_FILES+=("$f")
+while IFS= read -r ts; do
+  grep -hoE "${CMD_ALT}" "$ts" 2>/dev/null | sort -u >> "$TALLY_DIR/task_state" || true
 done < <(find "${REPO_ROOT}/projects" -name "TASK_STATE.md" -type f 2>/dev/null)
-
-if [[ ${#TASK_STATE_FILES[@]} -gt 0 ]]; then
-  for ts in "${TASK_STATE_FILES[@]}"; do
-    matches=$(grep -hoE "${CMD_ALT}" "$ts" 2>/dev/null | sort -u || true)
-    while IFS= read -r m; do
-      [[ -z "$m" ]] && continue
-      if [[ -n "${TS_COUNT[$m]+isset}" ]]; then
-        TS_COUNT[$m]=$((TS_COUNT[$m] + 1))
-      fi
-    done <<< "$matches"
-  done
-fi
 
 # Phase 4: emit CSV
 echo "command,transcripts_mentions,git_log_mentions,task_state_mentions,total,classification_hint" > "$OUTPUT"
 for cmd in "${COMMAND_NAMES[@]}"; do
-  t="${TRANSCRIPT_COUNT[$cmd]:-0}"
-  g="${GIT_COUNT[$cmd]:-0}"
-  ts="${TS_COUNT[$cmd]:-0}"
+  t=$(count_of transcripts "$cmd")
+  g=$(count_of git "$cmd")
+  ts=$(count_of task_state "$cmd")
   total=$((t + g + ts))
   if [[ $total -ge 10 ]]; then
     hint="ACTIVE"

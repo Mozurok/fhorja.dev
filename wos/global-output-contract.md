@@ -41,8 +41,8 @@ This reduces:
 - ambiguity (the next concrete invocation is spelled out)
 - context waste (no re-explaining what was just decided)
 - repeated routing (each command's recommendation is the next command's pre-filled prompt)
-- "what do I do now?" pauses (the user does not have to translate a phase recommendation into a command invocation)
+- "what do I do now?" pauses (there is nothing to translate: the session runs the named command itself)
 
-The adaptive handoff (Mode A compact, Mode B full) replaces the previous fixed `Paste this next:` body. Mode A (~50 tokens) is the default within the same session because the context window already contains everything; Mode B (~150-250 tokens) adds a `Resume context:` block with only what cannot be re-derived from task files, used when context loss is likely (new chat, post-compaction, resume-from-state, handoff to another person).
+The adaptive handoff (Mode A compact, Mode B full) replaces the previous fixed `Paste this next:` body. Mode A (~50 tokens) is the default within the same session because the context window already contains everything; Mode B (~150-250 tokens) adds a `Resume context:` block with only what cannot be re-derived from task files, used at the two points where context is actually lost: after auto-compaction, and when the next command is `resume-from-state`.
 
 These motivations live here rather than in the spec because the rules themselves (Adaptive handoff, Mode selection rule) are already in the spec `## Global output contract`. Agents enforcing the contract only need the rules; the rationale is for humans deciding whether to relax or extend them.

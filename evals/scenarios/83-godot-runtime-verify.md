@@ -1,6 +1,6 @@
 # Eval scenario 83: godot-runtime-verify gates on shown runtime output, not an asserted PASS
 
-- **Tags**: ADR-0069, ADR-0048, godot, game-dev, runtime-gate, evidence, mcp-agnostic, execution-and-closure
+- **Tags**: ADR-0069, ADR-0048, godot, game-dev, runtime-gate, evidence, mcp-agnostic, game-and-engine
 - **Last reviewed**: 2026-06-30
 - **Status**: active
 
@@ -31,7 +31,7 @@ Target Godot: 4.x.
 
 ## Expected response shape
 
-- Response includes a `### Artifact changes` section listing `GODOT_RUNTIME_VERIFY.md` (APPLIED in Agent mode, PROPOSED in Ask/Plan).
+- Response includes a `### Artifact changes` section listing `GODOT_RUNTIME_VERIFY.md` (APPLIED in every mode, ADR-0199).
 - The report quotes the run output verbatim (the SCRIPT ERROR line), not a paraphrase.
 - Each observation has a taxonomy code; the jump error is classified `SCRIPT_ERROR` (with a likely cause: the node is `Node2D`, not `CharacterBody2D`, so `is_on_floor` does not exist).
 - The per-criterion verdict marks the acceptance behavior `not-observed`; the gate decision is FAIL.

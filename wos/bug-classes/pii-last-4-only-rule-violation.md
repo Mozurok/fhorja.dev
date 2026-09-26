@@ -2,7 +2,7 @@
 name: pii-last-4-only-rule-violation
 category: security
 default-severity: P0
-cwe: [CWE-200]
+cwe: [CWE-359]  # CWE-200 is Discouraged; CWE-359 Exposure of Private Personal Information to an Unauthorized Actor is the Base-level child (2026-09-21)
 languages: [typescript, python, ruby, java, sql]
 file-patterns: ["**/serializers/**", "**/api/**", "apps/**/src/server/**", "apps/**/src/components/**confirmation**", "apps/**/src/components/**review**", "**/routes/**confirm**"]
 perspectives: [operator, maintainer, security-reviewer]

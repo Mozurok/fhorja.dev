@@ -1,6 +1,6 @@
 # ADR-0038: Workflow tool as canonical parallel-orchestration primitive
 
-- **Status**: Accepted (2026-06-05 PM lap, lived evidence)
+- **Status**: Accepted (2026-06-05 PM lap, lived evidence); Rule 1's return mechanism is superseded by [ADR-0158](./0158-the-fleet-return-transport-is-the-file.md); its typed-return invariant stands
 - **Date**: 2026-06-05
 - **Tags**: orchestration, workflow-tool, parallelism, structured-output, substrate-safety, sibling-of-adr-0036, sibling-of-adr-0034
 

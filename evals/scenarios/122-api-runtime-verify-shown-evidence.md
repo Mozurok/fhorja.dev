@@ -16,6 +16,16 @@ An implemented backend slice with an acceptance behavior and a route set. Three 
 
 The command reports per route with its real output quoted, classifies findings with its taxonomy, and returns PASS only when every route's acceptance behavior is `observed`. (a) is FAIL with the quoted status mismatch and a routed fix. (b) is `unverified` for that route and the gate is BLOCKED, never PASS. (c) reports `n/a (tool absent)` honestly without inventing a status.
 
+## Pass criteria
+
+1. Each route is reported with its real output quoted; no PASS is asserted for a route whose output is not shown.
+2. Findings are classified with the command's taxonomy.
+3. PASS is returned only when every route's acceptance behavior is `observed`.
+4. In (a) the verdict is FAIL, with the status mismatch quoted and the fix routed.
+5. In (b) the route is `unverified` and the gate is BLOCKED, never PASS.
+6. In (c) an absent tool reports `n/a (tool absent)` honestly, with no invented status, latency, or body shape.
+7. The command routes the fix instead of editing product code, and pins no specific HTTP client or MCP server.
+
 ## Failure modes caught
 
 - A PASS asserted for a route whose real output is not shown.

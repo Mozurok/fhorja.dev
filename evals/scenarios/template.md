@@ -32,7 +32,7 @@ Structural rules the response must satisfy. Use bullets, each verifiable by read
 
 - Response includes a `### Artifact changes` section listing N specific files.
 - Response includes a `### Handoff` block with a fenced `text` code region containing `Run now:`, `Mode:`, `Work complexity:`, `Reason:` (plus `Resume context:` in Mode B).
-- The adaptive handoff block starts with `Run @commands/<expected-next-command>.md`.
+- The `### Handoff` block's first line is `Run now: <expected-next-command>`, a real `commands/` basename.
 - (etc.)
 
 ## Pass criteria

@@ -1,14 +1,14 @@
-# Eval scenario 26: APPLIED-by-default for implement-approved-slice in Agent mode
+# Eval scenario 26: task-memory writes are APPLIED in every mode
 
-- **Tags**: implement-approved-slice, applied-default, ADR-0026, write-policy
+- **Tags**: implement-approved-slice, applied-default, write-policy, mode-independence
 - **Last reviewed**: 2026-05-26
 - **Status**: active
 
 ## Goal
 
-Validates that `implement-approved-slice` in Agent mode marks slice execution notes as `APPLIED` (not `PROPOSED`), while the same command in Ask mode marks them as `PROPOSED`. Exercises the ADR-0026 exception to the PROPOSED-by-default contract.
+Validates that `implement-approved-slice` marks slice execution notes `APPLIED` regardless of mode. The Ask-versus-Agent distinction this scenario used to grade was the ADR-0001 write gate, removed on 2026-09-16; the scenario now grades its absence, which is where a regression would show. Exercises the ADR-0026 exception to the PROPOSED-by-default contract.
 
-This is a two-turn scenario: turn 1 runs in Ask mode (PROPOSED expected), turn 2 runs in Agent mode (APPLIED expected).
+This is a two-turn scenario: turn 1 runs in Ask mode, turn 2 in Agent mode. Both expect APPLIED for task-memory. What still differs between them is product code, not the write policy.
 
 ## Setup
 
@@ -36,33 +36,32 @@ Mode: Agent
 
 ## Expected response shape (turn 1: Ask mode)
 
-- `### Artifact changes` lists slice file and/or TASK_STATE.md updates as **PROPOSED**.
+- `### Artifact changes` lists slice file and/or TASK_STATE.md updates as **APPLIED**, the same as turn 2 (ADR-0199).
 - Product code changes are described but NOT applied (Ask mode).
-- The response follows the standard PROPOSED-by-default contract from ADR-0001.
+- The response does not cite ADR-0001 or ADR-0026 as a reason to propose rather than write.
 
 ## Expected response shape (turn 2: Agent mode)
 
 - `### Artifact changes` lists slice file and/or TASK_STATE.md updates as **APPLIED**.
 - Product code changes ARE applied (Agent mode, files written to disk).
-- The response explicitly uses APPLIED for task-memory artifacts, per ADR-0026.
+- The response explicitly uses APPLIED for task-memory artifacts, per ADR-0199.
 
 ## Pass criteria
 
-1. **Turn 1 - PROPOSED in Ask mode**: Slice execution notes are marked `PROPOSED` in `### Artifact changes`. This confirms ADR-0001 is still the default.
-2. **Turn 2 - APPLIED in Agent mode**: Slice execution notes are marked `APPLIED` in `### Artifact changes`. This confirms ADR-0026 exception is active.
-3. **Product code distinction**: Turn 1 describes but does not write product code. Turn 2 writes product code. Both turns handle task-memory artifacts according to their respective mode rules.
-4. **No mode confusion**: The response explicitly acknowledges which mode it is operating in and applies the correct write policy.
+1. **Turn 1 - APPLIED in Ask mode**: Slice execution notes are marked `APPLIED` in `### Artifact changes`. A `PROPOSED` mark here is the regression this criterion exists to catch: it means the removed mode gate came back.
+2. **Turn 2 - APPLIED in Agent mode**: Slice execution notes are marked `APPLIED` in `### Artifact changes`, identically to turn 1. ADR-0026 carved an exception out of a rule that no longer exists, so there is nothing left to except.
+3. **Product code distinction**: Turn 1 describes but does not write product code. Turn 2 writes product code. Both turns handle task-memory artifacts the same way: written and marked `APPLIED`.
+4. **No mode confusion**: The response does not vary its task-memory write policy by mode, and does not cite ADR-0001 or ADR-0026 as a reason to propose rather than write.
 
 ## Failure modes to watch
 
-- **APPLIED in Ask mode**: Turn 1 marks slice notes as APPLIED. This is a regression of ADR-0001.
-- **PROPOSED in Agent mode**: Turn 2 marks slice notes as PROPOSED. This means ADR-0026 was not picked up.
-- **Blanket APPLIED**: Other commands (not implement-approved-slice) start using APPLIED in Ask mode after this change. The exception is scoped to one command in one mode.
+- **PROPOSED in either mode**: a turn marks task-memory notes PROPOSED because of the editor mode. That is the removed gate returning, and it is the primary failure this scenario watches for.
+- **PROPOSED in Agent mode**: Turn 2 marks slice notes as PROPOSED. This means the ADR-0199 write policy was not picked up.
 - **Missing Handoff in either turn**: Both turns must end with a complete `### Handoff` block.
 
 ## Notes
 
-- Related ADRs: [ADR-0001](../../docs/adr/0001-proposed-by-default.md), [ADR-0026](../../docs/adr/0026-applied-default-agent-mode.md).
+- Related ADRs: [ADR-0199](../../docs/adr/0199-task-memory-is-written-not-proposed.md) (the policy graded here), [ADR-0001](../../docs/adr/0001-proposed-by-default.md) and [ADR-0026](../../docs/adr/0026-applied-default-agent-mode.md) (the gate and the exception it superseded).
 - Related commands: `commands/implement-approved-slice.md`.
 - The spec `## Global output contract` `### Task-memory write policy (default)` now documents the ADR-0026 exception.
 

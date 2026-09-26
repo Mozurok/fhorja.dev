@@ -82,7 +82,7 @@ const pressedStyle = reduceMotion
 
 ## 10. Do not
 
-- Invent new state names per component (Pressed vs Active vs Touched — pick one across system)
+- Invent new state names per component (Pressed vs Active vs Touched; pick one across system)
 - Use only color to signal state (always pair with shape/icon/text)
 - Forget `accessibilityState` on custom interactive elements
 - Combine disabled + loading on same element

@@ -37,7 +37,7 @@ Persisted state that survives across turns and sessions. Subdivided into three t
 
 - **Task memory**: `TASK_STATE.md`, `DECISIONS.md`, `IMPLEMENTATION_PLAN.md`, `SLICES/*.md`, `INVARIANTS_AND_NON_GOALS.md`, `IMPACT_ANALYSIS.md`, etc., under the active task folder.
 - **Project memory**: `PROJECT_CHARTER.md`, `REFERENCES.md` at `projects/<client>__<project>/`.
-- **User memory**: `USER_MEMORY.md` once slice 05 of the context-engineering uplift task lands. Cross-task, cross-project preferences and recurring gotchas.
+- **User memory**: `USER_MEMORY.md`. Cross-task, cross-project preferences and recurring gotchas.
 
 ### 3. `retrieved`
 
@@ -76,7 +76,7 @@ Fhorja is model-agnostic and harness-agnostic by design: it names these three op
 
 One narrow, named exception exists. The mandatory context bootstrap's session-bootstrap-reuse clause (`commands/_shared/mandatory-context-bootstrap.md`, "Session bootstrap reuse") lets a command skip re-reading the WOS bootstrap sections specifically, when an earlier read of that same byte-identical file is still visible and quotable in the current window and the file has not changed since. That exception is scoped to one large, static, repeated-every-turn read; it does not extend to any other tool result, and its own safety condition (the content must stay actually visible, not merely recorded as having happened) is what keeps it inside the discipline this rule states rather than outside it. See that clause for what the visibility check can and cannot detect.
 
-**The `consumed: [history]` interaction.** `resume-from-state` and `im-stuck` are the two commands that declare `history` in `consumed:` (see the table below): they read recent conversation turns to reconstruct context or diagnose a loop. On a harness with compaction or clearing active, part of what they would read may already be gone by the time they run: compaction has replaced it with a summary, clearing has emptied the tool-result content while leaving the surrounding messages and the tool-use record intact. Both commands treat `history` as a best-effort, possibly-partial source, not a source of record, and fall back to `memory` (`TASK_STATE.md`, `DECISIONS.md`) whenever the two disagree; `memory` is what Fhorja owns and audits, `history` is not. See ADR-0114 for the full doctrine and its relationship to ADR-0093's four context operations.
+**The `consumed: [history]` interaction.** <!-- count:commands-history -->3<!-- /count --> commands declare `history` in `consumed:`. `resume-from-state` and `im-stuck` (see the table below) read recent conversation turns to reconstruct context or diagnose a loop, and `approve-proposed` reads the prior assistant turn for the `### Artifact changes` block it promotes. On a harness with compaction or clearing active, part of what they would read may already be gone by the time they run: compaction has replaced it with a summary, clearing has emptied the tool-result content while leaving the surrounding messages and the tool-use record intact. `resume-from-state` and `im-stuck` treat `history` as a best-effort, possibly-partial source, not a source of record, and fall back to `memory` (`TASK_STATE.md`, `DECISIONS.md`) whenever the two disagree; `memory` is what Fhorja owns and audits, `history` is not. See ADR-0114 for the full doctrine and its relationship to ADR-0093's four context operations.
 
 ### 6. `task`
 
@@ -147,7 +147,7 @@ The 2026 context-engineering literature converged on four operations over the co
 - **write** (persist context outside the window): the WOS substrate. `TASK_STATE.md`, `DECISIONS.md`, `LEARNINGS.md`, and `REFERENCES.md` are durable writes; the `.wos/VERIFICATION_LOG.jsonl` is the append-only provenance of every write. Owned by the writer commands per `wos/substrate-peers.md`.
 - **select** (retrieve only what is relevant now): the WOS retrieval path. `task-init` runs `rank-learnings.sh` (ADR-0071) to surface only the relevant prior lessons; contextual retrieval in `REFERENCES.md` (ADR-0018); `code-locate` and `code-context-map` narrow to the files that matter. The point is to load a relevant subset, not the whole store.
 - **compress** (summarize to save tokens): `compact-task-memory`. Per ADR-0093 the WOS compress is provenance-preserving: it drops routine prose from `TASK_STATE.md` but never rewrites the append-only VERIFICATION_LOG, so a dropped fact still traces to its origin write. Provenance-preserving compression is the 2026 technique that makes mid-flight compaction safe.
-- **isolate** (give sub-tasks a clean context): the WOS fleet contract (ADR-0038). Each worker runs in an isolated context and returns a typed `StructuredOutput` payload, not its full working context, so the orchestrator's window stays bounded (mirrors the 2026 subagent-isolation pattern of returning a small condensed summary from deep work).
+- **isolate** (give sub-tasks a clean context): the WOS fleet contract (ADR-0038). Each worker runs in an isolated context and returns one typed payload through the selected carrier (ADR-0158: the assigned run-inbox JSON file on the `Agent` path, the runtime's typed result on the dynamic-workflow path), not its full working context, so the orchestrator's window stays bounded (mirrors the 2026 subagent-isolation pattern of returning a small condensed summary from deep work).
 
 These four operations are the vocabulary; the per-layer strategy below is how each operation applies to each of the six layers.
 
@@ -159,13 +159,13 @@ The Chroma `Context-Rot` report (2024-2025) showed that all models degrade as co
 
 ### `system`: rarely compactable
 
-Fhorja itself, command personas, and output contracts are tight already. The lazy-load spec pattern (ADR-0006) is the compaction strategy for this layer: load `wos/<topic>.md` only when needed. Slice 01 of the context-engineering uplift adds this file as a lazy topic; future topics (sub-agent orchestration, etc.) extend the same pattern.
+Fhorja itself, command personas, and output contracts are tight already. The lazy-load spec pattern (ADR-0006) is the compaction strategy for this layer: load `wos/<topic>.md` only when needed. This file is one such lazy topic, and every other `wos/` topic follows the same pattern.
 
-The `mandatory-context-bootstrap` shared block, inlined into 92 of the 98 command files, is the largest single piece of this layer. It is measured at 10530 tokens for the full tier (the four always-read `WORKFLOW_OPERATING_SYSTEM.md` sections it names), with a reduced tier for the light-weight and high-frequency commands listed in the block itself. Treat this floor as cache-amortized under ADR-0006, not as a per-invocation tax: it is written once per cache TTL window and read back at roughly 0.1x afterward. It is a separate accounting line from the `tools` layer's per-skill Load budget below; the two measure different things and do not sum into one number.
+The `mandatory-context-bootstrap` shared block, inlined into 92 of the <!-- count:commands -->98<!-- /count --> command files, is the largest single piece of this layer. It is measured at 11678 tokens for the full tier (the four always-read `WORKFLOW_OPERATING_SYSTEM.md` sections it names), with a reduced tier for the light-weight and high-frequency commands listed in the block itself. A third, leaf-reviewer tier (ADR-0226) lets `verify-against-rubric` read only `## Global output contract` plus its rubric, because a blinded reviewer neither edits files nor dispatches others. Treat this floor as cache-amortized under ADR-0006, not as a per-invocation tax: it is written once per cache TTL window and read back at roughly 0.1x afterward. It is a separate accounting line from the `tools` layer's per-skill Load budget below; the two measure different things and do not sum into one number.
 
 ### `memory`: compactable on growth
 
-Task memory grows monotonically as a task progresses (more decisions logged, more slices closed, more observations captured). When `TASK_STATE.md` feels heavy after multiple closed slices (typically 5+), `commands/compact-task-memory.md` produces a lossy summarized form preserving canonical decisions, recommended next step, and invariants verbatim while filtering stale facts, resolved questions, and mitigated risks into a `## Compaction history` audit entry. The compaction is reversible only via git; the audit entry lists what was dropped so the user can challenge over-eager filtering. ADR-0015 documents the policy. Per-phase warning thresholds (ADR-0023) surface the cost; see `## Context-rot thresholds` below.
+Task memory grows monotonically as a task progresses (more decisions logged, more slices closed, more observations captured). When `TASK_STATE.md` feels heavy after multiple closed slices (typically 5+), `commands/compact-task-memory.md` produces a lossy summarized form preserving canonical decisions, recommended next step, and invariants verbatim while filtering stale facts, resolved questions, and mitigated risks into a `## Compaction history` audit entry. The required pre-compaction snapshot makes the edit locally reversible; a verified git blob is an additional route for tracked tasks. The audit entry lists what was dropped so the user can challenge over-eager filtering. ADR-0141 supersedes ADR-0015's git-only recovery policy. Per-phase warning thresholds (ADR-0023) surface the cost; see `## Context-rot thresholds` below.
 
 Project memory (`PROJECT_CHARTER.md`, `REFERENCES.md`) is less prone to bloat but `capture-references` deduplicates by URL.
 
@@ -216,47 +216,16 @@ If a command sees a phase value not in the table (a future phase added without u
 
 ---
 
-## Cache breakpoint convention
+## Cache breakpoint convention (retired)
 
-Anthropic's prompt caching docs and the PwC 2026 `Don't Break the Cache` paper show that placing the static prefix first plus a cache breakpoint at the end of the static section yields 41-80 percent cost reductions and 13-31 percent TTFT improvements on long-horizon agentic tasks.
+Retired by ADR-0139 on 2026-08-10, which records why a markdown marker could not steer a
+prefix-matched cache. ADR-0014's advice stands without a marker: put the stable part of a
+command early and the volatile part late.
 
-### The marker
-
-Every `commands/<name>.md` carries a single `<!-- cache-breakpoint -->` HTML comment marker as the LAST non-blank line of the body. The marker is mechanically detectable by lint (`scripts/lint-commands.sh` validates presence, count, and position per ADR-0014) and can be consumed by tool integrations that support explicit caching (Anthropic API `cache_control`; future MCP-cache extensions).
-
-### What "static prefix" means in current architecture
-
-Audited during slice 03 of the 2026-05-15 context-engineering uplift: NO command currently has in-file dynamic input. The user's actual paste content (failure traces, PR feedback, URLs) arrives via the slash-command invocation at runtime, NOT as a section within the command file. The command file in its entirety is the static prefix. The marker therefore goes at the very end of the body to delimit "command spec ends here; conversation continues with task / user input below."
-
-### Why the marker exists when no reorder was needed
-
-1. **Tool integrations cannot guess the boundary**. Different AI tools (Claude Code, Cursor, Codex, Copilot, Gemini CLI) have different default heuristics for cache placement. The marker is a contract signal so tools can act on Fhorja's intent rather than improvising.
-2. **Static prefix size becomes verifiable**. The Anthropic cache floor is 4096 tokens for Opus 4.7. Slice 02 measured each command's size; the marker declares which span is the cacheable prefix so the floor check has a precise denominator.
-3. **Future commands with in-file dynamic content can move the marker**. If a future command embeds a paste-here section (e.g., a paste-the-stack-trace stub inside the command file), the marker is placed BEFORE that section. ADR-0014 documents this evolution path explicitly.
-
-### Cache hit math (rough)
-
-For a typical 5-step session (task-init -> impact-analysis -> implementation-plan -> implement-approved-slice -> pr-package) with prompt cache:
-
-- Static prefix = the spec (~13k tokens) + active command (~2-4k tokens) + shared blocks (~1k tokens) = ~16-18k tokens per step
-- Cache write multiplier (Anthropic 5-minute TTL): 1.25x on the static prefix in step 1
-- Cache read multiplier: 0.1x in steps 2-5
-
-vs. no cache (the static prefix is paid in full every step): 5x the static cost.
-
-The marker confirms WHICH portion is the cacheable prefix so the math is grounded.
-
-### Edge cases
-
-- **Tool that strips HTML comments before sending to the model**: the marker disappears from the model's view but the cache_control directive in the API call still works (the tool reads the marker from the source file, computes the byte offset, and passes cache_control with the right index). If a tool's adapter does not implement this, caching falls back to that tool's default behavior; no harm to correctness.
-- **Marker present in `.claude/skills/<name>/SKILL.md`**: yes, `scripts/build-agent-skills.sh` copies the body verbatim including the marker. Open Agent Skills spec validators accept HTML comments inside skill bodies.
-- **Marker deleted by a contributor**: lint hard-fails immediately. The failure message names ADR-0014 so the contributor can find the rule.
-
----
 
 ## Edge cases worth noting
 
-- **A command that "produces" nothing material**: empty `produced: []` is valid. Pure routing (`what-next`, `command-router`), pedagogical (`workflow-guide`), or prompt-shaping (`prompt-shape`) commands emit only a Handoff. The Handoff is not listed because it is the universal output contract, not a layer-specific write.
+- **A command that "produces" nothing material**: empty `produced: []` is valid. Pure routing (`what-next`), pedagogical (`workflow-guide`), or prompt-shaping (`prompt-shape`) commands emit only a Handoff. The Handoff is not listed because it is the universal output contract, not a layer-specific write.
 - **Commands that "consume" the same layer they "produce"**: extremely common. `task-init` reads project charter (memory) and writes new task files (memory). `capture-references` reads existing REFERENCES.md (retrieved) and appends to it (retrieved). The frontmatter does not distinguish read-then-write within a layer; that's expected.
 - **`system` and `tools` in `produced:`**: rare but legal. A future command that registers a new tool definition at runtime would produce `tools`. The context-engineering uplift task does not introduce any such command; reserving the value for future use.
 - **`history` in `produced:`**: not meaningful in current tooling. The model's output IS the next entry in `history`, but listing it would be redundant with the universal Handoff. Reserved; do not use.
@@ -278,7 +247,7 @@ Lived test on 2026-06-04 (K.8 personas, 10-agent batches): subagent token consum
 
 ### Per-agent budget shape
 
-A well-shaped subagent prompt is roughly: 300 to 500 word instruction body + relevant inputs (paste or file references) + StructuredOutput reminder. That lands at ~3k to 6k tokens of input per agent. Output is bounded by the StructuredOutput schema, typically under 2k tokens.
+A well-shaped subagent prompt is roughly: 300 to 500 word instruction body + relevant inputs (paste or file references) + a typed-return reminder for the selected carrier (ADR-0158). That lands at ~3k to 6k tokens of input per agent. Output is bounded by the return schema, typically under 2k tokens.
 
 ### Orchestrator context grows linearly
 

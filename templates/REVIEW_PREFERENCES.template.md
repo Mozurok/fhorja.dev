@@ -1,6 +1,6 @@
 # REVIEW_PREFERENCES
 
-Project-level review preferences for `repo-consistency-sweep`. Lives at `projects/<client>__<project>/REVIEW_PREFERENCES.md` (gitignored, per-user). Created automatically on the first sweep run if absent; updated by `apply-sweep-triage` after the user triages each finding.
+Project-level review preferences for `repo-consistency-sweep`. Lives at `projects/<client>__<project>/REVIEW_PREFERENCES.md` (gitignored, per-user). Created by the first `apply-sweep-triage` run if absent, and updated by it after the user triages each finding; `repo-consistency-sweep` only reads it.
 
 ## How suppression works
 

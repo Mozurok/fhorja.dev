@@ -3,25 +3,15 @@ name: project-bootstrap
 description: |-
   Initialize a new project context inside the task repository before any task exists. Creates projects/<client>__<project>/, PROJECT_CHARTER.md, REFERENCES.md skeleton, and active/ plus archive/ subfolders so subsequent task-init runs have grounded project-level memory to consume. Use when starting a brand-new project, product, initiative, or client engagement, projects/<client>__<project>/ does not yet exist, or you need to capture project-level context (objective, stack, planned repositories, constraints, references) before opening the first task. Do not use when the project folder already exists (use task-init to start a new task on top of it), you only need a new task on an existing project, you only need to capture external references for an existing project (use capture-references), or the work is task-scoped and short enough that bootstrap ceremony adds no value.
 metadata:
-  category: project-initialization
-  primary-cursor-mode: Ask
-  multi-repo-aware: false
-  context-layers-consumed:
-  context-layers-produced:
-    - memory
-    - retrieved
-  tools:
-    - Read
-    - Write
-    - Edit
-    - Bash
-    - Glob
-    - Grep
-  x-wos-profiles:
-    - core
-    - full
-  provenance: first-party
-  suggested-model: claude-sonnet-4-6
+  category: "project-initialization"
+  primary-cursor-mode: "Ask"
+  multi-repo-aware: "false"
+  context-layers-consumed: ""
+  context-layers-produced: "memory, retrieved"
+  tools: "Read, Write, Edit, Bash, Glob, Grep"
+  x-wos-profiles: "core, full"
+  provenance: "first-party"
+  suggested-model: "claude-sonnet-5"
 ---
 
 Act as a senior/staff engineering project initializer.
@@ -44,12 +34,12 @@ Mandatory context bootstrap (before any output):
   - phase/entry ambiguity: `## Command roles` index (or `wos/command-roles.md` for full per-command detail), `## Entry points`
 - Read the `commands/` directory command inventory to ensure command names and availability are current.
 - Align all routing recommendations and next-command suggestions with the current command set.
-- **Official next-command names only:** every recommended next command MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. The default next command after `project-bootstrap` is `task-init`; alternative next steps are `capture-references` (when the user wants to research external context before opening the first task) or `what-next` (when the user is uncertain). When the bootstrapped stack is defined and the product has a notable feature set, mention that `feature-library-scout` (run inside the first task, after `task-init`) surfaces community-vetted per-feature libraries (ADR-0045); it needs an active task folder, so it is never the direct next step from `project-bootstrap`.
+- **Official next-command names only:** every recommended next command MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. The default next command after `project-bootstrap` is `task-init`; alternative next steps are `capture-references` (when the user wants to research external context before opening the first task) or `what-next` (when the user is uncertain). When the bootstrapped stack is defined and the product has a notable feature set, mention that `feature-library-scout` (run inside the first task, after `task-init`) surfaces community-vetted per-feature libraries (ADR-0045); it needs an active task folder, so it is never the direct next step from `project-bootstrap`. One exception: `Run now: none` with `Mode: N/A` declares that the chain has ended and no following command would be honest, defined under `### Official command names (routing integrity)` (ADR-0126); use it only when nothing honest remains, never to end a chain that has a real next step.
 
 Required inputs:
 - initial product description / objective from the user
 - client and project identifier (or enough context to derive `<client>__<project>`)
-- intended editor mode (Ask for drafting only, or Agent for actual file creation in `my_work_tasks`)
+- intended editor mode (Ask for drafting only, or Agent for actual file creation in the task repository)
 - optional but encouraged: stack (or explicit `[not decided yet]`), planned repositories, known references (URLs, docs, tickets), constraints, non-goals, stakeholders
 
 Adaptive question flow (loop control):
@@ -91,6 +81,7 @@ Operating rules:
 - Do not invent stack choices, repos, references, constraints, non-goals, or stakeholders. Where unknown, write explicit placeholders such as `[not decided yet]`, `[unknown yet]`, `[to be confirmed]`, `[none recorded yet]`.
 - Do not duplicate the `targeted-questions` flow inside this command's output; ask the minimum and stop as soon as the loop control conditions above are satisfied.
 - Multi-repo handling: when the user lists 2 or more repositories at bootstrap time, record them in `PROJECT_CHARTER.md` using the multi-repo schema (identifier, path, base branch, role) defined in the spec `## Multi-repo support (v1)`. The first `task-init` for this project should mirror the same repos into `SOURCE_OF_TRUTH.md`. Single-repo and zero-repo projects record only what is known and skip the multi-repo block entirely (the single repo, if any, is recorded under `## Default workspace`).
+- When `projects/` does not exist in the task repository yet, this run creates it: apply `### Task memory stays out of git` below.
 - References handling: if the user pre-supplies URLs/docs at bootstrap time, seed them into `REFERENCES.md` using the format defined in `capture-references`. Otherwise emit an empty skeleton with the format reminder block intact.
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full). Default next command is `task-init` in Ask mode.
 
@@ -164,7 +155,7 @@ This file is appended to by `capture-references`. New entries are grouped under 
 - Context within project: <1-3 sentences situating this source in the project; "first reference in this project" when first (ADR-0018)>
 - Key points:
   - "<verbatim quote from the source>"
-- Consumes-by: <consuming command, task slug, or `[not consumed yet]` (ADR-0056)>
+- Consumes-by: <consuming command, task slug, or `TBD` (ADR-0056)>
 - Tags: <tag1>, <tag2>
 ```
 
@@ -184,8 +175,12 @@ Required output:
 7. Recommended editor mode (default: Ask)
 8. Why that is the correct next step
 
+### Task memory stays out of git
+WHEN this run creates the `projects/` directory itself in the task repository, it writes `projects/.gitignore` in the same batch, holding the single line `*` (ADR-0223). That line ignores everything under `projects/`, the file included, so task memory stays out of the product repository's history without touching a file the user owns. List it `APPLIED` in `### Artifact changes`.
+- Never edit the repository's own `.gitignore`.
+- Never write `projects/.gitignore` into a `projects/` that already exists. A user who deleted it chose to track the tree.
+- Write it outside a git repository too, so a later `git init` inherits the rule.
 ### Claim grounding (active epistemic humility)
-<!-- shared:claim-grounding -->
 **Claim grounding (active epistemic humility).** This block governs what you may assert and how you record it. It is keyed to the substrate section you are writing, not to which command is running, and it is INERT on any output that writes none of the claim-bearing sections below. Full contract and rationale: `wos/active-epistemic-humility.md`.
 
 1. When this applies. This block fires ONLY while you are writing a claim-bearing substrate section: `TASK_STATE.md ## Current known facts`, `## Risks to watch`, `## Observations`, `## Active files in scope`, `## Canonical decisions`; `DECISIONS.md ## Locked decisions`; `IMPLEMENTATION_PLAN.md ## Current gaps`, `## Risks and mitigations`; `IMPACT_ANALYSIS.md`; `EXTERNAL_RESEARCH.md`; `REFERENCES.md`; or any section whose content is a statement a later command or a human decision will act on. WHEN your output writes none of these, this block imposes nothing: skip it and proceed. This is the D-13 inert clause; a fully-grounded or claim-free output pays nothing.
@@ -202,12 +197,10 @@ Required output:
 
 7. An unfired gate is not evidence. The absence of a fired check does not mean grounding existed. Do not read silence here as a pass.
 ### Standard output layout (required)
-<!-- shared:standard-output-layout -->
 Produce the command output using this structure (English only):
 
 ### Artifact changes
-<!-- shared:artifact-changes-default -->
-Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
+Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules. Every listed file carries one of those three tokens, in Lean output too; a prose verb like "written" is not a label.
 
 ### Command transcript
 - Keep this section operational and brief; do not restate file content already listed in `### Artifact changes`.
@@ -216,15 +209,14 @@ Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIE
 - Include `NO_OP_TRACE` (1-3 lines) when this run is a no-op (for example, the project folder already exists, in which case route the user to `task-init` or `capture-references` instead).
 
 ### Handoff
-<!-- shared:handoff-body -->
-Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state).
+Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state). Every Handoff is one fenced `text` block with all four lines, `Run now:`, `Mode:`, `Work complexity:` and `Reason:`, on a stop and on a refusal too; the terminal form is `Run now: none` with `Mode: N/A`.
 
 ### Definition of done (command output)
 - Resolved project path is explicit and naming rules are satisfied.
 - Both mandatory files (`PROJECT_CHARTER.md`, `REFERENCES.md`) are emitted with the full structure specified in `Files to generate`. Missing or partial files invalidate the run; placeholders are required where facts are unknown but the file itself must exist.
 - No task folder is created by this command (no `active/YYYY-MM-DD_<task-slug>/`).
 - When the user provided 2 or more repositories, `PROJECT_CHARTER.md` includes the `## Repositories` block with N entries (each: identifier, path, base branch, role) per the schema in the spec `## Multi-repo support (v1)`; identifiers are lowercase, hyphenated, and unique. When the user provided 1 or zero repositories, the `## Repositories` block is omitted and `## Default workspace` records the single known path or a placeholder.
-- `### Artifact changes` marks project-memory writes as `APPLIED` only if you are actually persisting files in Agent mode; otherwise mark `PROPOSED`.
+- `### Artifact changes` marks project-memory writes `APPLIED` in every mode. ADR-0199 removed the mode gate for task memory on the grounds that writing a few files under the gitignored `projects/` tree is internal and reversible, and the same holds here. It matters more here: the next `task-init` reads `PROJECT_CHARTER.md` to seed the task, and a charter left `PROPOSED` is not on disk, so the task would start unbootstrapped (ADR-0215).
 - The basename in the `Run now:` line corresponds to a real file in `commands/<name>.md`. The default next step is `task-init`; alternative next steps are `capture-references` or `what-next`.
 - Output ends with a complete `### Handoff` block per the adaptive format in `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract`.
 - Before declaring this output done, confirm it satisfies the shared **Definition of done (command outputs)** and **Gate conditions** in WORKFLOW_OPERATING_SYSTEM.md.

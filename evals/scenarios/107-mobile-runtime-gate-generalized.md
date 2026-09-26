@@ -29,7 +29,7 @@ A fourth variant: the same command on a task carrying the Godot task signature (
 
 - Sub-case 1 (inline-close): the slice does NOT close inline. The command classifies it not-ready, cites the missing `app-runtime-verify` PASS or skip reason, and routes to `app-runtime-verify` before any next-slice or fleet routing decision.
 - Sub-case 2 (slice-closure): the slice is classified `not ready to close`, names the missing evidence, and routes to `app-runtime-verify`. Typecheck-clean status is explicitly named as insufficient on its own.
-- Sub-case 3 (task-close): the task is NOT archived. The gate decision is `blocked`, naming the mobile-runtime-gate floor as the blocking condition and routing to `app-runtime-verify`.
+- Sub-case 3 (task-close): the task IS archived, and the mobile-runtime-gate floor is recorded `unverified: <reason>` in the final report's Unverified-floors block rather than blocking. The floor declares `On missing evidence: record` (ADR-0203). The report names `app-runtime-verify`.
 - In all three, a skip reason worded as "no device or emulator is ever available in this environment" is recognized as a permanent skip per ADR-0098 and does NOT satisfy the floor; the slice/task stays not-ready pending a session where a run is possible. A skip reason worded as a bounded deferral (a specific later checkpoint, or a real device session the human will run shortly) DOES satisfy the floor at the same low ceremony, as does a real cited `app-runtime-verify` PASS.
 - Godot-signature variant: the mobile-runtime-gate floor stands down. The command defers to the existing Godot-specific floors (ADR-0085 runtime-gate, ADR-0089 D-4 feel-verdict) instead of firing this floor a second time; the two families are never both live on the same task.
 

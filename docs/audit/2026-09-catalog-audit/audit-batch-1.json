@@ -1,0 +1,144 @@
+{
+  "findings": [
+    {
+      "command": "code-context-map",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Keyword rerank blend (ADR-0072, optional):** this fires only WHEN `keywords:` are provided and touches Layer 2 symbol ordering only (Layer 1 and module ranking stay fan-in). Build two ranked lists over the same in-scope symbols: (1) the existing import fan-in order, and (2) a keyword order by ripgrep term-frequency, counting case-insensitive `rg` matches of the supplied terms across each symbol's cited `file:line` span (sum across terms; ties broken by fan-in). Fuse the two ranks with reciprocal rank fusion: `score(sym) = 1/(k + rank_fanin(sym)) + 1/(k + rank_keyword(sym))` with `k = 60`, then sort by descending score. A symbol with zero keyword hits is absent from list (2) and keeps only its fan-in term, so it can never outrank a symbol that matched. This is ripgrep-only: no embeddings, no vector index, and no persisted keyword index. WHEN no `keywords:` are provided, skip this rule entirely and emit the fan-in-only order unchanged. Under `--explain-ranking`, show each symbol's `rank_fanin`, `rank_keyword` (or `none`), and fused score.",
+      "defect": "The mandated descending RRF sort does not enforce the same line's zero-hit ordering guarantee. With k=60, an unmatched symbol at fan-in rank 1 scores 1/61=0.01639344, while a matching symbol at fan-in rank 500 and keyword rank 100 scores 1/560+1/160=0.00803571. The unmatched symbol therefore sorts first. ADR-0072 repeats both constraints, so it does not reconcile them.",
+      "proposed_fix": "Make the ordering explicit: matching symbols precede zero-hit symbols, with descending RRF within each group. Keep the score explanation and candidate-set invariants.",
+      "family_sites": "Directory grep: commands/code-context-map.md:73 is the only command defining this RRF formula and zero-hit guarantee; ADR-0072 carries the same inconsistent pair.",
+      "chars_delta": 0
+    },
+    {
+      "command": "external-research-fleet",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- Per-worker structured payloads consumed from `StructuredOutput` tool-call results keyed under `fleet-inbox/<run_id>/<worker_id>` (no prose `.partial.md` files; ADR-0038 Rule 1).",
+      "defect": "The completion check accepts only StructuredOutput tool-call results, but Steps 4-6 explicitly accept the Agent-path JSON file carrier. ADR-0158 D-1 and commands/_shared/worker-contract.md make that file a canonical return, and state that the worker does not call StructuredOutput itself on either path. A successful file-carrier run cannot meet this completion check; line 200 also treats skipping the tool as a violation.",
+      "proposed_fix": "Accept a schema-valid payload from the carrier selected at dispatch: runtime typed result or fleet-inbox JSON file. Make the violation check concern malformed or missing payloads rather than the absence of a worker tool call.",
+      "family_sites": "Directory grep: commands/implement-fleet.md:103,168; commands/task-init-fleet.md:123,183; commands/verify-against-rubric-fleet.md:116,178; commands/external-research-fleet.md:198,200; commands/feature-library-scout-fleet.md:179; commands/screen-spec-fleet.md:185.",
+      "chars_delta": 0
+    },
+    {
+      "command": "implement-fleet",
+      "criterion": 1,
+      "severity": "high",
+      "cited_line": "- **Step 7: Each worker (instruction template).** Worker executes the `implement-approved-slice` contract (see `commands/implement-approved-slice.md` Operating rules) for ONE slice inside its worktree, confined to `scope_files`. The worker MUST NOT write any file outside `scope_files`; if it must, it stops and returns `status: \"scope_violation\"` with the offending paths in `out_of_scope_writes` (this means the slice was mis-scoped and the wave plan is wrong). The worker runs the slice's own validation under the **validation budget (stop-loss) and suite-cost-aware validation** rules in `commands/_shared/worker-contract.md`: it iterates with path-scoped runs, runs the full suite once at the end, and when validation debugging exceeds 3 attempts or about 15 minutes it STOPS and returns `status: \"needs_revision\"` with the failing check, the reproduction command, and a hypothesis rather than grinding silently. The worker writes its `SLICES/<NN>_<slug>.md` note and **MUST invoke the `StructuredOutput` tool exactly once with the `worker_output_schema` payload before exit; free-form prose return is forbidden (ADR-0038 Rule 1).** End the worker prompt with that StructuredOutput reminder (ADR-0039).",
+      "defect": "Step 7 instructs every worker to invoke StructuredOutput exactly once. Step 6 supports the Agent path, whose worker has no such tool, while the workflow runtime performs the call internally. ADR-0158 D-1 and the cited worker contract explicitly replace this worker-side call requirement. The mandatory final reminder repeats an impossible action.",
+      "proposed_fix": "Replace the tool-call mandate and final reminder with a path-specific typed-return instruction: write the run-scoped JSON carrier on the Agent path; return the declared payload for the runtime on the workflow path. Align the completion check.",
+      "family_sites": "Directory grep: commands/implement-fleet.md:103,168; commands/task-init-fleet.md:123,183; commands/verify-against-rubric-fleet.md:116,178; commands/external-research-fleet.md:198,200; commands/feature-library-scout-fleet.md:179; commands/screen-spec-fleet.md:185.",
+      "chars_delta": 0
+    },
+    {
+      "command": "implement-fleet",
+      "criterion": 1,
+      "severity": "high",
+      "cited_line": "- **Step 6: Create worktrees and dispatch the wave.** For each slice in the wave, create an isolated git worktree off `base_ref` and dispatch one worker bound to that worktree, naming the agent type explicitly (`agentType: 'general-purpose'`); never leave it unset, since a fork inherits the whole conversation and drops the input isolation a fresh sub-agent provides. Worktree isolation is an option on the per-agent call (`agent(prompt, {isolation: 'worktree'})` inside a workflow script, or `isolation` on the `Agent` tool), NOT a field of the Workflow tool's own input. Pass `task_input` matching `worker_input_schema` (including `scope_files`, `worktree_path`, `base_ref`, `exit_criteria`). Respect `max_fanout` (8) and the ADR-0039 batch sweet spot; if a single wave exceeds the fanout, split it into sub-batches. When the active task is worktree-isolated (a `## Workspace` section in `SOURCE_OF_TRUTH.md`, per ADR-0074), set `base_ref` to the task branch, not the repository base, so slice worktrees branch off the task's branch and merge back into it; this keeps the per-task and slice-level worktrees consistent and the integration gate meaningful (ADR-0074 D-3). Dispatch through the Workflow tool, whose script declares the shape as `agent(prompt, {schema})` and whose runtime performs the `StructuredOutput` call; the `Agent` tool takes no schema, so on that path the worker returns text and the orchestrator persists it. Name the path you are on before mandating the typed return.",
+      "defect": "Every wave is created off the input base_ref, which Required inputs explicitly allows to be origin/main. Steps 9-11 merge into the integration branch but never advance origin/main or replace base_ref. Thus a later wave can pass the Depends-on completion check yet start without the earlier wave's code. The task-worktree override only covers opted-in tasks, and even a named task branch excludes prior merged changes left uncommitted.",
+      "proposed_fix": "Resolve each wave's base to the current integrated task-branch commit containing all prior passing waves. Require that merged changes are represented by that commit before creating dependent worktrees, and pass its SHA to every worker in the wave.",
+      "family_sites": "Directory grep for base_ref and integrated-base updates: commands/implement-fleet.md:28,37,85,102; commands/task-workspace.md:23 documents only the task-branch override. No wave-base advancement rule was found in commands/ or the cited orchestration and worktree topics.",
+      "chars_delta": 0
+    },
+    {
+      "command": "repo-consistency-sweep",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "  2. **K.7 substrate-bullet orphans** (`scripts/scan-substrate-orphans.py`). Walks the same in-scope files and detects bullets referencing paths, sections, or IDs that no longer resolve (dangling decision IDs, removed sections, renamed paths) -> `substrate_bullet_orphan_count` plus paths list. Runs AFTER header drift so renamed parents do not mask child orphans.",
+      "defect": "The cited scanner does not resolve referenced paths, sections, or decision IDs. scripts/scan-substrate-orphans.py scans bullet placement relative to H1/H2 and transaction-header boundaries. Its directory mode scans only TASK_STATE.md, IMPLEMENTATION_PLAN.md, DECISIONS.md, and SOURCE_OF_TRUTH.md, unlike the broader header scan. The command therefore misstates both the meaning and coverage of this counter.",
+      "proposed_fix": "Describe K.7 as structurally unanchored-bullet detection over the four task-memory files in directory mode. Keep dangling-reference validation separate from this counter and do not imply that zero proves reference integrity.",
+      "family_sites": "Directory grep: commands/repo-consistency-sweep.md:75 is the sole command claiming this dangling-reference behavior. scripts/scan-substrate-orphans.py:31-36,39-62,105-110 define the actual scope and state machine.",
+      "chars_delta": 0
+    },
+    {
+      "command": "repo-consistency-sweep",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "  - **WARN semantics for orphans (not FAIL).** `substrate_bullet_orphan_count > 0` surfaces a WARN line in sweep output, mirroring `header_drift` per ADR-0029's drift-guard pattern. It does NOT add a bug-class finding and does NOT affect Step 11 routing. The gate lives in `evals/e2e/assertions/09-repo-consistency-sweep.sh` (orphan-cap block, default `EXPECTED_MAX_SUBSTRATE_ORPHANS=0`).",
+      "defect": "The named orphan-cap block and EXPECTED_MAX_SUBSTRATE_ORPHANS variable do not exist in evals/e2e/assertions/09-repo-consistency-sweep.sh. That assertion checks header drift, log validity, and the sweep's own write, but never checks the orphan counter. Directory searches of evals/, scripts/, wos/, and docs/adr/ found no implementation of this variable. The separate phase-4 rollup runs an orphan scan, but it is not the asserted configurable Step-09 gate.",
+      "proposed_fix": "Remove the nonexistent Step-09 orphan-cap claim and cite the actual phase-4 orphan scan if that is the intended evidence. If a configurable Step-09 cap is required, implement it before claiming it exists.",
+      "family_sites": "Directory grep: commands/repo-consistency-sweep.md:62 is the only EXPECTED_MAX_SUBSTRATE_ORPHANS occurrence. Related orphan-cap attributions are at :73 and :152. The actual separate scan is evals/e2e/assertions/00-phase4-rollup.sh:66-73.",
+      "chars_delta": 0
+    },
+    {
+      "command": "repo-consistency-sweep",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "  - **If `bug_class_run` is false:** the bug-class findings are unchanged from the prior snapshot at this diff hash; do NOT create a new snapshot file. Instead, locate the prior snapshot at the matching hash and EDIT-amend its `substrate_header_drift_count`, `substrate_bullet_orphan_count` (plus `substrate_bullet_orphan_paths`), and `verification_log_invalid_count` fields with the fresh values from Step 7 (substrate counts can change between sweeps even when the code diff did not). Refresh the companion `.orphans.txt` next to the matched snapshot. Log the amendment timestamp.",
+      "defect": "Step 1 sets bug_class_run=false when both committed and working-tree diffs are empty, even on a first run. Step 9 then forbids a new snapshot and requires a prior snapshot at the matching hash. No such snapshot need exist, so the mandatory fresh substrate counters and required snapshot path have no persistence path. The same case occurs when a prior nonempty diff is reverted to an unseen empty hash.",
+      "proposed_fix": "Separate cache-hit reuse from empty-diff handling. Amend a snapshot only when a matching one exists; otherwise record the fresh substrate audit in a zero-finding snapshot, or explicitly define the no-snapshot output and pointer behavior.",
+      "family_sites": "Directory grep: commands/repo-consistency-sweep.md:66-67 and :81-82 are the bug_class_run branches; no empty-diff/no-matching-snapshot branch was found in commands/ or the sweep reference material.",
+      "chars_delta": 0
+    },
+    {
+      "command": "godot-scene-plan",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- The mandatory Mechanic contract (Step 1a) is present: every mechanic the scene realizes is cited from `MECHANICS_SPEC.md`, or an assumed, open, or missing rule is routed to `decision-interview`; a scene designed around an undocumented assumed mechanic is invalid output (ADR-0084). For a multi-screen game the screen graph (Step 1b) specifies the win and lose states and the cross-screen transitions. For a game with sound the audio ruling is recorded; for a game with placeholder art the placeholder-asset policy is recorded (ADR-0084); \"polish later\" prose satisfies neither.",
+      "defect": "Step 1a explicitly accepts DECISIONS.md D-N entries or BRIEF.md fields when MECHANICS_SPEC.md does not exist. This completion check, and Required output item 2, instead require each mechanic to come from MECHANICS_SPEC.md or be routed as missing/open. A fully documented brief-sourced mechanic therefore passes the operating rule and fails the output contract.",
+      "proposed_fix": "Carry the Step-1a fallback into Required output item 2 and this completion check: cite MECHANICS_SPEC.md when present, otherwise the specific DECISIONS.md or BRIEF.md mechanic source; route only rules missing or unresolved in that selected source.",
+      "family_sites": "Directory grep: commands/godot-scene-plan.md:53 contains the fallback; :76 and :120 retain the spec-only output requirement. No other command carries this contradictory mechanic-source pair.",
+      "chars_delta": 0
+    },
+    {
+      "command": "godot-scene-plan",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 7a: Declare the renderer tier (REQUIRED for a 3D target; ADR-0117 D-9).** WHERE the plan targets 3D, the declaration block above SHALL carry a `Renderer tier:` entry naming exactly one of `Forward+`, `Mobile`, or `Compatibility`, with the one-line reason in prose OUTSIDE the block rather than on the entry itself (D-10 of the 2026-07-26 tier-gate task). Prose naming a tier does not satisfy it. A 3D scene plan with no declared tier is INCOMPLETE and SHALL NOT be treated as ready to build against. The tiers differ by removed features rather than by speed, so a node or effect chosen under Forward+ has no automatic fallback on the lower tiers; `wos/godot-3d-rendering-and-performance.md` carries which features each tier drops. Two consequences to record with the tier: anything depending on `RenderingDevice` is a Forward+-only path, and the iOS simulator supports only Compatibility, so a simulator check is not evidence for the shipped tier. For a 2D target this step is inert, but the declaration block is not: say in one line that no tier applies.",
+      "defect": "The assertion that anything depending on RenderingDevice is Forward+-only is false for the supported Godot 4.x renderer choices. The official renderer overview states that Forward+ and Mobile both use RenderingDevice; the 4.6 RenderingDevice reference excludes Compatibility and headless mode. The cited wos/godot-3d-rendering-and-performance.md:17 repeats the error. This can force an unnecessary tier change in the scene plan. Sources: [Godot renderer overview](https://docs.godotengine.org/en/stable/tutorials/rendering/renderers.html), [Godot 4.6 RenderingDevice](https://docs.godotengine.org/en/4.6/classes/class_renderingdevice.html).",
+      "proposed_fix": "State that RenderingDevice is available with Forward+ and Mobile and unavailable with Compatibility/headless mode. Check individual effects and device support separately. Correct the copied claim in the renderer topic and runtime taxonomy at the same time.",
+      "family_sites": "Directory grep: commands/godot-scene-plan.md:69 is the command site. The same claim also appears in wos/godot-3d-rendering-and-performance.md:17 and the renderer-mismatch example in wos/godot-runtime-battery.md:34.",
+      "chars_delta": 0
+    },
+    {
+      "command": "task-init-fleet",
+      "criterion": 1,
+      "severity": "high",
+      "cited_line": "- **Step 6: Each worker (instruction template).** Worker executes the standard `task-init` flow (see `commands/task-init.md` Operating rules and Files to generate) for ONE sub-task with the given slug and objective. Worker MUST NOT touch INITIATIVE_INDEX.md (substrate-peer rule); the orchestrator owns the cross-task index. Worker emits the per-sub-task `## Recommended pipeline` section in TASK_STATE.md per ADR-0025 complexity-tier rules. **Worker MUST invoke the `StructuredOutput` tool exactly once with the `worker_output_schema` payload before exit; free-form prose return is forbidden (ADR-0038 Rule 1).** The structured return shape is `{status: \"satisfied\", task_folder_path: \"<path>\", files_created: [\"README.md\", ...], recommended_next_command: \"<basename>\", complexity_tier_emitted: \"<tier>\", open_questions: [...]}`. A typed `.partial.json` file under `.wos/fleet-inbox/<run_id>/` is a debug/replay artifact only (never `.partial.md`); the StructuredOutput tool call is the canonical channel per ADR-0038.",
+      "defect": "The worker template requires an explicit StructuredOutput call and demotes JSON files to debug-only artifacts. Step 5 permits the Agent dispatch path; its worker has no StructuredOutput tool. ADR-0158 D-1 and the cited worker contract instead make the Agent-path JSON file canonical and make the workflow call runtime-owned. This template cannot be executed as written on the declared paths.",
+      "proposed_fix": "Name the canonical carrier per dispatch path, make the worker reminder request that payload/carrier, and update convergence and completion wording to accept a schema-valid Agent-path JSON return.",
+      "family_sites": "Directory grep: commands/implement-fleet.md:103,168; commands/task-init-fleet.md:123,183; commands/verify-against-rubric-fleet.md:116,178; commands/external-research-fleet.md:198,200; commands/feature-library-scout-fleet.md:179; commands/screen-spec-fleet.md:185.",
+      "chars_delta": 0
+    },
+    {
+      "command": "mcp-server-vet",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 1: Enumerate the declared surface.** List the full config entry (every field present, not a chosen four: `command`, `args`, `env`, `type` or `transport`, `url`, `headers`, `cwd`, `timeout`, `disabled`, and any host-specific key), plus the pins basis for the whole tool definition and the config entry rather than the description alone and every tool the server advertises: name, description, input schema, and any declared scope or permission. Note any bundled binary, postinstall hook, or local file the entry references. The tool surface, not a README, is the thing under inspection.",
+      "defect": "Step 1 requests a pin basis covering the whole tool definition and config entry. Step 5b and Required output 6b define only hashes over each description plus input schema, matching ADR-0097's narrower original design. No defined pin includes the command, arguments, URL, headers, tool annotations, or other enumerated config fields. The promised whole-definition/config pin basis is therefore not produced by the pinning step.",
+      "proposed_fix": "Define and emit separate canonical hashes for the full supplied tool definition and config entry, with matching re-vet comparison rules, or narrow Step 1 to the description-plus-input-schema coverage actually implemented. Do not claim whole-config coverage with the current pins.",
+      "family_sites": "Directory grep: commands/mcp-server-vet.md:59 requires the whole-definition/config basis; :65 and :78 define description-plus-schema pins. This pair is site-unique.",
+      "chars_delta": 0
+    },
+    {
+      "command": "release-plan",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "  - **Play track ladder and rollout binding.** The store-side release path is Internal testing (up to 100 testers), then Closed testing, then Open testing, then Production; pre-launch reports are the automated pre-release gate. The Production rollout MUST be staged to a percentage of users and monitored via Android vitals. Bind this ladder to the command's existing rollout vocabulary: each track promotion is an exposure-ramp step with a named promotion metric, and the rollback trigger fires the store mechanism above (halt the staged rollout, pull the build, ship a hotfix version). The iOS store-side path (TestFlight, App Store review, phased release) is a named capture gap: no captured reference grounds it, so the mode MUST NOT specify it from memory; route to `capture-references` first and mark the plan's iOS store-side section blocked on that capture.",
+      "defect": "The mobile mode includes first store ship, but this line makes a percentage-based Production rollout mandatory for every ship. Google Play permits staged rollouts only for updates, not first publication, so a first-release plan cannot satisfy this gate. [Play Console staged rollout documentation](https://support.google.com/googleplay/android-developer/answer/6346149?hl=en) states that restriction explicitly.",
+      "proposed_fix": "Branch on first publication versus update. Require staged percentages for eligible updates; for first publication document the testing-track preparation and the actual production-launch/rollback controls available, without promising a staged percentage.",
+      "family_sites": "Directory grep: commands/release-plan.md:68 is the sole unconditional Production rollout MUST rule; :66 and :136 consume that ladder. No first-publication exception was found in commands/ or the referenced Godot ship guidance.",
+      "chars_delta": 0
+    },
+    {
+      "command": "db-context-supabase",
+      "criterion": 1,
+      "severity": "high",
+      "cited_line": "  - `supabase db dump -f <path>` for the schema",
+      "defect": "The local fallback labels its snapshot Project ref: local after checking supabase status, but its only allowed dump form does not select the local database. Supabase's documented db dump default targets the linked remote project; --local selects the local database. A linked workspace can therefore capture remote schema and label it local, while an unlinked local stack can fail despite being reachable. Line 82 expressly withholds target-selection flags, so it does not resolve the mismatch. Sources: [Supabase CLI dump reference](https://supabase.com/docs/reference/cli/supabase-db-dump), [Supabase CLI command reference](https://github.com/supabase/cli/blob/develop/apps/cli/docs/go-cli-reference.md).",
+      "proposed_fix": "Ground and allow an explicit --local dump form, bind every CLI introspection operation to that same local target, and block rather than label a snapshot local when target selection has not been established.",
+      "family_sites": "Directory grep: commands/db-context-supabase.md:75-77 and :82 are the only command definitions of these CLI forms. The local identity is asserted at :90 and :109. No alternate local dump selector is defined in commands/.",
+      "chars_delta": 0
+    },
+    {
+      "command": "verify-against-rubric-fleet",
+      "criterion": 1,
+      "severity": "high",
+      "cited_line": "- Workers returned via `StructuredOutput` tool per ADR-0038 Rule 1; schema-skip (free-form prose) classified as `interrupted` and listed in `### Command transcript`.",
+      "defect": "The completion rule requires a worker-side StructuredOutput tool return, and Step 6 also mandates that carrier. Step 5 declares the Agent path, which has no such tool. ADR-0158 D-1 and commands/_shared/worker-contract.md instead permit the canonical run-scoped JSON file, while the workflow runtime owns its own StructuredOutput call. Valid Agent-path verifier results can therefore be classified as interrupted despite meeting the typed-payload contract.",
+      "proposed_fix": "Use the selected dispatch carrier consistently in Steps 5-7 and the completion check: runtime typed result or run-scoped JSON file. Classify a worker as interrupted for a missing/invalid required payload, not for failing to call an unavailable tool.",
+      "family_sites": "Directory grep: commands/implement-fleet.md:103,168; commands/task-init-fleet.md:123,183; commands/verify-against-rubric-fleet.md:116,178; commands/external-research-fleet.md:198,200; commands/feature-library-scout-fleet.md:179; commands/screen-spec-fleet.md:185.",
+      "chars_delta": 0
+    }
+  ]
+}

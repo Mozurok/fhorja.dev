@@ -1,0 +1,194 @@
+{
+  "findings": [
+    {
+      "command": "screen-spec-fleet",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- Every worker invoked the StructuredOutput tool exactly once with the declared schema; schema-skip workers (no Figma frame) logged as `event=worker_missing` with the skip cause in `reason` and excluded from merge (ADR-0038 Rule 1).",
+      "defect": "The completion rule requires a worker tool call even though Step 5 permits the Agent-path JSON-file carrier. Step 7 consequently classifies valid Agent-path returns as failed. ADR-0158 D-1 and commands/_shared/worker-contract.md say the dynamic-workflow runtime performs StructuredOutput internally and Agent workers write JSON; workers are never told to call that tool. The command cannot complete on one of its expressly supported paths.",
+      "proposed_fix": "Make Steps 6 and 7, the completion rule, and the quality-bar transport wording conditional on the declared dispatch path. Validate the schema-bound runtime result or the worker JSON file, and classify missing or invalid payloads rather than absence of a worker tool call.",
+      "family_sites": "Directory grep: commands/screen-spec-fleet.md:124-125,185,194; commands/feature-library-scout-fleet.md:179-180,188; commands/external-research-fleet.md:198. The latter is outside this batch.",
+      "chars_delta": 0
+    },
+    {
+      "command": "screen-spec-fleet",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- Every manifest entry has exactly one spec file written under `docs/app/screens/<persona>/<NN>-<slug>.md`.",
+      "defect": "This unconditional completion condition conflicts with partial_ok: true, Step 7 using the convergence failure table, and the quality bar explicitly allowing a manifest entry to appear in the failure classification instead of producing a spec. commands/_shared/convergence-policy.md permits merging surviving results with named gaps.",
+      "proposed_fix": "Require one spec for each successfully completed entry and an explicit classification and reason for every entry without a complete spec. Preserve the existing partial-result policy.",
+      "family_sites": "Directory grep: commands/screen-spec-fleet.md:180 and commands/atom-audit-fleet.md:158 share unconditional full coverage despite partial_ok: true; commands/atom-audit.md:104 is the single-agent counterpart.",
+      "chars_delta": 0
+    },
+    {
+      "command": "screen-spec-fleet",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 10.5: Scan substrate orphans.** Run `python3 scripts/scan-substrate-orphans.py docs/app/SCREEN_MAP.md docs/app/routes.md` against the just-written files (ADR-0038 Rule 3: the apply step MUST detect and prevent the substrate-bullet-orphan failure mode per `wos/bug-classes/substrate-bullet-orphan.md`). On non-zero exit (one or more orphans detected): REFUSE the merge transaction, log `event=refuse` with the additive field `orphan_scan=failed` and the orphan list to `VERIFICATION_LOG.jsonl`, REVERT both SCREEN_MAP.md and routes.md to their pre-merge state, and surface the orphan list in `### Command transcript`. On exit 0: proceed to Step 11.",
+      "defect": "The scan hard-codes docs/app/SCREEN_MAP.md and docs/app/routes.md although Required inputs accepts caller-supplied paths. It can therefore scan different files from those just changed; scripts/scan-substrate-orphans.py warns and returns 0 when an explicit file is absent. It also runs before Step 12 changes TASK_STATE.md, leaving that touched substrate unverified despite the cited ADR-0038 Rule 3 requiring the touched files to be scanned before apply success.",
+      "proposed_fix": "Scan the resolved caller-supplied paths and every modified substrate file after the last substrate edit, verify the targets exist, and use those same resolved targets in the rollback and completion evidence.",
+      "family_sites": "Directory grep: commands/screen-spec-fleet.md:129,131,186; commands/atom-audit-fleet.md:109-110,166 also scans before TASK_STATE edits; commands/feature-library-scout-fleet.md:127,129,182 omits a touched SOURCE_OF_TRUTH.md.",
+      "chars_delta": 0
+    },
+    {
+      "command": "screen-spec-fleet",
+      "criterion": 6,
+      "severity": "low",
+      "cited_line": "- Mixing personas in one fleet run is FORBIDDEN. Re-run per persona to keep merge keys unambiguous.",
+      "defect": "This paragraph adds no action. Required inputs already prohibits mixing personas and Step 1 already checks the entire manifest and routes mixed input to separate runs. Repeating the same prohibition and routing after dispatch does not change the model behavior.",
+      "proposed_fix": "Delete this duplicate operating-rule paragraph and retain the input boundary and the executable Step 1 validation.",
+      "family_sites": "Directory grep: commands/screen-spec-fleet.md:104,119,133; site-unique wording.",
+      "chars_delta": -100
+    },
+    {
+      "command": "feature-library-scout-fleet",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 1: Decompose and validate.** Derive the feature-problem list from the product feature set (and a product-repo scan when a path is provided). Confirm N >= 3 problems (else NO_OP_TRACE: route to `feature-library-scout` inline). Assign a unique `problem_id` per problem. Confirm N <= `max_fanout`.",
+      "defect": "Step 1 and the Goal accept exactly 3 feature problems, while this command description says Do not use for 1 to 3 problems. commands/feature-library-scout.md:68 also keeps 3 or fewer inline and routes only counts over 3. A three-problem invocation is both accepted and forbidden.",
+      "proposed_fix": "Change the Goal, positive description trigger, and Step 1 to more than 3 problems, matching the negative trigger and the single-command routing rule.",
+      "family_sites": "Directory grep: commands/feature-library-scout-fleet.md:3,88,118 and commands/feature-library-scout.md:68.",
+      "chars_delta": 0
+    },
+    {
+      "command": "feature-library-scout-fleet",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- Per-worker payloads consumed from `StructuredOutput` tool-call results keyed under `fleet-inbox/<run_id>/<worker_id>` (no prose `.partial.md` files; ADR-0038 Rule 1).",
+      "defect": "The completion condition requires StructuredOutput tool-call results even though Steps 5 and 6 explicitly admit the Agent-path JSON file under ADR-0158 D-1. The next completion bullet also calls skipping StructuredOutput a worker violation. Valid file-carried payloads cannot satisfy this completion contract; the cited ADR-0038 return mechanism was superseded by ADR-0158.",
+      "proposed_fix": "Require consumption and validation through the carrier selected for the dispatch path, and describe violations as missing or invalid typed payloads. Align both completion bullets and the quality bar with the path-aware Steps 5 and 6.",
+      "family_sites": "Directory grep: commands/feature-library-scout-fleet.md:179-180,188; commands/screen-spec-fleet.md:125,185; commands/external-research-fleet.md:198 is the same completion-rule family outside this batch.",
+      "chars_delta": 0
+    },
+    {
+      "command": "feature-library-scout-fleet",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 12: Scan substrate orphans (ADR-0038 Rule 3).** After Steps 8 and 11, run `python scripts/scan-substrate-orphans.py <task_root>/FEATURE_LIBRARIES.md <project_root>/REFERENCES.md`. Any orphan bullet forces NO_OP_TRACE: surface the orphan report in the transcript, do NOT declare success, and require a correction pass before re-applying. A clean scan (exit 0) is required to declare the apply contract satisfied.",
+      "defect": "Step 10 appends a section to SOURCE_OF_TRUTH.md, but Step 12 scans only FEATURE_LIBRARIES.md and REFERENCES.md. The Definition of done demands a clean post-apply scan on the touched files, and ADR-0038 Rule 3 says the scanner must run against touched files. The specified invocation cannot establish that condition for SOURCE_OF_TRUTH.md.",
+      "proposed_fix": "Add the modified SOURCE_OF_TRUTH.md path to the final orphan scan and report its result with the other touched files.",
+      "family_sites": "Directory grep: commands/feature-library-scout-fleet.md:127,129,182; related scan-coverage gaps in commands/atom-audit-fleet.md:109-110,166 and commands/screen-spec-fleet.md:129,131.",
+      "chars_delta": 0
+    },
+    {
+      "command": "feature-library-scout-fleet",
+      "criterion": 6,
+      "severity": "low",
+      "cited_line": "- Workers NEVER write `FEATURE_LIBRARIES.md` or `REFERENCES.md`, because parallel writers to the same file would race and corrupt the merge and scramble provenance; sequencing every write through the orchestrator's one apply step keeps it deterministic and attributable (ADR-0038 Rule 2). The orchestrator is the SOLE writer of both in fleet mode.",
+      "defect": "The paragraph repeats Step 5's worker-write prohibition and Step 8's single-writer sequential apply rule. Its explanation about races and attribution adds no check or action beyond those existing rules.",
+      "proposed_fix": "Delete the repeated paragraph; keep the worker prohibition in dispatch and the single-writer requirement in merge.",
+      "family_sites": "Directory grep: commands/feature-library-scout-fleet.md:130; the same explanatory paragraph family occurs at commands/external-research-fleet.md:146 and commands/atom-audit-fleet.md:111.",
+      "chars_delta": -348
+    },
+    {
+      "command": "image-to-spec",
+      "criterion": 1,
+      "severity": "low",
+      "cited_line": "- **No Figma, no web, no code.** This command reads only the image the user supplied on disk and writes only a spec doc. It MUST NOT call the Figma MCP, generate into Figma, or fetch the network, and it MUST NOT claim a Figma source it does not have. It produces a spec, never component code.",
+      "defect": "The scope says it reads only the image and writes only a spec. Its own required inputs and Steps 4 through 6 also read foundation documents, write OPEN_QUESTIONS.md, and update SCREEN_MAP.md. Gameplay mode additionally reads notes and may write extracted video frames. Those required actions violate the stated read and write boundary.",
+      "proposed_fix": "Describe the actual local-input and artifact scope: supplied media and notes plus local foundations; the selected spec, open-question entries, the screen index when applicable, and opt-in extracted frames. Preserve the Figma, network, and production-code prohibitions.",
+      "family_sites": "Directory grep for reads only the image / writes only a spec doc: commands/image-to-spec.md:52 only; conflicting own steps at 59-61 and gameplay inputs at 64.",
+      "chars_delta": 0
+    },
+    {
+      "command": "security-review",
+      "criterion": 1,
+      "severity": "high",
+      "cited_line": "- **Step 3: OWASP ASVS L1 checklist.** For each relevant ASVS category (from the 17 chapters of ASVS 5.0), check whether the diff satisfies the L1 requirements. Report only FAILED or UNCLEAR items; skip PASSED items. Key categories to always check: V1 (Architecture), V2 (Authentication), V3 (Session), V4 (Access Control), V5 (Validation), V7 (Error Handling and Logging), V8 (Data Protection), V13 (API and Web Service).",
+      "defect": "The rule names ASVS 5.0 but gives older chapter identifiers. In the official [ASVS 5.0 index](https://cheatsheetseries.owasp.org/IndexASVS.html), authentication is V6, session management V7, authorization V8, validation V2, data protection V14, API/web service V4, architecture V15, and logging/error handling V16. The stated mappings direct a reviewer to unrelated requirements while claiming a 5.0 L1 pass.",
+      "proposed_fix": "Replace the chapter-number/name pairs with the ASVS 5.0 mappings and cite the versioned standard when reporting requirement IDs. Retain the current failed-or-unclear reporting behavior.",
+      "family_sites": "Directory grep for ASVS 5 / V1 (Architecture) / 17 chapters: commands/security-review.md:54 is the sole command occurrence; wos/command-roles.md:480 also declares ASVS 5.0.",
+      "chars_delta": 0
+    },
+    {
+      "command": "project-bootstrap",
+      "criterion": 1,
+      "severity": "low",
+      "cited_line": "- Consumes-by: <consuming command, task slug, or `[not consumed yet]` (ADR-0056)>",
+      "defect": "The exact REFERENCES.md format reminder uses [not consumed yet] for an unknown consumer, but the referenced capture-references canonical entry format and its Required output contract use TBD. New project skeletons teach a different value from the canonical capture format they claim to follow.",
+      "proposed_fix": "Replace [not consumed yet] with TBD in the format reminder, matching commands/capture-references.md:67,93,164 and external-research snapshot metadata.",
+      "family_sites": "Directory grep: commands/project-bootstrap.md:157 is the only Consumes-by [not consumed yet] site; canonical TBD appears in commands/capture-references.md:67,93,164 and commands/external-research.md:62,79.",
+      "chars_delta": 0
+    },
+    {
+      "command": "compact-task-memory",
+      "criterion": 1,
+      "severity": "low",
+      "cited_line": "No other files are touched. SLICES/*, DECISIONS.md, INVARIANTS_AND_NON_GOALS.md, SOURCE_OF_TRUTH.md, README.md are immutable in this command.",
+      "defect": "The declared write scope contains only TASK_STATE.md and forbids all other writes, but the mandatory pre-pruning rule at line 94 creates .wos/compaction and writes a snapshot with its own Artifact changes entry. The required recovery artifact is absent from and forbidden by the stated scope.",
+      "proposed_fix": "Add the pre-compaction snapshot path to Files to update and narrow the no-other-files statement to exempt that required snapshot while preserving the immutability of the listed task artifacts.",
+      "family_sites": "Directory grep: commands/compact-task-memory.md:43-46 and 94; site-unique no-other-files/snapshot conflict.",
+      "chars_delta": 0
+    },
+    {
+      "command": "compact-task-memory",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Record yourself as the last completed step.** This command preserves `## Last completed step` verbatim, which leaves the field naming whatever ran before it. Write `compact-task-memory` there, with the date. A resumed session reads that field to decide whether to warn about context rot (`resume-from-state` suppresses the warning when the prior step was this command), and in a cold session the field is the only source on disk for that answer.",
+      "defect": "This rule orders replacement of Last completed step with compact-task-memory, but the Preserve verbatim list explicitly includes Last completed step and the Definition of done requires every preserved category to remain unchanged. The same field must both retain and replace its prior value.",
+      "proposed_fix": "Remove Last completed step from the verbatim-preservation set and state it is the one recovery-anchor update; keep the previous value in the pre-compaction snapshot. Align the completion wording with this exception.",
+      "family_sites": "Directory grep: commands/compact-task-memory.md:61,100,151; commands/resume-from-state.md:64 and commands/sync-task-state.md:56 consume the prior-step value for warning suppression. wos/command-roles.md:244 repeats the old preserve rule.",
+      "chars_delta": 0
+    },
+    {
+      "command": "compact-task-memory",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- The `## Compaction history` entry is appended with reduction metrics, dropped categories, resolved questions moved, mitigated risks moved, a 2-4 sentence summary, and a git SHA pointer for reversibility.",
+      "defect": "The completion contract requires a git SHA for reversibility even though the mandatory snapshot rule explicitly covers gitignored task folders and allows a snapshot path. The command itself states that projects/ is ignored, confirmed by .gitignore:27, so its normal target cannot supply the required pre-compaction git blob. The Goal, history template, and later recovery claims also retain the superseded git-only promise.",
+      "proposed_fix": "Make the snapshot path the required reversibility evidence and git evidence conditional on a verified tracked pre-compaction version. Update the Goal, Compacted from field, provenance prose, and git-only completion/recovery wording to avoid requiring or inventing a SHA for ignored tasks.",
+      "family_sites": "Directory grep: commands/compact-task-memory.md:20,82,92,94-98,152,154,158; no other command carries the git-SHA compaction completion rule. wos/context-budget.md:168 and wos/command-roles.md:245 repeat the older git-only description.",
+      "chars_delta": 0
+    },
+    {
+      "command": "compact-task-memory",
+      "criterion": 1,
+      "severity": "low",
+      "cited_line": "  - Canonical decisions (entire section; canonical decisions are immutable per ADR-0002 spirit)",
+      "defect": "ADR-0002 documents the Paste this next handoff contract. Its Decision section contains no rule about immutable canonical decisions, so this attribution does not support the claim it is attached to.",
+      "proposed_fix": "Remove the ADR-0002 attribution and keep the local preserve-verbatim rule, or cite the actual decision-immutability contract in wos/substrate-peers.md.",
+      "family_sites": "Directory grep for canonical decisions are immutable per ADR-0002: commands/compact-task-memory.md:60 only.",
+      "chars_delta": 0
+    },
+    {
+      "command": "atom-audit-fleet",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 4: Verify tier guard.** Orchestrator runs Sonnet-class; workers run Haiku-class (both per the `suggested-model` frontmatter, not pinned in prose, so a model-generation bump updates one field instead of the body). Orchestrator tier >= worker tier per `wos/sub-agent-orchestration.md ## Tier-aware dispatch protocol`. PASS.",
+      "defect": "The rule says both model tiers come from suggested-model, but that field is claude-sonnet-4-6. The Haiku worker tier is declared separately under metadata.workers[].tier. Step 5 likewise asks for a Haiku hint per suggested-model. Reading the cited field cannot yield the worker tier this command requires.",
+      "proposed_fix": "Read the orchestrator model from metadata.suggested-model and each worker model from its metadata.workers[].tier entry; use the latter explicitly when dispatching atom-auditor workers.",
+      "family_sites": "Directory grep: commands/atom-audit-fleet.md:102-103 and commands/implement-fleet.md:100 reference suggested-model for unequal orchestrator/worker tiers. commands/external-research-fleet.md:135 uses the same wording but currently has equal tiers.",
+      "chars_delta": 0
+    },
+    {
+      "command": "atom-audit-fleet",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- Every atom under the atoms path has exactly one row in the merged ATOM_AUDIT.md table.",
+      "defect": "This unconditional coverage requirement conflicts with partial_ok: true, Step 7 applying the convergence failure policy, and Step 8 merging surviving partials. A failed or timed-out worker contributes no rows, while commands/_shared/convergence-policy.md expressly allows the remaining rows to merge with gap flags.",
+      "proposed_fix": "Require one row per successfully audited atom and explicit missing-atom entries with worker classifications for an allowed partial merge. Distinguish a partial audit from full coverage in the output.",
+      "family_sites": "Directory grep: commands/atom-audit-fleet.md:158 and commands/screen-spec-fleet.md:180 share unconditional coverage despite partial_ok: true; commands/atom-audit.md:104 is the non-fleet counterpart.",
+      "chars_delta": 0
+    },
+    {
+      "command": "atom-audit-fleet",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 10.5: Scan substrate orphans (ADR-0038 Rule 3 gate).** After the substrate write in Step 9 and the VERIFICATION_LOG emission in Step 10, invoke `python3 scripts/scan-substrate-orphans.py <ATOM_AUDIT.md path> <TASK_STATE.md path>` against every file this command touched. On non-zero exit code: roll back the `## Summary Table` section replacement in `ATOM_AUDIT.md` (restore the pre-write snapshot), append a line `event=refuse` with the additive field `orphan_scan=failed` (the canonical taxonomy has no orphan-specific event; the refusal is the event and the scan result is an additive field, per `task-init-fleet` Step 10) (with `files=[...]` and `exit_code=<n>`) to `.wos/VERIFICATION_LOG.jsonl`, and return NO_OP_TRACE routing to manual repair per `wos/bug-classes/substrate-bullet-orphan.md`. On exit code 0, proceed to Step 11. The orphan-scan gate is non-negotiable per ADR-0038 Rule 3.",
+      "defect": "The gate scans TASK_STATE.md before Step 11 edits it. The Definition of done then treats exit 0 as proof for every touched file, but the scanned TASK_STATE bytes are the pre-update version. That ordering does not satisfy the cited ADR-0038 Rule 3 post-apply check.",
+      "proposed_fix": "Move the scan after the TASK_STATE update, covering the final bytes of both touched files. Preserve pre-write snapshots for the complete touched artifacts so a failed gate can restore the actual transaction.",
+      "family_sites": "Directory grep: commands/atom-audit-fleet.md:109-110,166; commands/screen-spec-fleet.md:129,131 also scans before updating TASK_STATE, while commands/feature-library-scout-fleet.md:127,129 omits modified SOURCE_OF_TRUTH.",
+      "chars_delta": 0
+    },
+    {
+      "command": "feature-library-scout",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 6: Reference repos.** Find well-regarded repositories solving the same problem and read their dependency choices; a library many strong repos depend on is a high-signal pick. WHERE `repomix` is present, read a reference repo's dependency manifest without cloning via `npx repomix@latest --remote <owner/repo> --include \"package.json,requirements.txt,Cargo.toml,go.mod,pom.xml\"` and capture the result into `REFERENCES.md`; WHILE `repomix` is absent, fall back to a WebFetch of the raw manifest URL. Presence-gated, no install (ADR-0027); on a failure (rate limit, private repo) record `[not fetched: reason]` and never guess.",
+      "defect": "The presence-gated no-install instruction invokes npx repomix@latest. An existing older installation does not satisfy that requested version, and [npm exec documentation](https://docs.npmjs.com/cli/npm-exec/) permits installing missing requested packages into its cache. The same line promises without cloning, whereas [Repomix CLI documentation](https://repomix.com/guide/command-line-options) defines --remote as cloning and packing a repository. Both operational claims contradict the named invocation.",
+      "proposed_fix": "Invoke the already-resolved installed repomix executable directly, with the existing --remote and --include flags, and describe its temporary remote clone accurately. If avoiding any clone is required, use the raw-manifest WebFetch path instead.",
+      "family_sites": "Directory grep for repomix across commands and wos: commands/feature-library-scout.md:57 is the only repomix@latest occurrence; commands/code-context-map.md:69 also declares presence-gated no-install but uses unversioned npx repomix.",
+      "chars_delta": 0
+    }
+  ]
+}

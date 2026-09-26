@@ -1,0 +1,84 @@
+{
+  "findings": [
+    {
+      "command": "graphql-contract-review",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 4: Errors-as-data.** Check that recoverable and business failures are modeled as union members over a shared error interface (so the success type stays non-null), and the top-level `errors` array is reserved for system or 500-class faults. (The REST counterpart checks HTTP status codes and an error-body schema instead.)",
+      "defect": "Reserving the top-level errors array for system or 500-class faults rejects valid GraphQL request-error responses. GraphQL requires parse, document-validation and variable-coercion failures to appear in that array, with no data entry; these are normally client faults and cannot be represented by a resolver's business-result union because execution never begins. Official source: https://spec.graphql.org/September2025/#sec-Errors and https://spec.graphql.org/September2025/#sec-Request-Error-Result.",
+      "proposed_fix": "Keep the business-result union check, but explicitly allow GraphQL request and execution errors in the top-level errors array; distinguish domain-result modeling from protocol error handling.",
+      "family_sites": "site-unique",
+      "chars_delta": 0
+    },
+    {
+      "command": "self-critique-and-revise",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Detect artifact type first**. Determine whether the input is `IMPLEMENTATION_PLAN.md`, `SLICES/<NN>-*.md`, or `PR_PACKAGE.md`. If the artifact is none of these, emit `NO_OP_TRACE` with the reason and recommend the right command (`review-hard` for engineering risk; `sync-task-state` for state; `direction-adjust` for mid-task corrections).",
+      "defect": "The detector rejects the workflow's canonical slice filenames. implementation-plan.md:67 names SLICES/01_<slug>.md, and implement-approved-slice.md:70 requires creating SLICES/<NN>_<slug>.md. Neither matches the hyphen-only pattern here, although this command advertises revision of SLICES/*.md and contains a complete slice rubric.",
+      "proposed_fix": "Accept the canonical SLICES/<NN>_<slug>.md pattern in Required inputs and the detector; retain hyphenated legacy filenames only if intentional.",
+      "family_sites": "commands/self-critique-and-revise.md:38,48; directory grep for 'SLICES/<NN>-' found only these two sites.",
+      "chars_delta": 0
+    },
+    {
+      "command": "stack-currency-check",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- Before producing output, check if `CURRENT_PATTERNS.md` already covers the requested frameworks with a recent `Accessed:` date (<=30 days). If so, return a no-op pointing to the existing entries.",
+      "defect": "The cache-hit rule checks framework coverage and age, but not the recorded status or matching version. This same file explicitly caches unverified:<reason> entries with Accessed dates (lines 71 and 84-89). A failed fetch can therefore become a fresh cache hit on the next invocation, skipping the verification the command exists to perform; a recent entry for an older framework version has the same problem.",
+      "proposed_fix": "Resolve the requested framework versions before the cache check. Permit NO_OP only when every requested framework/version has a recent verified entry; retry or report all unverified, absent and version-mismatched entries.",
+      "family_sites": "commands/stack-currency-check.md:63,156; the age-only cache condition is repeated in Definition of done.",
+      "chars_delta": 0
+    },
+    {
+      "command": "stack-currency-check",
+      "criterion": 1,
+      "severity": "high",
+      "cited_line": "- After caching, update `TASK_STATE.md`: remove the `Currency check required` blocker (if present) and route the next step to `implementation-plan`.",
+      "defect": "Caching is allowed to contain unverified:<reason> results, including unreachable docs and unknown versions (line 71), but this rule and Required output item 4 clear the blocker unconditionally. A run that verified none of its requested frameworks can thus remove the exact prerequisite it failed to satisfy and route into planning.",
+      "proposed_fix": "Clear the blocker only after every required framework/version is verified. Otherwise retain or narrow it to the unresolved frameworks, report their reasons, and route to the step that can supply the missing version or reachable source.",
+      "family_sites": "commands/stack-currency-check.md:45,74,114; directory grep for 'Currency check required' plus 'blocker' found the unconditional removal in these three sites.",
+      "chars_delta": 0
+    },
+    {
+      "command": "extract-foundations-from-screens",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 5: Render foundation docs.** For each of the four areas, render against the matching template in `docs/research/_templates/foundations/<area>.md`. The `## Tokens` table MUST contain: role name, value, source SCREEN_SPECs (relative paths), usage count. Append a `## Review queue` section listing conflicts and off-rule values with the same columns plus a `Reason` cell (`conflict`, `off-grid`, `family-mismatch`, …). If a foundation has zero new entries and zero review items, do NOT rewrite the file -- emit `SKIP` per the global output contract.",
+      "defect": "Required inputs line 39 lets the caller select a subset of foundations, with all four only the default. Step 5 nevertheless directs rendering each of the four areas, and the parsing/extraction steps do not apply the selection. A color-only request with new spacing values can therefore write spacing.md as well.",
+      "proposed_fix": "Resolve the selected foundation set once, defaulting to all four, and restrict parsing, loading, rendering, accounting and completeness checks to that set.",
+      "family_sites": "site-unique",
+      "chars_delta": 0
+    },
+    {
+      "command": "extract-foundations-from-screens",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Step 6: Idempotency check.** Diff the produced files against the on-disk version. If a re-run on the same input would produce byte-identical output, emit a `NO_OP_TRACE`. The acceptance contract: re-running with a screen that introduces no new values is a no-op on disk.",
+      "defect": "The final sentence extends idempotency from identical inputs to an added screen carrying existing values, contradicting the required per-value usage counts and source-screen provenance in Steps 2, 4 and 5. Adding a second screen using an existing color changes that color's count and source list even when it introduces no new value. The command cannot both refresh those required fields and promise no disk change.",
+      "proposed_fix": "Define a disk NO_OP for an unchanged source set and unchanged observations. Allow provenance and usage-count updates when new screens reuse existing values, while preserving locked role-to-value mappings.",
+      "family_sites": "site-unique",
+      "chars_delta": 0
+    },
+    {
+      "command": "extract-foundations-from-screens",
+      "criterion": 6,
+      "severity": "low",
+      "cited_line": "- Never overwrite a locked role-to-value mapping from a prior run; always route the collision to `## Review queue`.",
+      "defect": "This operating rule adds no action or check beyond Step 3, which already says existing role-to-value mappings are LOCKED, MUST be preserved verbatim, and every colliding candidate goes to the Review queue rather than overwriting. The duplicate is command-owned text outside shared blocks.",
+      "proposed_fix": "Delete this duplicate operating-rule line; keep Step 3 and the existing Definition of done check.",
+      "family_sites": "site-unique",
+      "chars_delta": -116
+    },
+    {
+      "command": "portfolio-review",
+      "criterion": 1,
+      "severity": "medium",
+      "cited_line": "- **Outcomes telemetry mode.** When the user passes `--outcomes`, run `scripts/portfolio-review.sh --outcomes` (with any `--project`): it walks each project's `OUTCOMES.jsonl` per the read contract in `templates/OUTCOMES.schema.md`, resolves each task's effective merge status latest-event-wins (a later revert line overrides an earlier outcome), and prints per project the closed-task count, effective-status counts (merged, waived, not-merged, reverted), the median total cycle days, and the median days for each phase boundary present. A project with no ledger yet, or a run with no ledger anywhere, reports \"no outcome records yet\" rather than failing. This mode is measurement only: it reports what happened, it never gates a workflow step, and it never writes.",
+      "defect": "The cited schema's Read rules require a latest reopen event to produce effective status reopened until a later outcome closes the task again. This command's status list omits reopened, and the referenced helper confirms the mismatch: scripts/portfolio-review.sh:288-295 special-cases only revert, otherwise retaining the previous outcome's merge_status. An outcome followed by reopen is consequently reported with its old closed status despite the claimed latest-event-wins contract. task-close.md:84 actively emits these reopen events.",
+      "proposed_fix": "Include reopened in the command's effective-status contract and make the helper honor the schema's latest reopen event instead of falling back to the earlier outcome status.",
+      "family_sites": "site-unique",
+      "chars_delta": 0
+    }
+  ]
+}

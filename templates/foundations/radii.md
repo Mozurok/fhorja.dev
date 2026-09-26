@@ -14,7 +14,7 @@ Border radius scale + semantic aliases (button, card, sheet, pill). Does NOT cov
 
 Scale shape (linear / mixed), how many steps, pill convention (sharing token vs unique).
 
-## 3. Tokens — Radius scale
+## 3. Tokens: Radius scale
 
 | Token | Value | Use |
 |---|---|---|
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
 
 ## 8. Do not
 
-- Hardcode `borderRadius: 8` — use `tokens.radius.md`
+- Hardcode `borderRadius: 8`; use `tokens.radius.md`
 - Mix pill with `borderRadius` smaller than half-height (creates near-pill artifact)
 - Apply `overflow: 'hidden'` solely to clip rounded corners on Android without testing perf
 

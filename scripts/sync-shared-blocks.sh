@@ -119,8 +119,9 @@ case "$gate_rc" in
   1) echo "Codename gate: found a listed codename under ${SHARED_DIR#"$REPO_ROOT"/}. Nothing propagated." >&2
      echo "  Run scripts/check-mirror-codenames.sh commands/_shared to see where." >&2
      exit 1 ;;
-  2) echo "Codename gate: skipped (no sidecar; see scripts/.mirror-codenames.example)"
-     echo "  NOTE: the absolute-path check is skipped too, because the guard returns before it." ;;
+  2) echo "Codename gate: skipped (guard usage error: bad or missing target directory)" ;;
+  3) echo "Codename gate: structural scans clean; codename scan not measured (no sidecar)"
+     echo "  See scripts/.mirror-codenames.example. The absolute-path and ticket-id scans DID run." ;;
   *) echo "Codename gate: guard exited ${gate_rc}, which is neither a verdict nor a skip. Nothing propagated." >&2
      exit 1 ;;
 esac

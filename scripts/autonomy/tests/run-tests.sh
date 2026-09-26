@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # run-tests.sh -- tests for the Fhorja autonomy helpers (ADR-0044, Slice 2).
-# Deterministic: no real sleeping; the governor's clock is injected via
-# $AUTONOMY_NOW_EPOCH. Run: bash scripts/autonomy/tests/run-tests.sh
+# Governor checks use $AUTONOMY_NOW_EPOCH; background tests use bounded mock processes.
+# Run: bash scripts/autonomy/tests/run-tests.sh
 
 set -uo pipefail
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -43,6 +43,49 @@ bash "$CLASSIFY" src/ok.ts api/orders.ts >/dev/null 2>&1; expect_code "mixed w/ 
 # malformed: several paths joined into ONE argument must escalate (POC finding 2026-06-16)
 bash "$CLASSIFY" "db/schema.sql src/db.js" >/dev/null 2>&1; expect_code "joined-arg hiding boundary -> escalate" 10 $?
 bash "$CLASSIFY" "src/a.ts src/b.ts" >/dev/null 2>&1; expect_code "joined-arg (whitespace) -> escalate (malformed)" 10 $?
+
+# empty ARGUMENT must escalate, not just an empty argument LIST (found 2026-08-17 by
+# running the helper for real). The stdin path filtered empty lines; the argv path did
+# not, so `classify-slice.sh "$FILES"` with FILES unset counted "" as one safe file and
+# returned auto. That is the false-auto this script's header calls the dangerous failure,
+# reached by exactly the caller it warns about: an LLM expanding an empty variable.
+bash "$CLASSIFY" "" >/dev/null 2>&1; expect_code "empty argument -> escalate" 10 $?
+bash "$CLASSIFY" "src/a.ts" "" >/dev/null 2>&1; expect_code "empty argument among valid ones -> escalate" 10 $?
+
+# --- runs-feed: run_id is a FILENAME, so it must be validated (found 2026-08-17) ---
+# Before the guard, `end "../../x"` resolved outside .wos/runs/ and DELETED the file
+# there, and `start` wrote outside the same way. The documented caller is an LLM, and
+# under D-11 a run_id can come from third-party text, so this is an injection surface.
+FEED="$DIR/runs-feed.sh"
+VICTIM="$TMP/victim.json"; echo x > "$VICTIM"
+# RUNS_DIR is derived the same way runs-feed.sh derives it ($DIR/../..), NOT from the
+# caller's cwd: computing it from os.getcwd() made this test pass for the wrong reason
+# when the suite ran from anywhere but the repo root, which is the fail-open probe this
+# suite exists to prevent.
+FEED_RUNS_DIR="$(cd "$DIR/../.." && pwd)/.wos/runs"
+REL="$(python3 -c "import os,sys;print(os.path.relpath(sys.argv[1][:-5], sys.argv[2]))" "$VICTIM" "$FEED_RUNS_DIR")"
+bash "$FEED" end "$REL" >/dev/null 2>&1; expect_code "end with traversal run_id -> usage error" 2 $?
+if [[ -f "$VICTIM" ]]; then victim_status=0; else victim_status=1; fi
+expect_code "end with traversal run_id did NOT delete the target" 0 "$victim_status"
+bash "$FEED" start "../escape" t s >/dev/null 2>&1; expect_code "start with traversal run_id -> usage error" 2 $?
+bash "$FEED" start "--run-id" t s >/dev/null 2>&1; expect_code "start with flag-shaped run_id -> usage error" 2 $?
+bash "$FEED" start "ok-123" t s >/dev/null 2>&1; expect_code "start with a safe run_id still works" 0 $?
+bash "$FEED" end "ok-123" >/dev/null 2>&1; expect_code "end with a safe run_id still works" 0 $?
+
+# --- launch-background-run: refusal paths and the run_id it derives ---
+# The refusal paths run the real launcher. An unset CLI prints guidance before
+# workspace provisioning, so these cases leave no background execution.
+LAUNCH="$DIR/launch-background-run.sh"
+mkdir -p "$TMP/2026-08-18_a-normal-name" "$TMP/hostile name (v2)"
+( unset WOS_AGENT_CMD; bash "$LAUNCH" >/dev/null 2>&1 ); expect_code "launcher with no argument -> usage error" 2 $?
+( unset WOS_AGENT_CMD; bash "$LAUNCH" "$TMP/does-not-exist" >/dev/null 2>&1 ); expect_code "launcher with a missing task folder -> usage error" 2 $?
+( unset WOS_AGENT_CMD; bash "$LAUNCH" "$TMP/2026-08-18_a-normal-name" >/dev/null 2>&1 ); expect_code "launcher without WOS_AGENT_CMD -> manual instructions, exit 0" 0 $?
+
+# Feed acceptance of sanitized identifiers. The process suite below additionally
+# exercises the launcher's actual identifier generation with an unusual task name.
+HOSTILE_SLUG="$(printf '%s' "hostile name (v2)" | tr -c 'A-Za-z0-9._-' '-')"
+bash "$FEED" start "bg-$HOSTILE_SLUG-1" t s >/dev/null 2>&1; expect_code "derived run_id from a hostile folder name is accepted" 0 $?
+bash "$FEED" end "bg-$HOSTILE_SLUG-1" >/dev/null 2>&1
 
 # --- classify-slice: decision annotation (D-4) ---
 # The annotation is REPORTING ONLY. Every case below asserts the exit code is
@@ -147,3 +190,4 @@ AUTONOMY_NOW_EPOCH=1000 bash "$GOV" "$st" --max-iter 99 --timeout-sec 0 --comman
 echo "----"
 echo "autonomy helper tests: $pass passed, $fail failed"
 [[ "$fail" -eq 0 ]] || exit 1
+python3 "$DIR/tests/test-background-run.py"

@@ -230,7 +230,7 @@ The design system has three canonical audit artifacts that get re-generated peri
 
 | Artifact | Location | Cadence | Command |
 |---|---|---|---|
-| **`ATOM_AUDIT.md`** | `docs/research/ATOM_AUDIT.md` | Every 2-4 weeks, or when 5+ new atoms ship | `atom-audit` (or `foundation-audit --tier=atoms`) |
+| **`ATOM_AUDIT.md`** | `docs/research/ATOM_AUDIT.md` | Every 2-4 weeks, or when 5+ new atoms ship | `atom-audit` |
 | **`COMPONENT_GUIDELINES.md`** | `docs/research/COMPONENT_GUIDELINES.md` | Updated when a new cross-cutting rule emerges (memo policy, callback shape, inline-style ban, etc.) | manual edit + ADR if rule is normative |
 | **`_inventory/figma_components.md`** | `docs/research/_inventory/figma_components.md` | After every Figma library update from design | `inventory-snapshot` |
 
@@ -244,7 +244,7 @@ Normative rules common to all components (e.g., "always `memo` if children have 
 
 ### When audits drive changes
 
-`atom-audit` produces the table; it does NOT implement fixes. Fixes flow through the normal slice pipeline (`impact-analysis` -> `implementation-plan` -> `implement-approved-slice`) per atom or per guideline group. Multiple atoms violating the **same rule** should be batched into a single slice for context efficiency; multiple atoms with **unrelated issues** stay as separate slices.
+`atom-audit` produces the table; it does NOT implement fixes. Fixes flow through the default pipeline (`task-init` -> `implementation-plan` -> `approve-plan` -> `implement-approved-slice` -> `branch-commit --apply`, ADR-0184), with `impact-analysis` added only when its disqualifier fires (the scope needs more than one sentence, or the change touches 5 or more files), per atom or per guideline group. Multiple atoms violating the **same rule** should be batched into a single slice for context efficiency; multiple atoms with **unrelated issues** stay as separate slices.
 
 ## Open questions tracking convention
 

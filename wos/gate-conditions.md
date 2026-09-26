@@ -32,7 +32,22 @@ Only close a slice if:
 
 `implement-approved-slice` closes a LOW or MEDIUM slice INLINE and explicitly does not route to `slice-closure`; only a HIGH-complexity slice, or one whose exit criteria cannot be verified inline, reaches that command. So a floor written only into `slice-closure.md` never fires on the majority of slices, and it fires least on the ones a plan judged routine, which is where an unreviewed defect travels furthest.
 
-Every generalized floor therefore ships as a pair: the version in `slice-closure.md` (verdict `not ready to close`) and its `(inline-close, ...)` twin in `implement-approved-slice.md` (verdict: do NOT inline-close). `commit-evidence`, `experience-verdict`, `entry-path probe`, `eval-threshold`, `Layer-2 review`, and `rollout-constraint reconcile` all follow this shape, and `task-close.md` carries the whole-task backstop for several of them. When adding a floor, write both halves and keep the escape clause identical, or state in the floor itself why one home is deliberately enough.
+Every generalized floor therefore ships as a pair: each floor in `wos/closure-floors.md` (ADR-0134)
+carries a `slice-closure` variant and an `implement-approved-slice (inline-close)` variant, and each
+command loads the generated view that `scripts/build-closure-floor-views.py` builds for it. `commit-evidence`, `experience-verdict`,
+`entry-path probe`, `eval-threshold`, `integrity`, `Layer-2 review`, and `rollout-constraint reconcile` all follow
+this shape, and the `task-close` variant carries the whole-task backstop for several of them.
+
+Each home carries the floor's OWN declared behavior, read from its `On missing evidence:` line, not a
+single verdict shared across floors. A floor declaring `refuse` produces `not ready to close` at the
+slice-closure home and `do NOT inline-close` at the inline one. A floor declaring `record` writes
+`unverified: <reason>` at both and closure proceeds; a floor declaring `reconcile` records a named
+deferral at both. This paragraph named the two refuse verdicts for every floor in the list until
+2026-09-16, which was true when ADR-0203 was written and stopped being true the moment it landed:
+every floor named above declares `record` or `reconcile` except `commit-evidence` and `integrity`, which declare `refuse`.
+
+When adding a floor, write both halves and keep the escape clause identical, or state in the floor
+itself why one home is deliberately enough.
 
 This is a live failure mode, not a hypothetical: the 2026-07-29 mobile dogfood proposed the Layer-2 review floor for `slice-closure.md` alone, and the plan that motivated it had 5 LOW and 3 MEDIUM slices with zero HIGH, so the floor would have been unreachable on the exact run that produced it.
 
@@ -63,10 +78,12 @@ Order the verification effort cheapest-first. Each layer must pass and be shown 
 - Layer 2, AI risk review: `review-hard` and `repo-consistency-sweep` (and `security-review` when there is a security surface) run only after Layer 1 is green.
 - Layer 3, human approval: the maintainer reviews and approves before merge.
 
+A verdict from `verify-against-rubric` is a Layer 2 signal, never Layer 1 evidence: it is a model's judgment of an artifact, and Layer 1 accepts only a deterministic check with its real output shown.
+
 If Layer 1 fails, do not run Layer 2. If a layer is intentionally skipped as no-signal, say so.
 
 ### Interactive bounded retry (deterministic gate on a normal turn)
-A deterministic gate can hold a normal interactive turn until it passes (re-check after each turn), not only an autonomous run. When it does, it MUST carry a bounded retry cap and an escalate-on-N-fails rule, exactly as the autonomous-run governor enforces (`wos/autonomous-track.md` D11): cap consecutive blocked retries at a small N (default 3 to 8) and, on reaching the cap, STOP and escalate to the human rather than looping. A hold-until-pass note without the bounded cap reintroduces the infinite-retry loop the governor exists to prevent. The cap belongs in the hook itself (see `templates/deterministic-gate-hook.template.md`). Each retry attempt MUST restate the concrete validation failure text verbatim (never a generic "gate failed"), because that failure text is the payload the retry reasons over.
+A deterministic gate can hold a normal interactive turn until it passes (re-check after each turn), not only an autonomous run. When it does, it MUST carry a bounded retry cap, exactly as the autonomous-run governor enforces (`wos/autonomous-track.md` D11): cap consecutive blocked retries at a small N (default 3 to 8) and, on reaching the cap, record the failure with the evidence already captured and route the fix rather than repeating the same run. The cap records and proceeds; it does not request human input (ADR-0201). A hold-until-pass note without the bounded cap reintroduces the infinite-retry loop the governor exists to prevent. The cap belongs in the hook itself (see `templates/deterministic-gate-hook.template.md`). Each retry attempt MUST restate the concrete validation failure text verbatim (never a generic "gate failed"), because that failure text is the payload the retry reasons over.
 
 ## Before PR packaging
 Only prepare a PR if:

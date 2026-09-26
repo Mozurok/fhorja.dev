@@ -44,7 +44,7 @@ cat > "$TMPD/projects/test__fixture/INITIATIVE_INDEX.md" <<'EOF'
 | 2026-01-03 | 2026-01-03_beta-task | reviews stuff early in row | closed | none | none |
 EOF
 
-OUT="$(bash "$TMPD/scripts/portfolio-review.sh" --initiative 2>/dev/null || true)"
+OUT="$(cd "$TMPD" && bash "$TMPD/scripts/portfolio-review.sh" --initiative 2>/dev/null || true)"
 
 fail=0
 assert() {
@@ -73,7 +73,7 @@ assert "headerless fallback preserves whole-row behavior (review wins)" \
 
 # JSON emitter mode (ADR-0083 single parse point): the same fixture through
 # --initiative --json must carry the column-scoped status per row.
-JOUT="$(bash "$TMPD/scripts/portfolio-review.sh" --initiative --json 2>/dev/null || true)"
+JOUT="$(cd "$TMPD" && bash "$TMPD/scripts/portfolio-review.sh" --initiative --json 2>/dev/null || true)"
 
 json_assert() {
   local desc="$1" task="$2" want="$3"

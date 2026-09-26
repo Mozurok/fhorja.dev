@@ -105,7 +105,7 @@ Recent change: deploy of feature/initial-price-query at 2026-05-09T08:14Z (15 mi
 
 ## Notes
 
-- Related ADRs: [ADR-0001](../../docs/adr/0001-proposed-by-default.md) (PROPOSED-by-default; in Agent mode for HOTFIX, files become APPLIED), [ADR-0002](../../docs/adr/0002-paste-this-next-contract.md) (Handoff contract).
+- Related ADRs: [ADR-0001](../../docs/adr/0001-proposed-by-default.md) (the PROPOSED-by-default gate, superseded by ADR-0199: files are APPLIED in every mode, HOTFIX included), [ADR-0002](../../docs/adr/0002-paste-this-next-contract.md) (Handoff contract).
 - Related commands: `commands/incident-triage.md`, `commands/branch-commit.md`, `commands/pr-package.md`, `commands/capture-observation.md` (the ESCALATE path uses this for the team-update payload).
 - The "BLOCKING_PROD plus HOTFIX bypasses standard ceremony" rule is unique to incident-triage. Validating it under eval is important because the rule is the most violation-prone aspect of the workflow's discipline (every other command pulls toward more ceremony; this one pulls toward less under specific conditions).
 

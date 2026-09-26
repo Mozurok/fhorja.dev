@@ -1,12 +1,12 @@
 # Frontend preview and the experience verdict
 
-Lazy-loaded reference for serving a built frontend so a human can actually see it and record an experience verdict. The generalized experience-verdict floor (ADR-0091) and the pre-deploy experience-preview gate (ADR-0099) both require a human to view a real sample of a `user-facing-content` / `new-user-facing-surface` deliverable before it closes or ships. This topic documents the repeatable way to produce that sample; without it, every task improvises the serve step (the site dogfood improvised ngrok, hit a host-block, and by the time it worked the reviewer had walked back to their desk).
+Lazy-loaded reference for serving a built frontend so a human can actually see it and record an experience verdict. The generalized experience-verdict floor (ADR-0091) and the pre-deploy experience-preview gate (ADR-0099) both look for a verdict on a real sample of a `user-facing-content` or `new-user-facing-surface` deliverable. When a person is to give that verdict, this topic documents the repeatable way to produce the sample they view; without it, every task improvises the serve step (the site dogfood improvised ngrok, hit a host-block, and by the time it worked the reviewer had walked back to their desk).
 
 Load this when a task must produce a human-viewable preview of a built web frontend for an experience verdict. It is capability-routed and stack-agnostic in principle; the concrete recipes below are for the common static-build case (Astro, Vite, Next static export, plain `dist/`).
 
 ## The rule this serves
 
-The experience-verdict floor does not accept machine-green evidence (lint, tests, a build exit 0) as a substitute for a human looking at the surface. So the task's job is to hand the human a URL they can open. This topic is the supported way to produce that URL. It is a serve recipe, not a new command: the closure and release gates reference it, and any command may run it.
+The experience-verdict floor records who attested (ADR-0179). `Attested by: run` is valid when the block cites the evidence the run itself captured (the screenshot path it wrote, the output it quoted, the route it probed); `Attested by: human` means a person looked at a sample. Machine-green evidence (lint, tests, a build exit 0) is never recorded as a human look. Human attestation never blocks: with no verdict at all, the floor records `unverified: no experience verdict on a sample` and closure proceeds (ADR-0203). When a person is to look, the task's job is to hand them a URL they can open, and this topic is the supported way to produce that URL. It is a serve recipe, not a new command: the closure and release gates reference it, and any command may run it.
 
 ## Serving discipline (both consumers)
 
@@ -31,9 +31,9 @@ The failure this closes is on the record twice in one project. A 2026-07-16 run 
 
 Serve the built output and give the reviewer `http://localhost:<port>`, on a port picked per the serving discipline above, after the handoff-time identity assertion.
 
-- Prefer the framework's own preview of the production build over the dev server, so the reviewer sees what ships (minified assets, real routing), not the dev experience: `astro preview`, `vite preview`, `next start` after `next build`, etc.
+- Prefer the framework's own preview of the production build over the dev server, so the reviewer sees what ships (minified assets, real routing), not the dev experience: `astro preview`, `vite preview`, or a static server on a Next export's `out/` (`next start` refuses to serve one).
 - The dev server (`astro dev`, `vite`, `next dev`) is acceptable for a fast look but is not the shipped artifact; note which one the reviewer saw when recording the verdict.
-- The framework preview may refuse to start when one of its own is already running (`astro preview` reports the live PID and exits). Treat that as rule 3: re-bind, do not adopt the incumbent. What is already listening is the one thing you have no evidence about.
+- The framework preview may refuse to start when one of its own is already running (`astro preview` 7.2 and later reports the live PID and exits). Treat that as rule 3: re-bind, do not adopt the incumbent. What is already listening is the one thing you have no evidence about.
 
 ## Remote preview (reviewer is away from the machine)
 
@@ -48,22 +48,22 @@ Vite-based preview servers (this includes `astro preview`) reject requests whose
 
 Two fixes:
 
-1. Allow the tunnel host on the preview server. In the framework config, set the preview server's allowed-hosts to include the tunnel hostname (Vite: `preview.allowedHosts`; Astro forwards to Vite). This keeps the reviewer on the real preview build.
+1. Allow the tunnel host on the preview server. In the framework config, set the preview server's allowed-hosts to include the tunnel hostname (Vite: `preview.allowedHosts`; Astro: `server.allowedHosts`, which since astro@5.4.0 covers both `astro dev` and `astro preview` and wins over `vite.preview.allowedHosts`, a setting `astro preview` ignored before 6.1.2). This keeps the reviewer on the real preview build.
 2. Serve the static output with a plain file server that has no host check, then tunnel that. `python3 -m http.server <port> --directory dist` (or any static server) serves `dist/` with no `Host` allow-list, so a tunnel to it just works. Use this for a pure static build (no server routes); it is the fastest unblock. Do not use it when the app has server-rendered routes or middleware the file server would not run.
 
 Pick fix 1 when the preview build has server behavior; pick fix 2 for a static `dist/`. Either way, verify the reviewer got a `200` and the real page, not the framework error page, before treating the link as delivered.
 
 ## Recording the verdict
 
-The preview exists to feed a recorded human verdict, not to replace it. After the reviewer looks:
+The preview feeds a verdict recorded with `Attested by: human`. After the reviewer looks:
 
-- Write an `## Experience verdict` block (per the ADR-0091 floor) with `Overall: PASS` or `FAIL`, citing which URL and which build (dev vs preview vs the exact commit) the reviewer saw, plus the handoff-time identity assertion output for that URL.
+- Write an `## Experience verdict` block (per the ADR-0091 floor) with `Overall: PASS` or `FAIL` and `Attested by: human`, citing which URL and which build (dev vs preview vs the exact commit) the reviewer saw, plus the handoff-time identity assertion output for that URL.
 - A `FAIL` routes the specific gaps back into the task as normal follow-up work (a direction-adjust, a slice, or `pr-feedback-ingest`), not a silent re-try.
 - For a `new-user-facing-surface`, also record the entry-path run (the way a real user reaches the surface), per the same floor.
 
 ## Do not
 
-- Do not treat a build exit 0, a passing test, or a screenshot you generated as the experience verdict; the floor wants a human looking at a running sample.
+- Do not record a build exit 0, a passing test, or a screenshot you generated as a human verdict. A run can attest only as `Attested by: run`, citing what it captured; `human` is reserved for a person who looked at a running sample.
 - Do not send a tunnel link without confirming it returns the real page (the 403 host-block silently ships an error page as if it were the site).
 - Do not leave a tunnel or preview server running past the review; stop it once the verdict is recorded.
 - Do not serve on a fixed port, and do not adopt whatever is already answering on one. Both are the same mistake seen from two sides.

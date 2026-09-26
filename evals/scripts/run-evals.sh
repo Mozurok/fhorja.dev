@@ -31,8 +31,6 @@ SCENARIOS_DIR="${REPO_ROOT}/evals/scenarios"
 
 LIST_ONLY=0
 ONLY_NN=""
-USE_JUDGE=0
-JUDGE_TOOL=""
 
 usage() {
   cat <<'EOF'
@@ -42,11 +40,6 @@ Walk through the eval scenarios under evals/scenarios/.
 
 Options:
   --list, -l     List scenarios; do not print bodies.
-  --judge        After each scenario, prompt for the model's response and
-                 pipe it through evals/scripts/judge.py (OPTIONAL second
-                 pass per ADR-0019; never replaces manual review).
-  --tool CMD     Override the default judge tool command (default:
-                 "claude code --print"). Only meaningful with --judge.
   --help, -h     Show this message.
 
 Positional:
@@ -58,8 +51,6 @@ EOF
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --list|-l) LIST_ONLY=1 ;;
-    --judge) USE_JUDGE=1 ;;
-    --tool) shift; JUDGE_TOOL="$1" ;;
     -h|--help) usage; exit 0 ;;
     -*)
       echo "Unknown option: $1" >&2
@@ -82,9 +73,29 @@ if [[ ! -d "$SCENARIOS_DIR" ]]; then
   exit 1
 fi
 
+# The character class must admit a three-digit prefix. Until 2026-08-21 it was `[0-9][0-9]-`, which
+# cannot match one, so the walk enumerated 99 of 135 scenarios and everything from 100- onward was
+# invisible to the walk and to --list, while CLAUDE.md and evals/README.md both instruct a full walk
+# before tagging a release. evals/README.md records the same drift class biting once before.
+#
+# Coverage and order are SEPARATE defects. Widening the class fixes coverage. Glob expansion is
+# lexicographic, so it puts 100- immediately after 10-; the re-sort below fixes order. The
+# structural-evals.py check `walker-covers-corpus` gates the coverage half by parsing this very
+# assignment, so keep the glob inline here: moving it into a pipeline hides it from that guard.
 shopt -s nullglob
-ALL_SCENARIOS=("$SCENARIOS_DIR"/[0-9][0-9]-*.md)
+ALL_SCENARIOS=("$SCENARIOS_DIR"/[0-9]*-*.md)
 shopt -u nullglob
+
+# Re-sort by the numeric prefix so the walk follows scenario order. Written as a read loop rather
+# than mapfile, which bash 3.2 (the macOS system bash) does not have.
+if [[ ${#ALL_SCENARIOS[@]} -gt 1 ]]; then
+  _sorted=()
+  while IFS= read -r _line; do
+    _sorted+=("${_line#*$'\t'}")
+  done < <(printf '%s\n' "${ALL_SCENARIOS[@]}" | awk -F/ '{print $NF"\t"$0}' | sort -V)
+  ALL_SCENARIOS=("${_sorted[@]}")
+  unset _sorted _line
+fi
 
 if [[ ${#ALL_SCENARIOS[@]} -eq 0 ]]; then
   echo "No scenarios found in $SCENARIOS_DIR" >&2
@@ -126,26 +137,6 @@ for f in "${ALL_SCENARIOS[@]}"; do
   echo ""
   echo "================================================================================"
   echo ""
-  if [[ $USE_JUDGE -eq 1 ]]; then
-    echo ""
-    echo "Paste the input prompt above into your AI tool, copy the model's response, then save it to a temporary file."
-    read -r -p "Path to the response file (or empty to skip judging this scenario): " response_path
-    if [[ -n "$response_path" ]]; then
-      if [[ -f "$response_path" ]]; then
-        echo ""
-        echo "--- Judge verdict (ADR-0019; OPTIONAL second pass) ---"
-        judge_args=("--scenario" "$f" "--output" "$response_path")
-        if [[ -n "$JUDGE_TOOL" ]]; then
-          judge_args+=("--tool" "$JUDGE_TOOL")
-        fi
-        python3 "${SCRIPT_DIR}/judge.py" "${judge_args[@]}" || echo "Judge failed; fall back to manual review."
-        echo "--- End judge verdict ---"
-      else
-        echo "Response file not found: $response_path; skipping judge for this scenario."
-      fi
-    fi
-  fi
-
   if [[ $i -lt $total ]]; then
     read -r -p "Paste the input prompt above into your AI tool, validate the response against the pass criteria, then press enter to continue with the next scenario (or Ctrl-C to stop). "
   else

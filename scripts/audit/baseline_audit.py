@@ -137,7 +137,6 @@ def check_counts(inv):
 
     spec_cluster_entries = sorted({c for members in inv.spec_clusters.values()
                                    for c in members})
-    spec_roles_entries = sorted(set(_spec_roles_index(spec_text)))
     roles_entries = sorted(set(re.findall(NAME_HEADING_RE, roles_text)))
     stubs_entries = sorted(set(re.findall(
         r"(?m)^\| " + BT + r"([a-z][a-z0-9-]*)" + BT + r" \|", stubs_text)))
@@ -180,9 +179,6 @@ def check_counts(inv):
         {"source": "registry: spec cluster bullets",
          "value": len(spec_cluster_entries),
          "location": REGISTRY_SPEC + " ## Command categories"},
-        {"source": "registry: spec Command roles index",
-         "value": len(spec_roles_entries),
-         "location": REGISTRY_SPEC + " ## Command roles"},
         {"source": "registry: wos/command-roles.md",
          "value": len(roles_entries), "location": REGISTRY_ROLES},
         {"source": "registry: COMMAND_PROMPT_STUBS.md table rows",
@@ -218,21 +214,6 @@ def check_counts(inv):
         "count_marker_walk_exclusions": marker_exclusions,
         "notes": [n for n in [catalog_note] if n],
     }
-
-
-def _spec_roles_index(spec_text):
-    out = []
-    in_section = False
-    for line in spec_text.splitlines():
-        if line.startswith("## "):
-            in_section = line.strip() == "## Command roles"
-            continue
-        if not in_section:
-            continue
-        m = re.fullmatch(r"### ([a-z][a-z0-9-]*)", line.strip())
-        if m:
-            out.append(m.group(1))
-    return out
 
 
 def _count_markers(inv):
@@ -302,7 +283,6 @@ def check_registry(inv):
     registries = {
         "spec-cluster-list": sorted({c for members in inv.spec_clusters.values()
                                      for c in members}),
-        "spec-roles-index": sorted(set(_spec_roles_index(spec_text))),
         "wos/command-roles.md": sorted(set(re.findall(NAME_HEADING_RE, roles_text))),
         "COMMAND_PROMPT_STUBS.md": sorted(set(re.findall(
             r"(?m)^\| " + BT + r"([a-z][a-z0-9-]*)" + BT + r" \|", stubs_text))),

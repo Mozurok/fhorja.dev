@@ -3,9 +3,9 @@
 #
 # Per ADR-0025 addendum (2026-06-03) Model selection by tier:
 #   Express     -> claude-haiku-4-5
-#   Standard    -> claude-sonnet-4-6  (default for most commands)
-#   Disciplined -> claude-sonnet-4-6 (escalate to opus when critical)
-#   Strict      -> claude-opus-4-7
+#   Standard    -> claude-sonnet-5  (default for most commands)
+#   Disciplined -> claude-sonnet-5 (escalate to opus when critical)
+#   Strict      -> claude-opus-5-5
 #
 # Per B.3 of Fhorja improvement plan 2026-06-03.
 
@@ -75,9 +75,9 @@ for cmd_file in "${COMMANDS_DIR}"/*.md; do
   if in_array "$cmd_name" "${HAIKU_COMMANDS[@]}"; then
     model="claude-haiku-4-5"
   elif in_array "$cmd_name" "${OPUS_COMMANDS[@]}"; then
-    model="claude-opus-4-7"
+    model="claude-opus-5-5"
   else
-    model="claude-sonnet-4-6"
+    model="claude-sonnet-5"
   fi
 
   # Idempotent: a command that already declares the hint is left alone.

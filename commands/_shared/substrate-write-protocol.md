@@ -1,6 +1,6 @@
 Canonical substrate write protocol -- emit transaction header above every substrate section write AND append one line per write to `.wos/VERIFICATION_LOG.jsonl`. Per ADR-0034 + `wos/substrate-peers.md` (K.1 retrofit, K.2 writer emission).
 
-Applies to writes targeting the 11 substrate files (4 task-memory + 7 fleet-substrate + project-level REFERENCES.md). Shadow mode at launch: writers emit, no reader enforces. Validator (`scripts/verify-log-validator.py`) lands in K.5 / Epic J.5.
+Applies to writes targeting the substrate files: the <!-- count:task-memory-files -->4<!-- /count --> task-memory files plus the <!-- count:fleet-substrate-files -->8<!-- /count --> fleet-substrate files, two of them project-level (`REFERENCES.md` and `REVIEW_PREFERENCES.md`), all enumerated in `wos/substrate-peers.md`. Enforced, not shadow mode: `scripts/verify-log-validator.py` runs inside `scripts/verify-substrate-batch.sh`, which is a blocking closure floor at `slice-closure` and `task-close` (`wos/closure-floors.md`). A non-zero exit blocks closure unless an explicit `integrity-waiver:` line is recorded.
 
 ## Do this, not the format below
 
@@ -11,11 +11,13 @@ bash scripts/emit-substrate-write.sh apply --owner <command> --file <F> \
   --section '## X' --reason '<=80 chars' --body-file <B> --mode applied --task-root <task-dir>
 ```
 
+Resolve `scripts/emit-substrate-write.sh`, and `scripts/verify-substrate-batch.sh` below, against the WORKFLOW ROOT (the clone, or the installed docs directory, which ships both per ADR-0224), never against the task repository. `--task-root` must be the task folder: the helper refuses a root with no `TASK_STATE.md` rather than start a stray log. When the helper is in neither root, it is unreachable, and `commands/_shared/substrate-digest-fallback.md` applies.
+
 Repeat once per section, reusing one `--run-id` across the run. The helper captures `sha_before`, inserts or replaces the transaction header, splices the body with a self-check before the original file is touched, and appends the JSONL line. Its die rules refuse the failure cases hand-writing produces silently.
 
 **Author the fields by hand only when the helper genuinely does not fit** (a surgical Edit-tool change, a host where a bash call re-escalates approval). The sections below are the field reference for that case; they are not the default path, and reading them as a template to copy is how the drift below happens.
 
-Measured drift (2026-07-29 sweep over 306 audit logs in this repository): 188 of 306 carry validator errors, 3,688 in total. The top classes are a broken sha chain (1,278), a malformed `section` value (568), `sha_after` null on an applied write (347), an `event` outside the canonical taxonomy (263), and a null `owner_type` (162). Every one of those is a field the helper fills correctly and a hand-written line gets wrong. The K.8 first-lived test already found 125 of 126 writes half-compliant; the helper exists because of that result, and 3 of the 21 commands that declare this protocol currently name it.
+Measured drift (2026-07-29 sweep over 306 audit logs in this repository): 188 of 306 carry validator errors, 3,688 in total. Every one of those is a field the helper fills correctly and a hand-written line gets wrong.
 
 ## Transaction header (above the section write)
 
@@ -31,7 +33,7 @@ Field rules:
 - `run_id`: one ULID or UUID per command invocation; reuse the same `run_id` across all section writes in this run.
 - `ts`: ISO 8601 with millisecond precision and `Z` suffix (e.g. `2026-06-04T14:22:11.482Z`).
 - `reason`: short human-readable rationale (<=80 chars) matching the JSONL `reason` field.
-- `mode`: `applied` (Agent mode + actual write) or `proposed` (Ask/Plan or PROPOSED block).
+- `mode`: `applied` (the section was written, which happens in every mode per ADR-0199) or `proposed` (a PROPOSED block staged for the section's owner, ADR-0034; staging is optional since ADR-0232).
 
 Same-owner repeat write in one run: no-op-if-identical (SHA-256 of section bytes). Otherwise new header replaces prior; prior is logged with `event=overwrite`.
 
@@ -51,20 +53,20 @@ Owner-type taxonomy: `command` | `persona` | `fleet-merger`.
 
 `partials` / `strategy`: populated only for fleet-merge / convergence events; null for direct writes by this command.
 
-`summary` (optional, additive): a command MAY add a `summary` string (at most 3 lines) carrying a human-facing narrative of what the whole run did and why, for the activity-timeline view (`scripts/build-activity-timeline.py`, ADR-0049). It is distinct from the per-section `reason` (<=80 chars) and is purely additive: the 14-field required set is unchanged and `scripts/verify-log-validator.py` tolerates it. The timeline prefers `summary` over the aggregated per-section `reason` when present. See `wos/substrate-peers.md ## Audit trail` for the field definition.
+`summary` (optional, additive): a command MAY add a `summary` string (at most 3 lines) carrying a human-facing narrative of what the whole run did and why, for the activity-timeline view (`scripts/build-activity-timeline.py`, ADR-0049). It is distinct from the per-section `reason` (<=80 chars) and is purely additive: the <!-- count:log-fields -->14<!-- /count -->-field required set is unchanged and `scripts/verify-log-validator.py` tolerates it. The timeline prefers `summary` over the aggregated per-section `reason` when present. See `wos/substrate-peers.md ## Audit trail` for the field definition.
 
 ## When to emit
 
 - ALWAYS when writing a `## section` (H2) in any substrate file, because the audit log is the only durable record of who changed what and the K.4 drift-guard reconstructs section ownership from these headers; a write with no header is invisible to reconciliation. Both single-section writes and multi-section writes emit one header + one log line per section.
 - NEVER when reading, or when the write is a no-op-if-identical match, because logging a read or an unchanged write inflates the trail with events that moved nothing and dilutes the signal the validator and the activity timeline depend on.
 - For PROPOSED blocks (mode=proposed), emit `event=propose`; the subsequent `approve-proposed` run emits `event=approve` per applied file.
-- For REFUSE conflicts (writer is not the owner per `wos/substrate-peers.md`), emit `event=refuse` with the conflicting owner and reason; do NOT write the section.
+- For a section outside this command's row in `wos/substrate-peers.md`: write it, emit the header and an ordinary `event=write` line, and name the conventional owner in `reason`. Ownership is descriptive (ADR-0232): nothing refuses the write, and `sha_before` keeps it recoverable. `event=refuse` stays in the taxonomy for a fleet merge refused by its orphan scan, never for ownership.
 - For section removals: emit `event=delete` for each H2 section that existed before a write and no longer exists after it, including replace-in-full rewrites. Convention: `sha_before` = the removed section's last hash, `sha_after` = null (the delete event is the ONLY event where `sha_after` may be null). A rename is a `delete` of the old section name plus a `write` of the new one. Without this, a superseded section's last write event sits orphaned in the log and the log-derived section set overstates the file.
 - H3-scoped co-writes (per `wos/substrate-peers.md`, e.g. implement-approved-slice's status-only update inside `### Slice N`): log at the owning H2 (`section='## Slices'`) with `reason` naming the slice and the transition (e.g. `reason=slice-3-status-implemented`); the sha fields hash the H2 block. The H2-only section grammar is intact; do not put `### ` text in the `section` field (the validator rejects it).
 
 ## Legacy files without headers
 
-VALID per `wos/substrate-peers.md ## Legacy file without headers`. The first mutating write under K.2 emits a header only for THAT section. Other sections stay header-less until they are next mutated. Drift-guard does NOT flag header-less as error; only ownership-rule violations.
+VALID per `wos/substrate-peers.md ## Legacy file without headers`. The first mutating write under K.2 emits a header only for THAT section. Other sections stay header-less until they are next mutated. Drift-guard does NOT flag header-less as error.
 
 ## Concrete computation (bash helpers)
 
@@ -79,7 +81,7 @@ scripts/emit-substrate-write.sh emit --owner O --file F --section '## X' \
   --event write --mode applied --reason R --sha-before "$SHA_BEFORE" --run-id "$RUN_ID"
 ```
 
-Batch verification (run ONCE per batch of writes, not after each edit): `bash scripts/verify-substrate-batch.sh <task-folder>` runs scan-substrate-headers, verify-log-validator and scan-substrate-orphans with independent exit-code capture and exits with the OR. Legacy `--batch <file>` mode (one JSONL line per owner-headed section) remains for genesis-style multi-section creation. The helpers below are the same logic inline, for hosts without script access; use them verbatim to avoid the half-compliance failure mode.
+Batch verification (run ONCE per batch of writes, not after each edit): `bash scripts/verify-substrate-batch.sh <task-folder>` runs scan-substrate-headers, verify-log-validator and scan-substrate-orphans with independent exit-code capture and exits with the OR. Legacy `batch` subcommand (`bash scripts/emit-substrate-write.sh batch --owner O --file F --reason R --task-root <task-dir> --run-id <id>`, one JSONL line per owner-headed section) remains for genesis-style multi-section creation. The helpers below are the same logic inline, for hosts without script access; use them verbatim to avoid the half-compliance failure mode.
 
 A section's bytes run from its H2 to the next H2 heading; any transaction-header lines inside that range, including the next section's header immediately above the next H2, are excluded from the hash (matching the sha definition in `wos/substrate-peers.md`).
 
@@ -176,11 +178,11 @@ BEFORE a full-file rewrite, snapshot `sha_of_section` for EVERY existing H2 in o
 
 ## Skill-cache invalidation gap (Claude Code property)
 
-When `scripts/sync-workflow-slash-commands.sh --with-skills` propagates an updated skill file to `~/.claude/skills/<name>/SKILL.md`, the current Claude Code (or Cursor, Codex, etc.) session does NOT automatically reload the skill body. The session reuses the cached body that was loaded at session start (or at the skill's first invocation in that session). Workflow:
+When `scripts/sync-workflow-slash-commands.sh` (skills sync by default) propagates an updated skill file to `~/.claude/skills/<name>/SKILL.md`, the current Claude Code (or Cursor, Codex, etc.) session does NOT automatically reload the skill body. The session reuses the cached body that was loaded at session start (or at the skill's first invocation in that session). Workflow:
 
 - Edit `commands/<name>.md` in the Fhorja repo (or `commands/<name>/SKILL.md` for folder-shaped)
 - Run `bash scripts/build-agent-skills.sh` to regenerate `.claude/skills/<name>/SKILL.md`
-- Run `bash scripts/sync-workflow-slash-commands.sh --with-skills` to propagate to user-level skill registries
+- Run `bash scripts/sync-workflow-slash-commands.sh` to propagate to user-level skill registries (skills sync by default)
 - **KILL the current chat session and start a new one** to force the host to reload the skill body. Same-session re-invocation of `/<name>` keeps using the cached version.
 
 Verified empirically during the K.2 enforcement loop (4 sweep iterations on 2026-06-04 / 2026-06-05): the 3rd sweep, run 10 seconds after sync completed, received a bit-identical cached prompt and never invoked the updated K.4 + K.5 scripts. Out-of-band invocation of the underlying scripts always works regardless of session state:

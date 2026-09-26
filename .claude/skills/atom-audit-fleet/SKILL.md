@@ -1,43 +1,23 @@
 ---
 name: atom-audit-fleet
 description: |-
-  Orchestrator-workers variant of atom-audit. Dispatches N Haiku workers (3-5 atoms each) to audit every atom under packages/design-system/src/atoms/ in parallel against COMPONENT_GUIDELINES.md rules; merges per-worker rows into ATOM_AUDIT.md table. Use when atom count >= 6 (per cost-effectiveness threshold) AND COMPONENT_GUIDELINES.md exists. Do not use when atom count < 6 (use atom-audit single-agent), when COMPONENT_GUIDELINES.md is missing, or when only 1-2 atoms changed (use design-spec-review per-component).
+  Audit every atom in the design system in parallel against the documented component guidelines, dispatching one worker per small group of atoms and merging their rows into a single ATOM_AUDIT.md table. The orchestrator-workers variant of atom-audit. Use when the atom count is 6 or more, the cost-effectiveness threshold, and COMPONENT_GUIDELINES.md exists. Do not use below 6 atoms (use atom-audit single-agent), when COMPONENT_GUIDELINES.md is missing, or when only 1 or 2 atoms changed (use design-spec-review per component).
 metadata:
-  category: execution-and-closure
-  primary-cursor-mode: Ask
-  multi-repo-aware: false
-  context-layers-consumed:
-    - memory
-    - retrieved
-  context-layers-produced:
-    - memory
-  tools:
-    - Read
-    - Write
-    - Edit
-    - Bash
-    - Glob
-    - Grep
-    - Task
-  x-wos-profiles:
-    - full
-  provenance: first-party
-  suggested-model: claude-sonnet-4-6
-  orchestrator: true
-  workers:
-    - role: atom-auditor
-      tier: claude-haiku-4-5
-      contract_ref: commands/_shared/worker-contract.md
-  max_fanout: 20
-  convergence:
-    pattern: barrier
-    timeout_ms: 600000
-    partial_ok: true
-  merge_strategy: union
-  tags:
-    - adr-0038
-    - substrate-bullet-orphan
-    - fleet-orchestrator
+  category: "audit-and-sweep"
+  primary-cursor-mode: "Ask"
+  multi-repo-aware: "false"
+  context-layers-consumed: "memory, retrieved"
+  context-layers-produced: "memory"
+  tools: "Read, Write, Edit, Bash, Glob, Grep, Agent"
+  x-wos-profiles: "full"
+  provenance: "first-party"
+  suggested-model: "claude-sonnet-5"
+  orchestrator: "true"
+  workers: "[{\"role\":\"atom-auditor\",\"tier\":\"claude-haiku-4-5\",\"contract_ref\":\"commands/_shared/worker-contract.md\"}]"
+  max_fanout: "16"
+  convergence: "{\"pattern\":\"barrier\",\"timeout_ms\":\"600000\",\"partial_ok\":\"true\"}"
+  merge_strategy: "union"
+  tags: "adr-0038, substrate-bullet-orphan, fleet-orchestrator"
   worker_input_schema: |
     {
       "type": "object",
@@ -79,7 +59,7 @@ metadata:
 > They remain authoritative in full; re-read this file before emitting if you need them.
 >
 > - `Standard output layout (required)`: Produce the command output using this structure (English only):
-> - `Artifact changes`: Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
+> - `Artifact changes`: Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules. Every listed file...
 > - `Command transcript`: Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
 > - `Handoff`: Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per...
 > - `Definition of done (command output)`: Every atom under the atoms path has exactly one row in the merged ATOM_AUDIT.md table.
@@ -91,27 +71,24 @@ Goal:
 Audit every atom in `packages/design-system/src/atoms/` against `docs/research/COMPONENT_GUIDELINES.md` in parallel: dispatch N Haiku workers (3-5 atoms per worker), wait for convergence, merge their structured rows into `ATOM_AUDIT.md`. ~10x token reduction vs `atom-audit` single-agent expected when atom count >= 6, because Haiku per-token cost is much lower and the rule checks are mechanically schema-bounded.
 
 Mandatory context bootstrap (before any output):
-<!-- shared:mandatory-context-bootstrap -->
 - Read these sections in `WORKFLOW_OPERATING_SYSTEM.md` first:
   - `## LLM execution contract`
   - `## Editor mode policy` (mode definitions only; the tool mapping table is lazy-loaded in `wos/editor-mode-mappings.md` and needed only for non-Claude-Code tools)
   - `## Global output contract` (including **Adaptive handoff** and **Mode selection rule**)
   - `## Cross-cutting workflow guardrails`
-- **Bootstrap tiers (ADR-0025):** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) may skip `## Editor mode policy` good-fits lists and `## Cross-cutting workflow guardrails` sequencing heuristics, reading only the mode definitions and the core guardrail rules (routing memory, command-less input triage, official command names, material change, no-op). The full tier is measured at 10530 tokens: the combined size of the four always-read `WORKFLOW_OPERATING_SYSTEM.md` sections listed above. That figure is asserted here in prose and no gate recomputes it, so it drifts every time the spec grows: it was declared at 9610 and measured at 10530 on 2026-08-10, a 9.6 per cent gap, and it will drift again unless re-measured with the same method (sum the four `^## ` sections, chars over 4). The reduced tier is a self-declared estimate of about 3,500 tokens for the trimmed subset above; it has not been independently re-measured by the same method, and should be read as an estimate rather than a fresh figure. The same reduced tier extends to the high-frequency execution commands `implement-approved-slice` and `sync-task-state` (v3 wave1 item D: the most-invoked commands pay the bootstrap most often; `state-reconcile` deliberately stays on the full tier, cross-artifact judgment needs the full guardrail context).
-- **Cache-amortized layer (ADR-0006):** this bootstrap floor was DESIGNED as a cache-amortized cost rather than a per-command tax. ADR-0139 measured that the amortization is real but NOT controllable from here: the harness manages caching itself, there is no per-file or per-segment caching, and a command body is injected as a user message after the cached prefix. Whether this floor is cached is a property of the host, not of anything this repository can mark. Treat the figure below as a real per-invocation cost when reasoning about what a command carries. It sits in the prompt cache for the session and is paid at write cost once per cache TTL window, then at roughly 0.1x on cached reads inside that window. Account for it separately from any per-skill Load budget (the generated `.claude/skills/<name>/SKILL.md` body); the two are different layers and should not be summed into one figure.
-- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this same conversation already performed this bootstrap read in an earlier turn that is still VISIBLE in the current context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one instead, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. This is a scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), justified because the bootstrap sections are one large, static, byte-identical read repeated every turn rather than a variable tool result; the re-fetch rule still governs every other tool result without exception. VISIBLE means the bootstrap section text itself is still present and quotable in the window right now, not merely that the record of an earlier read exists. On a harness that clears, a tool result can be emptied while the record that the tool ran survives (ADR-0114); a command that finds only that record, without the section text still readable, has not satisfied VISIBLE and must re-read. Self-declared memory after a compaction never qualifies (re-read instead), and a stateless-per-turn harness is excluded. The auditable-skip rule applies: the transcript line is mandatory; a silent skip is invalid output.
-- **Resolving a relative `wos/<topic>.md`.** Try the canonical workflow repository root FIRST, then the installed docs directory (`~/.claude/workflow-docs/wos/` or `~/.cursor/workflow-docs/wos/`). Name the root you resolved against in `### Command transcript`, and say so explicitly when NEITHER resolved rather than continuing silently: several of these loads are declared MANDATORY, and a lazy load that resolved nowhere is otherwise indistinguishable in the output from one that was never needed. Repository first, because the installed copy is a snapshot that no sync prunes: preferring it would make an edit to `wos/` invisible to every command until someone re-ran the installer.
+- **Bootstrap tiers:** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) plus the high-frequency `implement-approved-slice` and `sync-task-state` (v3 wave1 item D) read the four sections above with two subsections of `## Cross-cutting workflow guardrails` skipped: `### External web access (centralized)` and `### Sequencing heuristics (by phase)`. Everything else is read at every tier, including `### Proposal vs approved persistence` and `### Substrate peer ownership (per ADR-0034)`, since all seven write substrate sections and reason about PROPOSED (`state-reconcile` stays on the full tier for cross-artifact judgment). The full tier is measured at 11678 tokens, the four always-read sections combined; the two skipped subsections are 1,035 of those (measured 2026-09-24), so the reduced tier is about 10,643. The leaf-reviewer tier (`verify-against-rubric`, ADR-0226) reads only `## Global output contract`, measured at 4841 tokens, plus its rubric.
+- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this conversation already read the bootstrap sections in an earlier turn still VISIBLE in the context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. Scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), because these sections are one large, static, byte-identical read repeated every turn; every other tool result still re-fetches. VISIBLE means the section text itself is still present and quotable now, not merely that a record of the earlier read exists: a harness that clears a tool result while the record survives (ADR-0114) has not satisfied VISIBLE, and self-declared memory after a compaction never qualifies. A stateless-per-turn harness is excluded. The transcript line is mandatory; a silent skip is invalid output.
+- **Resolving `WORKFLOW_OPERATING_SYSTEM.md` and a relative `wos/<topic>.md`.** Both resolve the same way: try the canonical workflow repository root FIRST, then the installed docs directory (`~/.claude/workflow-docs/` or `~/.cursor/workflow-docs/`, the spec at that root and topics under its `wos/`). Repository first, because the installed copy is a snapshot no sync prunes; preferring it would hide a `wos/` edit from every command until a reinstall. Name the resolved root in `### Command transcript`, and say so explicitly when NEITHER resolved rather than continuing silently, since several of these loads are MANDATORY.
 - Read additional sections only when relevant to this command's role.
-- Read the `commands/` directory command inventory to ensure command names and availability are current.
 - Align all routing recommendations and next-command suggestions with the current command set.
-- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares that the chain has ended and no following command would be honest, defined in `## Global output contract` (ADR-0126); use it only when nothing honest remains, never to end a chain that has a real next step.
+- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares the chain ended with no honest next step, defined under `### Official command names (routing integrity)` (ADR-0126); use it only then, never to end a chain that has a real next step.
 
 Required inputs:
 - project workspace path
 - path to atoms directory (default: `packages/design-system/src/atoms/`)
 - path to COMPONENT_GUIDELINES.md (default: `docs/research/COMPONENT_GUIDELINES.md`)
 - path to ATOM_AUDIT.md (default: `docs/research/ATOM_AUDIT.md`; created from `templates/ATOM_AUDIT.md` if absent)
-- optional: explicit max_fanout override (defaults to 20)
+- optional: explicit max_fanout override (defaults to 16; absolute ceiling 20)
 - optional: explicit per-worker batch size (default 4; range 3-5)
 
 Task repository files to update:
@@ -123,18 +100,18 @@ Task repository files to update:
 Operating rules:
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract`.
 - **Step 1: Enumerate atoms.** List every directory under the atoms path. For each, locate the main component file (`<Name>/index.tsx` or `<Name>/<Name>.tsx`). Filter out non-atom artifacts (test files, story files, type-only files).
-- **Step 2: Compute batches.** Partition atom paths into batches of `batch_size` (default 4). N batches = N workers. If N == 0, NO_OP_TRACE: nothing to audit. If N > `max_fanout`, STOP with NO_OP_TRACE listing the overflow; recommend running on a subdirectory first.
+- **Step 2: Compute batches.** Partition atom paths into batches of `batch_size` (default 4). N batches = N workers. If N == 0, NO_OP_TRACE: nothing to audit. If N > `max_fanout`, split the batches into sequential sub-batches of at most `max_fanout` and run them in order, stating how many sub-batches the overflow produced; do not stop for human input (D-6).
 - **Step 3: Verify prerequisites.** Confirm COMPONENT_GUIDELINES.md exists; ATOM_AUDIT.md exists (or create from template). If COMPONENT_GUIDELINES.md is missing, NO_OP_TRACE and route to `design-bootstrap`.
-- **Step 4: Verify tier guard.** Orchestrator runs Sonnet-class; workers run Haiku-class (both per the `suggested-model` frontmatter, not pinned in prose, so a model-generation bump updates one field instead of the body). Orchestrator tier >= worker tier per `wos/sub-agent-orchestration.md ## Tier-aware dispatch protocol`. PASS.
-- **Step 5: Dispatch workers.** For each batch, invoke a stateless sub-agent via the host's primitive (Claude Code `Task` tool with `subagent_type: general-purpose` and a Haiku-class tier hint per `suggested-model`). Pass `task_input` matching `worker_input_schema`: `{atom_paths: [...], guidelines_path: "<path>"}`. Each worker MUST return its result via the `StructuredOutput` tool keyed `artifact=fleet-inbox/<run_id>/<worker_id>` (ADR-0038 Rule 1; prose `.partial.md` returns FORBIDDEN, a typed `.partial.json` is replay-only) per the worker contract.
-- **Step 6: Each worker (instruction template).** Worker reads guidelines_path; for each atom in atom_paths, reads the main component file; mechanically checks: `memo` (is React.memo / forwardRef-memo wrap present? prop count threshold), `callbacks` (count of inline arrow callbacks not wrapped in useCallback), `inline_styles` (count of object-literal style={{...}}), `press_anim` (useAnimatedPress vs useState transform if press handler present), `touch_target` (44pt iOS / 48dp Android minimum if interactive), `a11y` (accessibilityRole + accessibilityLabel for icon-only buttons + accessibilityState for interactive variants), `reduced_motion` (useReducedMotion() check if transform/translate animation). Sum failing rules into `changes_needed`. Return `{status: "satisfied", rows: [...]}`.
-- **Step 7: Wait for convergence.** Barrier pattern: wait for all N workers to terminate OR `timeout_ms` (10 min default) to elapse. Read all files in `active/<task>/.wos/fleet-inbox/<run_id>/`. Classify per `commands/_shared/convergence-policy.md` failure table.
+- **Step 4: Verify tier guard.** Orchestrator runs Sonnet-class; workers run Haiku-class (from `suggested-model` for the orchestrator and the matching `workers[].tier` for workers). Orchestrator tier >= worker tier per `wos/sub-agent-orchestration.md ## Tier-aware dispatch protocol`. PASS.
+- **Step 5: Dispatch workers.** For each batch, invoke a stateless sub-agent via the host's primitive (Claude Code `Agent` tool with `subagent_type: general-purpose` and the tier hint from the atom-auditor entry in `workers[].tier`). Pass `task_input` matching `worker_input_schema`: `{atom_paths: [...], guidelines_path: "<path>"}`. Each worker MUST return its result as a typed payload matching `worker_output_schema` (ADR-0038 Rule 1; free-form prose returns FORBIDDEN) per the worker contract. Name the path you are on before dispatch (ADR-0158 D-1). Resolve `<task_root>/.wos/fleet-inbox/<run_id>/<worker_id>.json` for each worker and create the run inbox. On the dynamic-workflow path, declare `agent(prompt, {schema})` with `worker_output_schema`; consume the runtime's typed result and persist its JSON copy at that path. Never tell the worker to call StructuredOutput. On the `Agent` path, pass the resolved path as `fleet_inbox_artifact` in the existing worker-contract envelope, outside `task_input`; the worker writes one schema-conforming JSON payload there and the orchestrator reads it. This return-file permission grants no other writes (ADR-0158 D-2). Supply the output schema and selected-carrier instruction outside `task_input`. End the dynamic worker prompt with `Return one payload matching worker_output_schema and nothing else`; end the native worker prompt with `Write one JSON payload matching worker_output_schema to fleet_inbox_artifact and nothing else`.
+- **Step 6: Each worker (instruction template).** Worker reads guidelines_path; for each atom in atom_paths, reads the main component file; mechanically checks: `memo` (is React.memo / forwardRef-memo wrap present? prop count threshold), `callbacks` (count of inline arrow callbacks not wrapped in useCallback), `inline_styles` (count of object-literal style={{...}} violations after verifying and applying G-03's exception for dynamic styles backed by a Reanimated shared value or memoized runtime value), `press_anim` (useAnimatedPress vs useState transform if press handler present), `touch_target` (44pt iOS / 48dp Android minimum if interactive), `a11y` (accessibilityRole + accessibilityLabel for icon-only buttons + accessibilityState for interactive variants), `reduced_motion` (useReducedMotion() check if transform/translate animation). Sum failing rules into `changes_needed`. Return `{status: "satisfied", rows: [...]}`.
+- **Step 7: Wait for convergence.** Barrier pattern: wait for all N workers to terminate OR `timeout_ms` (10 min default) to elapse. Consume one payload per expected worker from the runtime result or the assigned `<task_root>/.wos/fleet-inbox/<run_id>/<worker_id>.json`, according to the selected carrier. Validate it against `worker_output_schema`; unrelated files and replay copies do not count as additional workers. Classify per `commands/_shared/convergence-policy.md` failure table.
 - **Step 8: Merge.** Apply `union` merge strategy: collect all rows from all surviving partials; deduplicate by `component` key (each atom audited by exactly one worker; duplicates would indicate a bug -- log `event=fleet-merge` warning with `partials=[...]`). Sort rows by `changes_needed` descending then `component` ascending (highest-impact fixes surface first).
 - **Step 9: Write ATOM_AUDIT.md.** Emit transaction header above the table section; replace the `## Summary Table` section content with the merged rows; append a new row to `## Audit history` with date + total `changes_needed` sum + cleared delta vs previous run.
 - **Step 10: Emit VERIFICATION_LOG.jsonl.** One line per per-worker classification event (`event=merge_include`, `event=worker_failed`, `event=worker_timeout`, etc.) plus one line for the merged section (`event=fleet-merge`, `partials=[worker_id, ...]`, `strategy=union`).
-- **Step 10.5: Scan substrate orphans (ADR-0038 Rule 3 gate).** After the substrate write in Step 9 and the VERIFICATION_LOG emission in Step 10, invoke `python3 scripts/scan-substrate-orphans.py <ATOM_AUDIT.md path> <TASK_STATE.md path>` against every file this command touched. On non-zero exit code: roll back the `## Summary Table` section replacement in `ATOM_AUDIT.md` (restore the pre-write snapshot), append a line `event=refuse` with the additive field `orphan_scan=failed` (the canonical taxonomy has no orphan-specific event; the refusal is the event and the scan result is an additive field, per `task-init-fleet` Step 10) (with `files=[...]` and `exit_code=<n>`) to `.wos/VERIFICATION_LOG.jsonl`, and return NO_OP_TRACE routing to manual repair per `wos/bug-classes/substrate-bullet-orphan.md`. On exit code 0, proceed to Step 11. The orphan-scan gate is non-negotiable per ADR-0038 Rule 3.
+- **Step 10.5: Scan substrate orphans (ADR-0038 Rule 3 gate).** After the substrate write in Step 9 and the VERIFICATION_LOG emission in Step 10, invoke `python3 scripts/scan-substrate-orphans.py <ATOM_AUDIT.md path> <TASK_STATE.md path>`, with `scripts/scan-substrate-orphans.py` (resolved against the WORKFLOW ROOT, ADR-0218); its exit 2 means a named file was absent, never a pass against every file this command touched. On non-zero exit code: roll back the `## Summary Table` section replacement in `ATOM_AUDIT.md` (restore the pre-write snapshot), append a line `event=refuse` with the additive field `orphan_scan=failed` (the canonical taxonomy has no orphan-specific event; the refusal is the event and the scan result is an additive field, per `task-init-fleet` Step 10) (with `files=[...]` and `exit_code=<n>`) to `.wos/VERIFICATION_LOG.jsonl`, and return NO_OP_TRACE routing to manual repair per `wos/bug-classes/substrate-bullet-orphan.md`. On exit code 0, proceed to Step 11. The orphan-scan gate is non-negotiable per ADR-0038 Rule 3.
 - **Step 11: Update TASK_STATE.md.** Per the canonical 5-section write pattern. Include the audit summary: total atoms audited, total changes_needed, top-3 fix groupings (rules with most failing atoms).
-- Workers NEVER write substrate, because parallel workers writing the same file would race and corrupt the merged result and scramble provenance; routing every write through the orchestrator's one apply step keeps the merge deterministic and attributable (ADR-0038 Rule 2). The orchestrator is the SOLE writer of `ATOM_AUDIT.md`.
+- Except for their assigned native return file, workers NEVER write substrate, because parallel workers writing the same file would race and corrupt the merged result and scramble provenance; routing every write through the orchestrator's one apply step keeps the merge deterministic and attributable (ADR-0038 Rule 2). The orchestrator is the SOLE writer of `ATOM_AUDIT.md`.
 - Do NOT implement fixes here. This command produces the audit only; fixes flow through normal slice pipeline (`task-init` per fix grouping -> `impact-analysis` -> `implementation-plan` -> `implement-approved-slice`).
 - If COMPONENT_GUIDELINES.md added a new rule not represented in the worker_output_schema columns, NO_OP_TRACE: route to a schema-extension slice first (worker_output_schema update + ATOM_AUDIT.md column add).
 
@@ -148,7 +125,6 @@ Required output:
 7. Recommended next command (typically `task-init` for the highest-priority fix grouping)
 
 ### Claim grounding (active epistemic humility)
-<!-- shared:claim-grounding -->
 **Claim grounding (active epistemic humility).** This block governs what you may assert and how you record it. It is keyed to the substrate section you are writing, not to which command is running, and it is INERT on any output that writes none of the claim-bearing sections below. Full contract and rationale: `wos/active-epistemic-humility.md`.
 
 1. When this applies. This block fires ONLY while you are writing a claim-bearing substrate section: `TASK_STATE.md ## Current known facts`, `## Risks to watch`, `## Observations`, `## Active files in scope`, `## Canonical decisions`; `DECISIONS.md ## Locked decisions`; `IMPLEMENTATION_PLAN.md ## Current gaps`, `## Risks and mitigations`; `IMPACT_ANALYSIS.md`; `EXTERNAL_RESEARCH.md`; `REFERENCES.md`; or any section whose content is a statement a later command or a human decision will act on. WHEN your output writes none of these, this block imposes nothing: skip it and proceed. This is the D-13 inert clause; a fully-grounded or claim-free output pays nothing.
@@ -165,20 +141,16 @@ Required output:
 
 7. An unfired gate is not evidence. The absence of a fired check does not mean grounding existed. Do not read silence here as a pass.
 ### Standard output layout (required)
-<!-- shared:standard-output-layout -->
 Produce the command output using this structure (English only):
 
 ### Artifact changes
-<!-- shared:artifact-changes-default -->
-Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
+Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules. Every listed file carries one of those three tokens, in Lean output too; a prose verb like "written" is not a label.
 
 ### Command transcript
-<!-- shared:command-transcript-standard -->
 Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
 
 ### Handoff
-<!-- shared:handoff-body -->
-Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state).
+Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state). Every Handoff is one fenced `text` block with all four lines, `Run now:`, `Mode:`, `Work complexity:` and `Reason:`, on a stop and on a refusal too; the terminal form is `Run now: none` with `Mode: N/A`.
 
 ### Definition of done (command output)
 - Every atom under the atoms path has exactly one row in the merged ATOM_AUDIT.md table.

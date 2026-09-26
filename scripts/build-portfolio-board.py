@@ -9,7 +9,7 @@ Data sources (all optional inputs degrade visibly, never fail; D-1..D-4 of task
    parse as the text view, per D-2; unexpected rows and emitter failures become
    visible warnings, never a crash).
 3. Outcome summaries: every `projects/*/OUTCOMES.jsonl` per
-   `templates/OUTCOMES.schema.md` (latest event wins; a later revert overrides
+   `templates/OUTCOMES.schema.md` (latest event wins; a later revert or reopen overrides
    an earlier outcome; absent ledger renders "no outcome records yet").
 4. Running background runs: `.wos/runs/*.json` per the runs-feed v1 contract
    (D-4: {schema_version, run_id, task, state, started_ts, last_update_ts,
@@ -45,7 +45,7 @@ OUTPUT_PATH = PROJECTS / "BOARD.html"
 PORTFOLIO_SH = REPO / "scripts" / "portfolio-review.sh"
 
 CLASS_ORDER = {"done-unclosed": 0, "blocked": 1, "my-move": 2, "stale": 3, "in-flight": 4}
-KNOWN_STATUSES = ("merged", "waived", "not-merged", "reverted")
+KNOWN_STATUSES = ("merged", "waived", "not-merged", "reverted", "reopened")
 
 VERBOSE = False
 
@@ -156,6 +156,8 @@ def load_outcomes():
             latest = overall_latest.get(task)
             if latest and latest[1] == "revert":
                 counts["reverted"] += 1
+            elif latest and latest[1] == "reopen":
+                counts["reopened"] += 1
             else:
                 status = rec.get("merge_status")
                 if status in counts:
@@ -281,12 +283,13 @@ def render(active_rows, active_err, initiatives, init_warnings, outcomes, runs, 
         parts.append('<p class="empty">No outcome records yet (no projects/*/OUTCOMES.jsonl).</p>')
     else:
         parts.append("<table><tr><th>project</th><th>closed</th><th>merged</th><th>waived</th>"
-                     "<th>not-merged</th><th>reverted</th><th>other</th><th>median cycle days</th></tr>")
+                     "<th>not-merged</th><th>reverted</th><th>reopened</th><th>other</th><th>median cycle days</th></tr>")
         for s in outcomes:
             med = s["median_total"] if s["median_total"] is not None else "n/a"
             parts.append(f"<tr><td>{esc(s['project'])}</td><td>{s['closed']}</td>"
                          f"<td>{s['counts']['merged']}</td><td>{s['counts']['waived']}</td>"
                          f"<td>{s['counts']['not-merged']}</td><td>{s['counts']['reverted']}</td>"
+                         f"<td>{s['counts']['reopened']}</td>"
                          f"<td>{s['other']}</td><td>{esc(med)}</td></tr>")
         parts.append("</table>")
 

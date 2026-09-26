@@ -71,10 +71,12 @@ def scan_targets(paths, warn_missing):
     is skipped silently (not every task has every substrate file yet).
     """
     total = 0
+    missing = []
     for path in paths:
         if not path.exists():
             if warn_missing:
-                print(f"WARNING: file not found, skipped: {path}", file=sys.stderr)
+                print(f"ERROR: file not found: {path}", file=sys.stderr)
+            missing.append(path)
             continue
         orphans = scan_file(path)
         if orphans:
@@ -83,7 +85,7 @@ def scan_targets(paths, warn_missing):
                 preview = text[:120] + ("..." if len(text) > 120 else "")
                 print(f"  line {line_num}: {preview}")
             total += len(orphans)
-    return total
+    return total, missing
 
 
 def main():
@@ -104,7 +106,17 @@ def main():
         label = ", ".join(args)
         warn_missing = True
 
-    total_orphans = scan_targets(targets, warn_missing)
+    total_orphans, missing = scan_targets(targets, warn_missing)
+    # Nothing scanned is not a clean scan. Until 2026-09-22 a named file that did not exist
+    # printed a warning and then OK with exit 0, and so did a folder holding none of the
+    # substrate files, so a caller gating on the exit code passed a path it never read.
+    # A named file is one the caller says it touched, so its absence is an error. In folder
+    # mode an individual file may be absent, but a folder with none of them is a wrong path.
+    if (warn_missing and missing) or len(missing) == len(targets):
+        print(f"\ntarget: {label}", file=sys.stderr)
+        print(f"not scanned: {len(missing)} of {len(targets)} target(s) absent, so no orphan "
+              "count is reported", file=sys.stderr)
+        sys.exit(2)
 
     print()
     print(f"target: {label}")

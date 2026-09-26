@@ -1,0 +1,46 @@
+{
+  "_README": [
+    "Copy the `permissions` block below into the .claude/settings.json of a CONSUMING repo.",
+    "This is the permissions half of the merge gate, and it needs no hook at all.",
+    "",
+    "Why permissions-only, and not a PreToolUse hook. Measured 2026-08-30: an external",
+    "read-only consumer's driver refuses to run against a repository that ships its own",
+    "PreToolUse hook, and it raises HookRefusal with no override flag, so a repo that",
+    "installs one becomes undirectable by the runner. A deny and ask list costs nothing in",
+    "that direction: it is data the client already evaluates, not a second program",
+    "competing for the same slot.",
+    "",
+    "deny is the destructive-git list this workflow's own .claude/settings.json carries. It",
+    "exists because a per-machine .claude/settings.local.json commonly accumulates a broad",
+    "allow entry such as Bash(git *), which pre-approves the destructive spellings along with",
+    "the read-only majority. Deny is evaluated before allow, so this narrows that window",
+    "without the local file having to be edited.",
+    "",
+    "ask turns merge and marking a draft ready for review into a confirmation rather than a",
+    "refusal. Those two acts reach reviewers and the base branch, an audience that is not",
+    "bounded. git push is deliberately not in ask: a push to a task branch reaches a bounded",
+    "audience, and pr-package --apply pushes and opens the draft PR on its own invocation with",
+    "no second prompt (ADR-0185, ADR-0200). Drop the ask block if a human already merges every",
+    "PR by hand, or if you drive this repo with a runner that cannot answer a prompt: an",
+    "unanswerable ask is a hang, not a gate.",
+    "",
+    "Two limitations, stated so the list is not mistaken for a guarantee. Matching is by",
+    "prefix, so a chained invocation (cmd && git reset --hard), an alias, or a refspec-force",
+    "spelling (git push origin +main) is not caught. And it bounds the agent's tool calls,",
+    "not the terminal: anything typed directly in a shell is unaffected. One layer, not the",
+    "control. See docs/HOOKS.md for the same caveats in prose."
+  ],
+  "permissions": {
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)",
+      "Bash(git branch -D*)"
+    ],
+    "ask": [
+      "Bash(gh pr merge*)",
+      "Bash(gh pr ready*)"
+    ]
+  }
+}

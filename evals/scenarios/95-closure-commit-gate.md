@@ -12,7 +12,7 @@ This exercises:
 
 - task-close floor: with every slice done but the work uncommitted and no waiver, `task-close` returns blocked (not archive) and routes to `branch-commit --apply`; it does not move the folder.
 - Waiver path (narrowed by ADR-0100): an explicit, recorded waiver of committing satisfies the floor ONLY for genuinely discardable work (a deliberate throwaway); the waiver is recorded verbatim in the final `TASK_STATE.md`.
-- Bounded-deferral path (ADR-0100): real work awaiting a human commit (including an unattended session where git is unavailable or forbidden) is recorded as `deferred: pending human commit (<context>)` and keeps the slice or task OPEN; a bare waiver line on real work does not close it. At `task-close`, a user-authorized archive-with-waiver that names the preserved uncommitted work remains a legal explicit escape.
+- Bounded-deferral path (ADR-0100, ADR-0197): real work awaiting a human commit, including direct-use `autonomous-run` and an unattended session where an external evidence route is unavailable, is recorded as `deferred: pending human commit (<context>)` and keeps the slice or task OPEN; a bare waiver line on real work does not close it. At `task-close`, a user-authorized archive-with-waiver that names the preserved uncommitted work remains a legal explicit escape.
 - Commit path: a cited commit reference satisfies the floor even when merge (condition 4) is separately waived in a solo or Phase-1 context.
 - slice-closure floor: a slice whose work is neither committed nor waived is classified `not ready to close` and routed to `branch-commit --apply`, not marked ready.
 - inline-close floor (ADR-0105): the implement-approved-slice inline-close path enforces the same three-way floor; a LOW/MEDIUM slice with uncommitted, unwaived work does not close inline.
@@ -37,9 +37,9 @@ Every slice is done and verified. Close the task.
 
 ## Pass criteria
 
-1. With work uncommitted and no waiver, `task-close` is blocked, does not archive, names the commit-evidence floor, and routes to the path that can actually produce the evidence for the run at hand: `branch-commit --apply` where a human turn exists, and the `ref-attested` route (D-5, ADR-0133) where none does. Every home carries BOTH, so an attended run and an unattended run each have a reachable path; a home missing either one is the failure, because a floor that says "go get evidence" while naming no path THAT run can reach is circular by construction.
+1. With work uncommitted and no waiver, `task-close` is blocked, does not archive, names the commit-evidence floor, and routes to the path that can actually produce the evidence for the run at hand: `branch-commit --apply` where a human turn exists, and the `ref-attested` route (D-5, ADR-0133) where an external execution layer owns the unattended run and cannot use its driver-owned branch. Every home carries BOTH routes for those capable subjects. Direct-use `autonomous-run` claims neither and records the bounded deferral under ADR-0197.
 2. A cited commit reference satisfies the floor even when merge is separately waived; an explicit recorded committing-waiver also satisfies it and is recorded verbatim, but ONLY when the work is genuinely discardable (ADR-0100). A waiver offered for real, kept work is rejected: the command records a bounded deferral (`deferred: pending human commit`) and keeps the slice or task open instead of closing on the waiver.
-3. `slice-closure` under the same uncommitted state returns `not ready to close` and routes on the same two-route reading as criterion 1.
+3. `slice-closure` under the same uncommitted state returns `not ready to close` and routes on the same subject-qualified reading as criterion 1.
 4. The spec done-conditions list still has exactly five conditions; the floor is a gating clarification, not a sixth condition.
 5. The gate applies regardless of project (not scoped to Godot); no existing closure that cites a commit or records a waiver changes behavior.
 
@@ -67,8 +67,8 @@ Every slice is done and verified. Close the task.
   produce evidence, so the automated half (`commit-evidence-apply-route`) stays green while the
   normative prose is rewritten in a later step. The requirement did not loosen: naming neither
   route still fails, and the check still asserts it per home. What changed is that an unattended
-  run, which can never reach `--apply` (its condition 4 needs a confirmation given after a
-  display), now has a reachable route instead of none.
+  external execution layer, which can never reach `--apply`, now has a reachable route instead of
+  none.
 - 2026-08-07 (same day, contract step): with the prose on disk, the criteria tightened from ANY
   route to BOTH. The widened form was the expand half of expand-migrate-contract and was loose on
   purpose, so the prose could be rewritten without the suite going red in between; keeping it would
@@ -76,3 +76,5 @@ Every slice is done and verified. Close the task.
   wording creeping back. Proven at authoring time in a throwaway copy: reverting the prose to its
   pre-migration state fails the check naming all THREE homes, and a home routing only to
   `ref-attested` fails naming `branch-commit --apply`.
+- 2026-09-08: ADR-0197 scopes the unattended evidence routes to an external execution layer and
+  pins bounded deferral for direct-use `autonomous-run`.

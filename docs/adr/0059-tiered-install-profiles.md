@@ -1,6 +1,6 @@
 # ADR-0059: Tiered install profiles, lint-enforced metadata.tools and provenance
 
-- **Status**: Accepted
+- **Status**: Accepted; the installer refuse of `--profile=minimal` with skills is Superseded by [ADR-0160](./0160-minimal-profile-skills-install.md). The three metadata fields and `--profile` filtering remain. The minimal list is superseded in part by [ADR-0178](./0178-where-we-at-and-test-strategy-join-the-spine.md), which adds `where-we-at` and `test-strategy`.
 - **Date**: 2026-06-26
 - **Tags**: install, onboarding, frontmatter, metadata-tools, x-wos-profiles, provenance, lint, ecosystem-adoption, additive
 

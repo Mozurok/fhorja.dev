@@ -52,7 +52,7 @@ Mode: Agent
 ## Expected response shape (turn 2: fleet)
 
 - Routes to `feature-library-scout-fleet` because the problem count is now greater than 3.
-- The orchestrator decomposes into one worker per feature problem and is the sole writer of `FEATURE_LIBRARIES.md`; workers return typed `StructuredOutput` payloads and never write the artifact or fetch the web.
+- The orchestrator decomposes into one worker per feature problem and is the sole writer of `FEATURE_LIBRARIES.md`; workers supply schema-conforming payloads through either the runtime result or their assigned native run-inbox JSON file (ADR-0158), and never write the artifact or fetch the web. A valid native file needs no worker tool call; a missing or invalid selected payload is not a success.
 - The merged artifact adds `react-native-action-sheet` (for example `@expo/react-native-action-sheet`) for the action-sheet problem, keeping every pick source-grounded.
 - The orphan-scan gate runs on `FEATURE_LIBRARIES.md` and `REFERENCES.md` post-merge.
 

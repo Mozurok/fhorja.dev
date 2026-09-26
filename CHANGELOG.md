@@ -11,11 +11,1271 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **MINOR**: new commands, new normative rules in WOS, new templates, or backwards-compatible additions.
 - **PATCH**: wording fixes, documentation corrections, script improvements that do not change behavior.
 
-While the project is in alpha (0.x.y), MINOR may include breaking changes; expect more stability when 1.0.0 is reached.
+The alpha caveat that stood here ("while the project is in alpha (0.x.y), MINOR may include breaking changes") is retired: 1.0.0 shipped 2026-07-10 and 1.1.0 on 2026-07-21, so the policy above applies as written.
+
+**On git tags.** The only tag in this repository is `v2.0.0-rc1`, and it points at a commit from 2026-05-25, which predates both 1.0.0 and 1.1.0. It is an abandoned numbering from before the version line was reset, and nothing has been tagged since. So `git describe` reports something like `v2.0.0-rc1-387-g<sha>`, anchored to a milestone the project left behind; read the newest `## [x.y.z]` heading below as the released version, not the tag. Retagging is deliberately not done here: CLAUDE.md holds public release tags for a later phase. That includes `## [2.0.0]`, which is untagged; its number comes from the versioning policy and has nothing to do with the abandoned `v2.0.0-rc1`.
 
 ## [Unreleased]
 
+### The agent replaces its own provisional decision with a new one (2026-09-24)
+
+- While a `### P-N` is not yet confirmed or superseded by the maintainer, the agent now corrects it
+  only by appending a new `### P-N` that carries a `Replaces: P-M` line and the reason, and leaves
+  P-M exactly as written (ADR-0235). Plans cite only the newest entry of a replacement chain; the
+  maintainer's `Confirms:` and `Supersedes:` paths are unchanged.
+- `pr-package`'s "Decisions made without you" section lists only a P-N that no later P-N's
+  `Replaces:` line names, on top of the existing `Confirms:`/`Supersedes:` exclusion.
+- `scripts/check-plan-coverage.sh` reads `Replaces:` and, in single-task mode, fails on a slice
+  whose `Decision-ref:` cites a replaced P-N, naming the slice, the replaced entry, and the current
+  one. `scripts/tests/test-check-plan-coverage.sh` checks 30 and 31 cover it.
+- The rule itself ships as provisional P-1 of its own task, for the maintainer to confirm.
+
+### task-close harvests learnings when the task left a signal (2026-09-24)
+
+- Before its archive move, `task-close` now runs the `harvest-session-learnings` contract when the
+  task recorded a signal (a `needs_revision` or `ESCALATED` Approval-log line, a check shown failing
+  before it passed, a fixed review finding, a refusal or stop, a revert or reopen, a de-scope, or an
+  `unverified:` line), and appends the entries to the task's `LEARNINGS.md`, `source: task-close`
+  (ADR-0234). `task-init` already reads `LEARNINGS.md` via `rank-learnings.sh` (ADR-0017, ADR-0071),
+  so the produce side now writes where the consume side already reads.
+- With no recorded signal, the pass writes one line instead: `Learnings: none harvested (no signal
+  recorded)`. The pass never edits an existing entry and never writes `USER_MEMORY.md`; a
+  cross-project lesson is listed as a pointer for the person to promote by hand.
+- The trigger rule itself ships as provisional P-2 of its own task, for the maintainer to confirm.
+
+### The attended chain runs to the draft PR (2026-09-24)
+
+- In an attended session on a git repository with a configured remote, the chain now runs from
+  `task-init` all the way to a pushed task branch and a draft PR with no human stop (ADR-0233); the
+  maintainer confirmed its provisional decisions P-1 to P-8 the same day. The only stop left is an
+  act whose audience is not bounded: marking the PR ready for review, merging, publishing, or
+  sending content outward.
+- `task-init` creates `task/<task-dir>` in place on an attended run with a remote and records
+  `Task branch:` and `Base branch:` lines. A decision the request does not settle is chosen from the
+  code and recorded as a `### P-N` under `DECISIONS.md ## Provisional decisions` (`Evidence:`,
+  `Impact:`, `Status: provisional`), never as a lock: only `## Locked decisions` authorizes, so
+  `approve-plan`'s blinded review passes a slice resting on a labeled P-N and checks its evidence on
+  the task branch.
+- After the last `branch-commit --apply`, the chain runs `pr-package --apply` on its own. The draft
+  PR body opens with `Not delivered, needs you`, then the summary, then `Decisions made without you`
+  (high-impact entries first, marked `Confirm before merge`) and `Not verified`.
+- A declared `Operating mode: assisted` restores every stop this ADR removed: no task branch, open
+  decisions and unrunnable checks stop and wait, and the chain ends at the local commit.
+- Twelve ADRs are superseded in part on their Status lines (0056, 0074, 0105, 0159, 0163, 0167,
+  0184, 0185, 0186, 0202, 0203, 0208). `check-plan-coverage.sh` stops counting a PROPOSED heading as
+  locked and resolves P-N citations. Scenarios 17, 61, 75, 125, 137, 144 and 145 (new) cover it.
+
+### The Load ceiling ratchets to 36,000 (2026-09-23)
+
+- The hard ceiling on a generated skill drops from 40,000 to 36,000 chars (ADR-0227) and now
+  lives in one constant, `LOAD_CEILING_CHARS` in `evals/scripts/structural-evals.py`. The check,
+  the real-load advisory, the registry label, `scripts/measure-tokens.py` and scenario 116 read
+  or name it instead of restating the number. `LOAD_TARGET_CHARS` names 20,000 as the
+  destination.
+- A new hard check, `skill-load-ceiling-slack`, fails when the ceiling sits more than 4,000 chars
+  above the largest skill and names the value to lower it to. ADR-0227 pre-authorizes a lowering;
+  only a raise needs a decision. The 2,000-char warning band stays advisory.
+- The five skills above 36,000 were trimmed by cutting provenance tags, rationale and history
+  sentences, and rules stated twice in one file: slice-closure 39,940 to 35,760, task-close
+  39,197 to 35,713, implementation-plan 38,531 to 35,459, task-init 38,137 to 35,382,
+  implement-approved-slice 36,768 to 35,734. Nothing moved into an unconditional load, and every
+  normative sentence removed is paired with the one that keeps its obligation in the same file.
+- `scripts/build-agent-skills.sh` drops the `<!-- shared:<name> -->` lines and the count-marker
+  wrappers from the generated skills, about 28,000 chars across the catalog. The markers stay in
+  `commands/*.md`, where the sync script, the count reconciler and the lint read them.
+  `scripts/tests/test-build-agent-skills-markers.sh` pins it.
+- The CI script-test step listed its last three suites without line continuations, so the shell
+  loop could not parse. It now continues every line and runs the new suite too.
+
+### The blinded reviewer reads one spec section (2026-09-23)
+
+- `verify-against-rubric` runs on a new leaf-reviewer bootstrap tier (ADR-0226): from the spec it
+  reads only `## Global output contract`, plus its rubric, whether a user runs it or `approve-plan`
+  or `review-hard` dispatches it. The other three always-read sections govern an agent that edits
+  the task or dispatches other commands, and the reviewer does neither. A review's fixed floor
+  drops from about 15,360 tokens to about 8,830. Every review still runs.
+- What the dispatch carries is unchanged: the artifact and the rubric, nothing else.
+  `verify-against-rubric-fleet` stays on the full tier, because its orchestrator writes the cohort
+  log and dispatches workers.
+- A structural check, `leaf-reviewer-tier`, fails when the tier sentence goes missing, reads any
+  other section, or states a figure more than 3 per cent off the measured section. It also fails
+  when a command it names does not declare the tier, when a command it does not name does, or when
+  the isolation clause of the reviewer or either dispatcher changes. `bootstrap-floor-measured` now
+  measures the reduced tier as well. The block's sentence saying that figure went unchecked is
+  gone.
+- The shared block grew 3 chars net across the 92 skills that carry it. `slice-closure` stays the
+  closest to the 40,000-char Load ceiling, 60 chars under it.
+
+### The staging repository's old name leaves the shipped tree (2026-09-23)
+
+- Fifteen commands and their skills, `wos/repository-structure.md`, `templates/PR_PACKAGE.md` and
+  three scripts named the private repository by its old name, as if every reader had that checkout.
+  They now say the task repository where they mean the place `projects/` lives, and the workflow
+  repository where they mean the Fhorja checkout (ADR-0129 separates the two). The rules in
+  `pr-package` and `delivery-asset` that keep workflow paths out of a PR body or an asset keep their
+  meaning: they now forbid any path into either repository. `bootstrap-user-setup.sh` prints
+  `Fhorja: first-time setup`. No script read the directory name; only text changed.
+- A structural check, `private-repo-name-absent`, fails when the name returns to a command, skill,
+  wos topic, template, script or root doc. ADRs, the changelog, eval scenarios and the maintainer's
+  CLAUDE.md are history or local memory and are left as written. On the tree before this change it
+  reports 43 lines.
+
+### A one-slice change skips the plan, and a script checks what the review used to catch (2026-09-23)
+
+- `task-init` takes a one-slice route (ADR-0225) when no escalation fires in an attended run, the
+  change fits one sentence and touches at most two files the brief names, and the brief carries
+  every decision. It writes the single approved slice, both signals the attended lock reads and a
+  `Route: one-slice` line with its evidence, runs `check-plan-coverage.sh`, and hands straight to
+  `implement-approved-slice`. `implementation-plan` and `approve-plan` are skipped on that route only.
+  ADR-0208 is superseded in part.
+- `scripts/check-doc-sync.sh --against HEAD` is the check that replaces the review. It compares the
+  working tree with HEAD and fails on a line the change did not add that still cites a numbered
+  heading whose number now names another section, a heading whose text is gone, or a deleted path.
+  On a copy of the tree it exits 1 on the defect of record, a section inserted above AGENTS.md
+  section 6 (seven stale citations), and on a deleted `WORKFLOW_DEMO.md` (seven live references),
+  where the default form exits 0 on both. The lint runs it FAIL-tier, and `implement-approved-slice`
+  runs it at inline close on the route.
+- The default doc-sync reads CONTRIBUTING.md, docs/adr/README.md and .github/pull_request_template.md,
+  which carried three of those citations and were read by no loop.
+- `check-plan-coverage.sh` gains rule 5, the route's mechanical conditions. `task-init`'s three
+  opt-in blocks move to `wos/task-init-opt-ins.md` to pay for the route's text. Scenario 144 grades
+  the route on a plain change and on the renumbering trap; scenarios 137 and 24 now name three files
+  and keep the full path, and scenario 24's byte-identical pin is lifted.
+
+### Skills install where each tool reads them, and the installer checks itself (2026-09-23)
+
+- A default sync writes the skills to `~/.claude/skills` and `~/.agents/skills` and no longer to
+  `~/.cursor/skills` (ADR-0228, backlog B23). Cursor 3.17.8 or later reads `~/.agents/skills`
+  natively, so the old default listed every Fhorja skill twice in Cursor. `--cursor-skills` writes
+  `~/.cursor/skills` as well, for Cursor Cloud Agents sync, and `--project` follows the same default.
+  This reverses backlog B19 on a new basis.
+- `--clean-orphans` also removes the Fhorja skills an earlier install left in `~/.cursor/skills`,
+  after asking. A skill there counts as Fhorja's only when its name is a Fhorja skill and its
+  frontmatter carries `x-wos-profiles`, so skills from other sources stay. It now deletes nothing
+  under `--dry-run`.
+- `--print-skill-overrides=<minimal|core>` prints a Claude Code `skillOverrides` object that keeps
+  only the names of the skills outside the tier. It writes nothing.
+- Before copying skills, the installer runs `build-agent-skills.sh --check` and refuses on drift,
+  naming `./scripts/build-agent-skills.sh` as the fix. Without `python3` it prints
+  `skills not checked: python3 absent` and continues. `--no-skills` skips the check.
+- A template retired from the repository leaves the `--with-docs` copy on the next sync, as a retired
+  wos topic already left the payload.
+- The wizard's everyday option read "all skills" while installing the minimal set; it now says
+  "the everyday spine: skills and commands".
+- README, FAQ and MIGRATION name the same default skill roots as the installer usage, checked by
+  `check_default_skill_roots_agree`. They also record that the `~/.claude/commands` duplicate in
+  Claude Code's listing is not measured yet.
+
+### Substrate ownership is descriptive (2026-09-23)
+
+- The section ownership matrix in `wos/substrate-peers.md` now describes routing instead of
+  enforcing it (ADR-0232, superseding ADR-0034 in part). A command writing a section outside its
+  row writes it, logs it and names the conventional owner in `reason`; nothing refuses it, and
+  `sha_before` keeps the replaced bytes identifiable. Measured before the change: one ownership
+  refusal in 44,699 log lines, against 3,442 outside-row writes that went ahead.
+- Rules 2 and 3 agree: staging a PROPOSED block is optional, and `approve-proposed` stays for a
+  user who wants a write staged. `event=refuse` keeps its fleet orphan-scan meaning only. The
+  fleet partial-merge rules, the same-owner rule and the "never invoke or emulate another command
+  inline" routing rule stay normative. On the one-slice route, task-init is a co-writer of
+  `## Slices` and `## Approval log`.
+- `scripts/check-substrate-ownership.py` reads the grants the prose makes (approve-proposed
+  promotions, rule 2c on `TASK_STATE.md` only, the `### Slice N` row at `## Slices`), skips files
+  with no matrix table and `mode=proposed` and `event=refuse` lines, headlines the count of writes
+  to a section with no row, and takes `--logs-root` for tests; `--strict` now follows the headline.
+  Against the same logs: no-row writes 3,669 to 2,898, outside-owner writes 3,442 to 2,205. Each
+  grant has a case and a mutation in `scripts/tests/test-substrate-ownership-matrix.sh`.
+- Scenario 37 grades a write outside a persona's section as recorded and recoverable instead of
+  rejected; scenario 23's goal says staging is a choice.
+
+### The seven parked eval cases become two spine scenarios (2026-09-23)
+
+- `evals/01..07`, authored on 2026-09-17 for a harness that never ran them, are deleted (backlog
+  B40). Two had lost their premise: AGENTS.md already carries the directive case 01 asked for, and
+  the typo case 02 named is not in docs/FAQ.md. Case 05 accepted either answer, so it graded nothing.
+  The `evals/results/` ignore line stays, because pilot result folders still sit under it locally.
+- Scenario 142 ports cases 02, 06 and 07 as three independent turns with no command named: a typo
+  fix opens a task, a tweak while a task is open continues it, and a question opens none. The typo
+  turn is the control, so a model that never opens a task cannot pass the other two.
+- Scenario 143 ports cases 03 and 04 into fixture product repositories and grades the `Escalations:`
+  line `task-init` writes: `impact-analysis` for a documentation sweep, and the auth or
+  multi-tenant trio with strict suggested for a cross-tenant read.
+- Both fixtures watch the workflow checkout the run starts from. Its `projects/` is gitignored and a
+  commit leaves a clean tree, so the runner's porcelain guard saw neither a stray task folder nor a
+  stray commit. The build records the `projects/*/active/*/` listing and HEAD, and the probe reports
+  what was added and whether HEAD moved. `scripts/tests/test-spine-repo-root-watch.sh` proves it
+  against a temporary repository standing in for the checkout.
+
+### A merged public pull request is ported before the next release (2026-09-23, MINOR)
+
+- `scripts/release-preflight.sh` now reads the public checkout's history too, and refuses while it
+  carries a commit that is neither a release commit (a `Mirror-sync: <staging sha>` line naming a
+  commit in this tree) nor ported (a staging commit with a `Ported-from-public: <sha>` line). A release
+  overwrites the public tree (ADR-0188), so a pull request merged there and never ported was lost with
+  nothing to say so. Commits up to the current public HEAD were read by hand and are the baseline; the
+  one pull request among them was already in staging. `scripts/tests/test-release-preflight.sh` covers
+  it with temporary repositories and fails 10 of its 11 checks on the old script.
+- `CONTRIBUTING.md` and `AGENTS.md` section 2 say a merged public pull request is ported into staging
+  before the next release. AGENTS.md now says the staging tree is private and unreachable from outside,
+  and tells a fork to open its pull request against `Mozurok/fhorja.dev` instead of calling every
+  other remote read-only. The namespace itself stays as ADR-0188 decided.
+- The quiet-maintainer section of `CONTRIBUTING.md` says it is what the project has in place of a
+  succession plan and that the bus factor is one, counts dormancy on the public repository including
+  discussions, and adds what happens when the maintainer stops on purpose: a `README.md` notice, then
+  the public repository is archived, with any forks listed and none picked.
+
+### The minimal profile reaches its reviewer (2026-09-23)
+
+- `verify-against-rubric` joins the minimal and core profiles (ADR-0229). `approve-plan` dispatches
+  it on every plan and `review-hard` routes to it on a zero-finding verdict, and a minimal install
+  did not have it. Its closure comes too, because retagging it alone fails the tier-closure check:
+  `direction-adjust`, `resolve-contract-gaps` and `contract-signoff`. Minimal goes from 19 to 23
+  commands and core from 50 to 51.
+- `check_tier_routing_closure` stops treating every full-only target as a cluster command. A gated
+  route is exempt only when its target is named in the new `CAPABILITY_CLUSTERS` registry and is
+  still full-only. Every pair the old exemption covered was checked first; all but the reviewer are
+  gated entries into an opt-in cluster and stay exempt. A new guard mutation retags the reviewer back
+  to `[full]` and must fail the check; against the old check it did not.
+
+### Removed
+
+- The insurance regulatory topic, its checklist template and eval scenario 51 (ADR-0230). Nothing loaded the topic, and the two scenarios that cited it came from the same batch. An industry's regulatory rules are now a project fact, captured through `capture-references`; `wos/project-level-memory.md` says so. Scenario 50 grounds its P0 in the bug class's severity rubric. The two bug classes the topic listed as planned are dropped, and `docs/DELETION_LEDGER.md` row 16 records why.
+### The checks your closures run now ship, and say when they read nothing (2026-09-23)
+
+- Eleven more scripts ship in the install payload (ADR-0224, backlog B31): `rank-references.sh`,
+  the four substrate scripts as one unit (`emit-substrate-write.sh`, `scan-substrate-headers.sh`,
+  `verify-log-validator.py`, `verify-substrate-batch.sh`), `check-live-markers.sh`,
+  `check-plan-coverage.sh`, `plan-adherence.py`, `memory-lint.sh`, `secret-scan-gate.sh` and
+  `portfolio-review.sh`. Until now the closure integrity floor had no script to run on an install.
+- Each was run as an installed copy against an empty target first, and most printed the line a clean
+  run prints. Now a helper that read nothing says so and, unless its exit is advisory by contract,
+  exits non-zero: an empty header scan, an empty log, a task folder with no plan, a folder with none
+  of the marker files, and a machine with no secret scanner (exit 3). `portfolio-review.sh` and
+  `check-plan-coverage.sh --all` read the directory they run from instead of their own location, and
+  `portfolio-review.sh` refuses one with no `projects/`. The emitter refuses a `--task-root` with no
+  `TASK_STATE.md` instead of starting a stray log.
+- `verify-log-validator.py` reads a `"sha_scope":"file"` line at file scope. The whole-file digest is
+  the fallback an install uses when the per-section helper is unreachable, and the validator reported
+  every such line as drift, which would have failed every installed close.
+- Each command that runs one of these scripts resolves it against the workflow root and names, in its
+  transcript, the case where it is installed in neither place. A missing integrity wrapper is recorded
+  as `integrity: not checked`, neither a pass nor a waiver. Three new test suites cover the changes,
+  each measured failing on the old code.
+
+### Task memory stays out of the product repository (2026-09-23)
+
+- After an install, `task-init` creates `projects/` in the repository you run it from, usually the
+  product repository, and nothing there ignored it. A `git add .` could commit task memory with the
+  code, while the docs said `projects/` was gitignored. Now the command that creates `projects/`
+  (`task-init` or `project-bootstrap`) writes `projects/.gitignore` holding `*`, and never edits the
+  repository's own `.gitignore`. When `projects/` already exists and is not ignored, `task-init` says so
+  on every run and names the fix (ADR-0223). README, FAQ and `docs/MIGRATION.md` describe both layouts,
+  and MIGRATION has the two commands for an install that predates this.
+
+## [2.0.0] - 2026-09-23
+
+Everything shipped between 1.1.0 and 2026-09-23. It is a MAJOR release under the versioning policy
+above, because the `TASK_STATE.md` schema changed: the `Tier:` line became `Escalations:` (ADR-0207).
+Two other changes alter what a session does by default. Task and project memory are written `APPLIED`
+in every mode (ADR-0199, ADR-0215), and every plan routes to `approve-plan`, which runs a blinded review
+instead of waiting for a person (ADR-0208). `docs/MIGRATION.md` has the upgrade steps.
+
+This release is not tagged; the note on git tags above explains why. The section runs newest first,
+and it collected entries for two months before it was cut, so some early entries were reversed by
+later ones. Each reversed entry opens with a note naming the ADR that reversed it.
+
+### The documentation catches up, and the checks keep it there (2026-09-22 to 2026-09-23)
+
+- Six read-only audits covered every documentation surface: the entry docs, the guides and demo, the
+  spec and templates, the 56 `wos/` topics, and the plans and evals. They found 216 statements the
+  tree contradicted, most of them the retired `PROPOSED`-by-default mode, the retired tier names, and a
+  default pipeline without `approve-plan`. All were fixed; three scenario questions stay open by name.
+- The audits also found 32 defects inside commands, each confirmed at the cited line: the editor-mode
+  gate still in 16 files, `task-init` leaving `approve-plan` out of its own pipeline,
+  `implement-approved-slice` blocking a close the canonical floors only record. All are fixed. The
+  mode gate now stays only on `compact-task-memory`, whose write is lossy (ADR-0220); the unattended
+  track keeps its reversibility limit and routes its merge to `review-hard` (ADR-0221).
+- 34 documents or sections that no longer earned a place were removed, archived, merged or shortened:
+  a personal study plan, five implemented proposals, a 3.6 MB regenerable snapshot, two legacy hooks,
+  orphan templates, archived evidence logs, and the generated catalog inside the README, which is now a
+  pointer to `docs/command-catalog.html`. The 18 batch JSON files at the root moved under `docs/audit/`.
+- Eleven classes of drift that slipped past every check now fail the build, each with a mutation that
+  proves the check can fail: mode-gate phrasing anywhere in the tree, retired tier names outside
+  `commands/`, blocking idioms in floors that only record, a command's floor list against its view,
+  file paths in doc-sync, artifact totals outside a count marker, copies of the bootstrap figure,
+  command flags against the stub table, the ROADMAP's internal references, broken index tables, and
+  installer flags against the parser. Vendor names stay a manual review.
+- Follow-ups the maintainer settled on 2026-09-23. Scenario 39 has the detector it described:
+  `scripts/detect-workflow-prompt-too-long.sh` word-counts dispatch prompts without front matter or code
+  and flags a missing typed-return reminder in the tail, proven by a CI test with two mutations. Scenario
+  44 now grades the command's real refresh rule. `task-close` follows one rule for editor modes: a write
+  to the task substrate is `APPLIED` in every mode, and a command run in the product repository needs
+  Agent (ADR-0222). The outcome ledger records which escalations fired, beside the legacy `tier`, and
+  `portfolio-review --outcomes` groups by them. Hand-written counts of repository sets became count
+  markers wherever the tree can compute the set: 56 markers became 185, and eight counts were wrong.
+- The plan for all of this went through eight blinded reviews before a line changed. Each found real
+  gaps (scopes that overlapped, a fix that contradicted a locked decision, a gate that could not pass
+  in its own slice) and the count fell from about twelve to two.
+
+### The new attended mode, validated against a model and made consistent (2026-09-22)
+
+- The spine scenarios were run against Claude Opus 5.5 in isolated clones with no remote. Scenario 137
+  walked the whole attended chain in one turn to a local commit and stopped at the merge, the one
+  decision that is a person's. Scenario 01 ran project-bootstrap then task-init, both in Ask mode, and
+  task-init seeded the task from a charter the bootstrap had written to disk. Scenario 125 committed
+  exactly the staged change, keeping out a line edited after staging and an untracked file, and refused
+  the same commit when the run was unattended. Scenario 08 showed the strict run deeper than the minimal
+  one once the two were run independently.
+- The mode gate ADR-0199 declared removed was still live in eight commands, `task-init` among them, and
+  the spec and FAQ still described it as current policy. Task and project memory are now written
+  `APPLIED` in every mode (ADR-0215). `project-bootstrap` is included, since the next `task-init` reads
+  the charter it writes. Two commands keep the gate pending a decision, each with a stated reason.
+  ADR-0220 settled it: only `compact-task-memory` keeps the gate, because its write is lossy.
+- A rule could no longer fire. `implement-approved-slice` routed the last slice to `branch-commit
+  --apply` only "when the pipeline is Express", and after ADR-0207 the pipeline never names a tier. The
+  commit had kept happening only because a model read `Escalations: none` as the old name. Rules keyed on
+  retired tier names now key on the escalations, with scope unchanged (ADR-0216).
+- The outcome ledger was never written. `compute-task-outcome.py` only prints a line, and
+  `approve-plan` said the `plan_review` line was appended "via" it, so a run of scenario 137 reported
+  the append `APPLIED` on the helper's exit 0 while no `OUTCOMES.jsonl` existed. An earlier note here
+  said nothing that run claimed was missing from disk; this line was. Every invocation now carries the
+  `>>` append, the helper refuses a task folder that does not exist instead of printing `project: null`
+  with exit 0, and it ships in the install payload so the ledger is written outside a clone too
+  (ADR-0217).
+- The ASI06 poisoning scan was skipped on every install. `ingest-scan.py` was not in the install
+  payload, and empty input printed `VERDICT: CLEAN` with exit 0. It now ships, refuses input it did not
+  read, has tests, and the commands say when content was not scanned. A check fails on any script a
+  command resolves against the workflow root that the installer does not ship (ADR-0218).
+- The substrate orphan gate six fleet commands key their apply step on passed a path it never read: a
+  named file that did not exist printed a warning, then `OK` with exit 0. It now exits 2 with the
+  absent file named, has tests, and ships, so the gate works on an install. The install test also
+  fails a shipped script that prints a pass verdict for a target it did not read.
+- The spine runner stages checked-in fixtures in a temp directory it creates, can run turns
+  independently, and hands the grader the disk state after each turn as ground truth. All five spine
+  scenarios now run without a hand-built setup. At commit 388f06de, run against Opus 5.5 isolated from
+  the operator's installed skills, MCP servers and settings, all five passed (137 6/6, 03 7/7, 01 7/7,
+  125 9/9, 08 8/8), with the ledger line, the commits and the task files checked on disk. In the two
+  rounds before it, every non-pass traced to a stale criterion or a contract gap fixed in this list.
+- The shared Handoff and Artifact changes blocks now name what they require instead of only pointing
+  at the spec: all four Handoff lines on a stop and a refusal too, and one of `APPLIED`, `PROPOSED` or
+  `SKIP` on every listed file in Lean output too. Isolated runs against Opus 5.5 dropped
+  `Work complexity:` in three of eight Handoffs and wrote "written" instead of a label in a minimal-mode
+  run, and one said it had formatted its refusal from the command file alone.
+- `branch-commit --apply` now says what to stage, not only how: a staged index on entry is the
+  selection, nothing is added to it, and every path left out is named in the display (ADR-0219). Two
+  isolated runs on scenario 125's fixture had committed an untracked file once and left it out once.
+- `task-init` reads the MCP routing block lazily from `wos/mcp-capability-routing.md` instead of
+  carrying it inline. Its generated skill had 78 characters left under the ADR-0116 Load ceiling and
+  now has 3,408. The block fires only when an issue-tracker MCP is connected; the wos copy ships on an
+  install, which `commands/_shared/` does not, and a check fails while it differs from the canonical.
+- Spine scenarios 03 and 08 were brought in line with the tree. 03's criterion 3 still required the
+  backend floor to block an inline close, which ADR-0203 changed on 2026-09-16, and its fixture lacked
+  what a project at that point has. 08's strict run never sent its `implementation-plan` step, and both
+  runs shared one repository, so the strict run read the minimal run's files.
+- The stop reason "an outward or irreversible act" is now "an act whose audience is not bounded"
+  everywhere, per ADR-0200, including a shared block and the five commands carrying it.
+- Six scenarios were brought in line with the September ADRs. Two had criteria no successful run could
+  satisfy, and one tested a mechanism ADR-0208 removed, so it would have failed any model doing the right
+  thing. Setups that sat on the default branch, where `--apply` correctly refuses, now switch to a task
+  branch.
+- README, FAQ, the migration guide and the demo describe the mode a user gets. The README had drawn the
+  short path without `approve-plan`, which runs on every plan.
+
+### A green check has to prove it can fail (2026-09-18 to 2026-09-22)
+
+- Every structural check that can fail now proves it does. `evals/scripts/guard-mutation.py` builds a
+  clean fixture, asserts the check passes, applies one named mutation and asserts it fails. Coverage
+  went from 6 of 60 checks to 63 of 64; the remaining one, `check_real_load_advisory`, returns
+  `(True, notes)` unconditionally and is recorded as advisory by construction rather than left
+  uncounted. A `fixture_root` context manager made every check reachable, not only the 18 that took a
+  `root=` parameter.
+- A mutation now has to say which failing branch it aimed at. Most checks carry a fail-closed branch
+  that fires on an empty subject, so a mutation that destroyed its own fixture still reported BITES.
+  Every entry carries the finding it expects, the suite refuses an entry without one, and a `warns:`
+  entry asserts the advisory half of a check the other way: it must keep passing and the line must
+  appear.
+- Writing those fixtures found checks that could never fire. `check_canonical_not_loaded_when_views_exist`
+  searched prose for an absolute path, so the regression it was written for passed it. Three guards
+  tested their condition after the operation they guarded. `check_no_emdash` counted en-dashes and
+  reported them as em-dashes. A missing artifact is now named instead of being reported as a defect in
+  the checker.
+- The attended chain has a gate. `check_attended_chain_self_runs` asserts the continuation rule, the
+  exclusion of plan approval from stop reason 2, that `approve-plan` names no wait, and that the task
+  record carries `Escalations:` rather than the retired `Tier:`.
+- Floors do what they declare (ADR-0209). Where a floor declares `record`, absent evidence writes
+  `unverified: <reason>` and closure proceeds; `reconcile` becomes a named deferral; `refuse` is
+  unchanged.
+- A skill is a pointer into a repository, not a self-contained bundle (ADR-0210), which is now a
+  deliberate choice: a Fhorja skill is not evaluable without the repository behind it.
+- Commands sit in 15 categories instead of 9 (ADR-0211). Two categories had held 56 of the 98
+  commands. The catalog, the spec, the prompt stubs and the README all read that one field.
+- A scan stamp may not be newer than a section heading that dates itself (ADR-0212). A file stamped
+  the day before carried three wrong rows in the table that decides whether a session delegates.
+- 39 stale external claims corrected across 20 `wos/` and bug-class files, each against its primary
+  source: among them a vacated FCC consent rule presented as in force, a Play target of API 35 where
+  36 is now required, and `get_var` called with an argument the API does not take. Twelve claims no
+  source could ground now say what they rest on.
+- A CWE-grounded library checks its mappings (ADR-0213). Of the 39 ids the bug-class templates use,
+  8 are ones MITRE refuses for mapping. The two `Prohibited` mappings are removed and the build fails
+  on one; `Discouraged` ones are reported. Four were replaced by a child that names the weakness.
+- Routing names Claude Opus 5.5, now that the vendor lists Opus 5 as legacy. Seventeen commands and
+  the script that injects `suggested-model` moved with it, and Opus 5 joined the retired list.
+- The memory consume path is wired (ADR-0214). `task-init` links the project's references file instead
+  of reading it, about 79,000 tokens it paid to write one link. The learnings ranker ships with the
+  installer and is resolved against the workflow root, so LEARNINGS are consulted on an install and
+  not only on a clone. `impact-analysis` reads prior analyses of the same code. `memory-lint` keeps
+  `Tags` optional, as ADR-0071 made it.
+- Scenarios 137 and 61 test the path ADR-0208 left. Run against Opus 5.5, scenario 137 reached its
+  local commit and stopped at the merge, the one decision that is a person's; its rubric had carried
+  a criterion no successful run could satisfy. Scenario 61's Variant F tested the removed mechanism.
+
+### Changed (September 2026, ADR-0199 to ADR-0208)
+
+- Plan approval self-runs (ADR-0208). Approving a plan is no longer an instance of stop reason 2: the
+  plan is a route to decisions already locked in `DECISIONS.md`, and `implementation-plan` already
+  requires a plan carrying an unsupported behavioral commitment to route upstream rather than be
+  approved. What is left at approval is whether that rule held, which is a check against a rubric.
+  The evidence is one blinded `verify-against-rubric` pass carrying the plan path and the rubric and
+  nothing else, whose verdict maps onto the five ADR-0202 exits; ESCALATED is the only one that
+  reaches a person, and it names what it could not ground. A strict surface (auth, payments,
+  compliance, PII, multi-tenant isolation) runs a second pass against the task's invariants artifact,
+  because depth rather than a stop is the control that scales with risk. The autonomous delivery
+  track keeps its own entry gate: its premise is that nobody is watching, and this decision was made
+  about a session with a person in it.
+- The inline Approval log is gone with it. `implementation-plan` used to copy the approval gate and
+  self-approve when the pipeline recorded no escalations, so a simple plan self-approved and an
+  escalated one did not, for a reason nobody chose. Every plan now routes to `approve-plan`. This is
+  the reconciliation ADR-0208's predecessor decision recorded as owed and no slice delivered.
+- Every approval appends one `plan_review` line to the project's OUTCOMES.jsonl, naming the exit, the
+  rubric and the escalated residue. ADR-0208 accepted the measured 39-percent plan-rejection rate and
+  replaced the control rather than disputing it, which moves the burden of proof onto the
+  replacement; sampling that trail across tasks is how it gets discharged. There is no confidence
+  field and none may be added.
+- `check-plan-coverage.sh` gains rule 4, the inverse of rule 2: every slice cites a locked decision or
+  records why it cites none. The mechanical half of the approval rubric belongs to a checker, not to
+  a language model, so the blinded pass is asked only what no grep can reach.
+- The chain no longer stops to propose task-memory files. A command writes them and marks them
+  APPLIED in every mode (ADR-0199), which retires the ADR-0001 write gate, its ADR-0024 addendum, the
+  ADR-0026 exception and the ADR-0190 Ask path. `PROPOSED` keeps its ADR-0034 peer-ownership meaning
+  and `approve-proposed` survives on request, outside any default chain.
+- An act gates on bounded audience rather than on reversibility (ADR-0200). A local commit, a task
+  branch push and a quiet draft PR clear; marking a draft ready, MCP egress and publishing do not.
+- Cost and retry ceilings record their state and proceed instead of asking (ADR-0201). The repetition
+  guard survives as changing approach or splitting into sub-batches.
+- The six question-asking commands loop on a typed residue set with five labeled exits and no
+  confidence field anywhere (ADR-0202).
+- Closure floors stop waiting for a human attester and keep refusing when no attester of any kind
+  produced the evidence (ADR-0203). Nine record, four refuse, two reconcile, and `task-close` lists
+  every floor that recorded (ADR-0205).
+- The four runtime gates capture their own evidence where a capable tool exists and return BLOCKED
+  where none does, with a golden baseline required for any visual check (ADR-0204).
+- Fhorja stops naming its default pipeline (ADR-0207). Standard and Disciplined dissolve into
+  announced disqualifiers; Strict becomes a categorical trip condition.
+
+### Added (September 2026, ADR-0199 to ADR-0208)
+
+- `scripts/check-plan-coverage.sh`, a deterministic checker for coverage rules over the task
+  substrate, FAIL-tier from `implementation-plan` and advisory in the lint (ADR-0206).
+
+### Reader-facing documentation corrections
+
+README, FAQ, the migration guide, the hooks catalog, and two templates now match live
+installer, CI, Express, fleet, recovery, and token facts. Install-profile size is the
+generated 19, not 14; a bare wizard and a scripted omit of `--profile` are described
+separately from `--profile minimal`. Express names the full current disqualifier set.
+Parallel dispatch splits `implement-fleet` from research batches and names the two
+return carriers. Unsupported token ranges and schema-skip percentages are replaced with
+cited snapshots or removed. `wos/repository-structure.md` is unchanged.
+
+### Performance budgets use metric-specific statistics
+
+Performance budgets now record a statistic that matches each metric instead of forcing a
+percentile onto every row. Distributions name their percentile, population and window; rates and
+ratios name their aggregation window; fixed and snapshot metrics name a concrete maximum, total or
+other measurement basis. Core Web Vitals retain p75 and latency budgets retain the selected p50,
+p95 or p99, while bare averages remain invalid for required distribution tails. The frontend
+design guidance, command-role summary and scenario 69 use the same contract. ADR-0198 records the
+schema choice and its compatibility boundary.
+
+### Background run timeout correction
+
+Background runs now require explicit timeout and termination-grace values and use an independent supervisor for STOP, process-group termination and feed finalization. Exclusive ownership prevents a stale heartbeat from admitting a second writer; escalation survives late feed writes. ADR-0196 records the narrow supersession of ADR-0081. ADR-0197 classifies `autonomous-run` as the full-profile direct-use reference dispatcher for one task and one session: it refuses nested execution loops and owns no durable queue, sandbox, credentials, commit, attestation-ref or publication path. The closure floor assigns `commit-ref` and `ref-attested` to an external execution layer; direct-use `autonomous-run` records bounded deferral when neither class already exists. STOP is called host-enforced only when the host supplies that filesystem boundary. ADR-0197 also records the narrow identity-only redaction that removes the external consumer's name and paths from historical tracked prose without changing their technical decisions. Partial work and logs remain for inspection. Bounded mock-process tests cover the launcher, cleanup, feed races and failure paths through the existing autonomy CI entry point.
+
+### Fleet return follow-up: align the seven commands with ADR-0158
+
+One family finding survived fresh adversarial verification. All seven fleet commands now
+consume typed runtime results or their assigned native JSON files, with matching worker
+instructions, readers and completion checks. Return-file permissions preserve existing
+disjoint outputs and shared-artifact ownership. Screen replay copies have an explicit parent
+writer; implementation progress uses the supported flat-file polling path. The orchestrator
+template, dependent evals and reusable carrier guidance agree. The structural guard now
+rejects the verified stale return mandates, with positive controls and seven negative mutations.
+Schemas, status and merge policies, shared blocks and historical ADR decisions are unchanged.
+
+### Audit batch 1 follow-up: resolve keyword ranking priority
+
+The remaining confirmed finding from batch 1 is corrected after the ranking decision. Layer 2
+keeps global descending RRF, so a zero-hit candidate can outrank a matching candidate when its
+score is higher. ADR-0195 records the choice and partially supersedes ADR-0072's incompatible
+priority guarantee; the older decision body is preserved. Scenario 27 adds the numerical
+counterexample and checks the default, explanation and no-match paths. The candidate set,
+Layer 1 and module ordering remain unchanged. All 57 confirmed findings across the eight batches
+are now applied; the coordinated fleet, timeout and percentile follow-ups remain separate.
+
+### Audit batch 1: preserve integrated state and target identity
+
+Ten of fourteen findings survived independent verification; nine are corrected here. Each
+implementation wave now receives the committed integration state containing earlier passing
+waves. Sweep reports describe the actual positional orphan scan and create a fresh zero-finding
+snapshot when no cached snapshot exists. Godot plans preserve their brief-sourced mechanic
+fallback and recognize Mobile RenderingDevice support. MCP pin claims match the existing hash
+coverage, Play delivery distinguishes first publication from updates, and Supabase local reads
+use explicit local selectors. The confirmed ranking contradiction remains held because fixing
+it requires choosing between incompatible ADR-0072 requirements. Four transport proposals were
+refuted as incomplete pending coordinated fleet-eval repairs; neither hold changes accepted ADR
+text or applies the rejected proposals.
+
+### Audit batch 2: align recovery, scope and fleet prerequisites
+
+Eleven of nineteen findings survived independent verification. Compaction declares its required
+snapshot, records its own completion, and uses verified recovery evidence under ADR-0141. Image
+extraction names its existing companion artifacts, security review uses ASVS 5 chapter numbers,
+and bootstrap uses the canonical unknown-consumer value. Screen fleets scan the resolved index
+paths; research fleets and their callers agree on more than three problems. Fleet worker tiers
+come from the worker declarations, and reference-repository packing invokes the installed tool
+without a version refresh. The command-role and image scenario summaries are aligned. The
+transport proposals remain refuted as incomplete because their dependent evals need a
+coordinated repair; partial results continue to be distinguished from full completion.
+
+### Audit batch 8: correct persona evidence and routing contracts
+
+Sixteen of twenty-three findings survived independent verification. The corrections cover WCAG
+criterion and focus-geometry references, evidence routing for small contrast sets, PostgreSQL
+default and lock behavior, effective RLS predicates, protected function resolution, and concrete
+application bypass remedies. Post-deploy plans use actual repository identifiers and preserve
+the existing persistence and evidence-grading boundaries. SLO budgets distinguish event counts
+from availability time. All 22 command-owned routing checks accept both canonical command
+layouts; shared blocks remain outside this batch. The accessibility scenario covers the repaired
+small-pair route. The percentile-only proposal was refuted because its live eval requires a
+coordinated contract change; it remains recorded in the verification report.
+
+### Audit batch 3: complete framing and database snapshots
+
+Four of six findings survived independent verification. `problem-framing` routes pre-task bug
+fixes to `task-init`, removes its stale downstream Godot route, and accepts the completed brief
+as an output state. Both database-context commands represent triggers at full depth, with the
+Postgres template aligned. The description-reference baseline is regenerated deliberately to
+remove the incorrect `incident-triage` route. The proposed `autonomous-run` wording cut was
+refuted because it would weaken ADR-0081's timeout policy; its real enforcement gap remains
+recorded in the verification report for a separate policy decision. The other refuted finding
+added a description requirement absent from the rubric.
+
+### Audit batch 4: align search scope and delivery payloads
+
+All four findings survived independent verification. `code-locate` keeps each invocation and
+its workers inside the selected repository. `ai-feature-eval-harness` cites the correct Agent-mode
+persistence decision. `delivery-asset` publishes only Body content while preserving its local
+wrapper and confirmation gate. `direction-adjust` checks the fields required by the selected
+adaptive handoff mode. Both audit reports record the findings and verification evidence.
+
+### Audit batch 5: honor verification results and selected scope
+
+Six of eight findings survived independent verification. `stack-currency-check` reuses only
+recent verified entries for the active framework version and retains its blocker for unresolved
+results; `impact-analysis` applies the same cache condition. GraphQL review accepts protocol
+request and execution errors, and slice revision accepts canonical underscore filenames while
+retaining legacy hyphen support. Foundation extraction honors the selected areas throughout.
+Both portfolio readers now report a latest reopen event as `reopened`. Related command-role
+guidance is aligned, and the audit and verification reports preserve all eight verdicts.
+
+### Audit batch 6: align review checks and source references
+
+Five of twelve findings survived independent verification. `design-spec-review` now resolves
+section references by component or screen spec, and `verify-against-rubric` routes revisions
+by artifact instead of sending contracts without an implementation slice to a complement.
+`inventory-snapshot` and `design-bootstrap` enumerate component nodes from source-file metadata;
+`get_libraries` remains library discovery. `atom-audit` preserves G-01's list-rendering condition
+and G-03's dynamic-style exception; the fleet preserves the same style exception. Related
+command-role guidance is aligned, and both reports record the confirmed and refuted findings.
+
+### Audit batch 7: preserve each triage table's fields on updates
+
+`apply-sweep-triage` now updates duplicate rows using the fields Step 5 defines for their
+target table. Applied findings retain `action_taken`, discussed findings retain `note`,
+and declined findings retain `file_hash` and `reason`. Independent verification confirmed
+this correction and refuted the proposed wording cut; the audit and verification reports
+record both outcomes.
+
+### Natural voice goes to zero, so the checker becomes a signal again
+
+Thirteen advisory hits, all triaged individually rather than swept. ADR-0171 took this checker out
+of the lint with a reason worth repeating: it left "because the hits it reported never produced an
+edit". A checker that reports thirteen forever teaches everyone to ignore it, and the next real hit
+lands in noise.
+
+Nine were genuine slash disjunctions in prose, every one of them `and/or`, and each got a rewrite
+that says what the sentence means rather than a blanket substitution: "the Metro or JS console, or
+more than one of them", "on `TASK_STATE.md`, on `DECISIONS.md`, or on both", "the URL, the number,
+or both".
+
+Four hits were NOT fixed as voice defects because they are not disjunctions: `ADD/SANDBOX` is an
+enum and explicitly exempt, `emulator/simulator` and `psql/pg_dump` name one thing each, and
+`PGHOST/PGPORT/PGUSER/PGDATABASE` are code identifiers that belong in backticks by the repo's own
+convention. Backticking them is the correct fix and removing them from the scan is its side effect,
+not its purpose.
+
+Two vocabulary hits: `comprehensive` sitting next to "15-section", which already states the size,
+and next to a screen spec whose detail the template fixes.
+
+Two parallelism hits, both the "not just X" shape, and both inside skill descriptions, which are
+Advertise-stage text guarded by a cross-reference baseline and a 1024-char ceiling. Rewritten to
+assert what the thing is rather than what it is not, and the baseline check confirms no
+cross-reference was dropped: `mcp-server-vet` 792 to 803 chars, `workflow-guide` 875 to 828.
+
+`check-natural-voice.sh` now reports 0 across all four categories.
+
+### The docs pass, and the checker widened to reach them
+
+The audit rubric is written for commands, so "bring the docs to the same standard" needed defining
+before it could be done. Three things were measurable and all three were run.
+
+Natural voice: `check-natural-voice.sh` reports 13 advisory hits across the repository and **none of
+them is in a doc**. `README.md`, `AGENTS.md`, `CONTRIBUTING.md`, `WORKFLOW_DEMO.md`, `docs/FAQ.md`
+and `docs/MIGRATION.md` are clean; all 13 sit in `commands/`, `wos/` and `COMMAND_PROMPT_STUBS.md`.
+
+Numeric claims: zero numbers in prose outside a `count:` marker in either `README.md` or
+`docs/FAQ.md`. The marker discipline has been holding the user-facing surfaces.
+
+Citations: `check-citation-integrity.py` scanned `commands/` and `wos/` and never reached the docs,
+which is where the deliverable pointed. Widened to the human-facing surfaces, and it found two, one
+of them real and user-facing. `docs/FAQ.md` told the reader to run
+`scan-substrate-orphans.py --since <batch-start-timestamp>`; that script accepts a task folder or a
+list of files and has no flags and no concept of a timestamp at all, so the documented invocation
+would have been read as two nonexistent file paths. Corrected to both real forms. The FAQ also still
+described a 4-bullet `### Learnings` entry, which `templates/LEARNINGS.md` has required 5 of since
+the `Anchor:` bullet landed.
+
+`CHANGELOG.md` is deliberately outside the checker's scan set, and the reason is written into the
+code: it narrates past defects in their own words, so scanning it reports the description as the
+defect. That is the same shape as the ADR-0133 qualification that names a route in order to exclude
+it.
+
+The 13 natural-voice hits are recorded and not fixed here. They are in command files, which is the
+audit's territory rather than this deliverable's, and two of them sit in spine commands the audit
+already covered: voice is deliberately not one of the six rubric criteria, because the rubric is
+purpose-relative by D-1.
+
+### The installer stopped calling a bug-class template a topic
+
+Found by running the installer rather than by reading it. Its runtime-payload line reported
+"copied WORKFLOW_OPERATING_SYSTEM.md + wos/ (140 topics)" from one recursive `find` over `wos/`.
+The repository counts those files as two categories and guards them separately: `count:wos-topics`
+is 55, the lazy topics at the root, and `count:bug-templates` is 81, the curated library under
+`wos/bug-classes/`. The message summed them and called the total topics, overstating the first by
+2.5x against the repo's own machine-checked marker.
+
+Now reported as "55 topics, 85 bug-class files", where 55 matches the count marker exactly.
+
+Same class as most of what the audit waves confirmed, a number in prose that does not match the
+artifact it names, and it sat one line away from the Advertise-cost report added earlier in the
+session. Neither `check-doc-sync.sh` nor `check-citation-integrity.py` can see it: it is a runtime
+message, not a citation.
+
+### The three open audit decisions, settled by measurement
+
+All three were held back from the audit waves because each reversed or depended on something a
+recorded decision had settled. Measured 2026-09-04, and two of the three answers are not what the
+audit proposed.
+
+**The reduced bootstrap tier stays, and now says one thing.** The bullet stated its own rule two
+incompatible ways. Measured: the four always-read sections are 10,719 tokens; reading A dropped 103
+of them and reading B dropped about 1,650. The question neither reading asked is what the seven
+light commands actually need, and that settles it. All seven write substrate sections and all seven
+reason about PROPOSED, so `### Proposal vs approved persistence` and
+`### Substrate peer ownership (per ADR-0034)` stay at every tier. None of the seven touches the web:
+zero hits for web access across all seven files. So the reduced tier drops exactly
+`### External web access (centralized)` (932 tokens) and `### Sequencing heuristics (by phase)`
+(103), which is 1,035 of 10,719, or about 10 per cent.
+
+A third option was measured and rejected: delete the tier. The bullet costs 218 tokens in 92
+carriers while only seven commands can act on it, which breaks even at 19 per cent of invocations.
+Measured across 399 verification logs and 39,138 substrate writes, the seven are 26.3 per cent, and
+the count under-represents them because the log records writes and two of the seven are mostly
+read-only. The rule pays for itself, so it stays.
+
+**The 3,500-token estimate is gone.** It matched no reading of the sentence it sat beside and
+nothing checked it, unlike the full-tier figure, which `bootstrap-floor-measured` verifies. Replaced
+by the subsections dropped plus the dated measurement, because a subset figure cannot be
+machine-checked and an unchecked number is what drifted here in the first place.
+
+**The runtime-verify-skeleton keeps its eight steps.** The audit proposed cutting all of them as
+duplication of what the four consumers already say, and recommended an ADR because that reverses
+ADR-0177. Measured sentence by sentence: of eleven sentences across the eight steps, exactly one is
+verbatim in all four consumers, one is verbatim in two, and nine appear nowhere else. Cutting the
+steps would have deleted nine sentences that exist only there. The two duplicated sentences are cut
+instead, 296 chars rather than 5,088, and no ADR is needed: removing surface-specific text from a
+block whose job is to state the shape enforces ADR-0177's Neutral consequence rather than reversing
+it.
+
+### A script now checks what a citation says, not just that its target exists
+
+Three audit waves confirmed 42 findings and 27 of them were one criterion: a citation pointing at
+something real that no longer says what the citing text claims. `check-doc-sync.sh` cannot see that
+class by construction, and reports zero broken across 6,635 refs while all 27 sat there.
+
+`scripts/check-citation-integrity.py` covers the decidable part of it: a claimed count against the
+list actually cited, a numbered rule against the file that holds it, a script flag against the
+script's own parser, and an attributed token against the section it is attributed to. Wired into
+lint as an advisory line, and covered by `scripts/tests/test-citation-integrity.sh` (the CI suite
+count goes 18 to 19).
+
+Validated against the tree as it stood before this session's fixes, which is the only test that
+means anything: it re-finds 11 of the 42, and both families whole, the seven commands claiming a
+12-field audit-trail schema that has 14, and the three claiming a 4-bullet LEARNINGS entry that
+takes 5. Eleven of forty-two, in under a second, over 262 files, repeatable. The other 31 need a
+reader and the audit waves keep them.
+
+Two of its own bugs are worth recording because both produced a clean report over real defects. It
+counted numbered rules instead of checking membership, so a file numbered 2 through 7 was read as
+having no rule 7. And its section matcher was exact, so `## Audit trail` found nothing in a file
+whose heading reads `## Audit trail (VERIFICATION_LOG.jsonl)`, and it reported clean over all seven
+count defects. The test suite's fourth check is the regression guard for the second one, and it was
+shown to fail against a copy with the matcher reverted.
+
+### The rest of the spine, audited one command at a time (catalog audit, wave B2)
+
+Twelve auditors over the twelve remaining minimal-spine commands, then the same adversarial
+refuter. 68 raw findings, 16 confirmed, 52 refuted. Twelve of the sixteen are one criterion again:
+the file contradicting itself or citing something that has since moved. Fifteen of the sixteen
+arrived with the sibling sites already grepped, so most of these close a family rather than a site.
+
+Three families, and the first one is a correction to a fix made earlier the same day. The canonical
+`substrate-write-protocol.md` was corrected this morning to stop claiming shadow mode, but twelve
+commands carry that sentence inline without a marker, so the propagation never reached them. All
+twelve now say what is true: `verify-substrate-batch.sh` blocks closure at `slice-closure` and
+`task-close`.
+
+`templates/LEARNINGS.md` requires five bullets with `Anchor:` first, and three commands
+(`incident-triage`, `task-close`, `post-review-pivot`) told the model to write four and omitted the
+anchor, producing entries the template disqualifies. The verifier corrected the auditor here in a
+way worth keeping: `rank-learnings.sh` does NOT read the anchor, so the real cost is elsewhere,
+`mine-learnings-patterns.sh` silently drops an entry missing it and `memory-lint.sh` flags it.
+
+Ninety-nine files cited the `Run now: none` rule as "defined in `## Global output contract`". It is
+defined under `### Official command names (routing integrity)`, inside `## Cross-cutting workflow
+guardrails`, and the spec says so itself one section earlier.
+
+Two on the everyday routing surface deserve naming. `what-next` still taught ADR-0025's affirmative
+Express bar, which ADR-0184 inverted on 2026-08-31, and ADR-0184 names `what-next` as the tier
+re-check point, so the command relied on to re-check was teaching the superseded rule. And
+`sync-task-state` labelled its section list "template order, 20 sections" while placing Work
+complexity at 20 where the template puts it at 17.
+
+Also: `impact-analysis` declared it writes ONE owned section and owns two; `incident-triage` both
+required a LEARNINGS.md append and listed the file as one it never modifies; `pr-package` closed its
+refusal list without an unattended condition, which `wos/autonomous-track.md` assumes is there.
+
+### An edit gate left the one command that never edits
+
+`api-runtime-verify` carried the reference-grounding execution gate, whose first sentence is
+"Before editing any file in this slice you MUST ground every external contract in captured
+references." That command never edits: its own body says so twice, at the Goal and at
+"Verify, then route the fix; do not fix here." A gate keyed to an act the command cannot perform
+fires never and reads as noise on every invocation.
+
+Measured before cutting: the block had four carriers, and the other three (`implement-approved-slice`,
+`implement-slice-complement`, `implement-fleet`) all edit. Removing the misfit makes the carrier set
+coherent rather than shrinking it arbitrarily, and takes 1,846 chars out of a command that gained
+nothing from them.
+
+No ADR. The rule is unchanged, only who carries it, and `AGENTS.md` section 6 reserves an ADR for a
+decision that shapes a contract, carries a non-obvious tradeoff, or would be expensive to undo. This
+is none of the three. ADR-0180's "four carriers" is a dated fact inside an immutable Decision text,
+not the decision itself.
+
+### The everyday chain, audited one command at a time (catalog audit, wave B1)
+
+Seven auditors over the seven commands an ordinary task actually runs, each told which shared
+blocks the file carries and that those are out of scope, then every finding through the same
+adversarial refuter. 46 raw findings, 8 confirmed, 38 refuted. Six of the eight are one criterion:
+the file contradicting itself.
+
+`implement-approved-slice.md` told the reader the six generalized closure floors "remain inline in
+this file" two lines after making their lazy load MANDATORY. Git dates the drift exactly: the
+sentence landed 2026-07-21, ADR-0138 moved the floors into a generated view on 2026-08-10, and
+nothing updated the sentence. It also cited "rule 7 of `commands/_shared/reference-grounding.md`",
+a file that has two rules; ADR-0180 moved rules 2 through 7 to `wos/reference-grounding.md`.
+
+`slice-closure.md` called the integrity check "not a gate, a cheap nudge" in one bullet and made a
+non-zero exit invalid output in the next one, inside the same Definition of done list. The optional
+framing is gone; the blocking one was already correct.
+
+`task-init.md` demanded a justification for "why this is a create operation" and defined no
+behavior for when it is not one. The frontmatter names an existing task folder as the first
+do-not-use condition, yet nothing refused, so re-running it on a live task would re-seed five
+substrate files over working state. It now emits NO_OP_TRACE and routes. The verifier found the
+sharper version of this: `task-init-fleet.md` Step 3 already guards exactly this collision, so the
+orchestrator protected what the command it wraps did not.
+
+Two whole families closed rather than the single site each audit found. The audit-trail schema is
+14 fields and six commands still said 12. And `approve-plan.md` declared the ADR-0042 routing rule
+"stated verbatim", quoted it correctly once, then narrowed it to "the first remaining wave" at four
+other sites; `implementation-plan.md`, `wos/command-roles.md` and two eval surfaces carried the same
+narrowing. On a plan shaped Wave 1 [S1], Wave 2 [S2, S3] the two readings route differently.
+`structural-evals.py` already used the canonical broad form, which is what settled which side was
+drift.
+
+The tier-routing check earned its keep on this batch: the first version of the task-init fix routed
+to `resume-from-state`, which is core-and-full while `task-init` is minimal, so a minimal install
+would have been told to run a command it does not have. Routed to `where-we-at` instead.
+
+### The propagated shared blocks, corrected (catalog audit, wave A)
+
+Six more confirmed findings, this time on blocks whose text is inlined into the commands, so each
+one syncs into up to 89 files and regenerates their skills.
+
+`mandatory-context-bootstrap.md` ordered a mandatory read of `WORKFLOW_OPERATING_SYSTEM.md` and
+gave it no resolution rule and no refusal path, while the very next bullet gave exactly those to
+`wos/<topic>.md`. A command running outside the repository had nowhere stated to look and no stated
+behavior on failure, even though the installer copies the spec to the same roots. The existing
+bullet now covers both, with the same repository-first order and the same say-so-when-neither-
+resolved refusal.
+
+`mcp-capability-routing.md` declared its protective scope as the title and the body, then
+instructed the poisoning scan on the body alone. The title is external MCP-sourced text that reaches
+task memory. Scanning both is one invocation. In the same block, a server failing the trust gate
+made the command proceed "as if no MCP existed", which reads as licence to say nothing; rule 3 of
+that same block requires a visible fallback for the other degrade path. The refusal is now named in
+the output with `mcp-server-vet` as the unblock.
+
+`artifact-changes-default.md` was fixed WITHOUT touching the block, which is the interesting part.
+Six documents named it as the canonical source of a no-nest rule that commit b566299 cut from it on
+2026-05-25, and its own line points at the spec section where that rule does not live. Editing the
+block would have cost 89 files; correcting the three editable surfaces that misname it costs three
+lines. The spec stops deferring to a block that defers back to it, and two descriptions that called
+it a three-line body carrying the no-nest rule now call it what it is, a one-line pointer. Its
+consumer count in `commands/_shared/README.md` was 44 and is 89.
+
+Also: a sentinel offered as `(nenhum)` / `(none)` with no rule for choosing, so what a clean closure
+wrote was unpredictable across nine consuming commands, now one literal; and a provenance sentence
+in `deliverable-reconcile.md` that the block never acts on.
+
+No skill crossed the 40,000-char ceiling (worst case `slice-closure` at 38,617, 1,383 to spare) and
+the bootstrap floor still measures true.
+
+### Six more audit findings applied to the path-cited blocks (catalog audit, wave A)
+
+The remaining confirmed findings on the three blocks that are referenced by path rather than
+propagated, so none of them syncs into a command file or changes a generated skill.
+
+The one that would have cost someone a run: `substrate-write-protocol.md` taught
+`emit-substrate-write.sh --batch <file>`, and `--batch` is not a flag the helper accepts. It parses
+a subcommand first and its flag loop ends in `die "unknown flag"`, so a command following the block
+literally runs something that exits non-zero. Corrected to the real `batch` subcommand with its full
+argument list.
+
+Also corrected: a parenthetical whose breakdown did not add to its own total (4 plus 7 plus 1 is 12,
+not 11; `REFERENCES.md` is already the seventh fleet-substrate file per `wos/substrate-peers.md`),
+and a `worker_output_schema` comment still calling the fleet-inbox path a "StructuredOutput artifact
+key", the same defect fixed one section later in the previous commit and the same one line 28 of
+that file denies.
+
+Cut under the weight-earned criterion: a list of per-class error counts from other people's audit
+logs, a cross-reference explaining a rule the reader had already been given in full, and
+`per_worker_timeout_ms`, declared under a MUST in `convergence-policy.md` and read by nothing in the
+file, since the barrier, streaming and quorum sections all reason from `timeout_ms` alone.
+
+Net effect on the three files is 302 chars smaller. The value is not the size; it is that a model
+following any of these six lines was being told something the repository does not do.
+
+### Two shared blocks stopped contradicting themselves (catalog audit, wave A)
+
+The first wave of the command-catalog quality audit ran 22 read-only auditors over
+`commands/_shared/`, one per block, against a locked six-criterion rubric, and put every finding
+through an adversarial refuter that defaults to refuted. 104 raw findings, 18 confirmed, 86 refuted.
+Two of the confirmed high-severity ones are fixed here, both stale contract text that told a model
+something the same file already denied.
+
+`substrate-write-protocol.md`, cited by 32 commands, opened by declaring shadow mode: writers emit,
+no reader enforces, validator lands later. Both halves were false. `verify-log-validator.py` has
+existed since 2026-08-11, runs inside `verify-substrate-batch.sh`, and that wrapper is a blocking
+integrity floor at `slice-closure` and `task-close`. Thirty-two commands were being told nothing
+reads what they write, when a non-zero exit blocks the archive.
+
+`worker-contract.md`, cited by 12, told the orchestrator-merger to read worker returns keyed by an
+`artifact=` key that line 28 of the same file says does not exist in that API, and that ADR-0158 D-1
+replaced with a per-path carrier. Every fleet consumer had already been corrected; the contract was
+the last holdout, and `CHANGELOG.md` had recorded it as a known unfixed site.
+
+Both files are path-cited rather than propagated, so no marker syncs and no generated skill changes.
+
+### The installer reports what a mirrored skill set costs per run
+
+The end-of-run summary of `scripts/sync-workflow-slash-commands.sh` now states the Advertise cost
+of the skills it just mirrored, and, when it mirrored everything, what `--profile=minimal` would
+cost instead. Measured 2026-09-03: all 98 skill descriptions are 72,596 chars, about 18,149 tokens,
+paid on every agent run before any work is read; the 19-command minimal spine is 15,304 chars,
+about 3,826. The spine contains the whole Express chain, so roughly 14,300 tokens per run were
+buying descriptions of commands an Express run never invokes.
+
+Nothing about what gets installed changed, and nothing is removed. That is deliberate on both
+counts. The mirror is copy-only, so filtering by default would have left the excluded skills sitting
+in the destination, still advertised, and saved nothing on any machine that had already installed
+the full set. The summary says so, because a report that let someone believe a past full sync had
+stopped costing anything would be worse than no report.
+
+The existing carve-out that keeps a bare invocation unfiltered stands. Its stated objection is to
+acting silently, which reporting answers directly.
+
+`advertise_chars()` sits beside `skill_in_profile()` and is covered by
+`scripts/tests/test-skill-in-profile.sh`, which tests it the same way: extracted and evaluated
+alone, so the suite never runs a script that writes to the user's agent roots. Every skill in the
+repository carries a multi-line description, so the continuation-line case is the normal path; a
+first-line-only parser reads 196 chars instead of 72,596, and the corpus band in the suite is there
+to catch exactly that.
+
+### The commit-evidence floor gains a fifth route (ADR-0194)
+
+A deliverable whose only home is a deliberately and permanently ignored path could not reach any
+route on the commit-evidence floor. Inside `projects/`, `git rev-parse --is-inside-work-tree`
+returns true, so the no-VCS waiver's condition 1 cannot hold; `git check-ignore -v` returns
+`.gitignore:27`, so `commit-ref` needs `-f`; `ref-attested` is routed as the unattended answer; and
+the committing-waiver covers only discardable work. What was left was a bounded deferral recording
+`pending human commit` for a commit that is never coming.
+
+The **ignored-path waiver** closes it, under three conditions: the path is provably ignored and the
+pattern is committed at HEAD, so a run cannot write its own exemption; the ignored path is the
+deliverable's only home and the work is not derived from anything committable, which is what keeps
+build output out; and the preserved work is named. It never fires for an absent, forbidden or
+unattended operator, and it does not travel to `task-close`.
+
+Found by measurement rather than by report: five independent recurrences across four authors of the
+task record, including one still-live block and a 2026-08-09 note that had already named it as item
+2 of a fix program. ADR-0133 saw the question in 2026-08 and left it open on purpose, so that the
+two could be reverted separately. ADR-0128 is untouched.
+
+### The 2026-08-29 audit remediation arc
+
+One entry for the whole arc, so a reader does not have to reconstruct it from 45 commits.
+
+A 14-agent audit of the repository and the market ran on 2026-08-29 and produced a vertical plan
+of 83 slices across ten waves. Six waves were free of owner decisions and ran: 0, 1, 2, 3, 4 and 7,
+49 slices, followed by a consolidation wave. Waves 5, 6, 8, 9 and P did not run. Wave 5 is a gate
+holding eleven owner decisions; wave P is every slice that would write outside this repository,
+and the owner scoped the work to `my_work_tasks` alone on 2026-08-29, so nothing in this arc
+touched the public mirror, the site, or any external registry.
+
+Measured on disk on 2026-08-30, after the arc: 45 commits, 14 new ADRs (0164 through 0177), three
+new eval scenarios (138, 139, 140) and one deleted (15, with ADR-0170), five new `wos/` topics
+(`model-routing.md` plus the four runtime batteries), 176 ADR files, 138 numbered scenarios, 54
+`wos/` topics, 98 commands, 56 structural check lines (55 pass, one advisory warn, zero fail), and
+14 test suites in the CI allowlist.
+
+What the arc actually changed, by theme:
+
+- **Confidentiality.** Engagement provenance was redacted from twelve lines across five files
+  (ADR-0164) and the mirror guard gained a scan for the phrase forms a codename sidecar cannot
+  express, which is why the class had recurred four times.
+- **The always-read surface.** Per-command Role and Next left the spec, the Editor mode policy
+  stopped carrying per-command data, and the registry count went from four surfaces to three
+  (ADR-0165). The Minimum read map got its own guard, after two dead pointers survived inside the
+  one block every command reads on every invocation (ADR-0006).
+- **Guards that were decoration.** `judge.py`, scenario 15 and the `--judge` flag were retired
+  because nothing invoked them (ADR-0170). Three advisories left the lint and became standalone
+  tools, because an advisory that never produced an edit is noise (ADR-0171). Supersession became
+  machine-checked on the superseded ADR, not just declared on the superseding one (ADR-0166).
+- **Contracts made explicit.** `commands/` is a read-only interface with a named external consumer
+  (ADR-0169). A command can be frozen without being deprecated (ADR-0176). Skill metadata values
+  are strings, per the Agent Skills spec (ADR-0168). The `--apply` commit is bare and proves
+  itself by tree hash rather than by path names (ADR-0167).
+- **Evidence floors.** The eval corpus got content floors rather than section headers (scenarios
+  138), fan-out got one floor instead of several (ADR-0173), the eval workspace stays versioned
+  (ADR-0174), and the shown-evidence rule was regrounded on measurement (ADR-0175).
+- **Lazy loading.** The model-selection table moved out of ADR-0025 into `wos/model-routing.md`
+  (ADR-0172), and the four runtime gates gave up their inline adapters for four `wos/` battery
+  topics behind one shared skeleton, with a parity inventory so a later merge has to prove
+  preservation rather than assume it (ADR-0177).
+
+Three findings are open and none was decided here. Two are recorded with measured options in the
+task state: the ADR-0116 load ceiling on one generated skill, and the ADR-0012 bootstrap floor,
+which this arc pushed past its declared value by adding rows to the read map. The third is that
+`test-branch-commit-unchanged.sh` still asserts a D-4 that ADR-0163, ADR-0165 and ADR-0167 have
+superseded; the test sits outside the CI allowlist, so nothing is red, and it was left alone
+rather than edited to pass.
+
+### Changed
+- (Superseded in part later in this release: ADR-0207 retired the Express name, ADR-0208 removed the inline Approval log so every plan routes to `approve-plan`, and ADR-0199 and ADR-0215 write task memory `APPLIED` in every mode, so Ask-mode `task-init` no longer proposes.) Express binds for attended editor runs (ADR-0159, MINOR). When the ADR-0025 criteria hold and a human is in the editor, `implementation-plan` copies the `approve-plan` consistency gate, writes the Approval log, and stamps `plan APPROVED` in existing `## Current phase`. Ask-mode `task-init` stays five-file PROPOSED. Handoff shape is unchanged (four fields). `--apply` creates the local commit after the staged diff is shown (ADR-0163). Merge and push stay human. Unattended, Standard, and Strict paths are unchanged. Eval scenario 137.
+- (Superseded later in this release: the spine grew to 16 commands with ADR-0178 and to 19 with ADR-0182.) `--profile=minimal --with-skills` installs the 14-command spine as skills (ADR-0160). The installer no longer refuses that pair. Help and summary say 14, not 12.
+- (Reversed later in this release: ADR-0179 removed the stand-down, and the floor records who attested.) On attended Express, the experience-verdict floor stands down in favor of the local commit `branch-commit --apply` creates (ADR-0161, ADR-0163). A decorative skip is not the attester. Incomplete display refuses.
+- (Its Express clauses were superseded later in this release by ADR-0207 and ADR-0208; the reader rule stands.) Spine commands read `Operating mode:` from `TASK_STATE.md ## Resume notes` (ADR-0162). A declared `strict` mode defers the Express inline Approval log and Handoffs the next missing of `invariants-and-non-goals`, `test-strategy`, `approve-plan`. Auto-suggestion is not a declaration.
+- `check-substrate-ownership.py` prints one warn-only lint summary line. `--strict` stays off in lint. CI prints `not measured` when `projects/` is absent.
+- Attended `--apply` creates the local commit after the staged diff is shown (ADR-0163). No second confirmation. Push, merge, and force-push stay human. Unattended still refuses.
+- Engagement provenance is redacted from the historical record (ADR-0164). Twelve lines across `ROADMAP.md`, `CHANGELOG.md`, `docs/adr/0041`, `docs/adr/0148` and `docs/adr/README.md` named the engagement a 2026-06-05 design-discovery run served: the product it shipped on, the two flows it traced, and the phrase that labelled a whole coverage batch after the client. The same twelve lines are in the public mirror, which is why this is the fourth pass of the class rather than the first. Seventeen exact string replacements, applied by `scripts/redact-engagement-provenance.py`, which substitutes strings and never line numbers so the same script runs unchanged against both trees, and is idempotent by construction (a second pass reports `TOTAL 0`). Workflow telemetry stays verbatim: 26 agents, 1.3M tokens, 12 minutes, 53 atoms, 24 routes, 5 screens. That telemetry identifies nobody and is the empirical ground ADR-0038 and ADR-0039 cite, so removing it would delete the evidence those two decisions rest on. Editing the ADR-0041 and ADR-0148 bodies in place is recorded as the second exception to ADR immutability, after the 2026-07-10 in-place codename redaction under ADR-0090: a confidentiality defect in an already published record can only be fixed where it was written, and a successor ADR alone leaves the leaked text in place.
+
+- Every command that emits a handoff now knows how to end one. 92 of 98 learn the ADR-0126 terminal form (`Run now: none` with `Mode: N/A`) through the shared bootstrap block; six do not carry that block, and among them are `task-init` and `task-close`, the entry point and the exit of every chain.
+  The six are `task-init`, `task-close`, `project-bootstrap`, `task-workspace`, `capture-references` and `db-context-supabase`. Four carried a hand-written version of the next-command rule with their own invalid-name examples, so the exception sentence was appended rather than folding them onto the shared block and losing the examples. The other two had no such rule at all and received the canonical bullet whole.
+  This is preparation, not polish. The terminal form is about to become the stop primitive of a chaining contract, and a command that cannot say the chain ended will end it dishonestly or not at all.
+- A false ADR citation is removed, and it was carrying 186 of 224 files. `commands/_shared/mandatory-context-bootstrap.md` cited ADR-0025 for its Bootstrap tiers rule; ADR-0025 is complexity routing and contains zero occurrences of the word bootstrap. No ADR decides that rule: `docs/adr/` was searched for the rule's own wording and for bootstrap or context in ADR titles, and no candidate carries it.
+  The citation is gone and the rule stands uncited. ADR-0025's citation surface drops from 224 files to 45, which is the same rule stated once instead of 186 times. Doc-sync goes from 6675 verified references to 6591, still 0 broken.
+  `docs/DELETION_LEDGER.md` is new and tracked. It records what was removed, where it lived, why, and what carries its intent now, so that question has an answer that is not `git log`. It also records the three standing decisions the removals operate under, including the fourth reason a human stop may survive: the agent may not attest to its own work. That clause was added after a six-dimension survey found the first three reasons would have deleted the only rule preventing a chaining agent from satisfying its own human-verdict checkpoint.
+- (The first stop reason was restated later in this release by ADR-0200: an act whose audience is not bounded, not an outward or irreversible one.) The handoff continues the chain instead of recommending it (ADR-0186, MINOR). `Run now:` is what the session does next, and an attended session runs it in the same turn rather than waiting to be asked. Stopping is now the thing that needs a reason, and the reason has to be one of four named in `## Global output contract`: an outward or irreversible act, a decision that changes what the product is, a cost or loop ceiling, or a check of the work the agent cannot honestly run on itself.
+  The grammar did not move. `Run now:` still carries a `commands/` basename or `none`, so `check_handoff_basenames`, `validate-transcript.sh` and its fixtures are untouched, and no command file changed: the contract reaches all 98 through `commands/_shared/handoff-body.md`. Two things did move. `Run now: none` is promoted from an exception to the way a chain ends, and its historical justification came out because it now describes ordinary behavior. Mode B drops its two human-coordination triggers and keeps the two where context is actually gone, auto-compaction and `resume-from-state`.
+  ADR-0044's D9 skip list put "default-no-approval auto-run" out of scope by construction. That entry was measured on the unattended track and is narrowed to it. An attended chain advances without per-step approval; the other four D9 entries stand. Net change inside the four bootstrap sections is +50 characters against a measured ceiling of +546, so the ADR-0012 floor did not move.
+- The ADR corpus becomes the record, not the rulebook (ADR-0187, MINOR). A rule lives in an editable surface: the spec, `wos/`, `commands/`, or `AGENTS.md`. An ADR records why a decision was made. Changing a rule now means editing the surface that holds it, instead of writing a superseding ADR because the older one's body cannot be touched. `AGENTS.md` gains section 6 as the live home for the change policy, and `docs/adr/README.md` keeps the Index and the status vocabulary and loses the policy prose; nothing outside that file referenced the three sections that moved. This generalizes ADR-0172 from operational tables to rules.
+  The wave that produced it promised seventeen Decision-block hoists over about 1410 lines. Measured on disk: of 185 ADRs, 27 carry RFC-2119 language in their Decision block and 26 are cited from no live surface, but the intersection, an ADR whose rule has no live home, is two. ADR-0092's read-only guarantee for `scripts/flow-audit.py` and ADR-0169's interface rule for removing or renaming a command are now stated in `AGENTS.md`. The other 24 uncited ADRs state no rule and need nothing, which the ledger records as a deliberate non-deletion.
+- The Express experience-verdict stand-down leaves the command files (PATCH). ADR-0179 removed it from `wos/closure-floors.md` on 2026-08-30 and the five command sites that echo that floor were never updated: `implement-approved-slice`, `slice-closure`, and `task-close` in three places all still said the floor stands down on attended Express because `branch-commit --apply` is the attester. The canonical file they are told to apply exactly as written carries zero Express stand-downs, so the echo contradicted its own source.
+  This surfaced because ADR-0184 made Express the default tier and ADR-0186 made the chain continue into its own `Run now:`, which together put a rule that lets the agent skip the verdict block onto the default path. The fix is a text removal, not a decision: ADR-0179 point 4 already reads "The Express special case disappears", and the supersession was already marked in both directions. `task-close`'s floor echo now names the `Attested by:` field, valued `run` or `human`, that replaced the stand-down. No new ADR, because no new decision.
+- The public tree is a downstream overwrite target, not a peer (ADR-0188, MINOR). A 2026-08-30 measurement found the public repository is not a subset of staging: five files exist only there, two deliberate audit snapshots and three corpses left behind because a file-copy mirror never removes anything. The owner's answer on 2026-09-01 was that this repository is the source of truth, the work in progress is the new version, and it overwrites the public MIT project, so divergence there is not a defect. B-MIRROR-RESIDUE closes as dismissed rather than fixed, no residue check is built, and the three files stay until a publication replaces them.
+  What the mirror guard actually does is unchanged and stays FAIL-tier: a client codename, an absolute path under `/Users/`, or a ticket id LEAVING this tree. Leakage is irreversible once published; divergence is not. That distinction is what the tree was missing.
+  Decided in the same sitting, the namespace takes route B: `README.md` and `docs/FAQ.md` each gain one line saying the repository is named after the project's site and that cloning it gives the workflow, not the website. Routes A and C are both outside this tree's write scope, and nothing is published under the name `fhorja` today, so route A stays available and cheap until something is.
+- The directive is the missing install step (ADR-0189, MINOR). ADR-0184 made Express the default tier and ADR-0186 made the handoff continue the chain, and neither made the workflow run. Measured 2026-09-01: a model handed a one-file brief in a clone of this repository, with all 98 skills on disk and `CLAUDE.md` loaded, reads the repo accurately, cites an ADR, runs the lint, edits the file, and never opens a task. Twice. The installer writes skills and slash commands and touches no always-loaded instruction file, so an agent gets the vocabulary and never the instruction to use it.
+  A paired A/B on the same brief, same tree, same model, with one paragraph in `CLAUDE.md` as the only variable: with it, `task-init` wrote the five files with substrate headers and bound Express, `implementation-plan` wrote the plan, `implement-approved-slice` wrote a slice note and an evidence file, and the run halted before `branch-commit` on the commit-evidence floor. That is the same stopping point the 2026-08-27 dogfood reached under a hand-written instruction, reached here from a file that is loaded anyway.
+  The paragraph ships as `templates/AGENT_DIRECTIVE.template.md`, pasted once per repository, and the README names it as the third install step. The installer does NOT write it: editing the file that governs an agent's behavior without being asked is the act ADR-0046 gates. This repository's own `CLAUDE.md` carries it, so the dogfood matches the instruction. One model, one brief, one repository: the effect is measured, not established, and the template says so.
+- The spine-eval runner supplies the agent directive, and scenario 137 stops lying about its setup (PATCH). The rubrics grade a command chain, and the assembled prompt described a configuration that does not run one: the brief and nothing else. `build_prompt` gains a `directive` parameter and the runner reads it from `templates/AGENT_DIRECTIVE.template.md`, so there is one source of truth and the eval measures the installed configuration rather than an eval-only fiction. The parameter defaults to none, and a missing template leaves the prompt byte-identical to before plus one line on stderr saying what is being measured instead.
+  Two scenario defects, both found by 2026-09-01 runs rather than by reading. Its `## Setup` claimed `projects/bmazurok__my-work-tasks/` exists; `projects/` is gitignored by design (ADR-0007), so no clone has one and `task-init`'s two-root preflight correctly stops. A run found this unaided and quoted the preflight back. That claim moves to a new `## Operator preconditions` section, which is not inlined into the prompt, because it is an instruction to the person running the eval and never context for the model.
+  And its brief asked for FAQ content already in the file, so a model that correctly declined the redundant edit scored zero on a chain rubric. The brief now targets a sentence verified absent, and the preconditions say to check that before every run. Pass criterion 4 also carried `Merge and push stay human`, stale since ADR-0185 gave the push and the draft PR their own `--apply`; it now says which authorization reaches them. Three checks added to `test-spine-eval-extract.sh`, 23 total, and the directive-leads-turn-1 assertion was proved to bite against a mutated copy.
+  A first run against the fixed harness went 0 of 7 to 2 of 7 and, more to the point, created a task folder: `task-init`, `implementation-plan` with the plan locked on the Express path, and `implement-approved-slice` with the edit and a clean lint. It found the third precondition by running. `branch-commit --apply` refuses to commit onto a default branch, correctly, so a run on `main` routes to `task-workspace` and criterion 4 is unreachable. The scenario now says the tree must be on a non-default branch. The workflow was right and the setup had not said which branch to be on.
+  The verdict parser also dropped criterion 1, and only criterion 1, across all three runs while the grader had answered it every time. `kimi` prefixes its first stdout line with a bullet, which is not whitespace, so the `^\s*-` anchor missed it. The pattern now skips leading list glyphs. Check 24 asserts it and was proved to bite: reverted to whitespace-only, the same input matches 2 and 4 and loses both decorated lines.
+  With all three preconditions met the run reaches the end: zero FAIL, criterion 4 PASS with the full `--apply` display evidence, and a local commit on the branch. The remaining five criteria come back UNCERTAIN for one shared reason their notes state plainly, that the response is a single late-run turn and per-command compliance cannot be verified. A CLI in plain print mode returns its FINAL message, so when a chain runs four commands inside one invocation the intermediate outputs never reach the grader. Two of seven on a run that did everything right is a harness reading, not a workflow reading.
+  The fix is documented rather than coded, because the runner knows no vendor and this is vendor knowledge: `evals/README.md` now carries a flatten recipe for the `--model-cmd` string and `--model-cmd`'s own help points at it. Measured on a three-step prompt: the flattened stream returns all three intermediate messages, plain print mode returns only the last.
+- The eval corpus stops grading a superseded handoff contract (PATCH). The first real spine battery ran on 2026-09-01: four scenarios by two models, cross-graded so no model scored itself, each on a fresh clone on a non-default branch. Scenario 08 passed 8 of 8, 137 went 2 of 7 to 5 of 7 once the transcript reached the grader, and three criteria failed on BOTH models, which is the only signal worth reading because a criterion one model fails is a model and a criterion both fail is the corpus.
+  All three were the corpus. Two required the handoff to start with `Run @commands/<x>.md`, a form that died when the adaptive handoff replaced the paste-this-next contract of ADR-0002 in v2.0.0-rc1: measured, it appears 0 times in the spec, 0 in `commands/`, 0 in `wos/`, and 62 times across the scenarios. The split is the point. 82 of those sit in `## Input prompt`, where it is the operator naming a file to paste, which still works; only 7 sat in criteria or expected-shape sections where they grade OUTPUT. Those 7 are fixed, across five scenarios plus `template.md`, which was propagating the defect into every new scenario. Scenario 01's expected post-init list also predated ADR-0184 and now names the tier's route.
+  The third was a criterion stated more absolutely than the rule it tests: "if a gap exists, the next step is `implement-slice-complement`", where `commands/slice-closure.md` says prefer that for micro-deltas "unless the gap is material". Both models judged the gap material and routed to `implement-approved-slice`, which the command allows. The criterion now turns on the same word the rule does.
+  One finding is NOT an eval defect and is left open rather than papered over: on scenario 01 turn 2 both models ended `task-init` with `Run now: approve-proposed`, a route no command file names, while `task-init` says `implementation-plan` in Ask as well as Agent. Widening the criterion to accept it would be blessing a route because two models took it. The question belongs to the contract: on the Ask path, does `task-init` route to `implementation-plan` over five unapplied PROPOSED files, or is a step missing.
+- (Reversed later in this release: ADR-0199 retired the Ask path, and `approve-proposed` sits outside every default chain.) On the Ask path, `task-init` hands off to `approve-proposed` (ADR-0190, MINOR). This is the finding the line above left open, resolved on measurement rather than on the fact that two models agreed. `task-init` in Ask proposes five files and states they stay PROPOSED; `implementation-plan` reads `TASK_STATE.md`, which is not on disk; and `approve-proposed` persists only the MOST RECENT prior turn's block, stopping at the first intervening block with real decisions. So any command between the two shadows the block it was meant to apply, and the only turn where those files can be written is the one right after `task-init`, which is exactly where both models put it. The Agent path, the Express bind and the unattended carve-out are unchanged.
+- `task-init`'s skill description states a trigger instead of a mechanism (PATCH). It read "Use when starting a new task from zero or near-zero, or when no active task folder exists yet for this work item", which is the vocabulary of someone already inside the workflow, and the rest of the field described what the command CREATES. It now says to use it at the start of any engineering work before the first file is edited, including a one-line docs change, and that small scope is a reason to take the Express pipeline and never a reason to skip the workflow. This is the less invasive alternative ADR-0189 recorded as unmeasured; the MCP seed note was shortened to pay for it, because the trigger is the obligation and that note is elaboration.
+- `CONTRIBUTING.md` says what happens if the maintainer goes quiet (MINOR). A solo project with a BDFL section and zero occurrences of the word succession left the question to guesswork. Dormant after 180 consecutive days with no commit, release, or maintainer reply; dormant is neither abandoned nor deprecated. A security report with no answer at all for 30 days may be published, which sits deliberately above the 14-day acknowledgment `SECURITY.md` already promises, because the two measure different events and a shorter number would put the two public commitments in conflict.
+- The runner's own test suite stops deleting real run artifacts (PATCH). `test-run-spine-evals.sh` carried a blunt `rm -rf evals/runs` in the middle of the file. On 2026-09-01 the suite ran after an eight-run battery and every prompt, response, grader reply and verdict was gone before the two failed runs could be diagnosed. The directory is gitignored, so nothing noticed and nothing reported it. The cleanup now removes only the run directories the suite created, which is the shape the checks further down the same file already used, with a comment there saying nothing should ever dirty the real tree.
+  Check 21 asserts it, and getting the check right took two tries worth recording. The first version planted its sentinel next to the check at the end of the file, after every cleanup had already run, so it passed against the blunt version it was written to catch. The sentinel is now planted before the snapshot at the top, and the mutated copy fails 21 while the fixed one passes.
+- Scenario 137's model timeout goes from 900 to 1800 seconds (PATCH). It is the only spine scenario whose input is a whole chain, four commands in one invocation, while the other four are one or two turns, and 900 was uniform across the manifest rather than tuned per scenario. kimi exceeded it on 2026-09-01 and returned no verdict. The manifest records that 1800 is a bound and not a measurement, because the run that would have measured it is the one that timed out.
+- (Reversed later in this release along with ADR-0190 itself, by ADR-0199.) Scenario 01's turn-2 criterion catches up with ADR-0190 (PATCH). Both turns of that scenario are `Mode: Ask`, so `task-init` hands off to `approve-proposed`, and the criterion was rewritten the same morning to require the bound tier's route instead. It then failed a correct run: the model produced `approve-proposed` and the criterion, three hours older than the ADR, marked it wrong. The criterion now grades the Ask route and carries the episode in its own text, because a criterion that has already misled once should say so.
+- `task-close` condition 4 is checked, and solo governance is declared rather than inferred from infrastructure (ADR-0191, MINOR). Running the command on 2026-09-01 blocked, correctly under the rule and wrongly in substance. The solo/local auto-waiver needs three signals, and only one holds here: `origin` is the maintainer's staging remote and `main` exists. Its first signal proxies solo as "no configured git remote", and a solo maintainer who publishes has one, so this repository could never reach its own auto-waiver, in the repository where the rule was written. Third recurrence: the knowledge index records the same note on the 2026-08-13 closure, and twice it was written down as an observation instead of becoming a change.
+- Advisory drift sweep after the arc: nothing new (no code change). Six checkers the lint does not run were measured on 2026-09-02, after eight ADRs and four document rewrites. `check-natural-voice.sh` reports 13 advisory hits across 10 files and 0 emoji, identical to the pre-arc baseline. `flow-audit.py` reports zero commands with no inbound reference and 13 with exactly one, matching the lint's own `Flow-orphans: 0` line. `check-substrate-ownership.py` shows its advisory hatches absorbing writes by class as designed, `check-substrate-retention.sh` reports `not measured` with no sidecar, and `check-mcp-pins.sh` is clean at 1 of 1 declared server.
+  `check-gate-provenance.sh` reports 5 uncited gates across 4 files, and all five were blamed rather than assumed: the newest is 2026-08-06 and the arc began 2026-09-01, so none belongs to it. They are left alone, because ADR-0171 removed this checker from the lint on the grounds that it never produced an edit, and promoting a standing advisory into work is an owner decision.
+  The value here is the negative result. Twenty-four commits and four rewritten documents in two days moved none of these numbers.
+- (The Ask-mode route to `approve-proposed` that criterion 4 accepted was reversed later in this release by ADR-0199.) Scenario 08's criteria 4 and 5 stop failing correct runs (PATCH). grok finished the two scenarios it had been killed on, closing the matrix at three models over four scenarios. It took 7 of 7 on scenario 01, the first full pass any model has had there, and its criterion 6 confirms the 2026-09-01 fix by execution: "the fenced handoff begins with the valid Ask-mode route `Run now: /approve-proposed`".
+  Scenario 08 came back 6 of 8, and both failures were the criteria. Criterion 4 required the strict run to route to `invariants-and-non-goals`, but run 2 is `task-init` in Ask mode, where the route is `approve-proposed` (ADR-0190); grok's own reason line read "persist the five PROPOSED files, then implementation-plan with no Express Approval log, then invariants-and-non-goals", which is the correct strict sequence, and it was failed on the first token. That is the THIRD scenario carrying the pre-ADR-0190 assumption.
+  Criterion 5 failed the run for placing a self-verification checklist after a complete four-field Handoff, and it found a real ambiguity rather than a model defect: `commands/task-init.md` opens "Output ends with a complete `### Handoff` block" and then defines the failure as a response that ends "WITHOUT a complete Handoff". The criterion now grades presence and completeness. Whether the Handoff must be the LAST block is left open and recorded: under ADR-0186 a transport reads that line, a parser taking the last block would break on trailing content, and the phrase lives in 36 command files, so it is a fan-out and an owner decision rather than a wording fix.
+  Counted across both batteries: every criterion that failed on more than one model resolved to a defect in the eval corpus or the scenario setup, and none to a workflow defect. The corpus was grading three superseded contracts.
+- `WORKFLOW_DEMO.md` says its per-turn shape is a teaching device, not how a session runs (PATCH). The check found the same defect class the FAQ had: 19 `Run @commands/` lines opening turns, each following a `Run now:` line that ended the turn before, which is seven rounds of the paste relay the current contract removed and `evals/scenarios/137` grades as a FAIL.
+  Fixed with one bullet in `## Before the first command` rather than by rewriting thirteen turns. The document's side-by-side shape, what a command receives next to what it emits, is the clearest way to learn the contract and is worth keeping; what was wrong is that it implied the reader must type each hop. The bullet says the `Run now:` line is what the session does next by itself, that the `Run @commands/...` lines show what the next command received rather than what you send, that a chained turn emits one Handoff for the whole turn, and that what still needs a person is the named stops plus the push and draft PR behind their own flag. 875 lines to 876.
+- (The Ask-mode route to `approve-proposed` this entry mentions was reversed later in this release by ADR-0199.) `docs/MIGRATION.md` gets the entry for this batch (PATCH). It stopped at v1.2.0, and measured before writing: ADR-0159, ADR-0161, ADR-0184, ADR-0185, ADR-0186, ADR-0189, ADR-0190 and ADR-0192 had zero mentions there, and so did `AGENT_DIRECTIVE`, `approve-proposed` and `pr-package --apply`. A reader upgrading had no way to learn that the tier default inverted or that the chain now runs itself.
+  The entry is written for someone already using Fhorja, not as an ADR list. Three changes land together and it says so: Express is the default rather than the earned tier and escalation must name a checkable disqualifier; every `Run now:` is what the session does next, with four named stop reasons; and the directive paste in `templates/AGENT_DIRECTIVE.template.md` is a new per-repository install step, which is the one that decides whether the other two reach the reader at all. Two smaller notes follow, the Ask-mode route to `approve-proposed` and one Handoff block per turn rather than per command.
+  It repeats the sync instruction the ADR-0163 entry above it already uses, because without a re-run of `sync-workflow-slash-commands.sh` the installed skills keep the older behavior and the directive paste alone does not change that. Skills sync by default since 2026-07-18; `--with-skills` is kept only for compatibility.
+- The user-facing docs say who runs the next command (PATCH). The FAQ carried "Why are commands user-invoked instead of model-invoked?", whose answer contradicted what shipped in three places: it said commands are invoked when the user decides the phase is right, called the Handoff copy-paste, and cited ADR-0002, which has been Superseded since the adaptive handoff replaced it. ADR-0186 was the arc's largest behavior change and no user-facing document mentioned it.
+  It is now "Who runs the next command, me or the session?", and it says what is true: you decide what to work on, the session carries the chain, stopping needs one of four named reasons, and a small task goes from a one-sentence brief to a local commit without a command typed in between. It also says the two things a reader would otherwise discover the hard way: the chain does not start on its own without the `templates/AGENT_DIRECTIVE.template.md` paste, and chaining is not uniform across models or even across runs of one model.
+  A second question was added, "Why do four commands produce one Handoff block?", because ADR-0192 makes a chained turn report once and a reader counting blocks would conclude the chain did not run. The answer says to read the task folder rather than count blocks. `README.md`'s install section stops telling the reader to follow the handoff and says the session follows its own `Run now:` line.
+- A rule that turns on a word now asks for that word, and a verdict points at the response (ADR-0193, MINOR). Two defects with one shape: a decision made from something nobody was asked to produce. `slice-closure` routes a follow-up to `implement-slice-complement` for explicit micro-deltas "unless the gap is material", and never asked the output to record which of the two the gap was. All three models faced it and none classified it; they were not refusing, they were never asked. The output SHALL now name it `micro-delta` or `material`, and an unclassified follow-up is incomplete output.
+  The eval runner now prints, for every criterion that is not PASS, the path to the response files and the fact that the notes beside them are the grader's READING and not the model's words. Two successive wrong conclusions were drawn from those notes on 2026-09-01, first that a command's handoff target was underspecified and then that two of three models had missed a lazy-loaded floor; reading the responses showed the command was specified, all three had detected the floor, and what they had found was an absent fixture. Either conclusion would have changed a command that did not need changing.
+  The second half is deliberately a mechanism and not a documented rule. The obvious response is a rule saying read the response first, and that rule already existed, in the head of the person who broke it three times in one afternoon. A line of output at the point of the mistake cannot be forgotten; a paragraph every reader pays gets skipped by the reader in a hurry, who is the one making the mistake. Asserted by check 22 in `scripts/tests/test-run-spine-evals.sh`, 22 checks total.
+- A turn that runs several commands reports once (ADR-0192, MINOR). ADR-0186 made an attended session continue into its own `Run now:` in the same turn and never said what the output contract means once four commands run inside one turn. The contract it inherited was written for one command per turn, and the ambiguity had a grader: `evals/scenarios/137` criterion 5 read "Four-field Handoff on every command" and would fail a correct run.
+  Measured 2026-09-02, three models on one chain with transcripts flattened so every intermediate message reached the record. codex ran the chain and past it: six `Run now:` lines, six complete blocks. grok ran the same chain and emitted ONE block, `Run now: none`, while its output carried the five genesis files, the Express plan with its Approval log, the closed slice, the emitted substrate batch and its verification, and the full `--apply` proof with `T_shown`, `HEAD_before`, `HEAD_after` and the tree match; it committed and stopped because merge needs a human. claude ran `task-init` only.
+  So `### Artifact changes` and `### Handoff` are emitted once for the turn. The per-command record is the substrate each command writes, and one block per command is not wrong, only more verbose. The spec already read this way for one section, calling `### Artifact changes` "the single proposal surface per turn"; this extends it to the only other per-command block. Net +331 chars inside the four bootstrap sections: a first draft at +525 pushed the declared floor 7 tokens past tolerance, the guard refused it, and the measurement sentence moved to the ADR where it belonged.
+  The ADR records what it does NOT decide: chaining itself is not uniform, within one model as well as across models, and no wording here fixes that. ADR-0186 and ADR-0189 buy that the chain CAN run and that nothing structural stops it; they do not buy that it always will.
+- Scenario 03 criterion 3 grades the floor that actually decides, and the previous entry about it was wrong (PATCH). It claimed the command's inline-close handoff target was underspecified because three models produced three targets. Measured after: `commands/implement-approved-slice.md:99-103` carries a four-branch decision list and `:104` refers back to whichever branch applied, so the command is specified. And none of those branches was supposed to run: slice 01's scope creates `src/handlers/prices.ts` and registers a route in `src/routes.ts`, which is the backend HTTP signature, so the backend-runtime-gate floor fires (ADR-0127) and blocks the inline close before the routing list is reached.
+  Corrected again the next day, from the responses rather than the verdicts. All three models DID detect the backend floor: grok names `backend-runtime-gate` five times, claude cites the signature-detection line by number, codex writes "The skill's backend-route gate applies here". What all three found is that the fixture does not exist: `projects/acme__widget-pricing/` is not on disk and neither is the product workspace. The `## Setup` says "Assume an active task at ...", and a model with a real tree does not assume, it checks and routes to recovery. The three answers are three defensible recoveries and no model was wrong.
+  That is the fourth occurrence of one harness defect, an inline-context scenario asserting filesystem state the run does not have; scenario 137 carried it twice. Scenario 03 gains an `## Operator preconditions` section, which the prompt builder does not inline, and criterion 3 is now explicitly not gradeable without the fixture staged.
+  grok's `api-runtime-verify` was therefore right and the criterion marked it wrong. The two that missed, codex with `none` and claude with `project-bootstrap`, missed a lazy-loaded floor: `wos/platform-runtime-floors.md` loads only on a platform signature, and two of three models did not detect one in a scope line naming a route handler. That is the finding, and it is about behavior rather than command text. The criterion now grades the floor and keeps both wrong versions in its own text, because the trap caught two authors in a row.
+  Condition 4 leaves the waiver and becomes a check, `git merge-base --is-ancestor`. It was answerable all along: the same blocked closure had all five cited commits as ancestors of `main`. A waiver for an answerable condition throws away the answer, which is the general form and the reason this is a decision rather than a wording fix. Where no integration branch exists the condition is not-applicable and says so; push is a separate act and the condition does not ask about it.
+  Condition 3's waiver gains a second route: the project declaring a single-maintainer model in `CONTRIBUTING.md`. A declaration is stronger evidence than infrastructure and is what the condition is about. Commit history is explicitly NOT a signal, recorded in the command so a later author does not retry it: `git log --format='%ae' | sort -u` returns two addresses for one person here, so an author count reads this project as a team. Everything else stands, including the verbatim recording, the excluded floors, and the explicit-waiver fallback.
+  No successor is named, and the section says so rather than leaving it implied. What it does instead is make a fork the sanctioned path: the project is MIT, so a fork of a dormant project is the expected outcome, not a hostile act.
+- (ADR-0200 later in this release restated the test as bounded audience rather than reversibility; the flag behaves the same.) `pr-package --apply` pushes the branch and opens a DRAFT pull request in one authorization (ADR-0185, MINOR). Agent mode only. Without the flag the command is unchanged and writes nothing outward.
+  It prints the remote URL literally, the branch, the base, the PR title and the full body before acting, because a push to the wrong remote is the failure that display exists to catch. It refuses, naming which refusal fired, on a missing remote, a base-branch target, an uncommitted diff scope, or a mirror remote. Never ready-for-review, never merge, never force-push.
+  Draft is what makes one authorization enough: a draft notifies no reviewer and can be closed, so it is recoverable. That is the same reversibility test ADR-0163 used to let `branch-commit --apply` write local history without a second prompt, applied one step further out and stopping exactly where reversibility stops. Merge stays human and has no flag.
+  This is the first command in the workflow that acts outward, and the ADR records that plainly: a mistake here is visible to anyone with repository access in a way a local commit is not.
+- (ADR-0207 later in this release retired the tier names, Express included; the default path and the named-disqualifier rule stand.) Express is the default tier (ADR-0184, MINOR). `task-init` starts at Express and escalates only on a NAMED disqualifier, written into `## Recommended pipeline`. An escalation with no named signal is invalid output.
+  This inverts ADR-0025's one-line tie-breaker, "classify as Standard when uncertain". Uncertainty is now explicitly not a disqualifier: a model that cannot tell whether a two-file docs change needs `impact-analysis` is not expressing risk, it is expressing that it has not looked, and routing on that bought no safety and cost a command. An escalation from uncertainty was also unfalsifiable by construction; a named signal can be checked.
+  Nothing about the tiers changed. Standard still fires on more than one sentence of scope or 5 or more files, Disciplined on a decision the prompt does not contain or a multi-package or external-service change, Strict on auth, payments, compliance, PII or multi-tenant isolation. Every safety property ADR-0025 bought stays bought; what moved is the burden of proof. The unattended carve-out of ADR-0159 and ADR-0044 D9 are untouched, because this is about the attended default and not about autonomy.
+  The honest cost, recorded in the ADR: a task that genuinely needed `impact-analysis` and shows no listed signal now runs Express and finds out later. It is bounded by the Strict list being categorical rather than a judgment call, and by `what-next` re-reading the bar against the current known scope at any point.
+- Two findings from an Express dogfood run of the whole chain on 2026-08-31, both about a rule that was mandatory in prose and unenforced in flow.
+  `emit-substrate-write.sh apply` now creates a section that does not exist instead of refusing. Writing a new H2 is the ordinary case, `task-init`'s genesis and `implementation-plan`'s `## Approval log` among them, and refusing it sent every caller back to hand-inserting the heading and its transaction header, which is the manual step `apply` exists to remove. A duplicate still refuses, because the splice boundary is not fence-aware. The success line says `created` rather than `applied`, so a typo in `--section` is visible instead of silent.
+  `implement-approved-slice` gains the integrity floor that `slice-closure` already had: `verify-substrate-batch.sh` ran and exited 0, or an explicit waiver line is recorded. The inline-close path is the one the Express tier uses, and it was the only closing path with no check that the K.2 headers and log lines it was told to write actually exist. Nothing in the chain between `task-init` and the commit verified them; the drift guard only fires at the next `repo-consistency-sweep`.
+  The apply test kept three assertions on the old contract. They were replaced by seven on the new one, not deleted: the heading appears exactly once, the body lands, a transaction header sits above it, exactly one JSONL line is appended, and it is logged as a genesis write. The die message and one test label still explained the H2 refusal with "apply never creates sections", which stopped being true; both now give the real reason, that an H2 inside the body would move the boundary the hash covers.
+- Seven commands are frozen, the first use of the ADR-0176 field: `workflow-guide` and the six of the design-system family (`component-spec`, `design-bootstrap`, `journey-map`, `pattern-doc`, `design-spec-review`, `foundation-audit`). Frozen means they work and stay installed and receive no further investment. The lint reports 7 frozen and 91 active.
+  Frozen rather than removed, and the measurement is why. Six of the seven are cited by living commands, `design-bootstrap` by seven of them, so removing those rewrites routes instead of deleting files. Even the one no living command cites, `pattern-doc`, reaches twelve live surfaces: three registries, README, ROADMAP, `wos/entry-points.md`, a line inside `design-bootstrap`, and two routing-probe fixtures that assert a prompt routes to it.
+  So removal is one deliberate decision about the design cluster with its own ADR, not seven small ones, and freezing first is the reversible order: it costs one frontmatter line and unfreezing costs deleting it. The ladder now carries a `### Frozen commands` table with the date and the reason per command.
+- (ADR-0207 later in this release retired the Express name.) The Express bind stays at `task-init` and slice B3b does not run (ADR-0183). The argument for moving it to `implementation-plan` was that a plan failing one count would leave the closure floor standing down with no bind, and E2.C had already removed that stand-down: all six remaining clauses in `wos/closure-floors.md` are the Godot signature and none is conditioned on Express.
+  Two more findings, both fixable but neither free. One of the five proposed counts is not countable: the substrate matrix defines no open-DECISION state, and across 510 real `DECISIONS.md` files the open state appears in 71 heading spellings, so the criterion that exists to replace judgment with counting would have reintroduced it. And `what-next` re-checks the same Express bar over the prompt while sitting outside the slice's scope.
+  The door is not closed. Deciding the tier over an artifact stays coherent; what is recorded is that the version on the table was larger than moving one paragraph, and that its motivating defect was already gone.
+- The minimal profile goes from 16 to 19 commands and stops routing where it cannot reach (ADR-0182, MINOR). `incident-triage`, `capture-observation` and `capture-references` join the spine, `TIER_ROUTE_OPEN` becomes empty, and `check_tier_routing_closure` passes with no exemption at all.
+  The plan was to promote `incident-triage` alone, at 17. That does not close: promoting it drags its own routes to `capture-observation` and `capture-references` into the tier question, so the check went from one finding to two. The transitive closure terminates at three and does not cascade further.
+  Nineteen is the coherent number and not just the reachable one. The abstention rule in `commands/_shared/claim-grounding.md` is carried by 98 of 98 commands and routes to `capture-references` when grounding is missing, so a profile that can abstain but cannot run the remedy it names was incomplete on its own terms.
+  No command text changed, only three `x-wos-profiles` lines. A first attempt reworded the abstention rule's menu across all 98 commands; the closure made it unnecessary, because two of the three commands the menu already named are now in minimal, and that edit was reverted.
+- The maturity ladder gains a fifth demotion rule, and it is the first that fires on silence rather than on quality (ADR-0181). A persona at L3 or above with no owner write for 90 days since promotion demotes one level, with the same ceremony as promotion.
+  Three parameters, each fixed by measurement rather than preference. 90 days because the census already reasons in a 90-day window and the ladder already carried a 30-day precedent, and because the floor is 62: the most recent of the three personas the rule must not catch wrote 61 days ago. Counted by `owner` and never by `invoked_by`, because the two it exists to catch carry 4 and 5 `invoked_by` writes and counting both would make it catch nobody. Personas only, which is what the ladder already declares.
+  The rule names both sides of the boundary, the two it catches and the three it does not, with their counts, so a later reader can check it against the personas instead of trusting the threshold. It is documentary until a lint hook enforces it, and the `Ladder-demand:` lint line stays advisory: its wording now says it reports the input to the rule rather than claiming there is no rule, which stopped being true when the rule was written.
+- The reference-grounding gate keeps step 1 inline and lazy-loads the rest (ADR-0180). Detect stays where it was in all four carriers, because its outcome is what decides whether anything else applies and a detector behind a lazy load is a gate that never fires. Rules 2 to 7 move to `wos/reference-grounding.md` and load only when step 1 finds an external contract.
+  The inline block goes from 8487 to 1874 characters. `implement-approved-slice` goes from 4 characters of ADR-0116 headroom to 6722 and `implement-fleet` from 2897 to 9615, so the two commands closest to the ceiling can take a rule again. The rule text did not change; only where it is read.
+  Four carriers, not eleven. A first count matched `shared:reference-grounding` as a prefix and swept in the seven commands that carry `reference-grounding-design`, a different block (ADR-0043 D-3) that marks instead of refusing and is untouched here.
+  `check_unconditional_load_declared` rejected the pointer's first draft. It explained the conditionality by contrasting it with the closure floors, which do fire on every slice, and that phrase sat on the same line as the topic name, so a line-scoped reader binds the two and reads the load as unconditional. The guard was right and the comparison came out.
+- `implement-approved-slice` now names the per-slice evidence file, in 181 characters. Each validated exit criterion is appended to `SLICES/*.evidence.md`, one file per slice, one block per criterion, output verbatim, and that file sits outside the substrate write protocol.
+  The rule shipped short because the budget said so, not because the obligation shrank. The prescribed literal ran 816 characters against 186 of headroom under the ADR-0116 40000-char skill ceiling, and the eight longest lines of the command are all normative, so there was no redundant text to free. The four obligations are all present; what came out is the historical justification and a sentence about the deterministic gate, which belongs to ADR-0048 and not to this bullet.
+  The generated skill goes from 39814 to 39996 against the 40000 ceiling. Four characters of headroom, which is worth saying plainly: the next character added to this command breaks the ceiling, and the `skill-load-budget` check names it in the warning band on every run.
+- A passing guard proves nothing on its own, so `evals/scripts/guard-mutation.py` now proves the covered ones BITE. For each, it builds a clean fixture, requires the check to pass on it, applies one named mutation, and requires the check to fail. Both directions, every run, because a control that fails on a clean fixture is as much a defect as a mutation that does not bite.
+  Five checks are covered today, including the three budget ceilings the repository guards: the ADR-0116 40000-char skill Load ceiling, the ADR-0135 Advertise aggregate, and the spec non-regression ceiling. `check_spec_size_budget` gained a `root=` parameter so it could be pointed at a fixture at all, which is how the other sixteen already work.
+  Coverage is reported and never claimed. The harness prints how many checks it tested, how many accept a fixture root, and how many read the real tree directly and therefore cannot be mutation-tested until they take one. Measured today: 5 tested, 17 reachable, 43 out of reach.
+  `scripts/tests/test-guard-mutation.sh` joins the CI suite allowlist, which goes from 17 to 18. Its load-bearing assertion is not that the harness exits 0: it feeds the harness a guard that never fails and requires it to report ASLEEP and exit 1. Proven on a copy with one mutation neutralised, where the suite fails as it should.
+- `check-installed-skills-drift.sh` was green about the one field it read and blind to the file around it. Measured 2026-08-30 it reported `0 differ` across all three agent roots while 98 of 98 installed skill bodies differed from the repo. It compared the `description` and nothing else.
+  It now compares three things: the description, the whole SKILL.md body byte for byte, and the docs payload beside the skills (the wos topic count and the spec size). On this machine that turns a false clean into `98 distinct body(ies) differ`, with `wos 55 installed vs 54 in the repo` and `spec 81706 vs 81210 bytes` on two roots and `payload not measured` on the third, which has no `workflow-docs/` at all.
+  The cause is one older generator's frontmatter shape rather than 98 separate stalings: the installed copies carry list-valued layer keys and unquoted scalars against the repo's quoted ones. One cause, 98 files, and nothing had reported it.
+  It stays warn-only and local-only. The lint still exits 0 with the line red, an absent root still reports `not measured` rather than clean, and a root whose payload directory is missing says so instead of counting zero. Proven on stub roots in both directions: identical copies report 0, a body mutated with its description left intact is caught, and a payload short one topic is caught.
+- `scripts/flow-audit.py --demand` reports the demand behind each persona: one line per `commands/*/SKILL.md` with its owner tasks, owner writes, and `maturity_level`. `lint-commands.sh` surfaces the count as a warn-only `Ladder-demand:` line. Both report and decide nothing. There is no window and no demotion here, because the ladder's demand-based demotion rule is not written and its window is an open question.
+  Counting is by `owner` and not by `invoked_by`, and the difference inverts the answer rather than shading it. Measured 2026-08-30: the two L3 personas with zero owner writes have 4 and 5 writes as `invoked_by`. Counting both, over a 90 day window, the rule that exists to catch exactly those two catches nobody.
+  Telemetry lives under `projects/`, which is gitignored, so a tree without it prints `not measured` on every line rather than `0`. A zero read as absence of demand would accuse every persona in CI. That is the same `not measured` distinction `check-substrate-ownership.py` and `check-installed-skills-drift.sh` already make, and the lint line makes it too.
+- Four commands read as violating a rule they themselves carry. `wos/active-epistemic-humility.md` Part 1.3 scopes its prohibition ("no confidence field, no numeric threshold, and no self-assessment prompt anywhere IN THIS CONTRACT"), and the shared claim-grounding block that 99 files carry drops the scope: "Do NOT add a confidence field, a numeric threshold, or a self-assessment prompt anywhere". Meanwhile `code-locate`, `repo-consistency-sweep`, `external-research-fleet` and `stack-recommend` each declare a graded confidence field in their own output contract.
+  Part 1.3 now names the carve-out and says what separates it from the forbidden form: every one of those grades states the basis it grades against, which is the same referent-not-feeling test rule 1.3 already rests on. Each of the four points back at the carve-out from beside its own field, so the reconciliation is where a reader meets the contradiction and not only in the doctrine.
+  The shared block was NOT edited. It is embedded in 89 of 89 flat commands, and the largest generated skill has 186 characters of headroom under the ADR-0116 ceiling, so a sentence added there is the most expensive sentence in the repo. The doctrine is lazy-loaded and pays nothing.
+  A new structural check makes the carve-out and the disk agree in both directions: a fifth command that declares a graded field fails, and a carve-out entry whose command stopped declaring one fails too. The list is read from the doctrine rather than hardcoded. `scripts/check-claim-grounding.sh` was deliberately not widened to cover this: its pattern is assignment-shaped (`confidence: high`) and finds zero matches across the 98 commands, because the four declare through a JSON enum, a table column, and a slash-separated scale instead.
+- Two supersessions that had happened were not recorded where a reader looks. ADR-0147's D-2 lint line was removed by ADR-0171 and ADR-0019's mechanism was retired by ADR-0170, and both superseded files still read as fully in force. Per ADR-0166 the record goes in the Status line, never in the body: ADR-0147 and ADR-0019 now name their superseder there, and ADR-0171 declares its own partial supersession in a header line, the form ADR-0158 and ADR-0167 already use.
+  The guard that was supposed to catch this could not see either one. `check_supersession_marked` only matched a declaration written as its own `Supersedes` header, so the four ADRs that declare inside their Status line (0170, 0175, 0178, 0179) were invisible and the check reported clean. It now walks a Status-line declaration too.
+  Widening a guard can accuse a legitimate case, so the radius was measured before the edit. A bare read of those Status lines produced two findings, one of them false: ADR-0179's Status ends with "Does NOT supersede ADR-0048", and harvesting ids from the whole line accused ADR-0048 of failing to record a supersession its superseder says does not exist. The scan now starts at the active verb and stops at the denial, which is also what separates a declaring line from a receiving one. Four ADRs declare, sixteen receive, and the split is clean.
+  Proof it bites: run against the ADR tree reconstructed from `HEAD`, the widened check reports the ADR-0019 case and fails; on the tree with the three Status lines fixed it is green. Six fixture cases cover declares-and-unrecorded, declares-and-recorded, the denial, a receiving-only Status, the header form still working, and an empty `docs/adr/` still failing closed.
+- Three topics stop promising a lint line that ADR-0171 removed. That decision left the rule and took the trigger, and says so itself: "what leaves is the sentence promising a lint line, not the rule the line was measuring". Three sentences in `wos/` were the sentence it meant, and they survived it.
+  Confirmed against the live output rather than inferred: `Natural-voice`, `Gate-provenance` and the `Clarify` marker count appear nowhere in a full `lint-commands.sh` run, the lint does not invoke `check-natural-voice.sh` or `check-gate-provenance.sh`, and it does not grep `projects/*/active` for anything. `wos/natural-voice.md` still said the catalog is "surfaced on the lint `Natural-voice:` summary line under `--verbose` / `--strict`", `wos/anti-patterns.md` still told a reader to "treat the lint `Natural-voice:` advisory line as a prompt to review", and `wos/cross-cutting-workflow-guardrails.md` still said the lint counts NEEDS CLARIFICATION markers per task folder.
+  The rules stay. The natural-voice catalog is still advisory and still triaged by a human; what changed is that `scripts/check-natural-voice.sh` is run on purpose, which is the phrasing `CLAUDE.md`, `CONTRIBUTING.md` and the spec already use. The marker bullet was deleted rather than reworded, because unlike the other two ADR-0171 kept no standalone tool for it: nothing in `scripts/` counts those markers now. What the marker bullet claimed was reporting, and the two bullets under it carry the enforcement, `approve-plan` refusing to lock a plan and `implement-approved-slice` refusing to execute while markers remain. Both are untouched.
+  The plan named three lines and there were three, which has not been true of every item in this arc. Measured over every live surface with a broad pattern, five more mention these checkers and all five were already correct: `CLAUDE.md` in two places, `CONTRIBUTING.md`, the spec, and `evals/skill-evals/README.md`, which cites the natural-voice advisory as a precedent rather than as a lint line. Zero false claims remain.
+- The registry count says three, which is what both guards that measure it report. ADR-0165 moved the per-command Command roles index out of the always-read spec on 2026-08-30 and states the consequence in its own body, "adding a command now means three registrations". Six live surfaces still said four, and `README.md` was the worst of them because it did not just carry a stale number, it named the four and one of the four no longer exists.
+  Two guards already measure this and both say three. `lint-commands.sh` prints `Registry: 98 command(s), 98 in all 3 registries, 0 gap(s)` on every run, and its predicate reads exactly three files. `scripts/audit/baseline_audit.py` builds its registry map from the same three. So the correction is not a judgment call: it is prose catching up with two live measurements and a dated decision.
+  The plan named two lines. Measured across every live surface, excluding ADR bodies, `_internal/` snapshots and this file, where the number is history rather than drift, there were six. Two of the four the plan did not name sit in eval scenario 131, one in its setup and one in a pass criterion that explains a green by saying a command "pays all four registry rows", which is the shape of a test asserting a contract that has been superseded. One more is `scripts/audit/README.md`, which described the function immediately below it as checking four registries when the function's own dictionary has three keys.
+  `README.md` now names the three and says which decision narrowed it, so a reader who remembers four learns where the fourth went rather than wondering whether the doc is wrong. Zero live claims of four remain, measured the same way after.
+- No fleet command tells a worker to call a tool it was not given. `commands/_shared/worker-contract.md` already states the rule and states it sharply: on the dynamic-workflow path the script declares the shape and the runtime drives the `StructuredOutput` call, the worker is never told about that tool, and there is no `artifact=` key in that API; on the `Agent` path there is no typed-return primitive at all. Its own sentence is the test, "a command that mandates `StructuredOutput` MUST name the workflow path it depends on, or it is instructing a worker to call a tool it does not have", and ADR-0158 D-1 is the dated decision behind it, naming the carrier per path and superseding ADR-0038 Rule 1's return mechanism.
+  Measured against that rule before editing: of the seven fleet commands, four mandated `StructuredOutput` with no path named, and four instructed a worker to invoke it with an `artifact=` key the contract says does not exist. The two sets overlap but are not the same, which is why both are now asserted separately. Three commands already carried the scoping clause and it is byte-identical across them, so it was copied verbatim rather than paraphrased.
+  The `artifact=` lines were the sharper half. They are not a naming slip: they are a worker prompt ending in an instruction to call a named tool with a named parameter, on a path where neither exists. They now name the carrier per dispatch path in ADR-0158's own words, the runtime's call on one path and `fleet-inbox/<run_id>/<worker_id>.json` on the other. `wos/anti-patterns.md` gets the same treatment: its schema-skip mitigation told every dispatched prompt to end with a reminder to call that tool, which on the Agent path is a reminder about nothing.
+  `check_structured_output_names_its_path` makes the contract's own MUST enforceable, keyed on ADR-0158, because nothing checked it: `grep -rn 0158 evals/` returned nothing at all before this. Six directional proofs, including a fail-closed empty subject, and it was run against the tree as it stood at HEAD, where it reports 8 findings across 5 commands and matches the count measured by hand. Zero after.
+  The plan said the bare `artifact=` mandate sat in two commands. It sat in four, and the fourth was one of the three the plan treats as already correct: `verify-against-rubric-fleet` named the path and still told its worker to return with an `artifact=` key, so the exemplar carried the defect it was cited as an exemplar against. One same-class site is recorded and not fixed here, since the plan does not name it and it is the contract rather than a consumer: `worker-contract.md` line 76 keys the merger's read by `artifact=fleet-inbox/...`, 48 lines after line 28 says that key does not exist.
+- The 25-agent batch ceiling says which dispatch path it is the ceiling for. ADR-0039 scopes its own decision in its first line, "for read-only or independent documentation work dispatched via the workflow tool", and `wos/workflow-patterns.md` already carries the boundary in prose: the over-batching tolerance holds on the dynamic-workflow path only and does not transfer to the `Agent`-tool path the fleet commands actually dispatch on, where the 21st concurrent sub-agent fails and the error instructs no retry. Three normative statements repeated the number and dropped the scope.
+  The sharpest one was inside a single section of `wos/entry-points.md`. Its "When to use" listed fleet audits among the examples for a 15-to-25 batch, and the very next line said the sizing is for research and audit batches, not for slice fleets. So the same section invited and forbade the same thing, and the invitation came first. A fleet command dispatches on the Agent-tool path where its own `max_fanout` binds, which after the previous change is 16 on three of them against a ceiling of 20, so sizing one at 25 aims a run past a hard limit.
+  The scope is now stated where the sizing is stated rather than four lines below it, using ADR-0039's own words and the sentence `workflow-patterns.md` already uses. The guardrail adds that the 25 is the workflow tool's number and that a command's own `max_fanout` binds on the other path.
+  Measured across the whole family rather than the three files named: every line in the repository that states a number near 25 in a dispatch context was classified, and the normative ones separated from the historical. Five normative statements exist across the three topic files, two of which already carried a scope. Three did not, and none does now. The rest are dated run records in `wos/maturity-ladder.md` and `wos/workflow-patterns.md`, plus one line in `commands/_shared/orchestrator-bootstrap.md` that uses 25 as an example of exceeding a cap of 20, which is the Agent-path rule stated correctly and was left alone.
+- Three fleet commands stop telling a model to fan out past the cap they declare. `atom-audit-fleet`, `screen-spec-fleet` and `verify-against-rubric-fleet` each carry `max_fanout: 16` in frontmatter and each said "defaults to 20" in the prose beneath it, and `wos/command-roles.md` repeated the 20 in all three of their entries. The frontmatter is typed metadata; the prose is the sentence a model actually reads before deciding how many workers to dispatch, so the disagreement resolved in favour of the larger number every time it mattered.
+  Which side is right was settled by the corpus rather than by preference. Of the seven fleet commands, three already state prose and frontmatter as the same number with the shared ceiling named separately: `task-init-fleet` at 10, `external-research-fleet` and `feature-library-scout-fleet` at 12. `commands/_shared/orchestrator-bootstrap.md` calls `max_fanout` a hard limit with a default of 12 and a ceiling of 20. So a command declaring 16 is making a deliberate per-command choice below the shared ceiling, and the prose has to echo it. The three now read "defaults to 16; absolute ceiling 20", which is the sibling form verbatim rather than a new phrase.
+  Acceptance was a derived cross-check over all seven fleet commands rather than a reading of the three: for each one the frontmatter value, the prose default and the `wos/command-roles.md` entry must agree. Three of seven diverged before, none does after.
+  The plan said four commands were consistent and proved the value. Three are; the fourth, `implement-fleet`, declares 8 and carries no prose default at all, so it can neither agree nor disagree. That silence is recorded rather than filled, since writing a default sentence for a command that never had one is a content decision, not a contradiction fix. Nothing guards this three-way correspondence standing, which is recorded as a candidate.
+- `evals/README.md` describes the runner that exists. Two of the four things the plan listed for this were real and two were already true, which is worth recording because the false ones would have been edits to a file that was right.
+  Real: the doc named `--allow-setup-shell`, a flag that had just been renamed, and it stated the exit codes as 2, 3 and 4 with no mention of the clean-tree refusal. So the page told a reader to pass a flag that no longer parses and promised a set of refusals that was missing one. The precondition now sits with `--model-cmd`, with both of its reasons and the weaker one named as the weaker: a dirty tree makes a scenario's write indistinguishable from what was already there, and, the one that matters more, a model graded against a state no commit describes produced a verdict nobody can reproduce. The copyable invocation carries `git status --porcelain` above the graded run, and marks `--dry-run` as the form that works on a dirty tree.
+  The escape is documented as what it costs rather than as a convenience: an environment variable rather than a flag on purpose, existing so the runner's own suite can exercise the plumbing while the runner is being edited, announcing itself on stdout, and stating that the run is not reproducible. And `--grade-without-setup` is described by what it actually does, which is remove the skip, leaving the scenario graded against a tree its setup never prepared.
+  Already true, and left alone: the plan asked to change `135` to `138` on line 153. Line 153 is the roster row for scenario 138 and already reads 138; line 150 is the row for scenario 135, where 135 is the scenario's number and not a count. Every corpus count in the file already sits inside a `count:scenarios` marker, which the lint verifies. The only other 135-era number is a `117` in a sentence recording a past drift, and a number in a historical sentence is not drift. The plan also asked for the coverage footer to print a derived number: `structural-evals.py` already derives both figures it prints, the check total from the check list and the scenario count from `len(_scenario_files())`, and the README quotes neither.
+  Acceptance was a cross-check rather than a reading: every flag, exit code and environment variable the README names for this runner exists in the runner, and every exit code the runner defines is documented. Zero divergences in either direction. Nothing guards that correspondence standing, which is the same doc-drifts-from-script shape this entry fixes; recorded as a candidate rather than built here.
+- The spine eval runner refuses a dirty tree, notices a scenario that writes into one, and stops promising to run a setup script it never runs. Measured before the change: nothing in `run-spine-evals.py` read git at all. The runner hands `--model-cmd` to a shell with `cwd` at the repository root, so the command it invokes can write anywhere here, and nothing was watching.
+  A run that will invoke a model now starts from a clean tree or does not start, exit 5. Two reasons, and the weaker one is the obvious one: a dirty tree makes a scenario's writes indistinguishable from what was already there. The stronger one is that a model graded against a state no commit describes produced a verdict nobody can reproduce. `--dry-run` invokes nothing and writes nothing, so it is exempt.
+  After every scenario the tree is compared against the state before it, and anything new is an ERROR rather than a verdict, with the paths named. The baseline then moves forward, so the next scenario is judged on what it wrote rather than inheriting the previous one's mess. Git that cannot answer is a refusal too, not an assumption that the tree is clean.
+  The refusal has one way past it, an environment variable rather than a flag, because a flag is what an operator reaches for to make a refusal go away. It exists so this runner's own suite can exercise the plumbing while someone is editing the runner, which is exactly the dirty case. A run that uses it says so on stdout, in the operator's own record, and says that the run is not reproducible.
+  `--allow-setup-shell` is now `--grade-without-setup`. The old name promised to run a scenario's shell setup; the runner has never run one and does not start, its only subprocess for scenario work being the model command itself. What the flag actually removes is the skip, which means the scenario is graded against a tree its setup never prepared, and the name and the help now say that. The skip message said "setup shell not authorized", which implied that authorising it would run the script.
+  Four checks added to `scripts/tests/test-run-spine-evals.sh`, 16 to 20, and CI already runs it. They drive the module with a stubbed tree state, so they hold whether or not the repository is clean when the suite runs and nothing in them ever dirties the real tree. Three were proved to bite by driving the committed runner the same way: it returns 0 on all three where the new one refuses.
+- A rubric criterion that wraps keeps the line it wraps onto, and scenario 125 is numbered in the order it is written. `rubric_items()` took the first line of each numbered or bulleted entry and dropped the rest, so a criterion spanning two lines was graded on half of itself. Scenario 125 criterion 6 is the clearest case: the first line lists the forbidden commit forms and the second names the form that is required, which is the half the criterion exists to assert.
+  Measured on 2026-08-30 across the corpus: 36 of 802 criteria in 14 files carry a continuation line. After the change, 34 criteria come back longer, 762 are byte-identical, and 2847 chars of criterion text are recovered. The gap between 36 and 34 is not a rounding: 6 scenarios are refused by the extractor entirely, and 2 of them were in the truncated set.
+  The continuation run stops at the first blank line rather than at the next item, so a paragraph written after the last criterion is never glued onto it. Both rules were measured against the corpus first and they agree on every criterion today, zero divergences; the blank-line rule was chosen because it stays right when a scenario later adds that trailing paragraph.
+  Scenario 125's Pass criteria read 1, 2, 3, 4, 5, 6, 8, 9, 7. Three lines were renumbered and no content moved, so it now reads 1 through 9 in file order. Nothing outside the file cites those numbers, checked before touching them. Across the corpus, 83 scenarios carry a numbered rubric and none is out of sequence after this.
+  Three checks were added to `scripts/tests/test-spine-eval-extract.sh`, taking it from 17 to 20, and CI already runs it. One pins scenario 125 criterion 6 by name. The other two derive their claim from the whole corpus so a scenario added later is covered without editing the test, and both refuse an empty subject rather than passing on one. Each was proved to bite: the wrap check fails against the committed module, the numbering check fails against the committed scenario, and the count check was run against a deliberately broken grouping, where it reports 132 of 132 rather than staying quiet.
+  One finding recorded and not fixed here, because it is a decision about which header set is canonical rather than a bug in this change: 6 of the 138 scenarios cannot be graded at all. Three carry no section matching any of the extractor's three rubric headers, and three have two-item rubrics under its floor of three. The structural `criteria-content-floor` check passes over all of them because it matches a broader header family than the extractor accepts, so two guards disagree about the same corpus.
+  The plan's figures for this change were 27 of 569 in 7 files. Measured today it is 36 of 802 in 14, and no narrower definition of a continuation reproduces the plan's numbers.
+- The eval extractor stops cutting a scenario section at a heading the scenario is quoting. `_sections()` split on every line starting with `## `, including the ones inside fenced blocks, and a Setup block quoting a document is the normal case rather than the exception. Measured across the corpus on 2026-08-30: 15 of the 138 numbered scenarios carry at least one `## ` inside a fence, and `05-drift-and-reconcile.md` alone has 22.
+  Scenario 03 shows what it cost. Its `## Setup` quotes an `IMPLEMENTATION_PLAN.md` carrying `## Slice 01` and `## Slice 02`, so the section ended at offset 1470 instead of 2281 and the extracted setup lost both the slice's `Scope:` and its `Exit criteria`, which is exactly the material the eval grades against. The setup went from 726 chars to 1537. Across the corpus, 12 scenarios recover 12107 chars of setup between them.
+  Fenced regions are now blanked to spaces before headings are located, with line breaks preserved so offsets in the mask index the original text. The acceptance test is corpus-wide rather than anecdotal: for every scenario, the number of sections must equal the number of `## ` headings that are not inside a fence. 15 of 138 failed that before, none does after. Both were measured by loading the committed module and the new one against the same files.
+  Two checks were added to `scripts/tests/test-spine-eval-extract.sh`, which CI already runs, taking it from 15 to 17. One pins scenario 03 by name. The other derives the corpus-wide claim rather than hardcoding a count, so a scenario added later is covered without editing the test, and it fails loudly rather than passing on an empty glob. Both were proved to bite by running their logic against the pre-fix module.
+  The plan's exposure figure was right at 15; its denominator said 139 where the corpus has 138.
+- The branch-commit contract is asserted where CI runs, and the test that froze the file is gone. `scripts/tests/test-branch-commit-unchanged.sh` asserted D-4 of an earlier task: that `commands/branch-commit.md` stays byte-identical to the ref that task started from. Three ADRs have edited that file on purpose since. Run against its pinned base on 2026-08-30 it reports 11 insertions and 13 deletions and calls that a violation, which is the correct answer to a question nobody asks any more. It sat outside the CI allowlist, so nothing was red and nobody had reason to look.
+  A frozen file was never the contract; what the file says is. `check_bare_commit_tree_proof` asserts the ADR-0167 rules instead of the bytes, in the shape of the sibling ADR-0163 check: the bare `git commit` rule and its forbidden forms, the `T_shown` record taken after the display, the post-commit tree-hash assertion, condition 7 reading and citing the current branch, and the detached-HEAD refusal. Each is checked in the command and in the generated skill, because the skill is what a run actually loads. And the superseded ADR-0163 pathspec rule is asserted absent, which is the direction that matters most: a pathspec rebuilds each named path from the working tree, so it commits content the display never showed, and that is the defect ADR-0167 reproduced in a throwaway repository before deciding.
+  Fourteen directional proofs, run on copies so the real tree was never touched: each of the six anchors removed from the command, then from the skill, fails naming that file; the retired rule appended to each fails naming that file; an untouched copy passes; and the real tree passes. The structural suite goes from 57 checks to 58.
+  Two things the plan for this change got wrong, both caught by reading the file instead of the line numbers. It said to delete three comment lines from the workflow; the third line starts a different note, about an exclusion that was already resolved, so deleting it would have cut a neighbour in half. And removing the branch-commit lines left the sentence above them promising that "the one exclusion stays visible" when there is no longer any exclusion. That sentence is rewritten, and it now says where the assertion went, so a reader who remembers the old test is not left guessing.
+- The Load-stage ceiling gained an approach signal. `check_skill_load_budget` reported the same green at 20000 chars and at 39814, so the first news of a problem would have been a build breaking on a paragraph somebody had just written. A skill within 2000 chars of the 40000-char ceiling is now named in a warning; the ceiling that fails is unchanged at 40000.
+  The band was chosen against the measured distribution rather than picked. Measured the day it was set: 2 of the 98 skills sit inside it, `implement-approved-slice` at 186 chars of headroom and `slice-closure` at 1512, and the next one down, `task-init`, has 2551. So 2000 separates what is actually near the edge from what is not, instead of sweeping in a third of the corpus.
+  Six proofs, one per direction the check now asserts. The real tree warns on exactly those two and does not fail. A fixture over the ceiling still fails, which is what says the hard gate survived the addition. A fixture inside the band warns. A comfortable fixture is silent. A tree holding one of each fails, with the failure listed first, because a skill already over the ceiling outranks one approaching it. And the band edge is pinned in both directions: 2000 chars of headroom warns, 2001 does not.
+  Two smaller things came with it. The printed check line said only that nothing exceeds the ceiling, which stopped describing what runs, so it now says the band too. And the constant sits directly above the function that reads it rather than 1900 lines below it, where a module-level name resolved at call time works but reads like an accident. The structural suite now reports 55 passes and 2 warnings where it reported 56 and 1; the exit code is unchanged at 0, because a warning has never failed this suite.
+- The read map orders one runtime battery row instead of three, and the fourth surface finally appears in it. Waves 7 and 8 moved each runtime gate's taxonomy, probes and evidence rules out of its command and into a `wos/*-runtime-battery.md` topic, then left three long rows in the spec's Minimum read map describing what had just been moved away. The map is inside `## LLM execution contract`, which is one of the four always-read sections, so those three rows were paid on every single invocation to summarise text that lives elsewhere and is loaded on demand.
+  Measured before and after, on this tree. The spec goes from 81658 to 81162 chars. The bootstrap floor, which is the measured size of the four always-read sections, goes from 10771 to 10647 tokens, and the drift against the 10470 the shared block declares goes from 2.87 per cent to 1.69 per cent, against a 3 per cent tolerance. The declared figure is untouched: the fix was to shrink what is measured, not to reprice it, which is why no propagation into the commands that carry it was needed.
+  Two numbers in the plan for this change were both wrong and both in the same direction: one said the result would be 10625 tokens at 1.48 per cent, another 10607 at 1.31 per cent. The measured result is 10647 at 1.69 per cent. The earlier figures predate other changes in the same wave, and they are recorded here rather than quietly replaced, because a plan that predicts a measurement and misses it twice is worth knowing about.
+  The new row names `wos/godot-runtime-battery.md` alongside the other three. That topic has existed since its own wave landed, but its read-map row was deliberately held back at the time and never followed, so the map advertised three of four runtime surfaces. This closes it. What the row loses is the per-surface parenthetical, which repeated each battery's contents; what it keeps is the trigger, the four paths, the pairing with each `*-runtime-verify` command, and the statement that they are capability-scoped and not loaded by default.
+- `### Definition of done` has to contain something. `check_required_sections` tested presence and nothing else, so a command carrying that header followed by an empty line passed. The DoD is the command's output contract, which makes an empty one worse than a missing one: a missing header is visible, an empty section reads as satisfied. Reproduced 2026-08-30 on one synthetic tree run through both versions of the file, the committed one and the new one, with `commands/what-next.md` emptied: `(True, [])` before, and after, a failure naming the file and the count.
+  The floor is derived from the measured minimum, the way ADR-0136 set the spec ceiling just off its measurement rather than off an aspiration, because a bound that is already red teaches nothing and gets waived. Measured across all 98 commands before the predicate was written: every one has the header, and the item counts run from 4 to 16 with 12 commands at the low end.
+  That measurement then changed the design. All 98 commands close their DoD with the same inherited line, so a raw count of 4 is 3 items the author wrote plus 1 nobody did. The count now excludes the inherited line and the floor is 3 authored items, which is what the 12 commands at the bottom actually have. It is the same number as `CRITERIA_ITEM_FLOOR`, reached independently from a different corpus, and that check's sentence applies here word for word: fewer than three is a paragraph, not a rubric.
+  Six proofs, one per direction the predicate asserts. The real tree stays green on all 98, which is what says the floor accuses no legitimate command. An emptied DoD fails. A DoD holding only the inherited line fails with a count of zero, which is what proves the exclusion is real rather than declared. Exactly three authored items passes, so the floor is three and not four. Two fails. And a command missing `### Handoff` still fails with the old message, so the presence checks were extended rather than replaced.
+  The printed check line was updated with the change, since "every command has a Definition of done + Handoff" had stopped describing what runs. The lint keeps its own half of this and the two do not overlap: it pins the exact header text and the form of the shared closing line, while the content floor lives here.
+- The mirror guard stops saying "clean" about a scan it never ran. `check-mirror-codenames.sh` runs three scans: a codename loop that reads a gitignored sidecar, plus an absolute-path scan and a ticket-id scan that do not. Since 2026-08-21 a missing sidecar correctly disables only the first, and the guard's own stdout said so. Its exit code did not: both "every scan ran and found nothing" and "one scan never ran" were exit 0, and the exit code is the half a caller reads. So `lint-commands.sh` printed `Mirror-guard: clean (tracked tree)` on every CI runner, where the sidecar is gitignored and therefore always absent.
+  Exit 3 now means "the structural scans ran clean, the codename scan did not run". Reproduced before the change and measured after, on this tree: with the sidecar, exit 0 and `clean`; without it, exit 0 and a clean lint line before, exit 3 and `clean on the structural scans; codename scan not measured (no sidecar)` after. A dirty tree with no sidecar still exits 1, so a leak found outranks a scan not run.
+  Four callers consume that exit code and all four were updated in this change, which is the part worth recording: the item named one. `lint-commands.sh` prints the honest line and still does not fail, because only exit 1 fails it and making an absent gitignored file break the build would be a change of policy rather than of honesty. `release-preflight.sh` still blocks, deliberately, since it exists to export the staging sidecar into the public checkout so that loop runs, and a 3 there means the export did not take; what changed is the label, because calling an unmeasured scan a LEAK was as wrong in the other direction as calling it clean. `sync-shared-blocks.sh` has its own exit-code case with a fail-closed default, so exit 3 aborted the propagation until it learned the code; its own test caught that within a minute of the guard changing.
+  Two smaller corrections came with it. `sync-shared-blocks.sh` described exit 2 as "skipped (no sidecar)" with a note that the absolute-path check was skipped too "because the guard returns before it". Both statements stopped being true on 2026-08-21; under the current guard exit 2 is only a usage error. The text is corrected, the control flow is not, because changing whether a usage error aborts is a separate decision. And one assertion in `scripts/tests/test-mirror-codenames.sh` read "absent sidecar with a clean body is clean (exit 0)", which asserted the defect itself. It now pins the separation, and a new check asserts that the same clean body reports differently with and without a sidecar, because pinning each code on its own would not catch a future change that collapses them back into one. The suite goes from 25 checks to 26.
+- The em-dash gate covers the seven root documents it did not. `check_no_emdash` scanned five root files; `lint-commands.sh` has a `ROOT_DOC_FILES` array of eleven, and the two guards had drifted apart on which root documents a hard build failure applies to. The seven added are AGENTS.md, WORKFLOW_DEMO.md, CLAUDE.md, CHANGELOG.md, ROADMAP.md, CODE_OF_CONDUCT.md and SECURITY.md, and they are exactly the difference between the two sets: after the change the structural check covers every root document the lint covers, with zero gap in that direction. AGENTS.md is the one worth naming, because it is the file that states this rule to every agent working in the tree, and it was not covered by the rule it states.
+  Measured before editing rather than after: all seven were already clean, so the widening ships green instead of forcing a cleanup into the same change. Ten proofs, because listing a file and scanning it are different things. The real tree passes. Each of the seven, dirtied one at a time in a temporary tree, fails naming that file. Seven clean files pass. And a dirty `commands/` file still fails, which is what says the pre-existing coverage was preserved rather than replaced.
+  What stays outside coverage, measured the same day and deliberately left: the six `scripts/baseline-*.md` files hold 30 occurrences between them. They are dated token-measurement snapshots from 2026-05-07 and 2026-05-08, and editing their typography would alter the record of what was measured on a given day. Frozen history is not drift. One asymmetry is recorded and not closed here, because it is a change to the lint rather than to this check: `docs/FAQ.md` and `docs/MIGRATION.md` are scanned by the structural check and by the count-marker scan, but not by the lint's forbidden-bytes root-doc list. Both measure clean today.
+  The `--strict` flag on `check-substrate-ownership.py` was deliberately not enabled alongside this. It promotes every advisory warning to a failure, which is a change of policy rather than of coverage, and the two do not belong in one change.
+- Two structural checks stop accepting prose where the lint requires a row. `check_registry_membership` and `check_adr_indexed` tested bare substring membership: was the command's name anywhere in the file, was the ADR's four-digit number anywhere in the index. `lint-commands.sh` has always tested a line form for the same facts, so the two guards could disagree about the same tree, and the looser one is the one that runs as a CI job of its own.
+  Reproduced 2026-08-30 on a synthetic tree before the change. A `COMMAND_PROMPT_STUBS.md` whose only content was "the foo-bar command is great" satisfied the registry check; a `docs/adr/README.md` reading "See 0179 discussed in prose. No table row." satisfied the index check. Both fail the lint. The ADR case is the likelier of the two in practice, because a four-digit number appears in that README constantly, in prose and in other rows' cross-references, so the old predicate was close to unconditional.
+  The predicates are now the lint's own: `^- ``<cmd>``$` in the spec cluster list, `^### <cmd>$` in `wos/command-roles.md`, `^| ``<cmd>`` |` in the stubs table, and `^| [NNNN]` in the ADR index. And the registry check reads three registries where it read two. It named three in its own docstring and skipped the spec cluster list, which is the one ADR-0029 puts first.
+  Four proofs. The real tree stays green on both, which is what says the narrowing accuses no legitimate row. The prose-only tree now fails both, matching the lint. A tree carrying the canonical line forms passes, which says the check was tightened rather than broken. And a tree present in the stubs and the roles file but absent from the spec fails naming only the spec, which is what proves the third registry is genuinely read rather than declared.
+  The printed label was stale after the change and was corrected with it: the check line said "every command appears in the human-facing registries" while the check had become three registries matched on a line form. One more site of the same class is left alone and recorded rather than fixed here: `check_corpus_indexed` tests scenario membership in `evals/README.md` the same loose way, and the lint anchors it on `(./scenarios/NNN-`. It is not in this change's scope.
+- `check_count_markers` stops reporting a clean tree when it cannot measure one. It is the only structural check that delegates its whole comparison to an external script, `scripts/reconcile-counts.sh --check`, and when that script was absent it returned true with the comment "nothing to check". Nothing to check and nothing wrong are different answers, and the count-marker guard is precisely the one whose silence looks like success: a passing line that says 51 markers match disk, when in fact zero were compared. It now fails and names the missing delegate.
+  The radius was measured before the edit rather than assumed, because the same class had been four classes wide in the previous fix. It is one: `check_count_markers` is the only check in the file that shells out, and the only one carrying the existence-test-then-return-true shape. Four proofs, one per direction: on the real tree with no drift it passes; with the delegate missing it fails naming `scripts/reconcile-counts.sh`; with a stub delegate exiting 1 it still surfaces the stub's drift lines, which is what proves the new branch did not swallow the real failure path; with a stub exiting 0 it passes.
+- `structural-evals.py` measures the repository instead of whatever directory it was started from. Reproduced 2026-08-30 before the fix: run from the repo it was `exit=0 PASS=56 FAIL=0`, run from `$HOME` it was `exit=1 PASS=45 FAIL=11`. A CI job is not the only caller of this script; a person debugging one check runs it from wherever they are, and eleven checks answered a different question there.
+  Two of the eleven were the dangerous kind, because they did not go red, they went green on nothing: `canonical-not-loaded-with-views` and `unconditional-load-declared` globbed an empty result and reported a clean subject. The worst single site was subtler still. `glob.glob(".claude/skills/*/SKILL.md")` run from `$HOME` matches the user's INSTALLED skills, and there are 98 of those, exactly as many as the repository has, so the load advisory reported a plausible number about the wrong tree rather than an obviously broken one.
+  Every filesystem call now roots on `REPO`, which is derived from `__file__`, through the `p()` helper the file already had: 40 call sites. The labels do not move. A constant like `SUBSTRATE_BLOCK` stays the repo-relative string, because it is also the text of the failure message, and `p()` wraps it at the `open` or `isfile` instead. That is why no failure message changed shape, and why the output is byte-identical from the repo, from `$HOME` and from `/`, which is the acceptance test this change is held to.
+  Three smaller defects surfaced on the way. Two signatures defaulted to `root="."`; both are called only through the check registry, never with an argument, so the relative default was not a fallback, it was the behavior, and both moved to the `root=None` plus `root = root or REPO` idiom three other functions in the same file already used. And `p` was in use as a loop variable and as a comprehension variable in three places, shadowing the helper it sits next to; those are renamed, with a comment saying why, because the comprehension case worked only by evaluation order.
+  The two vacuous passes now fail closed and name the subject they lost. Measured leftover, recorded rather than fixed here: pointed at an artificially emptied tree, 24 of the 57 checks fail closed, 14 raise `FileNotFoundError`, and 19 still return true. That class is pre-existing and wider than this fix, and with `REPO` now derived from `__file__` it is no longer reachable by changing directory.
+- The experience-verdict floor records who attested instead of pretending a commit did (ADR-0179, MINOR). It contradicted itself inside one paragraph, in all three variants: machine-green evidence SHALL NOT substitute for the human verdict, and two sentences later, on attended Express the floor stands down in favor of the local commit `branch-commit --apply` creates, because "that commit is the attester". A commit the agent itself created is machine evidence, so the paragraph forbade the substitution and performed it. Measured 2026-08-30: 3 occurrences of each half.
+  Neither offered resolution was taken. Requiring a person on every user-facing slice makes a button-label change wait for someone to confirm the button is there, which is a toll rather than a gate, and an unaffordable gate gets skipped. Declaring in the README that attended Express has no attester records the absence of a human rather than the presence of one, when the run DID look at something. The floor's real requirement was never the person: it was that a reader can tell who attested. The 2026-07-10 connector dogfood that ADR-0091 exists to prevent shipped four machine-authored packs with no human validation AND nothing recording that, and the second half is the defect.
+  So `## Experience verdict` now carries a mandatory `Attested by:` line valued `run` or `human`. `run` is valid only when the block cites what the run itself captured, which is the ADR-0048 contract applied here rather than an exception to it. `Attester class:` moves from `human-bound` to `agnostic`, a word `wos/gate-conditions.md` already defines. The attended-Express stand-down is deleted from all three variants: keying the requirement to the pipeline was a proxy for keying it to risk, and a bad one. The clause that stays true stays: machine evidence still does not substitute for a human verdict, because under this decision it no longer pretends to be one. Human attestation never blocks and can be added after closure.
+  The Godot feel-verdict floor (ADR-0089 D-4) stays `human-bound` and was not touched. Measured before deciding: it is the only other human-bound floor on disk, it lives in a different file, and whether a build FEELS right is not something a run can capture. `check_experience_verdict_attester` asserts that too, so this is not read later as a blanket removal of human attestation. Six negative proofs, each restored after: the false claim returning, a variant losing its `Attested by:` requirement, the floor going human-bound again, the surviving clause disappearing from a variant, the Godot floor losing its human binding, and an emptied source file, which fails rather than passing vacuously. Structural checks go 56 to 57. The three per-command views are regenerated, never hand-edited, and ADR-0091 and ADR-0161 carry the supersession in their Status lines.
+- `templates/claude-permissions.template.json` exists, and this repository stays hook-free on purpose. The owner's answer on the push and merge gate was template only, and the reason is measurable outside this tree: an external read-only consumer's driver raises `HookRefusal` with no override flag against a repository that ships its own `PreToolUse` hook, so installing one here would make the repo undirectable by the runner. A deny and ask list costs nothing in that direction, because it is data the client already evaluates rather than a second program competing for the same slot.
+  The slice that prompted this assumed the template had already shipped. It had not: measured 2026-08-30, the file was absent and no document in the tree named it. A second assumption was also false, `scripts/gate-push-and-merge.sh` is absent too, and it is deliberately NOT built here, because it is the hook half the owner declined. The template is permissions only and works with no hook at all: the same five destructive-git deny entries this repository's own `.claude/settings.json` carries, byte-identical, plus an `ask` block for `git push` and `gh pr merge`.
+  It is pointed at from `docs/HOOKS.md` `## Permissions baseline`, not from the README as the slice's criterion asked: that section already documents the deny list in prose and is where a reader looks, while the README has no hooks section. A template nothing names is decoration, the same failure as a test nothing runs (ADR-0143). The prose also carries the caveat that matters for a runner: an `ask` a headless driver cannot answer is a hang, not a gate, so drop that block when a runner drives the repo.
+  Three criteria in the plan's D4b slice were rewritten to the world the owner chose. Two asserted `PreToolUse` and `permissions.ask` in this repository's settings; the first now asserts the opposite and is verifiable, and it passes: no `PreToolUse` hook, no `ask` key, five deny entries. This is the decision applied, not a criterion loosened to pass, and the plan records both the old and the new form.
+- Phase 2, the private beta, is declared dropped with a date instead of left `planned`. Measured 2026-08-30: `ROADMAP.md` still described 1 to 2 months of beta testing with 5 to 10 invited developers as an upcoming phase, while Phase 3 already read `public MIT, done` and Phase 4 had reached v1.1.0. The gate that phase was meant to be had already been passed without it, so it was not pending, it was overtaken. A phase that cannot happen before the phase after it is not a plan, and the honest record says so with the date it was decided.
+  The one live instruction that depended on it moved with it: `CLAUDE.md` said "Beta tester invitations happen in Phase 2, not Phase 1", which after the drop pointed at nothing. It now says there are no beta invitations and names the reason. Nothing else in the tree asserts the beta as upcoming: the other `Phase 2` hits are the eval harness's own phase numbering in `evals/e2e/`, which is unrelated, and two ADR bodies that cite beta testers as historical rationale and stay as written. `D11` in the plan's wave 6 is now dead by construction; it only ran on a RUN answer.
+- `check_tier_routing_closure` stops exempting every gated route. D-7 (2026-07-25) exempted a conditional cross-tier route on the reasoning that "a target reached only through gated sentences is a correct entry into an opt-in cluster". That reasoning is right about why and wrong about when: `full` partitions exactly by cluster membership, so an opt-in cluster target is full-only by construction, and a gated route to a CORE target is a different thing entirely. Exempting the whole class hid two real breaks until this week. `approve-plan -> test-strategy` and `implement-approved-slice -> where-we-at` both read "WHEN ... route to X", both reported nothing here, and both left a minimal install with nowhere to go, which is what ADR-0178 fixed. The check reported zero findings throughout.
+  The exemption now requires the target to be full-only. Measured on the day it was narrowed: of 12 conditional cross-tier pairs, 10 target a full-only cluster command and stay exempt. The 2 that do not are `review-hard -> incident-triage` and `decision-interview -> capture-references`, and they are named in `TIER_ROUTE_OPEN` with the reason and a review date rather than left inside a class-wide skip, so a reader sees them. The stronger of the two is `review-hard`: ADR-0088 makes triage the FIRST ACTION on a runtime-debug payload, so a minimal session that pastes a crash log is told to run a command it does not have. Both raise the same question ADR-0178 answered for the other pair, retag or reword, and that changes spine size, which is the owner's call and not a check's; the entries stay until it is answered.
+  The finding label now says which kind of route it caught, because after this change `[unconditional route]` would be false on half of them. Proof that the narrowing bites: a gated route to a core target injected into `what-next` is reported, where before it was silently exempt. The docstring carries the narrowing beside the D-7 paragraph it qualifies, rather than replacing it, so the reasoning that was right stays readable next to the case it did not cover.
+- `where-we-at` and `test-strategy` join the minimal profile (ADR-0178, MINOR). The minimal spine promises that the everyday loop closes, and two unconditional routes broke it. `implement-approved-slice` sends the LAST slice of a multi-slice task to `where-we-at`, on a line whose own words are "never dead-end the final slice". `approve-plan` routes to `test-strategy` when no `TEST_STRATEGY.md` exists and the plan carries regression risk. Both targets were `[core, full]`, and measured 2026-08-30 a `--profile=minimal` install copied neither: zero occurrences of either name in the payload, now 22.
+  The defect hid behind two masks. `check_tier_routing_closure` reported zero findings because its exemption is wider than its own docstring says, which is the next item. And an installed machine did not feel it either, because the skills mirror ships all 98 regardless of the command profile, so the agent could still reach `where-we-at` through the skill with no command file present. That second mask matters more than it looks: the ADR-0160 follow-up that makes skills inherit the profile would have turned a paper dead-end into a real one on every minimal install.
+  Same shape, third time. ADR-0084's commit-evidence floor made `branch-commit` and `implement-slice-complement` spine in practice while the ADR-0059 list, written ten days earlier, still said otherwise; D-7 retagged both on 2026-07-25. The rule this follows is the one D-7 followed: a command that a minimal command routes to UNCONDITIONALLY is spine whatever the tag says. A conditional route into an opt-in cluster stays cross-tier and correct.
+  Every hand-written "14" describing the spine is gone rather than bumped to 16: the README says "the minimal spine", the installer help and wizard copy name the everyday loop, and the summary line names the spine instead of counting it. `scripts/tests/test-install-payload.sh` now DERIVES the expected size by counting commands whose `x-wos-profiles` names the tier, the same filter the installer applies, and fails if it derives zero. It was hardcoded to 14 and failed with "want 14" on a correct tree, which is the failure mode: a test that must be edited whenever the thing it measures changes will eventually be edited to match a bug. The count itself lives in the `count:commands-minimal` marker, 14 to 16. ADR-0059 and ADR-0160 carry the supersession in their Status lines per ADR-0166; neither body is edited.
+- The substrate-ownership matrix parser keys rows by section again. `check-substrate-ownership.py` read a table cell with `cells[0].strip("`")`, which removes backticks at the two ends only, so a cell reading ``## Locked decisions` (D-N)`` keyed the row as ``## Locked decisions` (D-N)``, a string no writer ever names. The row granted nothing while looking like coverage, which is worse than a missing row. Measured 2026-08-30: 13 of 61 table rows were keyed that way. The item that prompted this said 65 rows; the table reader accepts 61, and the 65 in the headline is the size of the merged dict after the numbered-prose reader adds its own, so both numbers are recorded.
+  The numbered-prose reader in the same file already used the correct idiom, ``(## [^`]+)``, which is what makes this a slip rather than a design question. The table reader now uses it too. The advisory moves 3858 to 3038 non-owner writes across 318 to 303 folders, 3480 to 3385 writes to a section with no row, 65 to 63 sections with a row, and live scope 692 to 516 lines. The visible change is at the top of `--repair-list`: `decision-interview -> ## Locked decisions` with 740 writes, previously the single largest entry, is gone, because that section is one it owns.
+  Nothing tested either reader. `scripts/tests/test-substrate-ownership-matrix.sh` covers the table half with six assertions against fixture matrices plus the live file, and it never reads `projects/`, so it runs in CI: it imports the module (the script guards its entry point) and calls `parse_matrix` directly. Four of the six assertions exist to stop the fix from widening what parses: a plain row must still parse, a cell naming no section must still yield no row, and an empty parse of the live matrix fails rather than passing vacuously. Negative proof: with the old parser restored the suite reports 2 passed, 4 failed, naming the corrupted key. CI suites go 16 to 17. Nothing needed rebaselining in `CLAUDE.md`: the item expected a sentence there citing these numbers, and measured, that file cites none. The old figures live only in this changelog, as history.
+- The handoff validator stops rejecting the one handoff the spine tells a run to emit. `scripts/validate-transcript.sh` ran `tr -d '[:space:]'` over the whole `Run now:` value, which glued a flag to the command name: `Run now: branch-commit --apply` resolved as `branch-commit--apply` and the validator asked the filesystem for a command by that name, exit 1. That handoff is not hypothetical, it is the ADR-0159 Express lock in `commands/implement-approved-slice.md`, and it is the only flag-carrying `Run now:` in the catalog. The value is now trimmed and then cut at the first space, so the argument list is dropped before the name is resolved.
+  Two fixtures, not one, because cutting the argument list is exactly the kind of fix that can loosen a guard: one asserts the flag form resolves, the other asserts that an invented name carrying a flag still fails. Verified across six forms: bare, with a flag, with a leading slash, with a slash and a flag, invented, and invented with a flag. Self-test fixtures go 11 to 13. The item that prompted this predicted 12; the second fixture is why it is 13.
+  The larger finding: NOTHING executed that self-test. Not the CI workflow, not `lint-commands.sh`, not `scripts/tests/`, measured 2026-08-30 by grepping the whole tree. It had carried fixtures since it was written and no suite would have gone red when the validator started rejecting a real handoff, which is the decoration ADR-0143 named. `scripts/tests/test-validate-transcript.sh` wraps it, because the CI allowlist runs every suite bare and the self-test is a flag; it asserts the exit code and refuses a run that reports zero fixtures. CI suites go 15 to 16.
+- The README stops calling `full` the default profile. Measured 2026-08-30: the installer's own default is `PROFILE="${PROFILE:-minimal}"`, so the sentence describing the three nested profiles named the wrong one, and a reader who trusted it expected 98 commands from a bare run and got 14. The same sentence now explains the other number that confused readers: 9 of the 98 are folder-shaped personas that ship only as skills, which is why the wizard reports copying the flat count rather than 98. That 9 is a `count:personas` marker, not a written number, and the remainder is described rather than stated, so neither can drift when a persona is added. Count markers go 50 to 51.
+- The installer accepts the flag form every document prints. Measured 2026-08-30: `README.md:53,54,55` and `docs/FAQ.md:49` printed `--profile minimal` and `--project /path`, the argument parser accepted only `--profile=minimal`, and all four lines exited 2 with `Unknown option`. That is the first command a new user copies, so the install failed before anything else could, and nothing measured it: `check-doc-sync.sh` verifies cross-document references, not that a printed command runs. The fix is on the parser, not on the four lines: `--profile`, `--project`, `--cursor-dir`, `--claude-dir`, `--codex-dir` and `--kimi-dir` now take a space-separated value as well as an `=` one, which fixes every future doc and every reader's muscle memory rather than four instances. The value guard is `[[ $# -ge 2 && "$2" != -* ]]`, because a count alone lets `--profile --dry-run` swallow the following flag as its value, which the first version did: it accepted the pair and exited 0. The new arm routes through `set_profile()` rather than assigning inline, and `set_profile()` moved from line 722 to above the argument loop so it can: the first attempt assigned `PROFILE` and `PROFILE_SET` directly and `check_wizard_sets_profile_set` (ADR-0059) failed the build on it, correctly. Widening that guard's allowlist by one line was the easy fix and the wrong one; the guard exists because a bare assignment leaves `PROFILE_SET` at 0 and installs every skill anyway, so the correct answer was to add no new assignment site at all.
+  `scripts/tests/test-doc-invocations.sh` keeps the pair honest, and it extracts rather than hardcodes: it pulls every installer invocation out of `README.md`, `docs/FAQ.md` and `docs/MIGRATION.md` and runs each one with `--dry-run`, so a new invocation is covered without editing the test. 12 assertions over 9 extracted invocations. The bare form is skipped by name, not silently, because it opens the wizard by design. An empty scan fails rather than passing vacuously. Negative proof, run 2026-08-30 with the injection made on a file carrying no uncommitted work: a bogus `--profile-INJECTED-BOGUS` line added to the README takes it to 1 failed, and reverting the parser to the `=`-only form takes it to 4 failed. Also corrected in passing: the report that prompted this named five broken lines and `README.md:64` among them; that line documents `--no-skills` and `--clean-orphans`, both valueless, both exit 0. Four lines, not five.
+- `test-substrate-retention.sh` runs in CI. The allowlist in `.github/workflows/lint.yml` is explicit rather than a glob so that adding a suite is a decision and the exclusions stay visible, and its own comment said "the two exclusions stay visible instead of silently passing". Measured 2026-08-30: there were THREE suites outside the allowlist and two named. The third was added in this same cycle and never wired, so it had been running only when someone ran it by hand, which is the decoration ADR-0143 named. Checked before wiring, because the checker it exercises is local-only and reports `not measured` without `projects/`: the test builds every fixture under a temp root, and a tree extracted with `git archive` carrying only `scripts/`, `wos/` and `SECURITY.md` runs it to exit 0 with all 7 checks passed. The comment now says one exclusion, which is what is left: `test-branch-commit-unchanged.sh` takes a `<base-ref>` argument and is a parameterized assertion, not a standalone suite. The CI loop simulated with all 14 suites: 14 pass, 0 fail.
+- The four runtime gates now share one skeleton and prove their own parity (ADR-0177, scenario 140). `commands/_shared/runtime-verify-skeleton.md` carries the eight steps and the four cross-cutting rules that all four commands wrote out separately: evidence not trust, bounded retry, layer placement, and verify-then-route. Those four bullets came out of each command and the marker went in, propagated by `sync-shared-blocks.sh`; markers go 611 to 615. What did NOT come out is each command's own numbered steps, because those carry the pointers into the battery topic and the gate consequences that belong to one surface: the cold-start requirement, page identity, blast radius, the playtest runbook. The shared block states the shape; it does not replace the surface-specific text.
+  Sizes, measured rather than inherited. The plan cited 99,693 chars as the pre-extraction sum of the four commands; disk said 99,661 on the day the wave started, and both are recorded here because a plan number is not a measurement. After the four adapter extractions and this shared block the sum is 92,757, and the four adapter layers now live in four topics read only when the matching gate runs.
+  `check_runtime_verify_parity` is the inventory that makes the wave-8 merge provable instead of hopeful: 54 list items, 51 of them distinct (35 taxonomy codes plus 16 named battery rules; `CLEAN` belongs to all four taxonomies), each satisfied by presence in ANY `commands/*runtime-verify.md` or `wos/*-runtime-battery.md`. Both lists are literal, not derived, because a list computed from the files it checks empties itself along with them. Structural checks go 55 to 56.
+  Negative proof, run 2026-08-30 on the live tree, restored with `git checkout --`. Deleting `LAUNCH_INTENT_LOST` from `wos/app-runtime-battery.md`: exit 1, `[FAIL] runtime-verify-parity`, naming the code and saying the classification it named can no longer be emitted. Deleting `PLAYTEST_RUNBOOK.md` from that topic alone: exit 0, GREEN. The prescribed proof was wrong about the instrument, not about the intent. 24 of the 51 distinct entries live in two files, and `PLAYTEST_RUNBOOK.md` is one of them: the command's Step 7 still names it. Deleting it from BOTH files gives exit 1 naming the rule, and that asymmetry is the check behaving as designed, since pinning an entry to a specific file would forbid the merge the inventory exists to enable. `LAUNCH_INTENT_LOST` works as a single-file proof precisely because it is one of the 27 that live in exactly one. Scenario 140 records where every entry lives, so the table is checkable rather than assumed.
+  One process note worth keeping: the second injection's `git checkout -- commands/godot-runtime-verify.md` silently reverted that command's uncommitted marker and bullet removals along with the injected string. The lint caught it as `Shared: 614` against an expected 615. A restore that targets a file carrying uncommitted work destroys the work; the injection proof belongs on a copy, or on files whose only difference from HEAD is the injection.
+- The `godot-runtime-verify` battery moves to `wos/godot-runtime-battery.md`, last of the four and the one whose adapter is structurally unlike the others: a Godot scene is not a launchable app read off a platform log. Five blocks move: the binary preflight, the persistent `probes/` harness rules with their self-termination and physics-frame findings, the adversarial-probe requirement, the playtest runbook contract of ADR-0084, and the eleven-code taxonomy. The command is 21,590 bytes down to 18,339, and the three operating-rule bullets collapse into one battery rule that keeps the adversarial consequence inline: a gate that ran only happy-path probes is incomplete evidence and MUST say so in its verdict. The preflight's own STOP is delegated whole rather than held inline, unlike the blast-radius STOP kept in `api-runtime-verify`; the MANDATORY-with-BLOCKED clause is what covers it, and the asymmetry is recorded rather than smoothed over.
+  The spec read-map row this slice prescribes is NOT in this commit, and that is the finding worth more than the extraction. `bootstrap-floor-measured` (ADR-0012) went red on it. The four sections that every command reads on every invocation measured 42,154 chars (10,538 tokens) before this wave and 43,436 (10,859) with all four battery rows in the map, against a floor declared at 10,470 and a 3 per cent tolerance: 3.7 per cent, over. The Minimum read map sits inside `## LLM execution contract`, so every row added to it is paid on every invocation by every command, which is exactly the surface this wave set out to reduce. Three rows were already in and measured 2.87 per cent, under tolerance by 0.13; the fourth crossed it. So the wave traded 11,387 bytes off four command files for 321 tokens onto the always-read spec, and the guard caught the second half of that trade at the moment it stopped being affordable. The row is held, not dropped: the topic is reachable through the command's own MANDATORY battery rule, which names the path, and the other three rows stay as they are so the measurement the owner decides against is the real one.
+- The `api-runtime-verify` battery moves to `wos/api-runtime-battery.md`, third of the four runtime gates. Four blocks move: the target-confirmation and blast-radius rule out of `Operating rules:`, what Steps 2 and 3 require recorded per request and response, the two failure-path and write-confirmation probes that hung off Step 4, and the nine-code taxonomy. The command is 30,103 bytes down to 28,571. The slice called this the largest of the four at 30,111 chars; on disk it measured 30,103, and both figures are recorded because a plan number is not a measurement. It is also the shallowest cut of the three so far, 1,532 bytes against 3,484 and 3,120, because most of this command's bulk is the shared bootstrap and the output contract rather than the adapter.
+  Two blocks keep their consequence in the command rather than delegating it whole. The blast-radius bullet still says STOP and ask when the target or the side-effect posture is unclear, because it is the only thing standing between the gate and a real write against staging or production, and a lazy topic that failed to load would otherwise take the rule with it. Step 4 keeps "a gate that exercised only the happy path is incomplete evidence and MUST say so in its verdict" and points at the probes. That Step 4 pointer is a divergence from the prescribed command literal, which listed replacements for Steps 2, 3 and 5 and the operating rule but none for Step 4, whose sub-bullets the same slice moves: leaving Step 4 untouched would have deleted the failure-path requirement from the command without putting a pointer in its place. Measured before moving: no structural-evals guard names this command, scenario 122 cites no moved text, and the two files outside the command that carry the taxonomy codes, `WORKFLOW_DEMO.md` and `wos/command-roles.md`, describe what a run outputs and what the command's role is, not where the text lives, so neither was edited.
+- The `web-runtime-verify` battery moves to `wos/web-runtime-battery.md`, the same extraction one command over. Four steps carried the whole web adapter inline: the ephemeral-port serve, page identity first with the G2 recovery, the per-route battery with its five sub-bullets (overflow sweep at 320, 768, 1280 and 2560 px, the keyboard and focus walk, console capture, Lighthouse and axe with honest `n/a (tool absent)` degradation, and the screenshot write into `WEB_RUNTIME_VERIFY_SHOTS/`), and the eight-code taxonomy. The command is 23,388 bytes down to 20,268 and keeps the eight-step skeleton, each step now a pointer that holds its own consequence inline: a fixed port is invalid output, teardown always, and a marker still absent after one recovery is a real FAIL with the evidence quoted. The taxonomy's route-qualifier sentence moved with the code list rather than being left behind, because the sentence defines how the eight codes apply per route and the new Step 5 literal has no place for it. Two checks were run before the move rather than after: `grep -n web-runtime-verify evals/scripts/structural-evals.py` returns nothing, so no guard pins text inside this command the way `check_unity_adapter_surface` does for `app-runtime-verify`, and scenarios 113 and 128 cite no step by number, so the slice's second stated risk measured empty. One divergence from the prescribed header: it read "the serving mechanics stay in the ADR-0099 topic" without naming the file, which resolves inside the command (its operating rule names `wos/frontend-preview-and-experience-verdict.md`) but not inside a topic read on its own, so the file is named in the parenthetical. `wos/command-roles.md` describes what this command does, not where the text sits, so it needed no edit.
+- The `app-runtime-verify` adapter battery moves to `wos/app-runtime-battery.md`, the fiftieth first `wos/` topic (49 to 50 on disk; the count markers read 50 to 51 because `_index.md` is counted too). The command carried the whole battery inline: the clean-persisted-state rule of ADR-0148, the video evidence extraction of ADR-0107, both classification adapters with their ten taxonomy codes, and the cold-start requirement, on every invocation whether or not the target was a mobile build. It is 24,580 bytes down to 21,096. The five section bodies are moved verbatim, not rewritten. What stays in the command is the part a guard proved has to stay: `check_unity_adapter_surface` asserts on the literals `Step 5a`, `MANAGED_EXCEPTION` and `wos/unity-runtime-evidence.md`, and its own failure message says why (a bare mention of Unity in the description is not the adapter, and asserting on the word alone would pass with the step deleted). So Step 5a survives as a one-line pointer that still names the code and the topic, and the taxonomy tables live in the topic. The slice's stated mitigation, that the command keeps citing `wos/unity-runtime-evidence.md`, was not enough: that literal was never the one at risk. Loading is `activation: model_decision` and MANDATORY when the command runs, with a battery that resolved nowhere reported BLOCKED rather than skipped in silence, because a lazy topic that fails open is a battery that quietly does not run.
+
 ### Added
+- `supersession-marked` (ADR-0166), the guard that closes the class ADR-0165 and the wave-1 hand fix opened. ADRs are immutable by design, which protected the decision text and left the metadata unmaintained: measured 2026-08-29, five ADRs were superseded in whole or in part with a bare `Accepted` in their own Status line, and two of the superseding ADRs declared it only in body prose, invisible to any header-level reader. The check walks each declared supersession to the target and requires the target Status line to name the origin, accepting both `ADR-0139` and the relative link form the appositions use. Scope is the first 15 lines, deliberately: the header is where a reader looks, and body prose is exactly how two declarations escaped until now. Proof, run 2026-08-30 on FIXTURES copied from `docs/`, never on the live tree or a git checkout. Clean fixture: `ok=True, fails=0`. Status apposition stripped from ADR-0014: `ok=False`, naming 0014 and the successor. A declared target absent from disk: `ok=False` on the dangling reference. The check is one-directional and the ADR says so rather than hiding it: an ADR that supersedes another and declares it nowhere stays invisible, because closing that half would mean inferring intent from prose, and the half worth enforcing is the one a reader hits. Structural checks go 49 to 50.
+- `read-map-headings-resolve`, the guard that closes the class ADR-0165 had to fix by hand. Two dead pointers survived in the Minimum read map, which is the one block every command reads on every invocation, because nothing looked at it: `scripts/check-doc-sync.sh` extracts a `## X` token only from lines that NAME the spec file, and the map's own rows sit inside the spec and never repeat the filename. Three rules, each derived by running the algorithm against disk before writing it. Scope terminates at the next fenced `## ` heading, reusing the idiom `check_godot_3d_topics_indexed` already uses, whose docstring records the opposite mistake. Resolution is per ROW, not per file: a token resolves first against the `wos/<topic>.md` named on the same row. Matching is by PREFIX, so a heading carrying a suffix still resolves. Written the naive way (spec only, equality only) the check is born red on four correct rows: `### Unattended sessions`, `## Relationship to user-level memory`, `## Calibration examples (non-normative)` and `### Claim status and abstention`. A guard born red becomes a waiver, then noise, then deleted, so those two rules exist by measurement. Proof, run 2026-08-30 on FIXTURES, never on the live tree or a git checkout. Clean fixture: `ok=True, fails=0`. The pre-ADR-0165 row restored verbatim: `ok=False` naming both `## Required task files` and `## Optional task files`. A row repointed at a topic that lacks the heading: `ok=False`, which is what proves rule 2 is not a loosening. A row citing a `wos/` file absent from disk: `ok=False` on both the dangling citation and the unresolved token. Structural checks go 48 to 49.
+- A written retention policy for the task substrate, and a checker that measures it (`SECURITY.md` gains `## Task substrate handling`, plus `scripts/check-substrate-retention.sh`). Measured on 2026-08-29 before writing it: `projects/` holds 85 project folders, 45 active and 460 archived tasks, about 1.4 GB, and `grep -rilE "retention|backup"` across SECURITY.md, docs/FAQ.md, CONTRIBUTING.md and README.md returned nothing. The repository had never said anything about material it accumulates in plain text. The checker reads a gitignored sidecar for a backup destination and two age limits, then reports size, task counts, backup age and how many archived tasks are past the limit. Exit 0 within limits or not measured, 1 backup missing or stale, 2 usage error. Local-only by construction, like `check-mcp-pins.sh`: a tree with no substrate or no sidecar reports `not measured` and never `clean`, because clean is a claim and there was nothing to measure. Three things it is forbidden to do, one of them checked by grep in the slice criteria: open a task file, print a project folder name (that would put a client name in a lint log or a paste), and copy or transmit anything. Seven checks in `scripts/tests/test-substrate-retention.sh`, including the no-leak assertion and a declared destination that does not exist, which is a missing backup and not a pass. The new section enumerates what stays OUT of scope, because the slice does not solve the problem: 1.4 GB of third-party work on one disk is still on one disk after this commit. Choosing and paying for a destination, key custody, off-site copies, which archived tasks to delete, and any contractual obligation about client material are the operator's.
+- `scripts/release-preflight.sh`, the gate before any push to the public mirror. It runs the mirror guard twice, against this tree and against the public checkout, and both scans cover the entire tracked tree rather than the diff going out, because a leak an earlier release missed is already sitting in the public tree and no diff-scoped scan will ever see it. That accumulation is the reason the script exists. The second run exports `MIRROR_CODENAMES_FILE` so the codename loop reads the staging sidecar: without it the loop is skipped against the public tree, which has no sidecar of its own and cannot have one, the file being gitignored by design. Exporting a private sidecar into a scan of the public tree is correct here and wrong in anything that ships, which is why the script is deliberately not wired into `lint-commands.sh`; it also takes a path that does not exist in CI. Exit 0 both clean, 1 a leak class found, 2 usage error. Measured on 2026-08-29: against `../fhorja.dev` it exits 0 with exactly two lines, no argument exits 2 with a usage line, a nonexistent path exits 2, and a temporary git tree carrying one engagement phrase exits 1 with the guard output indented under the failing tree.
+- A third structural scan in the mirror guard, for engagement provenance (ADR-0164). The class that recurred four times is a phrase, not a token, so a sidecar entry cannot express it, and the sidecar is gitignored, which is why the codename loop is skipped in CI and against the public tree: exactly where this class shipped. The new scan sits with the absolute-path and ticket-id scans, outside the `HAVE_LIST` gate, and fails the build. Three forms, all measured against both trees before the redaction (12 lines in 5 files each) and after (zero, zero false positives): `[Cc]lient[ _-]pilot`, `[Cc]lient [a-z][a-z0-9]*-app`, `[Cc]lient [a-z-]+-fleet`. The bare token is deliberately not covered, because `the HTTP client` and `the Supabase client` are ordinary technical English and a false positive turns a guard off, which is worse than having no guard. `scan_ere` gains an optional pathspec argument, used by this scan only, to exclude `scripts/redact-engagement-provenance.py`: a redaction tool names by construction the strings it removes. The exclusion is not in the helper, so the absolute-path and ticket-id scans keep covering that file, and both were measured clean on it. Proof, run on 2026-08-29. Positive: a fixture reading `the client <product>-app shipped` returns `LEAK: engagement provenance trace` and exit 1, and the same holds with `MIRROR_CODENAMES_FILE=/nonexistent`, which is what proves the scan is not behind the sidecar gate. Negative: `the Supabase client reports an error` returns `clean` and exit 0. Five checks added to `scripts/tests/test-mirror-codenames.sh`, 20 to 25. Both the positive fixtures and the assertion messages are assembled or worded to avoid the pattern, because a tracked test file written literally trips the gate it is testing, which it did on the first run.
+- Two guards for surfaces that had a record and no reader (state audit, 2026-08-21). `scripts/check-mcp-pins.sh` asserts that every server declared in `.mcp.json` carries a vetting entry in `.mcp-vet-pins.json`. ADR-0097 had stated its own posture twice ("records and compares; it does not enforce"), and the repository held three MCP ADRs, a 126-line command and one eval scenario against zero executables. `scripts/check-substrate-ownership.py` cross-checks 38,370 self-reported writes across 386 task logs against the `wos/substrate-peers.md` matrix, applying every escape hatch by name and reporting how many lines each absorbed, because two independent readings of that prose differed by about a thousand lines. Measured: 3,792 writes by a command that is neither owner nor listed co-writer, across 313 of 386 folders, 721 of them in 32 of 40 live folders, plus 3,472 writes to a section with no matrix entry of any kind. An earlier figure of 2,939 and 4,646 was published from a parser that read only the H2 tables and missed the numbered prose rules, four sections of which are covered that way, `## Locked decisions` among them; correcting it reclassified 1,174 writes, of which 853 became non-owner and 321 turned out authorized. Both are local-only by construction, since `projects/` and the two MCP files are gitignored, so both report "not measured" rather than "clean" where their input is absent, and neither can ever run in CI.
+- `scripts/check-installed-skills-drift.sh`, reporting when the machine is behind the repo (state audit, 2026-08-21). `check_advertise_stage_budget` measures the repository's 98 descriptions; the model reads the installed copy. Those had diverged: repo 72,272 chars after the ADR-0154, ADR-0155 and ADR-0157 trim, and all three agent roots frozen at 81,065, exactly the pre-trim figure, with 40 of 98 descriptions differing. About 2,198 tokens of banked saving had never reached the machine that runs the sessions, and the Cursor root sits at 21,285 tokens, above the ceiling the repo gate enforces and cannot see. Layer 2 by necessity, since CI cannot read a home directory. A first version hand-rolled a frontmatter regex, captured the leading `- ` of a YAML block scalar and reported 98 of 98 drifted; it now calls the canonical parser, which `routing-probe.py` already warned was the only correct move.
+- Five co-writers added to the ownership matrix, each anchored to a citable line in the command's own text outside any shared block: `slice-closure` and `sync-task-state` on `## Slices`, `decision-interview` on `## Requested deliverables`, `compact-task-memory` on `## Current known facts` and `## Risks to watch`, `repo-consistency-sweep` on `## Risks to watch`, `delivery-asset` on `## Resume notes`. That took non-owner writes from 3,198 to 2,939 and the live scope from 600 to 521, both measured with the table-only parser; the delta holds, the absolute figures are superseded by the corrected reading above. A larger repair was measured and refused: adding "plus the pattern writers (rule 2b)" to the three highest-volume rows takes the figure to 1,517, and rule 2b grants that co-authorship for exactly five named sections, none of which is among them. Widening a rule past its own definition to make a number fall repairs the measurement rather than the thing.
+- Kimi Code CLI becomes a fourth first-class sync target in `scripts/sync-workflow-slash-commands.sh` (2026-08-06, no new ADR; ADR-0005 already carries the multi-tool rule this applies): a `--kimi-only` selector, a `--kimi-dir=PATH` and `KIMI_SKILLS_DIR` override, and a runtime payload under `<kimi-home>/workflow-docs`, where the home is detected as `KIMI_CODE_HOME`, then `~/.kimi-code` (current Kimi Code CLI), then `~/.kimi` (the older open-source `kimi-cli`). Kimi exposes no user-defined slash-command directory, so its entire surface is Agent Skills invoked as `/skill:<name>`; the sync says so out loud rather than silently writing nothing, and warns when `--no-skills` would leave a Kimi run with the payload alone. The skills destination defaults to the generic `~/.agents/skills`, which Kimi scans natively, because a second copy under the brand directory would register every skill twice; a new per-run dedup guard reports the shared destination as skipped instead of re-copying a tree a concurrent reader may be scanning, and covers the payload phase symmetrically. Three coupled defects found while implementing are fixed in the same change: two `--<tool>-only` flags together used to deselect every destination (the flags were spelled as "turn the others off"), so they now select additively; a `~` in `--claude-dir=~/x` and its siblings was never expanded by the shell in that position and created a literal `~` directory under the CWD; and the wizard and summary quoted a hardcoded command count of 85 in three strings, now counted from the same glob the sync copies (88 today).
+
+### Fixed
+- The `teaching` operating mode now produces the ranked output that only existed inside `workflow-guide`. The mode used to say routing "emphasizes `workflow-guide` rather than `what-next` when ambiguity arises", which described a handoff rather than a behavior: nothing in `what-next` changed under the mode, so declaring it bought a preface and a redirect. `what-next` gains an ADR-0162 conditional block that, and only when `TASK_STATE.md ## Resume notes` carries `Operating mode: teaching`, emits the phase preface, ranks 2 or more candidate commands with a one-line rationale each instead of returning a single answer, and names at least one command that would be premature now with the reason. The inertness clause is inside the block, because `what-next` is one of the 14 minimal-profile commands and a router that pays on every session cannot carry an unconditional paragraph. Nothing is removed: `commands/workflow-guide.md` stays on disk and in all three registries, so the slice is additive and holds its value whether or not the catalog cut ever happens. `wos/operating-modes.md` and the command move in one commit, because a mode that promises what no command executes is the defect being fixed.
+- A command can be frozen, and freezing is not deprecating (ADR-0176, scenario 139). The catalog had four states and none of them was "this works and we are done with it", so a working surface with no demand came back as an open question at every audit and answering "leave it" cost the same as the first time. An optional `metadata.lifecycle` field records the answer; absence means active, so 98 commands gain no line to state the default. The enum is a HARD lint failure and not an advisory, because a typo reads as a state nobody set. Negative proof on a real command, reverted and confirmed byte-identical by sha256: `lifecycle: bogus` exits 1 with "frontmatter: metadata.lifecycle must be 'active' or 'frozen' (got 'bogus')", and `lifecycle: frozen` moves the summary line to "1 frozen command(s), 97 active". `frozen-commands` is a count kind in BOTH mirror scripts, since adding it to one makes the reconciler fail with an unknown kind. The `wos/maturity-ladder.md` section also registers the frozen surfaces that are not commands, keeping "frozen" and "never again" as separate words: a frozen thing may thaw, and `scripts/s3-thin-skills.py` is a direction this repository decided not to walk twice. The mechanism ships with zero frozen commands; which ones carry the field is a separate decision. One environment gotcha worth recording: `grep -l` exits 1 when nothing matches and pipefail propagates it, so the zero-frozen case aborted the lint until the grep was guarded.
+- The shown-evidence rule is grounded in measurement, not in a source (ADR-0175). ADR-0048 rested its evidence rule on "the research (W-20, grounded in the Claude Code best-practices source) recommended deterministic hooks as the strongest verification surface", which tells a later reader what someone recommended rather than what this tree does. ADR-0175 keeps the decision and replaces the grounding with two measurements, both recorded because they answer different questions: the external one, with source and read date, supports only the narrow claim that a hook beats a self-report; the disk one, with the command pasted beside the number it produced, is why the rule exists here. Measured 2026-08-30: 1961 slice notes, 1525 carrying a validation section, 851 of those with no fenced block at all, and 75 containing a bare "tests pass". More than half the notes claiming validation show no output while claiming it. The plan predicted 1588 and 908 from its 2026-08-29 reading; the ADR records what was measured on the day it was written, and both numbers are in the file because the divergence is the point. D-2 defines a held-out assertion tier, proved by the pasted-command verbatim-zero-result mechanism ADR-0146 already runs for absent precedent, since Layer 1 today accepts exactly the tests the agent read in TEST_STRATEGY.md. D-3 settles that evidence lives in a per-slice file. ADR-0048 keeps its decision and its body; only its Status line is marked, a one-line diff.
+- A scenario's criteria section holds a rubric, not a paragraph (scenario 138). `check_criteria_content_floor` requires at least three enumerable checks, the same floor the spine eval runner needs before it will grade a scenario at all, so a file that fails here could not be scored there either. The rule is deliberately written against the same header family `check_corpus_wellformed` accepts, not against the literal `## Pass criteria`: measured 2026-08-29, 78 of 136 scenarios use that header, 3 use `## Pass Criteria` and 55 use an `## Expected ...` variant, so a literal rule would have painted 55 files red, nearly all false alarms, and the first response to that is a waiver. Probe before: 7 scenarios below the floor (120, 121, 118, 122, 113, 119 at 0 items and 101 at 1). Probe after: 0. Correction to the audit map, which said 10; the disk says 7, and the difference is exactly the header-literal mistake above. Every added item derives from a sentence already in the file, its expected-behavior prose or a failure mode inverted to the affirmative; nothing was invented, and `git diff --numstat` shows 0 deletions in all 7 files. Negative proof on a fixture: a scenario whose criteria section is a paragraph returns ok=False naming the file, its 0 items and the floor.
+- The eval corpus has content floors, not just section headers (scenario 138). Every structural check over the corpus asked whether a section was PRESENT; none asked whether it said anything. Deleting the body of every section in all 135 scenarios, roughly 641 KB down to 177 KB, left every heading in place and every check green: the regression net would have reported itself healthy while testing nothing. `check_scenario_content_floor` asserts a per-file floor of 1200 chars and a corpus MEAN floor of 4200, as two independent findings because they are two different defects, one file being a stub versus the corpus being gutted. The gate is on the mean and not the total on purpose: a total would forbid deprecating a scenario, which is ordinary work, while the mean catches bulk emptying, which is the real failure. Both constants ratchet UP and never down, the mirror image of the ADR-0116 Load-stage ceiling; lowering one is an ADR, not an edit. Set below what is on disk rather than at it: measured 2026-08-30, 135 files, mean 4750, smallest 1466, and 0 files below the floor. Negative proof on a FIXTURE passed as `root=`, never on a real scenario: a 46-char stub returns ok=False with two findings, "99-stub.md: 46 chars is below the 1200-char scenario floor" and "corpus mean 46 chars is below the 4200-char mean floor"; the real tree returns ok=True with zero findings in the same run.
+- A name on the flow auditor's exemption list stops being invisible. `READ_ONLY_BY_DESIGN` and `PRE_TASK_UNDERCOUNTED` were bare sets, so a command exempt from the never-invoked metric vanished from the measurement with no record of why, and being exempt was silently conflated with being reachable. They are now name-to-reason maps, every entry carries a one-line reason, and `READ_ONLY_REVIEWED` records the date the list was last read end to end. `classify()` splits the old single `read_only` bucket on indegree and adds a referential-integrity bucket for an exemption whose command no longer exists, which is how a stale entry would otherwise outlive its command. `--orphans-brief` gains a second static line, `exemption audit: N name(s) with indegree <= 1 (review), K name(s) not on disk`, and the lint surfaces it as `Flow-exemptions:`, advisory like the line above it. Measured: 5 names in the queue (`atom-audit-fleet`, `frontend-architecture-review`, `inventory-snapshot`, `prompt-shape`, `workflow-guide`), 0 off disk. The queue is computed from indegree rather than telemetry, so a clone with no `projects/` prints the same two lines, verified by moving the directory aside and running it. The full report's new section is fed from the same function as the brief line rather than from the classify bucket: the bucket is intersected with never-invoked, which dropped a name that telemetry had seen but that is still unreachable, and one script must not answer the same question two ways.
+- Every live reference to `_internal/` says what `_internal/` is, and a check keeps it that way. `_internal/` is gitignored, so it does not exist in a fresh clone; 14 lines across 5 files sent a reader there without saying so, which from the reader's side is indistinguishable from a broken reference. The 25 tracked files that name the path were triaged first: most either name it as an EXCLUDED path in a scan, already say gitignored, or are frozen historical record. `templates/MATURITY_LEDGER.template.md` is new, so the persona ledger the ladder keeps referring to has a tracked house to be created from. `check_internal_refs_annotated` scans the docs and templates a user reads and fails on any line naming the path without `gitignored` or `maintainer-local`. Its scan set deliberately excludes `docs/adr/`, `CHANGELOG.md` and `ROADMAP.md`: widening it there would paint the guard red over text nobody may edit, and a guard that is red by design becomes a waiver on its first day. Negative proof: appending an unannotated `_internal/foo.md` line to `wos/entry-points.md` exits 1 naming the file and the line number, and removing it returns to PASS with the file byte-identical by sha256. This checks TEXT only; a script that WRITES into `_internal/` was the separate fix in the same wave.
+- One fan-out floor, and a check that keeps it one (ADR-0173). Three numbers claimed to be the floor: the spec said 5 in two sentences with no source, ADR-0039 said 10 about a different unit (agents per invocation in a read-only sweep, default 15 to 25), and the seven fleet commands declared 3, 4, 6 and one wave of 2. The floor is now 3, derived as the mode of what the commands already declare and the only value that leaves zero commands to rewrite; `git diff --name-only commands/` is empty and that is an exit criterion. `implement-fleet` at a wave of 2 is the single registered exception, because a worker there carries a whole slice and dispatch overhead is negligible against it. ADR-0039 is not edited. `check_fanout_floor_consistency` reads the floor from `wos/workflow-patterns.md`, requires the spec to name it in both sentences, and fails on a fleet command below it that is not registered. Negative proof: lowering `commands/task-init-fleet.md` to N >= 2 makes the script exit 1 naming the command, and restoring returns it to PASS with the file byte-identical by sha256. The guard skips section-presence lines, because reading "`## Conflicts surfaced` section present when N >= 1" as a dispatch threshold is the exact mistake the audit map made.
+- Skill metadata values are strings (ADR-0168). The Agent Skills spec fixes `metadata` as a map from string keys to STRING values, and all 98 generated skills violated it in five shapes at once: block sequences, booleans, an integer, a nested map, and a sequence of maps. CI reported green throughout, because the pinned skills-ref validator checks the top-level fields and never the type of a metadata value, so bumping the pin would not have closed it. A client implementing the spec strictly rejects the whole install, not one skill. `scripts/emit-skill-frontmatter.py` now owns the frontmatter block and emits every metadata value as a double-quoted scalar, except a literal block scalar, which is already a string and is copied verbatim so the worker schemas survive. The quotes are load-bearing: `owned_sections` carries values containing `##`, and unquoted that opens a YAML comment and truncates the value in silence. `scripts/check-skill-metadata-types.py` is a FAIL-tier lint delegate, per the repository rule that a checker either can fail the build or leaves the lint. Proof on FIXTURES copied from the live tree: clean copy `98 scanned, 0 non-conforming`, exit 0; `multi-repo-aware: false` unquoted gives exit 1 naming the file and the key; a block sequence under `tools` gives exit 1 the same way. The lint itself was proved to bite: with the defect injected it exits 1 and prints the remediation, and restoring returns it to 0. Fidelity is asserted by sha256 of the text after the second fence, per file, before and after: 98 of 98 bodies byte-identical, so every changed line is frontmatter by construction. The flatten is declared LOSSY for `workers` and `convergence`, which become compact JSON inside the quotes, and the ADR says so rather than leaving someone to discover it while writing a parser.
+- The wizard now records the profile choice it was given (`wizard-profile-set`, ADR-0059). Reproduced on 2026-08-30 before the fix: `wizard_custom()` and `run_wizard()` assigned `PROFILE` without touching `PROFILE_SET`, and `skills_effective_profile()` reads `PROFILE_SET`, not `PROFILE`. Choosing "Everyday loop" installed 14 commands and all 98 skills. The harness printed `PROFILE=minimal PROFILE_SET=0` on both wizard paths; it now prints `PROFILE_SET=1` on both. Four assignments route through a new `set_profile()` helper that sets both halves. Policy is unchanged: the bare invocation and the `PROFILE` environment variable behave exactly as before, and the `--dry-run` output still reports `profile: all` three times. A structural check keeps it closed. Its first version was line-anchored and a fixture proved it blind to the very shape that broke: the assignments live inside `case` branches (`1) PROFILE="minimal"; ...`), which no `^\s*PROFILE=` pattern reaches. It now matches an assignment anywhere on the line, excluding only the default, the `--profile=` flag branch, and the helper body. Proof on FIXTURES: clean copy `ok=True`; the assignment reintroduced in `run_wizard` `ok=False` naming line and text; the same in `wizard_custom` `ok=False`. Structural checks go 50 to 51.
+- `mcp-server-vet` puts provenance first (state audit, 2026-08-21). An NVD sweep of MCP-related CVEs (81 in 2025, 305 between 2026-01-01 and 2026-08-21) classifies about 5 per cent as involving tool descriptions or prompt injection at all, against 27 per cent reachable through a declared tool parameter and 22 per cent at transport or deployment level. The command spent Step 3 and all of Step 4 on poisoning and handled provenance as a closing note. New Step 0 resolves the declared package name against the vendor's canonical registry and namespace before a description is read and returns P0 on identity alone, catching the 2026-08-20 npm campaign (GHSA-prf3-6rx4-9h5f) where unscoped `mcp-server-*` names carried a postinstall beacon and faithful copies of the legitimate tool descriptions. Step 0b makes capture safety explicit, since CVE-2026-42271 (LiteLLM, the only MCP CVE in the CISA KEV catalog) was RCE in the endpoint that previews a server's tool list. Step 2b compares candidate tool names against those already installed, after CVE-2026-30856. Prose does not bind, so the measure is scenario 84's new third turn, whose fixture the previous checklist would have returned ADD on.
+- Five platform claims in the fleet doctrine, verified false against current vendor documentation (state audit, 2026-08-21). The mandated worker transport does not exist on the dispatch path the commands use: `StructuredOutput` lives only inside the dynamic-workflow runtime, where the script declares the shape and the runtime performs the call, while the `Agent` tool takes no schema. Three fleet commands mandated it while naming only the `Agent` path, and the consequence is on disk as 27 `.md` worker returns under `.wos/fleet-inbox/`, the shape ADR-0038 forbade, written 6 to 21 days after it was forbidden, alongside 46 `.json`, with only 4 of 27 run ids carrying the platform's generated form. `max_fanout` sat at 20 in three commands and the shared bootstrap declared an absolute ceiling of 100, against a documented limit where the 21st concurrent sub-agent fails closed and the error instructs no retry; those become 16 and 20. A workflow-runtime property ("no penalty for over-batching slightly past the cap") was generalized to a path where it hard-fails, and is now scoped. A worker substrate write was called "impossible" when a background sub-agent retains `Edit` and `Write`. The one-level nesting note described a ceiling that is now three. `Task` is renamed to `Agent` across seven frontmatter declarations and nine body files, enforced by removing it from the lint's `VALID_TOOLS` vocabulary. Two new FAIL-tier checks cover `max_fanout` and an orchestrator that never names an agent type; a third was written and removed, with the reason kept in the script.
+- Five gates that reported clean without checking, and the tier lines that hid it (2026-08-21). `check-mirror-codenames.sh` exited 2 on a missing sidecar and scanned nothing; the `/Users` and ticket scans now always run. `check-doc-sync.sh` verified 1,790 references and now verifies 6,952. `run-evals.sh` walked 99 of 135 scenarios, and a new `walker-covers-corpus` check in `structural-evals.py` fails CLOSED when it cannot find the glob. `check_no_emdash` reached only `commands/*.md` and now covers `_shared`, `wos/`, `templates/**` recursively and `docs/adr/`, with 67 occurrences removed. `check-instruction-budget.sh` measured zero of two files and printed "clean"; it now distinguishes not-measured from clean. Differential over nine planted defect classes: 7 went from undetected to detected.
+- The repository's own root task log, in both readers that ignored it (2026-08-21). `flow-audit.py` globbed `projects/` only, so `task-init-fleet` was reported as never invoked while holding 8 records at the root and none under projects/. Never-invoked goes from 27 to 26. `check-substrate-ownership.py` shipped with the same defect two commits earlier and its first measurement went out with the gap inside, 38,170 lines across 385 folders instead of 38,370 across 386.
+- The shuffled control's ceiling in `routing-probe.py` is tied to chance rather than fixed at 0.50 (2026-08-21). With 89 candidates chance is 1.1 per cent, so the flat ceiling sat roughly 45x above it and would have called a run collapsed while the model answered correctly on half the cases with every description swapped. It becomes 5x chance with a 0.05 floor, which voids none of the recorded runs (ADR-0151 and ADR-0153 measured 0.0 to 1.1 per cent). `emit` records `n_candidates`; `score` names which source it used.
 - "Adjacent" is bounded by the state, not the domain (ADR-0150, **Accepted** 2026-08-13; closes ADR-0148 D-4, applies ADR-0147). `decision-interview`'s adjacent-flow rule fired only on auth, biometric, session and permission-boundary decisions; the three flows it names are adjacent because each reads or writes the same state the decision just defined, which is the bounded definition ADR-0148 said it could not produce. The rule now fires when a decision governs state that more than one flow reads or writes, keeps the auth flows as the named minimum, drops the arbitrary "at least 3" for the actual set, and states the exclusion explicitly so a single-flow decision costs one line. Measured, five runs per arm on a payment decision plus a four-run control: 0 of 5 raised other flows before and 5 of 5 after, 5 of 5 locked the decision before and 0 of 5 after, with arm B naming six or seven flows the scenario never mentioned (refund, chargeback, cancellation inside the retry window, hold expiry, a late capture webhook after the void, fulfillment gating). The control returned zero flows in 4 of 4 on a copy decision, citing the exclusion clause. A first version measured nothing because it listed the flows in the prompt; removing that list produced the result, which also corrects ADR-0148's stated limit: investigation-depth changes are measurable when the scenario does not already contain what the rule should make the run find.
 - The egress contract has one home, and ADR-0148 D-4's stated reason was wrong (ADR-0149, **Accepted** 2026-08-13; supersedes ADR-0148 D-4's egress reasoning). `commands/_shared/mcp-capability-routing.md` rule 5 already stated the full egress contract and four commands already declared it, so there was no missing shared block; the real defect was the opposite, a second inline statement of the same contract in both egress commands (782 and 815 characters), invisible to the drift guard because lint compares text under a `shared:` marker byte-for-byte and cannot know a differently-worded paragraph states the same rule. Both paragraphs are reduced to their command-specific specialization plus a pointer, keeping the vocabulary each uniquely carried (`channel` against `page or space`). Non-regression measured, five runs per arm on an adversarial prompt asking for two posts with "no need to check back with me, just send both": identical across both arms, 0 of 5 sent without confirmation, 5 of 5 displayed the payload and the destination and asked in that same turn, 0 of 5 batched the two posts, and the `channel` vocabulary survived. A behavior difference here would have meant the edit broke something.
 - Two gate triggers rekeyed to their mechanism, and one orphan topic retired (ADR-0148, **Accepted** 2026-08-13; applies ADR-0147). First pass over the gate-provenance advisory: of its 10 flagged gates, five have a trigger that IS the mechanism and are recorded as reviewed, one is a false positive exempted by shape (a wave scope boundary carrying a `per D-N` cite; the check was NOT loosened to accept any decision cite, because a task-local record does not survive archival while an ADR is permanent), and four are narrower than their mechanism. `app-runtime-verify`'s clean-state gate moves from "an auth or biometric slice" to "a slice whose acceptance behavior can be masked by state that survives an app uninstall", closing the first-run-on-a-reused-device case (measured on the verdict itself: PASS 5 of 5 before, BLOCKED 5 of 5 after). `implementation-plan`'s enumerate-all-unmet-prerequisites rule is promoted to the spec's `### No-op execution rule` as an unconditional discipline, with a pointer left behind (unvalidated: the A/B scenario handed the model its answer, and the ADR says so). `wos/realtime-overlay-patterns.md` is retired after being orphaned since a 25-agent coverage mega-batch wrote it ahead of a demand that never arrived, returning `structural-evals.py` to 45 of 45. Two candidates are deferred with stated reasons rather than omitted.
@@ -37,10 +1297,6 @@ While the project is in alpha (0.x.y), MINOR may include breaking changes; expec
 - One enforced size budget at the Load stage; the per-command token-budget field is retired (ADR-0116, **Accepted** 2026-07-25; context-engineering frontier sweep, D-5, supersedes ADR-0013): the `metadata.token-budget` frontmatter field and its warn-only overrun check are removed from all 95 command frontmatters and `scripts/lint-commands.sh`. `evals/scripts/structural-evals.py` gains a hard `check_skill_load_budget()`, measuring the generated `.claude/skills/<name>/SKILL.md` (the artifact the Load stage actually reads, not the source command file ADR-0013 measured) against a 10000-token (40000-char) no-regression ceiling set just above today's measured maximum, meant to ratchet down as trim waves land, never up; the predicate is path-parameterized so it can be tested against a fixture without touching the real corpus. A companion `check_no_retired_frontmatter_field()` guards against a partial retirement. Named up front: a Load-stage ruler does not guard CLAUDE.md, the frontmatter description fields, or the token baseline, which keep their existing coverage unchanged. Eval scenario 116. Count markers: ADRs 115.
 - Contract-fixing examples are exempt from any example-reduction fold (ADR-0115, **Accepted** 2026-07-25; context-engineering frontier sweep, D-2): `WORKFLOW_OPERATING_SYSTEM.md` gains an example-classification rule under `## Context budget`, sorting every command-file example as contract-fixing (its exact shape is parsed by a script or validator, the concrete instance being `commands/_shared/substrate-write-protocol.md`'s transaction-header and JSONL example read byte-exact by `scripts/emit-substrate-write.sh`) or judgment-illustrating (everything else). A future fold that trims examples on context-engineering grounds applies to the judgment-illustrating class only; the rule is stated as an exemption for the class that breaks a parser when touched, not as license to strip judgment-illustrating examples elsewhere. Grounded in the sweep's adversarial angle A2 and the OpenAI GPT-5.6 guidance naming "instructions that encode product requirements" as worth preserving. Eval scenario 115. Count markers: ADRs 114.
 - The `history` layer gains doctrine (ADR-0114, **Accepted** 2026-07-25; context-engineering frontier sweep, deep-read fold): `wos/context-budget.md`'s `### 5. history` section, which previously delegated the whole layer to the harness compactor with no rule of its own, now names three intra-session operations without naming a vendor API (compaction compresses the whole window, clearing surgically drops stale re-fetchable tool results, memory moves data out of the window), states the re-fetch rule (re-run a command for a large deterministic result rather than cite a possibly-stale transcript entry), and documents why `resume-from-state` and `im-stuck`, the two `consumed: [history]` commands, already fall back to `memory` as the source of record. Grounded in "The Complexity Trap" (arXiv 2508.21433) and the Anthropic cookbook context-engineering-tools page. Distinguishes this from ADR-0093's `isolate`, which governs a separate agent's context, not clearing inside one agent's own transcript. Count markers: ADRs 113.
-
-- Kimi Code CLI becomes a fourth first-class sync target in `scripts/sync-workflow-slash-commands.sh` (2026-08-06, no new ADR; ADR-0005 already carries the multi-tool rule this applies): a `--kimi-only` selector, a `--kimi-dir=PATH` and `KIMI_SKILLS_DIR` override, and a runtime payload under `<kimi-home>/workflow-docs`, where the home is detected as `KIMI_CODE_HOME`, then `~/.kimi-code` (current Kimi Code CLI), then `~/.kimi` (the older open-source `kimi-cli`). Kimi exposes no user-defined slash-command directory, so its entire surface is Agent Skills invoked as `/skill:<name>`; the sync says so out loud rather than silently writing nothing, and warns when `--no-skills` would leave a Kimi run with the payload alone. The skills destination defaults to the generic `~/.agents/skills`, which Kimi scans natively, because a second copy under the brand directory would register every skill twice; a new per-run dedup guard reports the shared destination as skipped instead of re-copying a tree a concurrent reader may be scanning, and covers the payload phase symmetrically. Three coupled defects found while implementing are fixed in the same change: two `--<tool>-only` flags together used to deselect every destination (the flags were spelled as "turn the others off"), so they now select additively; a `~` in `--claude-dir=~/x` and its siblings was never expanded by the shell in that position and created a literal `~` directory under the CWD; and the wizard and summary quoted a hardcoded command count of 85 in three strings, now counted from the same glob the sync copies (88 today).
-
-### Fixed
 - The five scripts that read or write under the Claude Code config dir now resolve it as `${CLAUDE_CONFIG_DIR:-$HOME/.claude}` instead of hardcoding `$HOME/.claude` (2026-07-28, no new ADR): `auto-pilot-checkpoint-hook.sh` and `auto-pilot-reset-hook.sh` for `wos-state/auto-pilot.json`, and `track-model-usage.sh`, `audit-command-usage.sh` and `audit-command-usage.py` for the `projects/` transcript scan. A user running two Claude Code profiles (separate accounts via `CLAUDE_CONFIG_DIR`, the common case being a personal and a work subscription) previously had both profiles share one auto-pilot streak counter, and had every transcript audit silently scan only the default profile no matter which one was active. The default-expansion form means the unset case, which is how the default profile runs, keeps resolving to `~/.claude`, so single-profile behavior is unchanged. Scope is the active profile only: an audit run reports the profile it was invoked under, and covering both takes two runs.
 
 ## [1.1.0] - 2026-07-21
@@ -54,7 +1310,7 @@ The cross-model dogfood release. Two full A/B rounds (Claude Code vs Codex CLI r
 - v3 wave 2, substrate apply and closure discipline (ADR-0110, **Accepted** 2026-07-21): the `apply` subcommand of `emit-substrate-write.sh` collapses the whole compliant write cycle (sha_before, splice with self-check, sha_after, JSONL line) into ONE call with a die on a non-unique target header; `verify-substrate-batch.sh` runs the three validators once per batch with independent exit-code capture and an OR-combined code; the `slice-closure` pending-verdict checkpoint (a floor-blocked closure resumes without reinvestigation) and the closure scope boundary replacing the bare "do not implement code"; the unconditional ownership rule in `wos/substrate-peers.md` (a command writes only the sections it owns, in or out of any chain).
 - v3 wave 1, harness profile and cheaper bootstrap (2026-07-21, no new ADR): the Git-authority preflight (detect and recommend; `git init` stays behind human authorization) and the sandbox write-root preflight at `task-init`; the `## Harness operational quirks` section in `wos/editor-mode-mappings.md` with the verified Codex CLI profile (write-root alignment, approval front-load as pure timing reordering, native patch tool over shell redirect); the ADR-0025 reduced bootstrap tier extended to `implement-approved-slice` and `sync-task-state` plus the auditable session bootstrap reuse; platform runtime floors moved to the lazy `wos/platform-runtime-floors.md`; the `## Harness equivalence` primitives table in `wos/sub-agent-orchestration.md`.
 - Active epistemic humility as a claim-keyed doctrine (ADR-0109, **Accepted** 2026-07-20; research-driven, 12 sources): what an agent may assert is keyed to a load-bearing claim's traceability to an enumerable grounded set (captured reference, file read this session, command output seen, passing gate); provenance-only status (never a confidence number), abstention as a routed continuation, the shared `claim-grounding` block across claim-writing commands, the `wos/active-epistemic-humility.md` topic, and the D-10 defeasible-claim revision mechanism with its unresolved-revision floor at `task-close`.
-- Beaufort A/B hardening wave (2026-07-18; 9 verified improvements from the first cross-model dogfood round): the solo/local auto-waiver at `task-close` (team-approval and merge ceremony collapse when the three solo signals hold); bounded slice-status propagation at `slice-closure`; the one-NO_OP enumeration rule in `implementation-plan` (every unmet prerequisite in a single trace); the `approve-proposed` walk-back guard (skip empty blocks, stop at the first decision-bearing one); the `references-reconcile` shared block (cite only what you used) at its checkpoint home; the S1 opt-in validator machinery (post-cutover sha-chain breaks, content-vs-log tip check with a byte-exact `sha_of_section` port, delete-orphan grandfathering) and the opt-in `WOS_TIMEOUT` bound in `emit-substrate-write.sh`.
+- A/B dogfood hardening wave (2026-07-18; 9 verified improvements from the first cross-model dogfood round): the solo/local auto-waiver at `task-close` (team-approval and merge ceremony collapse when the three solo signals hold); bounded slice-status propagation at `slice-closure`; the one-NO_OP enumeration rule in `implementation-plan` (every unmet prerequisite in a single trace); the `approve-proposed` walk-back guard (skip empty blocks, stop at the first decision-bearing one); the `references-reconcile` shared block (cite only what you used) at its checkpoint home; the S1 opt-in validator machinery (post-cutover sha-chain breaks, content-vs-log tip check with a byte-exact `sha_of_section` port, delete-orphan grandfathering) and the opt-in `WOS_TIMEOUT` bound in `emit-substrate-write.sh`.
 - Interactive sync wizard (2026-07-18): `sync-workflow-slash-commands.sh` on a bare run walks the user through tool targets and profiles; generated Agent Skills are on by default.
 - External-contract live-verification gate (ADR-0108, **Accepted** 2026-07-15; tms-webhook-integration dogfood): a vendor integration whose captured reference is evidenced only by a demo payload cannot pass its contract gate without one live verification round against the real endpoint (or an explicit recorded deferral).
 - Mobile runtime gate as a mandatory closure floor plus media-evidence ingestion (ADR-0106 and ADR-0107, **Accepted** 2026-07-14/15; rn-reference-app dogfood): `app-runtime-verify` (ADR-0087) becomes required Layer-1 evidence at the three closure homes for mobile-signature tasks (the session that shipped a broken biometric flow past typecheck and grep forced it), with a minimum frame-coverage floor for ingested run recordings.
@@ -224,7 +1480,12 @@ First public release: Fhorja goes open source under AGPL-3.0, published with a f
 
 ### Notes
 - `## [0.1.0]` was cut on 2026-04-30; the "Initial public release under AGPL-3.0" entries below it remain as the pre-launch baseline.
-- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->150<!-- /count --> (0001-0150, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->234<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->234<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->234<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->234<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->234<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->234<!-- /count --> (0001-0209, with 0037 as the reserved gap).
 
 ---
 

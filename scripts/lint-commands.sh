@@ -4,7 +4,7 @@
 # Validates that each command file under commands/*.md follows the contract
 # defined in WORKFLOW_OPERATING_SYSTEM.md (Standard command output layout,
 # Definition of done, etc.). Also runs two doc-drift guards (ADR-0029):
-# registry membership (every command in all 4 registries, no orphan entries)
+# registry membership (every command in all 3 registries, no orphan entries)
 # and count markers (<!-- count:KIND -->N<!-- /count --> must equal disk).
 #
 # Exit codes:
@@ -58,6 +58,7 @@ FORBIDDEN_PATTERNS=(
 # Top-level markdown files that should also be checked for forbidden bytes.
 # Required-sections check still applies only to commands/*.md.
 ROOT_DOC_FILES=(
+  "AGENTS.md"
   "README.md"
   "WORKFLOW_OPERATING_SYSTEM.md"
   "WORKFLOW_DEMO.md"
@@ -213,13 +214,19 @@ done
 
 VALID_CATEGORIES=(
   "project-initialization"
-  "state-and-navigation"
+  "research-and-sourcing"
   "discovery-and-scoping"
+  "design-and-ui"
+  "game-and-engine"
   "database-context"
-  "contract-and-decision-hardening"
+  "contracts-and-decisions"
   "planning-and-validation"
   "execution-and-closure"
+  "runtime-verification"
+  "audit-and-sweep"
+  "autonomy"
   "delivery-and-communication"
+  "state-and-navigation"
   "prompt-tooling"
 )
 
@@ -260,7 +267,15 @@ is_valid_produced_layer() {
 # metadata.tools (ADR-0059): canonical Claude Code tool vocabulary a command may
 # declare. The read-only guard (a command with context-layers-produced: [] must
 # not declare Write or Edit; Bash exempt) is enforced in the frontmatter loop.
-VALID_TOOLS=(Read Write Edit Bash Glob Grep WebFetch WebSearch Task)
+#
+# `Task` is deliberately NOT in this set. Claude Code renamed that tool to
+# `Agent` in v2.1.63 and the old name still resolves as an alias, so declaring
+# `Task` breaks nothing at runtime. It is refused here because `Task` now names
+# a DIFFERENT family (TaskCreate, TaskGet, TaskList, TaskUpdate, TaskStop,
+# TaskOutput), which makes the bare string ambiguous to every later reader.
+# Omitting it from the vocabulary is what makes the rename stay done: this list
+# is already a FAIL-tier check, so no second scan is needed.
+VALID_TOOLS=(Read Write Edit Bash Glob Grep WebFetch WebSearch Agent)
 is_valid_tool() {
   local v="$1" c
   for c in "${VALID_TOOLS[@]}"; do [[ "$v" == "$c" ]] && return 0; done
@@ -283,6 +298,17 @@ VALID_PROVENANCE=(first-party vetted-third-party sandbox)
 is_valid_provenance() {
   local v="$1" c
   for c in "${VALID_PROVENANCE[@]}"; do [[ "$v" == "$c" ]] && return 0; done
+  return 1
+}
+
+# metadata.lifecycle (ADR-0176): OPTIONAL. Absence means active, so 98 commands do
+# not gain a line to state the default. A typo here is worse than no field at all,
+# because it reads as a state nobody set, so the enum is a hard failure and not an
+# advisory.
+VALID_LIFECYCLE=(active frozen)
+is_valid_lifecycle() {
+  local v="$1" c
+  for c in "${VALID_LIFECYCLE[@]}"; do [[ "$v" == "$c" ]] && return 0; done
   return 1
 }
 
@@ -472,6 +498,12 @@ for file in "${COMMAND_FILES[@]}"; do
     fm_failures+=("frontmatter: missing required field 'metadata.provenance' (ADR-0046 DEF-09)")
   elif ! is_valid_provenance "$fm_provenance"; then
     fm_failures+=("frontmatter: metadata.provenance '$fm_provenance' not in enum (${VALID_PROVENANCE[*]})")
+  fi
+
+  # metadata.lifecycle (ADR-0176). Optional; when present it must name a state.
+  fm_lifecycle="$(printf '%s\n' "$fm_block" | awk '/^  lifecycle: / { sub(/^  lifecycle: /, ""); print; exit }')"
+  if [[ -n "$fm_lifecycle" ]] && ! is_valid_lifecycle "$fm_lifecycle"; then
+    fm_failures+=("frontmatter: metadata.lifecycle must be 'active' or 'frozen' (got '$fm_lifecycle')")
   fi
 
   if [[ ${#fm_failures[@]} -gt 0 ]]; then
@@ -726,10 +758,12 @@ if [[ -f "$CLOSURE_VIEWS_SCRIPT" ]]; then
 fi
 
 # --- Command-catalog drift check (ADR-0005) ---------------------------------
-# docs/command-catalog.html and the README "## Command catalog" section are
-# GENERATED from commands/*.md by build-command-catalog.py. Drift is a FAIL: the
-# catalog is the offline / multi-tool command reference and must not desync from
-# the canonical command files. Skipped (with a note) when the generator is absent.
+# docs/command-catalog.html and docs/command-catalog.json are GENERATED from
+# commands/*.md by build-command-catalog.py. Drift is a FAIL: the catalog is the
+# offline, multi-tool command reference and must not desync from the canonical
+# command files. README.md's "## Command catalog" section is a hand-written
+# pointer to the HTML, not a generated list, so it is not part of this check.
+# Skipped (with a note) when the generator is absent.
 CATALOG_DRIFT_STATUS="skipped"
 CATALOG_DRIFT_OUTPUT=""
 CATALOG_SCRIPT="${SCRIPT_DIR}/build-command-catalog.py"
@@ -758,12 +792,11 @@ REG_FAILED=0
 REG_FAILURES=()
 
 if [[ -f "$WOS_FILE" && -f "$ROLES_FILE" && -f "$STUBS_FILE" ]]; then
-  # Forward: each command present in all four registries.
+  # Forward: each command present in all three registries.
   for file in "${COMMAND_FILES[@]}"; do
     cmd="$(canonical_name_from_path "$file")"
     REG_TOTAL=$((REG_TOTAL + 1))
     reg_missing=""
-    grep -qE "^### ${cmd}\$" "$WOS_FILE"                || reg_missing="${reg_missing} spec-roles-index"
     grep -qE "^- ${bt}${cmd}${bt}\$" "$WOS_FILE"        || reg_missing="${reg_missing} spec-cluster-list"
     grep -qE "^### ${cmd}\$" "$ROLES_FILE"              || reg_missing="${reg_missing} command-roles.md"
     grep -qE "^\\| ${bt}${cmd}${bt} \\|" "$STUBS_FILE"  || reg_missing="${reg_missing} STUBS"
@@ -774,15 +807,6 @@ if [[ -f "$WOS_FILE" && -f "$ROLES_FILE" && -f "$STUBS_FILE" ]]; then
       REG_PASSED=$((REG_PASSED + 1))
     fi
   done
-
-  # Reverse: the spec Command roles index entries map to real commands.
-  while IFS= read -r name; do
-    [[ -z "$name" ]] && continue
-    if [[ ! -f "${COMMANDS_DIR}/${name}.md" && ! -f "${COMMANDS_DIR}/${name}/SKILL.md" ]]; then
-      REG_FAILED=$((REG_FAILED + 1))
-      REG_FAILURES+=("orphan entry: the spec Command roles '### ${name}' has no commands/${name}.md (flat) or commands/${name}/SKILL.md (folder-shaped)")
-    fi
-  done < <(awk '/^## Command roles/{f=1;next} /^## /{if(f)f=0} f && /^### [a-z][a-z-]+$/{sub(/^### /,"");print}' "$WOS_FILE")
 
   # Reverse: wos/command-roles.md entries map to real commands.
   while IFS= read -r name; do
@@ -1014,7 +1038,7 @@ fi
 # on-disk count for KIND. HTML comments do not render, so the marker is
 # invisible to readers; only the digit shows. Catches stale prose counts.
 disk_count() {
-  local n
+  local n blk tpl tplf lvl
   case "$1" in
     commands)           n=$(( $(ls "${COMMANDS_DIR}"/*.md 2>/dev/null | wc -l) + $(ls "${COMMANDS_DIR}"/*/SKILL.md 2>/dev/null | wc -l) )) ;;
     commands-minimal)   n=$(grep -h '^  x-wos-profiles:' "${COMMANDS_DIR}"/*.md "${COMMANDS_DIR}"/*/SKILL.md 2>/dev/null | grep -cw minimal) ;;
@@ -1030,6 +1054,39 @@ disk_count() {
     entry-points)       n=$(grep -c '^## ' "${REPO_ROOT}"/wos/entry-points.md 2>/dev/null) ;;
     fleet-commands)     n=$(ls "${COMMANDS_DIR}"/*-fleet.md 2>/dev/null | wc -l) ;;
     personas)           n=$(ls "${COMMANDS_DIR}"/*/SKILL.md 2>/dev/null | wc -l) ;;
+    frozen-commands)    n=$( { grep -l 'lifecycle: frozen' "${COMMANDS_DIR}"/*.md "${COMMANDS_DIR}"/*/SKILL.md 2>/dev/null || true; } | wc -l) ;;
+    commands-flat)      n=$(ls "${COMMANDS_DIR}"/*.md 2>/dev/null | wc -l) ;;
+    commands-multi-repo) n=$( { grep -l '^  multi-repo-aware: true' "${COMMANDS_DIR}"/*.md 2>/dev/null || true; } | grep -vc -- '-fleet\.md$') ;;
+    commands-history)   n=$( { grep -lE '^  context-layers-consumed: \[.*history' "${COMMANDS_DIR}"/*.md "${COMMANDS_DIR}"/*/SKILL.md 2>/dev/null || true; } | wc -l) ;;
+    runtime-verify-commands) n=$(ls "${COMMANDS_DIR}"/*-runtime-verify.md 2>/dev/null | wc -l) ;;
+    editor-modes)       n=$(grep -h '^  primary-cursor-mode:' "${COMMANDS_DIR}"/*.md "${COMMANDS_DIR}"/*/SKILL.md 2>/dev/null | sed 's/.*primary-cursor-mode:[[:space:]]*//' | sort -u | wc -l) ;;
+    personas-shadow|personas-advisory|personas-gated|personas-peer|personas-autonomous)
+                        # Persona count at one maturity level, named as wos/maturity-ladder.md names it
+                        # (L1 shadow ... L5 autonomous); the marker grammar allows no digit in a kind.
+                        case "$1" in
+                          personas-shadow) lvl=1 ;; personas-advisory) lvl=2 ;; personas-gated) lvl=3 ;;
+                          personas-peer) lvl=4 ;; *) lvl=5 ;;
+                        esac
+                        n=$( { grep -l "^  maturity_level: L${lvl}\$" "${COMMANDS_DIR}"/*/SKILL.md 2>/dev/null || true; } | wc -l) ;;
+    design-review-checks) n=$(grep -cE '^- \*\*Check [0-9]+:' "${COMMANDS_DIR}"/design-spec-review.md 2>/dev/null) ;;
+    closure-pattern-sections) n=$(sed '/^Optional/q' "${COMMANDS_DIR}"/_shared/task-state-slice-closure-pattern.md 2>/dev/null | grep -cE '^[0-9]+\. `#') ;;
+    closure-floors)     n=$(cat "${REPO_ROOT}"/wos/closure-floors.md "${REPO_ROOT}"/wos/platform-runtime-floors.md 2>/dev/null | grep -c '^On missing evidence:') ;;
+    closure-floors-recording) n=$(cat "${REPO_ROOT}"/wos/closure-floors.md "${REPO_ROOT}"/wos/platform-runtime-floors.md 2>/dev/null | grep -cE '^On missing evidence: (record|reconcile)([^a-z]|$)') ;;
+    closure-floors-record) n=$(cat "${REPO_ROOT}"/wos/closure-floors.md "${REPO_ROOT}"/wos/platform-runtime-floors.md 2>/dev/null | grep -cE '^On missing evidence: record([^a-z]|$)') ;;
+    task-shapes)        n=$(grep -c '^## ' "${REPO_ROOT}"/wos/workflow-shapes.md 2>/dev/null) ;;
+    task-memory-files)  n=$(awk '/^## Section ownership matrix/{f=1;next} /^## /{f=0} f && /^### [^ ]+\.md/' "${REPO_ROOT}"/wos/substrate-peers.md 2>/dev/null | wc -l) ;;
+    fleet-substrate-files) n=$(awk '/^## Fleet-substrate files/{f=1;next} /^## /{f=0} f && /^### [^ ]+\.md/' "${REPO_ROOT}"/wos/substrate-peers.md 2>/dev/null | wc -l) ;;
+    log-fields)         n=$(sed -n '/^REQUIRED_FIELDS = {/,/^}/p' "${REPO_ROOT}"/scripts/verify-log-validator.py 2>/dev/null | grep -o '"[a-z_]*"' | wc -l) ;;
+    task-cost-phases)   n=$(sed -n '/^PHASES = \[/,/^\]/p' "${REPO_ROOT}"/scripts/measure-task-cost.py 2>/dev/null | grep -c '^    ("') ;;
+    spine-scenarios)    n=$(grep -c '"file":' "${REPO_ROOT}"/evals/spine-evals.json 2>/dev/null) ;;
+    shared-*)           blk="${1#shared-}"
+                        [[ -f "${COMMANDS_DIR}/_shared/${blk}.md" ]] || { printf '__UNKNOWN__'; return 0; }
+                        n=$( { grep -l "<!-- shared:${blk} -->" "${COMMANDS_DIR}"/*.md "${COMMANDS_DIR}"/*/SKILL.md 2>/dev/null || true; } | wc -l) ;;
+    sections-*)         tpl="$(printf '%s' "${1#sections-}" | tr 'a-z-' 'A-Z_')"
+                        tplf="${REPO_ROOT}/templates/${tpl}.md"
+                        [[ -f "$tplf" ]] || tplf="${REPO_ROOT}/templates/${tpl}.template.md"
+                        [[ -f "$tplf" ]] || { printf '__UNKNOWN__'; return 0; }
+                        n=$(grep -c '^## ' "$tplf") ;;
     *)                  printf '__UNKNOWN__'; return 0 ;;
   esac
   printf '%s' "$n" | tr -d '[:space:]'
@@ -1039,6 +1096,12 @@ COUNT_SCAN_FILES=()
 for rf in "${ROOT_DOC_FILES[@]}"; do COUNT_SCAN_FILES+=("${REPO_ROOT}/${rf}"); done
 for wf in "${REPO_ROOT}"/wos/*.md; do COUNT_SCAN_FILES+=("$wf"); done
 COUNT_SCAN_FILES+=("${REPO_ROOT}/docs/FAQ.md" "${REPO_ROOT}/docs/MIGRATION.md" "${REPO_ROOT}/docs/adr/README.md" "${REPO_ROOT}/evals/README.md")
+# Command files and the shared blocks carry counts of derived sets (floors, template sections,
+# the closure write pattern), so they are in the scan-set too. The generated .claude/skills/
+# copies are not: build-agent-skills.sh --check keeps them equal to these sources.
+for cf in "${COMMANDS_DIR}"/*.md "${COMMANDS_DIR}"/*/SKILL.md "${COMMANDS_DIR}"/_shared/*.md; do
+  [[ -f "$cf" ]] && COUNT_SCAN_FILES+=("$cf")
+done
 
 COUNT_TOTAL=0
 COUNT_PASSED=0
@@ -1130,6 +1193,31 @@ elif [[ -f "$DOC_SYNC_SCRIPT" ]]; then
   DS_STATUS="skipped (not executable)"
 fi
 
+# --- Renumber check (ADR-0225) ------------------------------------------------
+# The same script in its --against HEAD mode, FAIL-tier. The pass above asks whether
+# each cited target EXISTS; an inserted numbered section keeps every number in
+# existence and moves the title under it, so that pass exits 0 on the defect of record.
+# This one compares the working tree with HEAD: a numbered heading now naming another
+# section, a heading whose text is gone, or a deleted path, still cited by a line the
+# change did not add. On a clean tree (CI) there is no change and it says so. Exit 2
+# (no git revision, a tarball) is reported as not measured and does not fail the lint.
+DR_STATUS="skipped"
+DR_OUTPUT=""
+DR_EXIT=0
+DR_SUMMARY=""
+if [[ -x "$DOC_SYNC_SCRIPT" ]]; then
+  set +e
+  DR_OUTPUT="$("$DOC_SYNC_SCRIPT" --against HEAD 2>&1)"
+  DR_EXIT=$?
+  set -e
+  DR_SUMMARY="$(printf '%s\n' "$DR_OUTPUT" | grep -E '^doc-sync --against' | tail -n1 || true)"
+  case "$DR_EXIT" in
+    0) DR_STATUS="clean" ;;
+    1) DR_STATUS="broken" ;;
+    *) DR_STATUS="not measured" ;;
+  esac
+fi
+
 # --- Mirror-codename leak guard ---------------------------------------------
 # Delegates to scripts/check-mirror-codenames.sh, which greps the TRACKED tree
 # for the private codenames listed in the gitignored sidecar
@@ -1137,8 +1225,17 @@ fi
 # the guard's only executable caller: without it nothing runs it outside its own
 # test, and a leak gate nobody invokes gates nothing.
 #
-# Guard exit contract: 0 clean, 1 leak class(es) found, 2 usage error / no
-# sidecar. Only exit 1 fails the lint, and the leak classes are printed so the
+# Guard exit contract: 0 clean and every scan ran, 1 leak class(es) found, 2 usage
+# error (bad or missing target directory), 3 the structural scans ran clean but the
+# codename scan did not run because there is no sidecar. Exit 3 exists because 0 and
+# 3 were one code until 2026-08-30, so this line read "clean (tracked tree)" on every
+# CI runner, where the sidecar is gitignored and therefore always absent. It does not
+# fail the lint: only exit 1 does, and making an absent gitignored file fail the build
+# would be a change of policy rather than of honesty. Since 2026-08-21 a missing codename sidecar is NOT
+# exit 2: it disables only the codename scan, while the absolute-path and
+# ticket-id scans still run and can still return 1. Before that, the gitignored
+# sidecar made the whole guard inert on every CI runner.
+# Only exit 1 fails the lint, and the leak classes are printed so the
 # offending file is actionable. Exit 2 is an INFORMATIONAL one-line skip on
 # purpose: the sidecar is gitignored, so it is absent in CI and in every clean
 # checkout, and failing there would break the build for everyone while proving
@@ -1164,47 +1261,12 @@ if [[ -f "$MC_SCRIPT" ]]; then
   case "$MC_EXIT" in
     0) MC_STATUS="clean (tracked tree)" ;;
     1) MC_STATUS="LEAK class(es) found (see below)" ;;
-    2) MC_STATUS="skipped (no codename sidecar; scripts/.mirror-codenames is gitignored)" ;;
+    2) MC_STATUS="skipped (guard usage error: bad or missing target directory)" ;;
+    3) MC_STATUS="clean on the structural scans; codename scan not measured (no sidecar)" ;;
     *) MC_STATUS="skipped (guard exited ${MC_EXIT})" ;;
   esac
 fi
 
-# --- Natural-voice advisory -------------------------------------------------
-# Delegates to scripts/check-natural-voice.sh. INFORMATIONAL: never increments
-# FAILED and never flips the exit code (mirrors the maturity-ladder model).
-# Surfaces AI-tell hits (slash and/or, not-just-X parallelism, vocab cliches,
-# emoji) on the summary line; detail under --verbose/--strict. The em-dash hard
-# block stays in FORBIDDEN_PATTERNS above; this is the advisory tier.
-NV_SCRIPT="${SCRIPT_DIR}/check-natural-voice.sh"
-NV_HITS=0
-NV_FILES=0
-NV_STATUS="skipped"
-NV_OUTPUT=""
-if [[ -x "$NV_SCRIPT" ]]; then
-  # Explicit branches instead of an args array: macOS bash 3.2 errors on empty
-  # array expansion (`"${arr[@]}"`) under `set -u`.
-  set +e
-  if [[ $VERBOSE -eq 1 && $STRICT -eq 1 ]]; then
-    NV_OUTPUT="$("$NV_SCRIPT" --verbose --strict 2>&1)"
-  elif [[ $VERBOSE -eq 1 ]]; then
-    NV_OUTPUT="$("$NV_SCRIPT" --verbose 2>&1)"
-  elif [[ $STRICT -eq 1 ]]; then
-    NV_OUTPUT="$("$NV_SCRIPT" --strict 2>&1)"
-  else
-    NV_OUTPUT="$("$NV_SCRIPT" 2>&1)"
-  fi
-  set -e
-  nv_summary_line="$(printf '%s\n' "$NV_OUTPUT" | grep -iE '^natural-voice: [0-9]+ advisory hit' | tail -n1 || true)"
-  if [[ -n "$nv_summary_line" ]]; then
-    NV_HITS="$(printf '%s' "$nv_summary_line" | sed -E 's/^[Nn]atural-voice: ([0-9]+) advisory hit\(s\) across ([0-9]+) file\(s\).*/\1/')"
-    NV_FILES="$(printf '%s' "$nv_summary_line" | sed -E 's/^[Nn]atural-voice: ([0-9]+) advisory hit\(s\) across ([0-9]+) file\(s\).*/\2/')"
-    NV_STATUS="ran"
-  else
-    NV_STATUS="ran"
-  fi
-elif [[ -f "$NV_SCRIPT" ]]; then
-  NV_STATUS="skipped (not executable)"
-fi
 
 echo ""
 echo "================================================================================"
@@ -1228,16 +1290,31 @@ done < <(grep -ohE 'wos/[A-Za-z0-9_/-]+\.md' \
            "${REPO_ROOT}"/commands/*.md "${REPO_ROOT}"/commands/*/SKILL.md 2>/dev/null \
          | sed -e 's|^wos/||' -e 's|\.md$||' | sort -u)
 
-echo "Root docs:    $ROOT_TOTAL file(s) scanned for forbidden bytes, $ROOT_WARNED warned"
+echo "Root docs:    $ROOT_TOTAL file(s) scanned for forbidden bytes, $ROOT_WARNED warned (strict-only; fails the lint under --strict)"
 echo "Shared:       $SHARED_TOTAL marker(s), $SHARED_PASSED matched canonical, $SHARED_FAILED drifted"
 echo "Frontmatter:  $FM_TOTAL command(s), $FM_PRESENT with frontmatter ($FM_PASSED passed, $FM_FAILED failed), $FM_MISSING pending migration"
-echo "Maturity ladder: $ML_CHECKED persona(s) checked; $ML_WARNED warning(s) (per wos/maturity-ladder.md)"
+echo "Maturity ladder: $ML_CHECKED persona(s) checked; $ML_WARNED warning(s) (advisory; per wos/maturity-ladder.md)"
+# --- Skill metadata types (ADR-0168, FAIL tier) ------------------------------
+# The Agent Skills spec fixes metadata as a map from string keys to STRING values.
+# The pinned skills-ref validator checks the top-level fields and never the TYPE of a
+# metadata value, so 98 of 98 skills violated the spec while CI reported green. A client
+# implementing the spec strictly rejects the whole install, not one skill. FAIL tier, not
+# advisory: a checker either can fail the build or it leaves the lint.
+SMT_SCRIPT="${SCRIPT_DIR}/check-skill-metadata-types.py"
+SMT_LINE="Skill-metadata-types: skipped (checker missing)"
+SMT_EXIT=0
+if [[ -f "$SMT_SCRIPT" ]]; then
+  SMT_OUTPUT="$(python3 "$SMT_SCRIPT" 2>&1)" || SMT_EXIT=1
+  SMT_LINE="$(printf '%s\n' "$SMT_OUTPUT" | head -n1)"
+fi
+
 echo "Skills:       ${SKILLS_DRIFT_STATUS} (build-agent-skills.sh --check)"
+echo "${SMT_LINE}"
 echo "Closure-views: ${CLOSURE_VIEWS_STATUS} (build-closure-floor-views.py --check)"
 echo "Proper-nouns: ${PROPER_NOUN_STATUS} (build-proper-noun-baseline.py --check)"
 echo "Catalog:      ${CATALOG_DRIFT_STATUS} (build-command-catalog.py --check)"
 echo "Wos-refs:     $WOS_REF_TOTAL topic(s) cited by commands/, $WOS_REF_MISSING missing"
-echo "Registry:     $REG_TOTAL command(s), $REG_PASSED in all 4 registries, $REG_FAILED gap(s)"
+echo "Registry:     $REG_TOTAL command(s), $REG_PASSED in all 3 registries, $REG_FAILED gap(s)"
 echo "Indexes:      $IDX_TOTAL file(s) (ADR+scenario), $IDX_PASSED indexed, $IDX_FAILED gap(s)"
 echo "Scenario refs: $SCEN_REF_TOTAL reference(s), $SCEN_REF_PASSED resolved, $SCEN_REF_FAILED broken"
 echo "Counts:       $COUNT_TOTAL marker(s), $COUNT_PASSED match disk, $COUNT_FAILED stale"
@@ -1247,12 +1324,16 @@ if [[ "$DS_STATUS" == "ran" ]]; then
 else
   echo "Doc-sync:     skipped (script missing)"
 fi
-echo "Mirror-guard: ${MC_STATUS}"
-if [[ "$NV_STATUS" == "ran" ]]; then
-  echo "Natural-voice: $NV_HITS advisory hit(s) across $NV_FILES file(s) (informational; per wos/natural-voice.md)"
+if [[ "$DR_STATUS" == "skipped" ]]; then
+  echo "Doc-renumber: skipped (script missing)"
 else
-  echo "Natural-voice: $NV_STATUS"
+  echo "Doc-renumber: ${DR_SUMMARY:-$DR_STATUS (exit $DR_EXIT)}"
 fi
+echo "Mirror-guard: ${MC_STATUS}"
+# `grep -l` exits 1 when nothing matches, and with pipefail on that aborts the
+# script. Zero frozen commands is the expected state, not an error.
+LC_FROZEN=$( { grep -l 'lifecycle: frozen' "${COMMANDS_DIR}"/*.md "${COMMANDS_DIR}"/*/SKILL.md 2>/dev/null || true; } | wc -l | tr -d ' ')
+echo "Lifecycle:    ${LC_FROZEN} frozen command(s), $((TOTAL - LC_FROZEN)) active (ADR-0176; absence of the field means active)"
 
 # --- Instruction-budget advisory (W-15) -------------------------------------
 # Delegates to scripts/check-instruction-budget.sh. INFORMATIONAL: warn-only,
@@ -1261,6 +1342,119 @@ IB_SCRIPT="${SCRIPT_DIR}/check-instruction-budget.sh"
 if [[ -x "$IB_SCRIPT" ]]; then
   IB_LINE="$("$IB_SCRIPT" 2>/dev/null | grep -iE '^Instruction-budget:' | tail -n1 || true)"
   [[ -n "$IB_LINE" ]] && echo "$IB_LINE"
+fi
+
+# --- Doc-currency advisory (B6/B7, 2026-09-17) ------------------------------
+# Delegates to scripts/check-doc-currency.sh. Any wos/*.md that cites an external
+# source opts in by declaring `Last scanned:` and `Cadence:`. INFORMATIONAL: warn-only.
+# Advisory on purpose. A date-triggered hard failure breaks CI on a day with no
+# code change, which teaches people to bypass the gate rather than refresh the
+# table. The line names the exact age and last-scan date instead.
+MR_SCRIPT="${SCRIPT_DIR}/check-doc-currency.sh"
+if [[ -x "$MR_SCRIPT" ]]; then
+  MR_LINE="$("$MR_SCRIPT" 2>/dev/null | grep -iE '^Doc-currency:' | tail -n1 || true)"
+  [[ -n "$MR_LINE" ]] && echo "$MR_LINE"
+fi
+
+# --- Skill-budget advisory (B11, 2026-09-17) --------------------------------
+# Delegates to scripts/check-skill-budget.sh. INFORMATIONAL. Reports how many
+# generated skills survive the host's 25,000-token combined re-attachment budget.
+# Fhorja cannot change that budget, so this reports headroom rather than gating.
+SB_SCRIPT="${SCRIPT_DIR}/check-skill-budget.sh"
+if [[ -x "$SB_SCRIPT" ]]; then
+  SB_LINE="$("$SB_SCRIPT" 2>/dev/null | grep -iE '^Skill-budget:' | tail -n1 || true)"
+  [[ -n "$SB_LINE" ]] && echo "$SB_LINE"
+fi
+
+# --- Substrate-ownership advisory -------------------------------------------
+# Delegates to scripts/check-substrate-ownership.py. INFORMATIONAL: warn-only,
+# never flips the exit code (mirrors the instruction-budget advisory tier).
+# Never pass --strict: that flag is a local measurement, not a lint gate.
+# projects/ is gitignored, so CI prints "not measured" rather than "clean"
+# when VERIFICATION_LOG.jsonl is absent (same "not measured" vs "clean"
+# distinction as check-installed-skills-drift.sh).
+SO_SCRIPT="${SCRIPT_DIR}/check-substrate-ownership.py"
+if command -v python3 >/dev/null 2>&1 && [[ -f "$SO_SCRIPT" ]]; then
+  SO_LINE="$(python3 "$SO_SCRIPT" 2>/dev/null | grep -iE '^Substrate-ownership:' | head -n1 || true)"
+  [[ -n "$SO_LINE" ]] && echo "$SO_LINE"
+fi
+
+# --- Plan-coverage advisory -------------------------------------------------
+# Delegates to scripts/check-plan-coverage.sh. INFORMATIONAL here: warn-only,
+# never flips the exit code. The same script is FAIL-tier where it is called with
+# one task folder, from `implementation-plan`, because a coverage defect must not
+# survive the call that creates it. Here it can only measure what is on disk, and
+# a task folder may be absent entirely, so it reports.
+#
+# projects/ is gitignored, so CI prints "not measured" rather than "clean" (the
+# same distinction the substrate-ownership advisory above makes). Invoked through
+# `bash` with a -f guard rather than -x, for the lost-execute-bit reason the
+# bug-class advisory below spells out.
+PC_SCRIPT="${SCRIPT_DIR}/check-plan-coverage.sh"
+if [[ -f "$PC_SCRIPT" ]]; then
+  # --root is explicit: the checker scans the caller's working directory by default
+  # (ADR-0224), and the lint can be run from anywhere.
+  PC_LINE="$(bash "$PC_SCRIPT" --all --advisory --root "$REPO_ROOT" 2>/dev/null | grep -iE '^Plan-coverage:' | tail -n1 || true)"
+  [[ -n "$PC_LINE" ]] && echo "$PC_LINE"
+fi
+
+# --- Ladder-demand advisory (S3.3) ------------------------------------------
+# Delegates to scripts/flow-audit.py --demand. INFORMATIONAL: warn-only, never
+# flips the exit code (mirrors the substrate-ownership advisory tier above).
+#
+# Reports how many personas sit at L3 or above with zero OWNER writes, which is
+# the input a demand-based demotion rule would read. It reports and decides
+# nothing. The rule it feeds lives in the ladder (ADR-0181, 90 days from promotion,
+# counted by owner); this line reports the input and never demotes anything.
+#
+# Counting is by owner, not by invoked_by. Measured 2026-08-30 the two invert
+# the answer: the two L3 personas with zero owner writes have 4 and 5 writes as
+# invoked_by, so counting both would report zero and the line would say nothing.
+#
+# projects/ is gitignored, so this prints "not measured" rather than "0" when
+# the telemetry is absent, the same distinction the two advisories around it
+# make. A zero read as absence of demand would accuse every persona in CI.
+LD_SCRIPT="${SCRIPT_DIR}/flow-audit.py"
+if command -v python3 >/dev/null 2>&1 && [[ -f "$LD_SCRIPT" ]]; then
+  LD_OUT="$(python3 "$LD_SCRIPT" --demand 2>/dev/null || true)"
+  if [[ -z "$LD_OUT" ]]; then
+    :
+  elif grep -q 'not measured' <<<"$LD_OUT"; then
+    LD_TOTAL="$(grep -c 'maturity_level=L[345]' <<<"$LD_OUT" || true)"
+    echo "Ladder-demand: not measured (no telemetry under projects/); ${LD_TOTAL} persona(s) at L3+ on disk (advisory)"
+  else
+    LD_N="$(grep -c 'owner_writes=0.*maturity_level=L[345]' <<<"$LD_OUT" || true)"
+    echo "Ladder-demand: ${LD_N} persona(s) at L3+ with 0 owner write(s) (advisory; reports the input to the ADR-0181 rule, never demotes)"
+  fi
+fi
+
+# --- Citation-integrity advisory --------------------------------------------
+# Delegates to scripts/check-citation-integrity.py. INFORMATIONAL: warn-only,
+# never flips the exit code. Distinct from check-doc-sync.sh, which answers
+# "does the cited artifact exist" (and reports zero broken); this answers
+# "does the cited artifact say what the citing text claims", which is the class
+# the 2026-09-03 audit waves found dominating: 27 of 42 confirmed findings.
+if [[ -f "${REPO_ROOT}/scripts/check-citation-integrity.py" ]]; then
+  CI_OUT="$(python3 "${REPO_ROOT}/scripts/check-citation-integrity.py" 2>&1 || true)"
+  CI_LINE="$(grep -E '^Citation-integrity:' <<<"$CI_OUT" || true)"
+  if [[ -n "$CI_LINE" ]]; then
+    echo "${CI_LINE} (advisory; existence is Doc-sync's job, this checks what the target says)"
+  fi
+fi
+
+# --- Installed-skills drift advisory ----------------------------------------
+# Delegates to scripts/check-installed-skills-drift.sh. INFORMATIONAL: warn-only,
+# never flips the exit code (mirrors the instruction-budget advisory tier).
+#
+# check_advertise_stage_budget measures the REPO's descriptions. The model reads
+# the INSTALLED copy under the operator's agent roots, and on 2026-08-21 those
+# had diverged by 8793 chars: the repo had banked the ADR-0154/0155/0157 trim and
+# the machine had not. This surfaces that gap. It reports "not measured" rather
+# than "clean" where the roots are absent, which is always the case in CI.
+ISD_SCRIPT="${SCRIPT_DIR}/check-installed-skills-drift.sh"
+if [[ -x "$ISD_SCRIPT" ]]; then
+  ISD_LINE="$("$ISD_SCRIPT" 2>/dev/null | grep -iE '^Installed-skills-drift:' | tail -n1 || true)"
+  [[ -n "$ISD_LINE" ]] && echo "$ISD_LINE"
 fi
 
 # --- Claim-grounding advisory (ADR-0109, D-11) ------------------------------
@@ -1274,20 +1468,6 @@ CG_SCRIPT="${SCRIPT_DIR}/check-claim-grounding.sh"
 if [[ -x "$CG_SCRIPT" ]]; then
   CG_LINE="$("$CG_SCRIPT" 2>/dev/null | grep -iE '^claim-grounding:' | tail -n1 || true)"
   [[ -n "$CG_LINE" ]] && echo "Claim-grounding: ${CG_LINE#claim-grounding: } (informational; per ADR-0109 D-2 guard)"
-fi
-
-# --- Gate-provenance advisory (ADR-0147 D-2) --------------------------------
-# Delegates to scripts/check-gate-provenance.sh. INFORMATIONAL: warn-only,
-# never flips the exit code (mirrors the claim-grounding advisory tier).
-# Flags a conditional gate (a WHEN trigger plus SHALL/MUST) in a command body
-# that cites no ADR. Provenance is the checkable proxy: a gate whose scope
-# boundary was never argued where the ADR template forces the argument is a
-# prompt to re-read its trigger. It does NOT judge whether a trigger is
-# mechanism-shaped; that stays human. See scripts/check-gate-provenance.sh.
-GP_SCRIPT="${SCRIPT_DIR}/check-gate-provenance.sh"
-if [[ -x "$GP_SCRIPT" ]]; then
-  GP_LINE="$("$GP_SCRIPT" 2>/dev/null | grep -iE '^gate-provenance:' | tail -n1 || true)"
-  [[ -n "$GP_LINE" ]] && echo "Gate-provenance: ${GP_LINE#gate-provenance: } (informational; per ADR-0147 D-2)"
 fi
 
 # --- Skill-triggers advisory (W-19) -----------------------------------------
@@ -1314,6 +1494,16 @@ if command -v python3 >/dev/null 2>&1 && [[ -f "$FA_SCRIPT" ]]; then
   if [[ -n "$FA_HEAD" ]]; then
     FA_ZERO="$(printf '%s' "$FA_HEAD" | grep -oE '[0-9]+ command\(s\) with 0 inbound' | grep -oE '^[0-9]+' || echo '?')"
     echo "Flow-orphans: ${FA_ZERO} command(s) with 0 inbound reference(s) in the command graph (informational; per scripts/flow-audit.py)"
+    # Second static line: names exempt from the never-invoked metric that are still
+    # unreachable in the graph. Exempt is not the same as reachable, and without this
+    # line a command can be both invisible to the usage signal and unreachable, which
+    # is exactly how one goes missing. Advisory like the line above; never fails.
+    FA_EX="$(printf '%s\n' "$FA_OUT" | grep -iE '^exemption audit:' | tail -n1 || true)"
+    if [[ -n "$FA_EX" ]]; then
+      FA_REVIEW="$(printf '%s' "$FA_EX" | grep -oE '[0-9]+ name\(s\) with indegree' | grep -oE '^[0-9]+' || echo '?')"
+      FA_GONE="$(printf '%s' "$FA_EX" | grep -oE '[0-9]+ name\(s\) not on disk' | grep -oE '^[0-9]+' || echo '?')"
+      echo "Flow-exemptions: ${FA_REVIEW} with indegree <= 1, ${FA_GONE} not on disk (informational)"
+    fi
     if [[ $VERBOSE -eq 1 ]] || [[ $STRICT -eq 1 ]]; then
       printf '%s\n' "$FA_OUT" | sed -n '2,$p' | sed 's/^/  /'
     fi
@@ -1348,42 +1538,7 @@ if [[ -f "$BCS_SCRIPT" ]]; then
   fi
 fi
 
-# --- NEEDS CLARIFICATION marker count (informational; non-blocking) --------
-# Per wos/cross-cutting-workflow-guardrails.md NEEDS CLARIFICATION inline marker.
-# Greps every .md file under projects/*/active/*/ for the literal marker prefix.
-# Reports per task folder; total is informational only (not a lint failure).
-NC_TOTAL=0
-NC_TASKS_WITH_MARKERS=0
-declare -a NC_DETAILS
-if [[ -d "${REPO_ROOT}/projects" ]]; then
-  while IFS= read -r task_dir; do
-    [[ -z "$task_dir" ]] && continue
-    count=$(grep -rE -c '\[NEEDS CLARIFICATION:' "$task_dir" 2>/dev/null | awk -F: '{ s += $2 } END { print s+0 }' || true)
-    count="${count:-0}"
-    if [[ "$count" -gt 0 ]] 2>/dev/null; then
-      NC_TOTAL=$((NC_TOTAL + count))
-      NC_TASKS_WITH_MARKERS=$((NC_TASKS_WITH_MARKERS + 1))
-      rel_path="${task_dir#${REPO_ROOT}/}"
-      NC_DETAILS+=("$rel_path: $count")
-    fi
-  done < <(find "${REPO_ROOT}/projects" -mindepth 3 -maxdepth 3 -type d -path '*/active/*' 2>/dev/null || true)
-fi
-echo "Clarify:      $NC_TOTAL [NEEDS CLARIFICATION:] marker(s) across $NC_TASKS_WITH_MARKERS active task folder(s) (informational)"
 echo "================================================================================"
-
-if [[ $NC_TOTAL -gt 0 ]] && { [[ $VERBOSE -eq 1 ]] || [[ $STRICT -eq 1 ]]; }; then
-  echo ""
-  echo "NEEDS CLARIFICATION markers (informational):"
-  for d in "${NC_DETAILS[@]}"; do
-    echo "  - $d"
-  done
-fi
-
-# Natural-voice advisory detail (informational; never flips the exit code).
-if [[ "$NV_STATUS" == "ran" ]] && [[ "$NV_HITS" -gt 0 ]] 2>/dev/null && { [[ $VERBOSE -eq 1 ]] || [[ $STRICT -eq 1 ]]; }; then
-  echo ""
-  printf '%s\n' "$NV_OUTPUT"
-fi
 
 if [[ $FAILED -gt 0 ]]; then
   echo ""
@@ -1453,7 +1608,7 @@ fi
 
 if [[ "$CATALOG_DRIFT_STATUS" == "drifted" ]]; then
   echo ""
-  echo "Command-catalog drift detected (docs/command-catalog.html or README ## Command catalog out of sync):"
+  echo "Command-catalog drift detected (docs/command-catalog.html or docs/command-catalog.json out of sync):"
   printf '%s\n' "$CATALOG_DRIFT_OUTPUT" | sed 's/^/  /'
   echo ""
   echo "Run python3 ./scripts/build-command-catalog.py to regenerate from canonical commands/."
@@ -1467,7 +1622,7 @@ if [[ $REG_FAILED -gt 0 ]]; then
     echo "  - $failure"
   done
   echo ""
-  echo "Every command must appear in: a spec '### <cluster>' bullet, the spec '## Command roles' index, wos/command-roles.md, and the COMMAND_PROMPT_STUBS.md table."
+  echo "Every command must appear in: a spec '### <cluster>' bullet, wos/command-roles.md, and the COMMAND_PROMPT_STUBS.md table. Per-command Role and Next left the spec in ADR-0165."
   exit 1
 fi
 
@@ -1524,6 +1679,15 @@ if [[ "$DS_STATUS" == "ran" ]] && (( DSBROKEN > 0 )); then
   exit 1
 fi
 
+if [[ "$DR_STATUS" == "broken" ]] && (( DR_EXIT == 1 )); then
+  echo ""
+  echo "Stale references to a heading or path this change removed or renumbered (ADR-0225):"
+  printf '%s\n' "$DR_OUTPUT" | sed 's/^/  /'
+  echo ""
+  echo "Update each citing line in the same change, or keep the heading's number and text. Run ./scripts/check-doc-sync.sh --against HEAD to re-check."
+  exit 1
+fi
+
 if (( MC_MISSING == 1 )); then
   echo ""
   echo "Mirror-codename guard is missing: scripts/check-mirror-codenames.sh"
@@ -1540,12 +1704,24 @@ fi
 # does not own, so it reproduces none of it and routes the operator to the guard,
 # which they run by hand with the sidecar already in reach. MC_OUTPUT is captured
 # above solely to keep the guard's stdout out of this log; it is never printed.
+if (( SMT_EXIT == 1 )); then
+  echo ""
+  echo "Skill metadata carries a non-string value (ADR-0168)."
+  printf '%s\n' "$SMT_OUTPUT" | tail -n +2
+  echo "The Agent Skills spec fixes metadata as a map from string keys to STRING values, and a client"
+  echo "that implements it strictly rejects the whole install, not one skill. The pinned skills-ref"
+  echo "validator never checks the type of a metadata value, which is why this guard exists."
+  echo "Fix: never edit .claude/skills by hand. Change commands/<name>.md and run ./scripts/build-agent-skills.sh."
+  exit 1
+fi
+
 if (( MC_EXIT == 1 )); then
   echo ""
   echo "Mirror-codename leak detected in the tracked tree."
   echo "Details are deliberately not printed here: they name the private codename, and this runs on every lint."
   echo "See what and where:  scripts/check-mirror-codenames.sh ."
   echo "Then replace the codename with a synthetic token (e.g. 'Acme') in the versioned file, or drop the absolute path. The sidecar scripts/.mirror-codenames stays gitignored and out of the mirror."
+  echo "An engagement-provenance hit is fixed by rewriting the sentence to describe the work, not whose work it was; the workflow telemetry (agent counts, tokens, wall-clock) stays."
   exit 1
 fi
 
@@ -1566,6 +1742,98 @@ if [[ $ML_WARNED -gt 0 ]] && { [[ $VERBOSE -eq 1 ]] || [[ $STRICT -eq 1 ]]; }; t
   for w in "${MATURITY_WARNINGS[@]}"; do
     echo "  - $w"
   done
+fi
+
+# --- Orchestrator contract (fleet dispatch) ---------------------------------
+# FAIL tier. Three invariants about how a command dispatches sub-agents, each
+# one a claim about the platform that was measured false in this tree:
+#
+#   1. A command mandating `StructuredOutput` must name the workflow path.
+#      That tool exists only inside the dynamic-workflow runtime, where the
+#      SCRIPT declares the shape via `agent(prompt, {schema})`. The `Agent` tool
+#      takes no schema, so a command that mandates the tool while naming only
+#      the `Agent` path is instructing a worker to call something it does not
+#      have. Three fleet commands did exactly that, and the consequence is on
+#      disk: 27 `.md` worker returns under .wos/fleet-inbox/, the shape ADR-0038
+#      declared FORBIDDEN, written 6 to 21 days after it was forbidden.
+#
+#   2. `max_fanout` must not exceed 20. Claude Code documents that the 21st
+#      concurrent sub-agent fails with `Concurrent subagent limit reached` and
+#      that the error tells the model not to retry. Three commands declared 20,
+#      which is the limit itself with no headroom for a retry, and the shared
+#      bootstrap declared an absolute ceiling of 100.
+#
+#   3. An `orchestrator: true` command must name the agent type it dispatches.
+#      Fork mode is on by default in an interactive session, and a fork inherits
+#      the whole conversation, dropping the input isolation the orchestrator is
+#      relying on. Three fleet commands named no type at all.
+ORCH_FAILURES=()
+# Each check scans the surface its invariant lives on, and no wider. Scanning
+# wos/ with the agent-type check reddened wos/sub-agent-orchestration.md for
+# containing the string `orchestrator: true` while DESCRIBING the frontmatter
+# key, which is the same describe-versus-mandate false positive that got a third
+# check dropped from this block. The ceiling check runs over wos/ separately,
+# below, because that claim genuinely lived in two files and only one was fixed
+# on the first pass.
+for file in "${COMMAND_FILES[@]}" "${REPO_ROOT}"/commands/_shared/*.md; do
+  [[ -f "$file" ]] || continue
+  oc_name="$(basename "${file%.md}")"
+  [[ "$file" == */SKILL.md ]] && oc_name="$(basename "$(dirname "$file")")"
+
+  # NOT CHECKED HERE: "a command mandating StructuredOutput must name the
+  # workflow path". The doctrine fix landed in the command files, but the check
+  # did not, and the reason is worth keeping. A file-wide test passed on an
+  # incidental mention 67 lines away in a historical ADR note. Narrowing it to
+  # the same line then reddened 7 files, because `StructuredOutput` also appears
+  # in Definition-of-done bullets and convergence steps that describe the payload
+  # rather than instruct a worker to call the tool. Separating a mandate from a
+  # description is a prose-shape heuristic, and both of its failure modes were
+  # demonstrated within ten minutes of each other. Two exact checks beat three
+  # with one that misfires; a gate that cries wolf teaches its reader to skip the
+  # output. The invariant stands in commands/_shared/worker-contract.md as prose,
+  # which does not bind, and that is stated rather than papered over.
+
+  # Two shapes: the frontmatter declaration, and the prose ceiling that governs
+  # what a command may declare. Both carry the same claim about the platform.
+  while IFS= read -r mf; do
+    if [[ "$mf" =~ ^[[:space:]]*max_fanout:[[:space:]]*([0-9]+) ]] && (( BASH_REMATCH[1] > 20 )); then
+      ORCH_FAILURES+=("${oc_name}: max_fanout ${BASH_REMATCH[1]} exceeds the platform's 20-concurrent limit, which fails closed and instructs no retry")
+    fi
+  done < <(grep -E '^[[:space:]]*max_fanout:[[:space:]]*[0-9]+' "$file" || true)
+
+  while IFS= read -r cl; do
+    if [[ "$cl" =~ ceiling[[:space:]]+([0-9]+) ]] && (( BASH_REMATCH[1] > 20 )); then
+      ORCH_FAILURES+=("${oc_name}: states a max_fanout ceiling of ${BASH_REMATCH[1]}, above the platform's 20-concurrent limit")
+    fi
+  done < <(grep -iE 'max_fanout.*ceiling[[:space:]]+[0-9]+' "$file" || true)
+
+  if grep -qE '^[[:space:]]*orchestrator:[[:space:]]*true' "$file" \
+     && ! grep -qE 'subagent_type|agentType' "$file"; then
+    ORCH_FAILURES+=("${oc_name}: declares orchestrator: true but never names an agent type (a fork inherits the whole conversation and drops sub-agent input isolation)")
+  fi
+done
+
+# The prose ceiling claim, over the reference topics as well. A wos/ topic states
+# what a command MAY declare, so a stale ceiling there outlives every command fix.
+for file in "${REPO_ROOT}"/wos/*.md; do
+  [[ -f "$file" ]] || continue
+  wc_name="$(basename "${file%.md}")"
+  while IFS= read -r cl; do
+    if [[ "$cl" =~ ceiling[[:space:]]+([0-9]+) ]] && (( BASH_REMATCH[1] > 20 )); then
+      ORCH_FAILURES+=("wos/${wc_name}: states a max_fanout ceiling of ${BASH_REMATCH[1]}, above the platform's 20-concurrent limit")
+    fi
+  done < <(grep -iE 'max_fanout.*ceiling[[:space:]]+[0-9]+' "$file" || true)
+done
+
+if [[ ${#ORCH_FAILURES[@]} -gt 0 ]]; then
+  echo ""
+  echo "Orchestrator-contract failures (${#ORCH_FAILURES[@]}):"
+  for failure in "${ORCH_FAILURES[@]}"; do
+    echo "  - $failure"
+  done
+  echo ""
+  echo "See commands/_shared/worker-contract.md and commands/_shared/orchestrator-bootstrap.md."
+  exit 1
 fi
 
 if [[ $STRICT -eq 1 ]] && [[ $((WARNED + ROOT_WARNED)) -gt 0 ]]; then

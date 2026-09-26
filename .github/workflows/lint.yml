@@ -36,11 +36,15 @@ jobs:
           python-version: '3.11'
 
       - name: Install skills-ref (pinned)
-        # Pinned to a known-good agentskills/agentskills SHA. Bump intentionally
-        # after reading the upstream changelog; never auto-bump.
+        # Pinned to a known-good agentskills/agentskills SHA.
+        # Bumped 2026-08-29 from 2d3e01f (2026-04-22) to 69ef37e (2026-08-09), which
+        # postdates the 2026-08-03 metadata-is-string-to-string change. The validator
+        # still checks only the top-level fields, so metadata value types are checked
+        # by scripts/check-skill-metadata-types.py, not here.
+        # Bump intentionally after reading the upstream changelog; never auto-bump.
         run: |
           pip install --upgrade pip
-          pip install "git+https://github.com/agentskills/agentskills.git@2d3e01f590f68bee2cb76a3200823e93b2cc9eaa#subdirectory=skills-ref"
+          pip install "git+https://github.com/agentskills/agentskills.git@69ef37e9424c0a7ea9dd2293b559e43ec8176379#subdirectory=skills-ref"
 
       - name: Validate every skill
         run: |
@@ -102,12 +106,20 @@ jobs:
         # regression test nothing executes is decoration. Exit 1 on any failure.
         #
         # Explicit allowlist rather than a glob, so adding a suite is a decision
-        # and the two exclusions stay visible instead of silently passing:
-        #   test-branch-commit-unchanged.sh  needs a <base-ref> argument; it is a
-        #     parameterized assertion, not a standalone suite.
-        #   test-install-payload.sh  FAILS today (a destination writes under HOME
-        #     instead of a named path). Real defect, tracked separately; wire it
-        #     here in the same commit that fixes it.
+        # instead of something a filename pattern does silently. Nothing is excluded
+        # now. test-branch-commit-unchanged.sh used to be, as a parameterized
+        # assertion needing a <base-ref>; it was deleted on 2026-08-30 because it
+        # asserted a D-4 that ADR-0163, ADR-0165 and ADR-0167 have superseded, and
+        # its successor is check_bare_commit_tree_proof in structural-evals.py,
+        # which asserts the contract the file states rather than freezing its bytes.
+        #   test-install-payload.sh was excluded for "a destination writes under
+        #     HOME instead of a named path". That label was wrong: the installer
+        #     honours KIMI_CODE_HOME as the first branch of resolve_kimi_home, so
+        #     it is relocatable; the TEST never set it, so the Kimi destination
+        #     fell back to ${HOME}/.kimi-code, which the test's own HOME redirect
+        #     had pointed into the sandbox it then flagged as an escape. Same
+        #     shape as the Codex docs destination this allowlist already missed
+        #     once. One line in the test, and the suite is wired below.
         run: |
           set -euo pipefail
           fail=0
@@ -119,7 +131,42 @@ jobs:
             ./scripts/tests/test-initiative-classifier.sh \
             ./scripts/tests/test-mirror-codenames.sh \
             ./scripts/tests/test-sync-shared-blocks.sh \
-            ./scripts/tests/test-validate-bug-class-schema.sh
+            ./scripts/tests/test-validate-bug-class-schema.sh \
+            ./scripts/tests/test-install-payload.sh \
+            ./scripts/tests/test-skill-in-profile.sh \
+            ./scripts/tests/test-compute-task-outcome-tier.sh \
+            ./scripts/tests/test-ingest-scan.sh \
+            ./scripts/tests/test-scan-substrate-orphans.sh \
+            ./scripts/tests/test-spine-eval-extract.sh \
+            ./scripts/tests/test-run-spine-evals.sh \
+            ./scripts/tests/test-substrate-retention.sh \
+            ./scripts/tests/test-doc-invocations.sh \
+            ./scripts/tests/test-validate-transcript.sh \
+            ./scripts/tests/test-substrate-ownership-matrix.sh \
+            ./scripts/tests/test-guard-mutation.sh \
+            ./scripts/tests/test-citation-integrity.sh \
+            ./scripts/tests/test-check-plan-coverage.sh \
+            ./scripts/tests/test-ci-test-list-coverage.sh \
+            ./scripts/tests/test-closure-floor-ledger.sh \
+            ./scripts/tests/test-grounded-residue-exits.sh \
+            ./scripts/tests/test-runtime-verify-routing.sh \
+            ./scripts/tests/test-plan-authorization-review.sh \
+            ./scripts/tests/test-plan-review-record.sh \
+            ./scripts/tests/test-verified-check.sh \
+            ./scripts/tests/test-live-markers.sh \
+            ./scripts/tests/test-agents-section-refs.sh \
+            ./scripts/tests/test-doc-sync-against-head.sh \
+            ./scripts/tests/test-doc-currency.sh \
+            ./scripts/tests/test-skill-frontmatter-spec.sh \
+            ./scripts/tests/test-review-coverage-record.sh \
+            ./scripts/tests/test-detect-workflow-prompt-too-long.sh \
+            ./scripts/tests/test-verify-log-scope.sh \
+            ./scripts/tests/test-scan-substrate-headers.sh \
+            ./scripts/tests/test-shipped-helpers-absence.sh \
+            ./scripts/tests/test-release-preflight.sh \
+            ./scripts/tests/test-spine-repo-root-watch.sh \
+            ./scripts/tests/test-install-destinations.sh \
+            ./scripts/tests/test-build-agent-skills-markers.sh
           do
             echo "=== $t ==="
             if bash "$t"; then
@@ -133,6 +180,12 @@ jobs:
             echo "::error::$fail script test suite(s) failed"
             exit 1
           fi
+
+      - name: Run autonomy helper tests
+        # Deterministic governor/classifier checks plus bounded mock-process tests
+        # through the real background launcher, supervisor and feed (ADR-0196).
+        # No real agent or permission dialog is invoked.
+        run: bash ./scripts/autonomy/tests/run-tests.sh
 
   lint-shellcheck:
     name: Shellcheck on bash scripts

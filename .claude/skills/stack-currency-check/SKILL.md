@@ -3,28 +3,15 @@ name: stack-currency-check
 description: |-
   Verify that the patterns the model is about to use for a given framework+version are current per official docs, and cache the result as CURRENT_PATTERNS.md at the project level. Prevents the "gold-standard audit" anti-pattern where training-data defaults ship outdated patterns (e.g. Supabase getSession when getUser is current, sequential await when Promise.all is recommended). Use when impact-analysis flags greenfield work in an established framework, when starting a new project with frameworks released or updated after the model's training cutoff, or when an existing CURRENT_PATTERNS.md is stale (>30 days). Do not use when working incrementally on an established codebase with clear internal precedent, when the question is about choosing the stack itself (use stack-recommend), or when fetching an arbitrary URL (use capture-references).
 metadata:
-  category: discovery-and-scoping
-  primary-cursor-mode: Ask
-  multi-repo-aware: false
-  context-layers-consumed:
-    - memory
-    - retrieved
-  context-layers-produced:
-    - retrieved
-  tools:
-    - Read
-    - Write
-    - Edit
-    - Bash
-    - Glob
-    - Grep
-    - WebFetch
-    - WebSearch
-  x-wos-profiles:
-    - core
-    - full
-  provenance: first-party
-  suggested-model: claude-sonnet-4-6
+  category: "research-and-sourcing"
+  primary-cursor-mode: "Ask"
+  multi-repo-aware: "false"
+  context-layers-consumed: "memory, retrieved"
+  context-layers-produced: "retrieved"
+  tools: "Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch"
+  x-wos-profiles: "core, full"
+  provenance: "first-party"
+  suggested-model: "claude-sonnet-5"
 ---
 
 Act as a senior/staff engineering technology advisor verifying that the patterns about to be used for a given framework+version match current official recommendations.
@@ -33,20 +20,17 @@ Goal:
 Verify current patterns for the active project's frameworks before greenfield code is written, and persist the result in project-level `CURRENT_PATTERNS.md` so subsequent tasks inherit verified guidance instead of defaulting to training-data patterns that may be outdated.
 
 Mandatory context bootstrap (before any output):
-<!-- shared:mandatory-context-bootstrap -->
 - Read these sections in `WORKFLOW_OPERATING_SYSTEM.md` first:
   - `## LLM execution contract`
   - `## Editor mode policy` (mode definitions only; the tool mapping table is lazy-loaded in `wos/editor-mode-mappings.md` and needed only for non-Claude-Code tools)
   - `## Global output contract` (including **Adaptive handoff** and **Mode selection rule**)
   - `## Cross-cutting workflow guardrails`
-- **Bootstrap tiers (ADR-0025):** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) may skip `## Editor mode policy` good-fits lists and `## Cross-cutting workflow guardrails` sequencing heuristics, reading only the mode definitions and the core guardrail rules (routing memory, command-less input triage, official command names, material change, no-op). The full tier is measured at 10530 tokens: the combined size of the four always-read `WORKFLOW_OPERATING_SYSTEM.md` sections listed above. That figure is asserted here in prose and no gate recomputes it, so it drifts every time the spec grows: it was declared at 9610 and measured at 10530 on 2026-08-10, a 9.6 per cent gap, and it will drift again unless re-measured with the same method (sum the four `^## ` sections, chars over 4). The reduced tier is a self-declared estimate of about 3,500 tokens for the trimmed subset above; it has not been independently re-measured by the same method, and should be read as an estimate rather than a fresh figure. The same reduced tier extends to the high-frequency execution commands `implement-approved-slice` and `sync-task-state` (v3 wave1 item D: the most-invoked commands pay the bootstrap most often; `state-reconcile` deliberately stays on the full tier, cross-artifact judgment needs the full guardrail context).
-- **Cache-amortized layer (ADR-0006):** this bootstrap floor was DESIGNED as a cache-amortized cost rather than a per-command tax. ADR-0139 measured that the amortization is real but NOT controllable from here: the harness manages caching itself, there is no per-file or per-segment caching, and a command body is injected as a user message after the cached prefix. Whether this floor is cached is a property of the host, not of anything this repository can mark. Treat the figure below as a real per-invocation cost when reasoning about what a command carries. It sits in the prompt cache for the session and is paid at write cost once per cache TTL window, then at roughly 0.1x on cached reads inside that window. Account for it separately from any per-skill Load budget (the generated `.claude/skills/<name>/SKILL.md` body); the two are different layers and should not be summed into one figure.
-- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this same conversation already performed this bootstrap read in an earlier turn that is still VISIBLE in the current context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one instead, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. This is a scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), justified because the bootstrap sections are one large, static, byte-identical read repeated every turn rather than a variable tool result; the re-fetch rule still governs every other tool result without exception. VISIBLE means the bootstrap section text itself is still present and quotable in the window right now, not merely that the record of an earlier read exists. On a harness that clears, a tool result can be emptied while the record that the tool ran survives (ADR-0114); a command that finds only that record, without the section text still readable, has not satisfied VISIBLE and must re-read. Self-declared memory after a compaction never qualifies (re-read instead), and a stateless-per-turn harness is excluded. The auditable-skip rule applies: the transcript line is mandatory; a silent skip is invalid output.
-- **Resolving a relative `wos/<topic>.md`.** Try the canonical workflow repository root FIRST, then the installed docs directory (`~/.claude/workflow-docs/wos/` or `~/.cursor/workflow-docs/wos/`). Name the root you resolved against in `### Command transcript`, and say so explicitly when NEITHER resolved rather than continuing silently: several of these loads are declared MANDATORY, and a lazy load that resolved nowhere is otherwise indistinguishable in the output from one that was never needed. Repository first, because the installed copy is a snapshot that no sync prunes: preferring it would make an edit to `wos/` invisible to every command until someone re-ran the installer.
+- **Bootstrap tiers:** the light-weight commands (`branch-commit`, `what-next`, `where-we-at`, `slice-closure`, `compact-task-memory`) plus the high-frequency `implement-approved-slice` and `sync-task-state` (v3 wave1 item D) read the four sections above with two subsections of `## Cross-cutting workflow guardrails` skipped: `### External web access (centralized)` and `### Sequencing heuristics (by phase)`. Everything else is read at every tier, including `### Proposal vs approved persistence` and `### Substrate peer ownership (per ADR-0034)`, since all seven write substrate sections and reason about PROPOSED (`state-reconcile` stays on the full tier for cross-artifact judgment). The full tier is measured at 11678 tokens, the four always-read sections combined; the two skipped subsections are 1,035 of those (measured 2026-09-24), so the reduced tier is about 10,643. The leaf-reviewer tier (`verify-against-rubric`, ADR-0226) reads only `## Global output contract`, measured at 4841 tokens, plus its rubric.
+- **Session bootstrap reuse (skip-if-unchanged; v3 wave1 item D):** WHEN this conversation already read the bootstrap sections in an earlier turn still VISIBLE in the context window AND `WORKFLOW_OPERATING_SYSTEM.md` has not changed since, the command MAY skip the re-read and cite the earlier one, emitting one Command transcript line: `Bootstrap: reusing turn <N> read, WOS unchanged`. Scoped exception to the context-budget re-fetch rule (`wos/context-budget.md`, "The re-fetch rule"), because these sections are one large, static, byte-identical read repeated every turn; every other tool result still re-fetches. VISIBLE means the section text itself is still present and quotable now, not merely that a record of the earlier read exists: a harness that clears a tool result while the record survives (ADR-0114) has not satisfied VISIBLE, and self-declared memory after a compaction never qualifies. A stateless-per-turn harness is excluded. The transcript line is mandatory; a silent skip is invalid output.
+- **Resolving `WORKFLOW_OPERATING_SYSTEM.md` and a relative `wos/<topic>.md`.** Both resolve the same way: try the canonical workflow repository root FIRST, then the installed docs directory (`~/.claude/workflow-docs/` or `~/.cursor/workflow-docs/`, the spec at that root and topics under its `wos/`). Repository first, because the installed copy is a snapshot no sync prunes; preferring it would hide a `wos/` edit from every command until a reinstall. Name the resolved root in `### Command transcript`, and say so explicitly when NEITHER resolved rather than continuing silently, since several of these loads are MANDATORY.
 - Read additional sections only when relevant to this command's role.
-- Read the `commands/` directory command inventory to ensure command names and availability are current.
 - Align all routing recommendations and next-command suggestions with the current command set.
-- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares that the chain has ended and no following command would be honest, defined in `## Global output contract` (ADR-0126); use it only when nothing honest remains, never to end a chain that has a real next step.
+- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares the chain ended with no honest next step, defined under `### Official command names (routing integrity)` (ADR-0126); use it only then, never to end a chain that has a real next step.
 
 Required inputs:
 - active task folder path
@@ -57,7 +41,7 @@ Required inputs:
 
 Task repository files to create or update:
 - `projects/<client>__<project>/CURRENT_PATTERNS.md` (project-level cache; gitignored alongside `PROJECT_CHARTER.md` per ADR-0007)
-- `TASK_STATE.md` to reflect verified patterns and remove the `Currency check required` blocker
+- `TASK_STATE.md` to record verification results and retain or clear the `Currency check required` blocker according to those results
 
 External web access:
 - This command is in the authorized-command set in the spec `## Cross-cutting workflow guardrails ### External web access (centralized)`, scoped to verifying current framework patterns and version currency. It MUST funnel every verified source into `REFERENCES.md` (capture-references entry format, deduplicated by URL) in addition to the `CURRENT_PATTERNS.md` cache, so the fetch is indistinguishable in the audit trail from a `capture-references` run.
@@ -75,18 +59,17 @@ External web access:
 Operating rules:
 - Do not implement code.
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full).
-- Before producing output, check if `CURRENT_PATTERNS.md` already covers the requested frameworks with a recent `Accessed:` date (<=30 days). If so, return a no-op pointing to the existing entries.
-- For each framework to verify:
-  1. Identify the version from `package.json`, `SOURCE_OF_TRUTH.md`, or `PROJECT_CHARTER.md` (do not guess).
-  2. Fetch the official docs for that version (use WebFetch on docs.<framework>.com or equivalent official source).
-  3. List the **current recommended patterns** for the use cases this project needs (auth, data fetching, routing, styling, etc.).
-  4. List the **deprecated or replaced patterns** to AVOID (e.g. `getSession` deprecated in favor of `getUser`/`getClaims`).
-  5. Note any **breaking changes** between adjacent versions that affect this project.
-  6. Cite the source URL and access date for each finding.
+- First identify each requested framework's active version from `package.json`, `SOURCE_OF_TRUTH.md`, or `PROJECT_CHARTER.md` (do not guess). Reuse a `CURRENT_PATTERNS.md` entry only when it matches that version, has `Status: verified`, and its `Accessed:` date is <=30 days old. An unresolved version cannot qualify for reuse. If every requested framework qualifies, skip fetching and cache writes, cite the entries, and apply the state-update rule below; return `NO_OP_TRACE` only when no state update is needed either.
+- For each framework without a reusable entry:
+  1. Fetch the official docs for the identified version (use WebFetch on docs.<framework>.com or equivalent official source); if the version is unresolved, mark it unverified per the completeness rule below.
+  2. List the **current recommended patterns** for the use cases this project needs (auth, data fetching, routing, styling, etc.).
+  3. List the **deprecated or replaced patterns** to AVOID (e.g. `getSession` deprecated in favor of `getUser`/`getClaims`).
+  4. Note any **breaking changes** between adjacent versions that affect this project.
+  5. Cite the source URL and access date for each finding.
 - **Enumerate and mark every framework (completeness, per ADR-0056 / D-2).** The result has exactly one row per framework named in the inputs, each tagged `verified` or `unverified:<reason>`. Example reasons: version not pinned in `SOURCE_OF_TRUTH.md` or `package.json`, official docs unreachable, framework released after the training cutoff with no docs fetched. A framework you could not verify is reported as `unverified:<reason>`, never dropped. Silently omitting an unverifiable framework is invalid output: it is the gold-standard-audit gap this command exists to prevent.
 - When a pattern has changed recently (post-training-cutoff or post a major version bump), explicitly flag it: "Model defaults from training data may be outdated for this framework version."
 - Cache results in `CURRENT_PATTERNS.md` so subsequent tasks within the same project consume verified guidance instead of re-fetching.
-- After caching, update `TASK_STATE.md`: remove the `Currency check required` blocker (if present) and route the next step to `implementation-plan`.
+- After evaluating cached and fetched results, update `TASK_STATE.md` only if its state changes. Remove the `Currency check required` blocker and route to `implementation-plan` only when every requested framework's active version is verified. Otherwise retain or add the blocker listing each unresolved framework and reason; route to `targeted-questions` for missing version facts or `capture-references` for missing documentation evidence, then rerun `stack-currency-check` before planning.
 
 CURRENT_PATTERNS.md format:
 
@@ -123,15 +106,14 @@ CURRENT_PATTERNS.md format:
 ```
 
 Required output:
-1. Whether `CURRENT_PATTERNS.md` should be created or updated (no-op if recent cache exists)
+1. Whether `CURRENT_PATTERNS.md` should be created or updated (`SKIP` when every requested framework has a reusable entry)
 2. Per-framework verification result with: version, source URL, current patterns, deprecated patterns, breaking changes, and a `verified | unverified:<reason>` status. One row per requested framework, none dropped.
-3. Exact content for `CURRENT_PATTERNS.md` (full document if create; delta block if update)
-4. Exact `TASK_STATE.md` update block removing the `Currency check required` blocker (if present)
-5. Recommended next step (typically `implementation-plan`)
+3. Exact content for `CURRENT_PATTERNS.md` (full document if create; delta block if update; cite entries if skipped)
+4. Exact `TASK_STATE.md` update retaining or clearing the `Currency check required` blocker per the verification results, or `SKIP` if state is unchanged
+5. Recommended next step per the state-update rule
 6. Recommended editor mode
 
 ### Claim grounding (active epistemic humility)
-<!-- shared:claim-grounding -->
 **Claim grounding (active epistemic humility).** This block governs what you may assert and how you record it. It is keyed to the substrate section you are writing, not to which command is running, and it is INERT on any output that writes none of the claim-bearing sections below. Full contract and rationale: `wos/active-epistemic-humility.md`.
 
 1. When this applies. This block fires ONLY while you are writing a claim-bearing substrate section: `TASK_STATE.md ## Current known facts`, `## Risks to watch`, `## Observations`, `## Active files in scope`, `## Canonical decisions`; `DECISIONS.md ## Locked decisions`; `IMPLEMENTATION_PLAN.md ## Current gaps`, `## Risks and mitigations`; `IMPACT_ANALYSIS.md`; `EXTERNAL_RESEARCH.md`; `REFERENCES.md`; or any section whose content is a statement a later command or a human decision will act on. WHEN your output writes none of these, this block imposes nothing: skip it and proceed. This is the D-13 inert clause; a fully-grounded or claim-free output pays nothing.
@@ -148,27 +130,23 @@ Required output:
 
 7. An unfired gate is not evidence. The absence of a fired check does not mean grounding existed. Do not read silence here as a pass.
 ### Standard output layout (required)
-<!-- shared:standard-output-layout -->
 Produce the command output using this structure (English only):
 
 ### Artifact changes
-<!-- shared:artifact-changes-default -->
-Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules.
+Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules. Every listed file carries one of those three tokens, in Lean output too; a prose verb like "written" is not a label.
 
 ### Command transcript
-<!-- shared:command-transcript-standard -->
 Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
 
 ### Handoff
-<!-- shared:handoff-body -->
-Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state).
+Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state). Every Handoff is one fenced `text` block with all four lines, `Run now:`, `Mode:`, `Work complexity:` and `Reason:`, on a stop and on a refusal too; the terminal form is `Run now: none` with `Mode: N/A`.
 
 ### Definition of done (command output)
 - Each verified framework has: version, source URL, current patterns list, deprecated patterns list. Vague "best practices" without source URLs is invalid output.
 - Every framework named in the inputs appears in the result tagged `verified` or `unverified:<reason>`; a requested framework absent from the result is invalid output (the silent-omission gap, per ADR-0056 / D-2).
 - All source URLs are official docs, official release notes, official migration guides, or AAA company engineering blogs. Stack Overflow links, random blogs, or tutorial sites are invalid.
-- `CURRENT_PATTERNS.md` is `PROPOSED` unless persisting in Agent mode.
-- When `CURRENT_PATTERNS.md` already has recent entries (<=30 days) for the requested frameworks, the response is a no-op with `NO_OP_TRACE` pointing to the cached entries.
+- `CURRENT_PATTERNS.md` is `APPLIED`.
+- Cached entries are reused only for matching active versions with `Status: verified` and an `Accessed:` date <=30 days old. A full cache hit emits `NO_OP_TRACE` only if `TASK_STATE.md` also needs no update; otherwise it skips the cache write and reports the state update.
 - Output ends with a complete `### Handoff` block per the adaptive format.
 - Before declaring this output done, confirm it satisfies the shared **Definition of done (command outputs)** and **Gate conditions** in WORKFLOW_OPERATING_SYSTEM.md.
 

@@ -1,6 +1,6 @@
 # ADR-0054: A human-first knowledge layer, decoupled from AI task memory
 
-- **Status**: Accepted
+- **Status**: Accepted; the flat `KNOWLEDGE.md` shape and the close-write mechanism are superseded by [ADR-0055](./0055-knowledge-layer-visual-organization.md); the human-first layer and the no-auto-load invariant stand
 - **Date**: 2026-06-25
 - **Tags**: memory, knowledge-layer, human-first, project-memory, living-docs, no-app-dependency, additive, claude-obsidian-prior-art
 

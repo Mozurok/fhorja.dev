@@ -1,6 +1,6 @@
 # ADR-0008: Operating modes (minimal / strict / teaching)
 
-- **Status**: Accepted
+- **Status**: Accepted; spine commands now read the Resume notes line (ADR-0162). A declared `strict` mode defers the Express inline Approval log.
 - **Date**: 2026-05-08
 - **Tags**: operating-modes, task-posture, ceremony-control, orthogonality
 

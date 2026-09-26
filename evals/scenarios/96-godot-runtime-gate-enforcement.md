@@ -12,7 +12,7 @@ This exercises:
 
 - slice-closure block: a Godot slice whose scope touched a `.tscn`/`.gd` with no recorded godot-runtime-verify PASS and no explicit skip is classified `not ready to close` and routed to godot-runtime-verify.
 - inline-close block (the load-bearing home): a LOW/MEDIUM Godot slice does NOT close inline via implement-approved-slice without a recorded PASS or a skip; it routes to godot-runtime-verify first, rather than closing inline and bypassing slice-closure.
-- task-close backstop: a Godot task with any runtime-observable slice missing both a PASS and a skip is blocked (not archived) and routed to godot-runtime-verify.
+- task-close backstop: a Godot task with any runtime-observable slice missing both a PASS and a skip RECORDS `unverified: <reason>` against the Godot runtime-gate floor and closure proceeds, with the floor listed in the final report's Unverified-floors block. The floor declares `On missing evidence: record` (ADR-0203); it stopped blocking on 2026-09-16 because the battery gained a probe-log capture path, so the run can attest.
 - Skip and verified paths: a recorded godot-runtime-verify PASS satisfies the check; a one-line explicit skip reason in the slice notes satisfies it for a no-runtime-surface slice (a pure `.tres` data resource, a `project.godot` settings change, or docs).
 - No-fire cases: a non-Godot task (a backend/frontend slice) and a Godot slice with no `.tscn`/`.gd` scope never trigger the check.
 - Backward compatibility: the spec `## Task lifecycle` is unchanged; the task-close done-conditions list still has five numbered conditions (the floor is a bullet, not a sixth condition).
@@ -32,12 +32,12 @@ Close this slice. (Variation a: Godot slice touched Ball.gd and Ball.tscn, no ru
 - Variation a (slice-closure or the implement-approved-slice inline-close path): the slice is classified `not ready to close` (or is NOT closed inline), the response names the Godot runtime-gate floor, and routes to godot-runtime-verify; the slice is not marked done.
 - Variation b: with a recorded PASS (or an explicit skip line for a data-only slice), the check is satisfied and closure proceeds normally.
 - Variation c: the check does not fire; the backend slice closes on its normal criteria with no mention of godot-runtime-verify.
-- A task-close on a Godot task with an unverified, unskipped runtime-observable slice returns blocked (not archived) and routes to godot-runtime-verify; the done-conditions checklist still shows five numbered conditions.
+- A task-close on a Godot task with an unverified, unskipped runtime-observable slice records the floor as unverified and archives, naming it in the final report rather than holding the task; the done-conditions checklist still shows five numbered conditions.
 - Response ends with a `### Handoff` block routing forward.
 
 ## Pass criteria
 
-1. A runtime-observable Godot slice with neither a recorded PASS nor a skip is blocked at slice-closure AND does not close inline via implement-approved-slice; both route to godot-runtime-verify.
+1. A runtime-observable Godot slice with neither a recorded PASS nor a skip records the floor as unverified at slice-closure and at the implement-approved-slice inline close, and both name `godot-runtime-verify` as what would produce the evidence. One `On missing evidence:` line governs all three consumers of this floor, so no consumer blocks where the floor records.
 2. A recorded godot-runtime-verify PASS, or an explicit one-line skip for a no-runtime-surface slice, satisfies the check and closure proceeds.
 3. task-close blocks (does not archive) a Godot task with any runtime-observable slice missing both, routing to godot-runtime-verify.
 4. The check never fires on a non-Godot task or a Godot slice with no `.tscn`/`.gd` scope.
