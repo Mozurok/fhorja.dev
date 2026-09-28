@@ -13,9 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 The alpha caveat that stood here ("while the project is in alpha (0.x.y), MINOR may include breaking changes") is retired: 1.0.0 shipped 2026-07-10 and 1.1.0 on 2026-07-21, so the policy above applies as written.
 
-**On git tags.** The only tag in this repository is `v2.0.0-rc1`, and it points at a commit from 2026-05-25, which predates both 1.0.0 and 1.1.0. It is an abandoned numbering from before the version line was reset, and nothing has been tagged since. So `git describe` reports something like `v2.0.0-rc1-387-g<sha>`, anchored to a milestone the project left behind; read the newest `## [x.y.z]` heading below as the released version, not the tag. Retagging is deliberately not done here: CLAUDE.md holds public release tags for a later phase. That includes `## [2.0.0]`, which is untagged; its number comes from the versioning policy and has nothing to do with the abandoned `v2.0.0-rc1`.
+**On git tags.** Releases are tagged `vX.Y.Z` on the public repository: `v1.0.0`, `v1.1.0` and `v2.0.0`. An older `v2.0.0-rc1` tag from 2026-05-25 belongs to a numbering the project abandoned before 1.0.0 and does not mark a release, so read the `## [x.y.z]` headings below, not `git describe`, in a checkout that still has it.
 
 ## [Unreleased]
+
+## [2.0.0] - 2026-09-28
+
+Everything shipped between 1.1.0 and 2026-09-28, tagged `v2.0.0`. It is a MAJOR release under the versioning policy
+above, because the `TASK_STATE.md` schema changed: the `Tier:` line became `Escalations:` (ADR-0207).
+Two other changes alter what a session does by default. Task and project memory are written `APPLIED`
+in every mode (ADR-0199, ADR-0215), and every plan routes to `approve-plan`, which runs a blinded review
+instead of waiting for a person (ADR-0208). `docs/MIGRATION.md` has the upgrade steps.
+
+The section runs newest first, and it collected entries for two months before it was cut, so some
+early entries were reversed by later ones. Each reversed entry opens with a note naming the ADR that reversed it.
 
 ### The agent replaces its own provisional decision with a new one (2026-09-24)
 
@@ -270,18 +281,6 @@ The alpha caveat that stood here ("while the project is in alpha (0.x.y), MINOR 
   repository's own `.gitignore`. When `projects/` already exists and is not ignored, `task-init` says so
   on every run and names the fix (ADR-0223). README, FAQ and `docs/MIGRATION.md` describe both layouts,
   and MIGRATION has the two commands for an install that predates this.
-
-## [2.0.0] - 2026-09-23
-
-Everything shipped between 1.1.0 and 2026-09-23. It is a MAJOR release under the versioning policy
-above, because the `TASK_STATE.md` schema changed: the `Tier:` line became `Escalations:` (ADR-0207).
-Two other changes alter what a session does by default. Task and project memory are written `APPLIED`
-in every mode (ADR-0199, ADR-0215), and every plan routes to `approve-plan`, which runs a blinded review
-instead of waiting for a person (ADR-0208). `docs/MIGRATION.md` has the upgrade steps.
-
-This release is not tagged; the note on git tags above explains why. The section runs newest first,
-and it collected entries for two months before it was cut, so some early entries were reversed by
-later ones. Each reversed entry opens with a note naming the ADR that reversed it.
 
 ### The documentation catches up, and the checks keep it there (2026-09-22 to 2026-09-23)
 

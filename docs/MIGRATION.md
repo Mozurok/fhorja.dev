@@ -311,7 +311,7 @@ If your fork has diverged significantly (added several commands, restructured sh
 
 ## Upgrading between Fhorja versions
 
-The project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). It passed 1.0.0 on 2026-07-10 and 1.1.0 on 2026-07-21, and the current release is 2.0.0: see the `[2.0.0]` section of `CHANGELOG.md`. No git tag marks 2.0.0 yet; the note on tags at the top of the changelog explains why. Per `README.md`'s status line, breaking changes to command output or the `TASK_STATE.md` schema require a MAJOR bump, while MINOR and PATCH stay backward compatible.
+The project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). It passed 1.0.0 on 2026-07-10 and 1.1.0 on 2026-07-21, and the current release is 2.0.0: see the `[2.0.0]` section of `CHANGELOG.md`. The tag `v2.0.0` marks it on the public repository. Per `README.md`'s status line, breaking changes to command output or the `TASK_STATE.md` schema require a MAJOR bump, while MINOR and PATCH stay backward compatible.
 
 ### Patch (2.0.x → 2.0.y)
 

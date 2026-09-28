@@ -149,7 +149,7 @@ Format:
 ```
 
 Examples:
-- `petvet__platform`
+- `globex__platform`
 - `coinbase__wallet-web`
 - `acme__storefront`
 
