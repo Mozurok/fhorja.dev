@@ -1,0 +1,37 @@
+{
+  "skill_name": "task-init",
+  "version": "1.0",
+  "description": "Trigger evals for task-init: it opens a brand-new task folder before any file is edited, unlike resume-from-state and sync-task-state (task already exists), task-init-fleet (3 or more independent streams), problem-framing (objective still fuzzy) and project-bootstrap (project folder missing).",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "new task: fix the typo in the README quickstart",
+      "I'm about to start on the dark-mode toggle for the settings page in the web repo. Set the task up first so nothing gets edited before it exists.",
+      "Support forwarded a report that CSV export returns a 500 when the filename contains an emoji. We have no folder for this under projects/ yet. Let's get it opened and go from there.",
+      "One-line change: ban unused exports in the eslint config. I know it's tiny, but let's do it the proper way from the first step.",
+      "Kicking off rate limiting for the /v1/search endpoint. It touches the api-server and the gateway repos, and the task doesn't exist yet."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "I'm back on the caching work after the weekend. TASK_STATE.md says slice 02 is in review, but I've lost the thread. Reconstruct where things stand so I can carry on.",
+        "routes_to": "resume-from-state"
+      },
+      {
+        "prompt": "Slice 02 just merged into the task branch and we settled the TTL question as D-2. Bring TASK_STATE.md up to date with that so it's accurate.",
+        "routes_to": "sync-task-state"
+      },
+      {
+        "prompt": "The brief has four independent streams that share nothing but the backlog: a GraphQL layer for the api-server, a new onboarding flow in the mobile app, dark mode in the web app, and audit logs in the admin console. Each ships on its own. Break it up and start all four in parallel.",
+        "routes_to": "task-init-fleet"
+      },
+      {
+        "prompt": "I have a hunch that onboarding is too slow for new users, but I'm not sure that's the real problem. Push back on me and help me shape it before we commit to anything.",
+        "routes_to": "problem-framing"
+      },
+      {
+        "prompt": "We just signed a new engagement and there's no projects/ folder for it at all. I need the charter and the references file created before the first piece of work.",
+        "routes_to": "project-bootstrap"
+      }
+    ]
+  }
+}

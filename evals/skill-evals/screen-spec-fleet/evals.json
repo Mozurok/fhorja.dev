@@ -1,0 +1,22 @@
+{
+  "skill_name": "screen-spec-fleet",
+  "version": "1.0",
+  "description": "Trigger evals for screen-spec-fleet: it fires when six or more Figma frames each need their own spec doc and foundations plus SCREEN_MAP already exist, while screen-spec, design-bootstrap, image-to-spec, journey-map and verify-against-rubric-fleet handle a single screen, a missing design system, image-only sources, a flow across screens, and checking finished specs against a rubric.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "I have 14 onboarding and settings frames in Figma, foundations are done and SCREEN_MAP.md exists. Here is the list with number, slug, persona and node id for each. Spec them all in parallel.",
+      "spec out all nine checkout screens at once, figma mcp is connected and I pasted the node ids below",
+      "Foundations docs are in place and SCREEN_MAP.md lists the 14 screens of the driver app. Split the work so every frame gets its own spec file and routes.md gets rebuilt at the end.",
+      "we need SCREEN_SPECs for the whole billing section, 7 frames, node ids in the table below, do them in one go instead of one by one",
+      "Batch job: 16 marketing-site frames from the Figma file, all for the first-time visitor persona, each with its slug already assigned. Generate all the screen docs and merge the map."
+    ],
+    "should_not_trigger": [
+      { "prompt": "Document the login screen from this Figma frame, node 41:812. Just that one, I need layout, components and error states.", "routes_to": "screen-spec" },
+      { "prompt": "There are 10 frames to document but we have no foundations folder, no tokens extracted and no SCREEN_MAP yet. Where do I even start with the Figma file?", "routes_to": "design-bootstrap" },
+      { "prompt": "All 12 screen specs for the driver app are written. Check each one against our locked spec-quality rubric in parallel and tell me which criteria fail most often.", "routes_to": "verify-against-rubric-fleet" },
+      { "prompt": "I only have five PNG mockups from the designer, nothing in Figma. Turn them into structured specs.", "routes_to": "image-to-spec" },
+      { "prompt": "Map the path from cart to order confirmation across the 4 screens we already documented, with critical states and the components each step uses.", "routes_to": "journey-map" }
+    ]
+  }
+}

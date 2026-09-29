@@ -1,0 +1,37 @@
+{
+  "skill_name": "foundation-audit",
+  "version": "1.0",
+  "description": "Trigger evals for foundation-audit: it compares design tokens in code against the foundation docs (and optionally Figma variables) and reports drift, while its siblings bootstrap a design system, extract foundations from screens, review one component against its spec, or check contrast pairs.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "Are our tokens and the docs still saying the same thing? Devs have been adding stuff to packages/design-system/src/tokens for months.",
+      "Design just tweaked the brand blue in Figma and someone bumped it in code last week. Check whether docs/research/foundations/color.md, the token files and the Figma variables all agree on the value now.",
+      "I suspect spacing.md lists a few steps that never made it into the tokens folder, and the tokens have some steps nobody wrote down. Go through both and tell me what does not match.",
+      "We are about to cut a design system release. Diff the token JSON against the foundation docs and give me a per-foundation list of anything missing, extra or with a different value, plus how bad it is.",
+      "The button looks a shade off from the docs. Before I touch anything, compare the documented color tokens with what is actually exported in code and flag any renamed ones too."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "New project, we have a Figma file and no docs folder or token files yet. Pull the variables out and set up the foundations docs and the directory structure from scratch.",
+        "routes_to": "design-bootstrap"
+      },
+      {
+        "prompt": "We have twelve SCREEN_SPEC files full of raw hex values and pixel sizes. Turn them into color, typography and spacing foundation docs with role tokens.",
+        "routes_to": "extract-foundations-from-screens"
+      },
+      {
+        "prompt": "The new Card component is merged. Check whether it matches its spec page for variants, states, focus behavior and token usage.",
+        "routes_to": "design-spec-review"
+      },
+      {
+        "prompt": "Walk through every atom in the design system and check each one against COMPONENT_GUIDELINES.md for memoization, touch target size and reduced motion.",
+        "routes_to": "atom-audit"
+      },
+      {
+        "prompt": "We checked last week that the token files and color.md agree. What nobody has checked is whether the text and surface pairs listed in color.md pass 4.5:1 and 3:1 in both light and dark. Go through every documented pair and suggest token changes for the ones that fail.",
+        "routes_to": "color-contrast-architect"
+      }
+    ]
+  }
+}

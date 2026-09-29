@@ -1,0 +1,37 @@
+{
+  "skill_name": "autonomous-run",
+  "version": "1.0",
+  "description": "Trigger evals for autonomous-run: it drives an approved, waved plan through one supervised session and emits PROPOSED diffs, while its siblings approve the plan, judge readiness, show the board, implement a single slice, or run slices in parallel worktrees.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "Plan is approved and the readiness file says BOOT. Kick off the whole thing and let it work through the waves while I watch.",
+      "RUN_READINESS.md came back BOOT for the current plan revision, and the STOP file path is set. Start executing slices one after another, halt if anything touches the schema, and give me the diffs to review at the end.",
+      "I want to leave the export-service task running for the next hour with a wall-clock timeout and an iteration cap. Waves are already in IMPLEMENTATION_PLAN.md and approved. Go through it slice by slice, no commits.",
+      "Run it in the background with a 2 hour limit. Every slice that touches a migration or a test file should stop and wait for me.",
+      "Both gates before this are done (approval log entry is there, readiness is BOOT). Drive the six slices in order and write up which ones you stopped on."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "I read all six slices and the waves look right to me. Make this version of the plan the official one so the overnight run is allowed to start from it.",
+        "routes_to": "approve-plan"
+      },
+      {
+        "prompt": "Before I hand this project a night alone, tell me whether it is defined well enough to go. Check the charter, the runtime surfaces and the decisions, and list whatever is missing.",
+        "routes_to": "autonomous-readiness"
+      },
+      {
+        "prompt": "How far along is the run that has been going since this morning? Show me what is to do, in progress, escalated and done, without changing anything.",
+        "routes_to": "autonomous-board"
+      },
+      {
+        "prompt": "Slice 03 is approved and it only adds the retry wrapper in client.ts. Just implement that one slice and log the evidence.",
+        "routes_to": "implement-approved-slice"
+      },
+      {
+        "prompt": "Slices 02, 03 and 04 touch different files and have no dependencies. Run them at the same time, each in its own worktree, then merge and run the build and tests.",
+        "routes_to": "implement-fleet"
+      }
+    ]
+  }
+}

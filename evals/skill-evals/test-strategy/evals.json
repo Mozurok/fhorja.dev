@@ -1,0 +1,37 @@
+{
+  "skill_name": "test-strategy",
+  "version": "1.0",
+  "description": "Trigger evals for test-strategy: it decides which tests to write and which to skip for a change, where its siblings write the code, grade model output, set numeric budgets, run a scene, or verify a live deploy.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "what tests do we actually need for this change?",
+      "Slice 02 in IMPLEMENTATION_PLAN.md rewrites how invoice totals get rounded, and nothing around it is covered today. Which tests are worth writing and which can we safely skip?",
+      "TASK_STATE.md says the scope touches the password reset token flow. Before anyone codes, pick the smallest set of regression tests that protects it and say what level each one sits at.",
+      "Small diff, but it lands in the biometric unlock path and there is no test plan on file. Can you put together a TEST_STRATEGY.md for it?",
+      "The sync job now dedupes records across two tables, and PR #212 is going to be big. What is the minimum test set that would catch a regression there without us writing a pile of low-value tests?"
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "Slice 03 is approved. Write the failing test for the discount cap first, then make it pass with the smallest code change.",
+        "routes_to": "implement-approved-slice"
+      },
+      {
+        "prompt": "The summarizer feature now returns model-written bullet points. I need a labeled dataset, a grading method for each criterion, and a pass threshold so we can score it across runs.",
+        "routes_to": "ai-feature-eval-harness"
+      },
+      {
+        "prompt": "The checkout page change needs hard numbers: LCP under 2.5s, a payload ceiling, and a rule for what happens when a metric regresses.",
+        "routes_to": "performance-budget"
+      },
+      {
+        "prompt": "The Godot level scene is built. Run it headless, read the debugger output, and tell me whether the runtime is clean for slice 02.",
+        "routes_to": "godot-runtime-verify"
+      },
+      {
+        "prompt": "The deploy for slice 02 went out an hour ago. Map each acceptance criterion to a log query or dashboard panel I can check now, and list what should trigger a rollback.",
+        "routes_to": "post-deploy-verifier"
+      }
+    ]
+  }
+}

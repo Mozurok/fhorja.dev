@@ -1,0 +1,37 @@
+{
+  "skill_name": "capture-references",
+  "version": "1.0",
+  "description": "Trigger evals for capture-references: it fetches supplied URLs or topics and appends dated summaries to the project-level REFERENCES.md, unlike external-research (task-scoped synthesis of sources already captured), stack-currency-check (pattern cache), or capture-observation (notes about the codebase).",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "save this link to the project references: https://stripe.com/docs/webhooks",
+      "Pull the OpenAPI spec of the payments partner's REST API from https://partners.example.com/docs/v3/openapi and log it into the project's REFERENCES.md with a short summary, the fetch date, and the tags api-spec, payments.",
+      "Nobody has written down what the LGPD says about storing biometric data. Search for the official text, summarize the relevant articles with a freshness date, and add it to the project references so later tasks can cite it.",
+      "I'm on PR #212 and the reviewer pointed at github.com/facebook/react-native/issues/41234. Read the whole comment thread, including workarounds people posted, and append it as a reference entry, skipping it if that URL is already in the file.",
+      "Fresh project, empty REFERENCES.md. Fetch our three main competitors' pricing pages and the Expo SDK changelog, and record each one with a one-paragraph summary and the date you read it."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "We're starting a brand new engagement for a client we have never worked with. There's no projects folder for them yet, only a kickoff email. Set up the project memory (charter, references skeleton) before anything else.",
+        "routes_to": "project-bootstrap"
+      },
+      {
+        "prompt": "While reading the auth module I noticed the refresh token is never rotated. I don't want to act on it now, just note it down on the task so I don't forget it before review.",
+        "routes_to": "capture-observation"
+      },
+      {
+        "prompt": "REFERENCES.md already has entries for the three vendor docs, the two pricing pages, and the SOC 2 summary. Compare the vendors across those sources and write up a recommendation for this task.",
+        "routes_to": "external-research"
+      },
+      {
+        "prompt": "The storage-limitation article from the data protection law is already summarized in REFERENCES.md. Using that, help me choose whether deleted user data is kept for 30 or 90 days on this task, since the choice changes what the cleanup job does.",
+        "routes_to": "decision-interview"
+      },
+      {
+        "prompt": "We're about to write the Next.js 15 data fetching code for this slice. Check that the patterns you'd normally reach for are still what the current docs recommend, and keep a cached record for the project.",
+        "routes_to": "stack-currency-check"
+      }
+    ]
+  }
+}

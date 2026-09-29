@@ -1,0 +1,22 @@
+{
+  "skill_name": "problem-framing",
+  "version": "1.0",
+  "description": "Trigger evals for problem-framing: it fires when an objective is fuzzy or possibly mis-scoped and should be shaped into a BRIEF.md before any task folder exists, while task-init, decision-interview, targeted-questions and project-bootstrap handle a clear objective or hotfix, an in-task decision, missing facts, and a brand-new project.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "we want to make onboarding better, not sure what that means yet. Help me figure out if that's even the right problem before we start anything.",
+      "My manager said 'the dashboard is too slow' and that's all I have. I haven't opened a task. Can you question this with me and turn it into a brief?",
+      "I keep saying we need a notifications system but I suspect the real issue is something else. Grill me a bit first.",
+      "idea: rebuild the whole admin panel. worth it? shape this before I commit to anything",
+      "Before I create any task folder for the 'improve search' request from sales, walk me through one question at a time and write down problem, success criteria and non-goals."
+    ],
+    "should_not_trigger": [
+      { "prompt": "Add a 'last login' column to the users table in the admin list. Start the work.", "routes_to": "task-init" },
+      { "prompt": "Production is throwing 500s on /orders since the deploy. Open a task for the hotfix.", "routes_to": "task-init" },
+      { "prompt": "The task is already running and we can't decide whether soft-deleted accounts keep their API keys. Ask me the decision questions.", "routes_to": "decision-interview" },
+      { "prompt": "I need to know which Node version and which region the staging cluster runs on before I can plan. Ask me what you need to know.", "routes_to": "targeted-questions" },
+      { "prompt": "New client engagement starting Monday. Create the project folder, charter and references skeleton.", "routes_to": "project-bootstrap" }
+    ]
+  }
+}

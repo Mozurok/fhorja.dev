@@ -1,0 +1,37 @@
+{
+  "skill_name": "resolve-contract-gaps",
+  "version": "1.0",
+  "description": "Trigger evals for resolve-contract-gaps: it picks one canonical rule when known rules or readings contradict each other, unlike decision-interview (asks open policy questions) and contract-signoff (polishes wording of decisions that already agree).",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "D-3 says refunds go out within 24 hours but D-7 says they wait for the bank batch. Pick one rule so we can plan.",
+      "The spec says a cancelled order keeps its loyalty points, and the API notes we wrote last week say the points are reversed. Both can't be true. Compare the options, recommend one rule, and tell me what each choice does to the code and the tests.",
+      "Two of us read the invite-expiry rule differently in DECISIONS.md. Bruno thinks a resent invite resets the 7-day clock, I think it keeps the original deadline. We have the facts, we just need one canonical answer written down before slice 02.",
+      "Before I build the plan from TASK_STATE.md: the export behaves one way for admins in the contract doc and another in INVARIANTS_AND_NON_GOALS.md. Give me a decision table covering each input case and what happens.",
+      "our retry policy contradicts itself, help me settle it"
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "Nobody has decided yet what happens to a user's API keys when the account is soft-deleted. Ask me whatever you need so we can settle the policy.",
+        "routes_to": "decision-interview"
+      },
+      {
+        "prompt": "Every decision in DECISIONS.md is agreed and nobody disagrees. Tighten the wording so no line can be read two ways before we start planning.",
+        "routes_to": "contract-signoff"
+      },
+      {
+        "prompt": "We're about to rename the orders.status field and I don't know which services read it or what else breaks. Map out everything this touches first.",
+        "routes_to": "impact-analysis"
+      },
+      {
+        "prompt": "I still don't know what rate limit the partner sandbox enforces or whether production differs. Give me the short list of things I should confirm with them.",
+        "routes_to": "targeted-questions"
+      },
+      {
+        "prompt": "TASK_STATE.md says slice 02 is done but IMPLEMENTATION_PLAN.md still lists it as pending, and the notes folder has a slice 03 file that the plan never mentions. Get these back in line.",
+        "routes_to": "state-reconcile"
+      }
+    ]
+  }
+}

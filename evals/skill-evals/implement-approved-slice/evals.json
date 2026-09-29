@@ -1,0 +1,37 @@
+{
+  "skill_name": "implement-approved-slice",
+  "version": "1.0",
+  "description": "Trigger evals for implement-approved-slice: it writes the code for a whole approved slice, while its siblings only plan the slice, patch a small gap after it, review it, or close it.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "ok the plan is locked, go build slice 02",
+      "IMPLEMENTATION_PLAN.md is approved and slice 03 (add the retry wrapper around the payments client) is next. Start writing the code and stay inside the files listed in its Scope.",
+      "Slice 01 is approved and I want it done test-first this time. Write the failing test for the CSV export first, then make it pass, and record what you ran in the slice notes.",
+      "We signed off on the plan yesterday and every open decision in DECISIONS.md is resolved. Please code the first slice, keep the diff small enough for PR #212, and put the evidence in TASK_STATE.md when you finish.",
+      "Time to execute. Slice 04 changes the invoice total rounding in three files, all named in the plan. Make the edits and note what changed."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "Slice 02 is already implemented, but I spotted a typo in the error message and one missing log line. Fix just those two things without touching the rest.",
+        "routes_to": "implement-slice-complement"
+      },
+      {
+        "prompt": "Slice 03 is coded and its tests pass. Can we call it done, or is something still open before we move on to slice 04?",
+        "routes_to": "slice-closure"
+      },
+      {
+        "prompt": "I just finished slice 01 and the tests are green. Refresh TASK_STATE.md so it shows that and lists the next step for whoever picks this up tomorrow.",
+        "routes_to": "sync-task-state"
+      },
+      {
+        "prompt": "Break the notification preferences work into small slices with an order, exit criteria, and the risks for each one. Nothing is coded yet.",
+        "routes_to": "implementation-plan"
+      },
+      {
+        "prompt": "The checkout job crashed in staging with a NullPointerException in OrderMapper.map and I have the stack trace. Is this a hotfix or does it need its own slice?",
+        "routes_to": "incident-triage"
+      }
+    ]
+  }
+}

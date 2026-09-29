@@ -1,0 +1,22 @@
+{
+  "skill_name": "skill-vet",
+  "version": "1.0",
+  "description": "Trigger evals for skill-vet: it fires when a third-party agent skill or plugin sits in a local folder and has not been installed yet, while mcp-server-vet, security-review, review-hard and capture-references handle MCP servers, security review of our own code, general risk review, and saving web references.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "I downloaded a skill pack from a random repo into ~/quarantine/seo-helper. Can you check it is safe before I install it?",
+      "is this claude plugin from the marketplace ok to add? want a verdict first",
+      "Read every file in this candidate skill folder, including the scripts and tests, not only SKILL.md. I need to know if it phones home, touches my dotfiles or edits CLAUDE.md.",
+      "A teammate sent a plugin with a SKILL.md and a setup.sh. Look for hidden unicode, shell execution and credential access, then tell me install, decline or sandbox.",
+      "Its description says it only formats markdown, but the folder has a 300 line python file. Does the code match what it claims?"
+    ],
+    "should_not_trigger": [
+      { "prompt": "A third-party MCP server exposes filesystem tools and I want to add it to my config. Inspect its tools and scopes first.", "routes_to": "mcp-server-vet" },
+      { "prompt": "This slice encrypts stored bank account numbers and adds a CSV export of customer PII. Check the crypto choices and what data the export could leak before we ship.", "routes_to": "security-review" },
+      { "prompt": "Review the diff of the skill we wrote ourselves in this repo for correctness and maintainability risks.", "routes_to": "review-hard" },
+      { "prompt": "Someone posted a skill on a blog. Fetch the page, summarize it and keep it in the project references.", "routes_to": "capture-references" },
+      { "prompt": "Three marketplace skills claim to help with code review. Compare them from their public docs and tell me which fits our workflow best.", "routes_to": "external-research" }
+    ]
+  }
+}

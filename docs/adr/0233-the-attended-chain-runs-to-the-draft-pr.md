@@ -1,6 +1,6 @@
 # ADR-0233: The attended chain runs to the draft PR
 
-- **Status**: Accepted. The maintainer confirmed P-1 to P-8 on 2026-09-24, so the rules this ADR lists as provisional now stand as locked decisions.
+- **Status**: Accepted. The maintainer confirmed P-1 to P-8 on 2026-09-24, so the rules this ADR lists as provisional now stand as locked decisions. Superseded in part by [ADR-0237](./0237-a-launched-background-session-is-the-attended-flow.md): a background session a person launched on a task branch that passes its five-condition test is attended, so "background" no longer sits on the unattended side of the "What does not change" paragraph. P-7 is superseded in part by [ADR-0239](./0239-the-one-slice-route-admits-normal-impact-provisional-decisions.md): an `Impact: normal` P-N no longer sends a one-slice task through `implementation-plan` and `approve-plan`. The rest stands.
 - **Date**: 2026-09-24
 - **Supersedes**: in part, ADR-0056, ADR-0074, ADR-0105, ADR-0159, ADR-0163, ADR-0167, ADR-0184, ADR-0185, ADR-0186, ADR-0202, ADR-0203 and ADR-0208, each for attended runs only. The part each one loses is listed under `## Decision`; the rest of each stands.
 - **Respects**: ADR-0044 D9 and ADR-0221 (the unattended track), ADR-0159 (what attended means), ADR-0162 (a declared operating mode is read), ADR-0200 (the bounded-audience test), ADR-0201, ADR-0207 (announced, not hidden), ADR-0225 (the one-slice route), ADR-0133, ADR-0144 and ADR-0197. Precedent: ADR-0120 D-2.

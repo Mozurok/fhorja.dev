@@ -1,0 +1,22 @@
+{
+  "skill_name": "frontend-system-design",
+  "version": "1.0",
+  "description": "Trigger evals for frontend-system-design: it fires when an active task needs a written architecture for a web or mobile surface before slicing, while problem-framing, implementation-plan, impact-analysis, backend-system-design and frontend-architecture-review handle whether the problem is right, slicing, blast radius, the server side, and micro-frontend adoption.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "We're building the new order-tracking page for web and the iOS app. Write the design doc: rendering strategy, state, caching, performance budget, rollout, the lot.",
+      "design a news feed for a mobile app, I have 45 minutes for a mock interview round, lay it out for me",
+      "The task folder is set up and decisions are locked. Before we cut slices I want an RFC for the checkout flow on the frontend, including how we handle offline and retries.",
+      "need a frontend architecture writeup for the dashboard rewrite. SSR or client rendering, where does server data live, how do we hit LCP under 2.5s",
+      "can you do the system design for our autocomplete search box"
+    ],
+    "should_not_trigger": [
+      { "prompt": "Product says the dashboard is slow, but I'm not sure that's the real problem. Help me question what we are actually trying to fix before I open a task.", "routes_to": "problem-framing" },
+      { "prompt": "The design is agreed and written down. Break it into small safe slices with exit criteria and an order.", "routes_to": "implementation-plan" },
+      { "prompt": "Design the ingestion service, the queue, the database schema and the SLOs behind the order-tracking feature.", "routes_to": "backend-system-design" },
+      { "prompt": "Four teams want to ship their own parts of the storefront on separate deploys. Should we adopt micro-frontends, and what would break?", "routes_to": "frontend-architecture-review" },
+      { "prompt": "I want to change the session token handling in the login form. What else in the app does that touch, and what contracts could break?", "routes_to": "impact-analysis" }
+    ]
+  }
+}

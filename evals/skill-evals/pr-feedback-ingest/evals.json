@@ -1,0 +1,37 @@
+{
+  "skill_name": "pr-feedback-ingest",
+  "version": "1.0",
+  "description": "Trigger evals for pr-feedback-ingest: it fires when an open PR has review comments or bot findings that need to be sorted into corrective work tied to the task, while post-review-pivot, state-reconcile, incident-triage, implement-slice-complement and pr-package handle a direction change, memory drift, a live failure, a small in-slice fix, and delivery packaging.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "Greptile just left 9 comments on PR #212, can you sort them out before I touch any code?",
+      "Reviewers went through the PR overnight. There are inline comments on the retry helper and a failing lint check, and I'd like each one matched to the slice it touches so I can fix them in order.",
+      "got review notes back, here they are pasted below. turn them into a to-do list tied to the task",
+      "The bot flagged two null-check issues and one missing test on the open PR, and a teammate asked for a rename in the service file. Line these up against IMPLEMENTATION_PLAN.md so I know which slice each belongs to and what to update in TASK_STATE.md.",
+      "CI annotations and human comments are piling up on PR #57. Organize them so the next step is a small fix pass."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "The reviewers say we modeled the invoice status wrong and want a different table layout altogether. That changes what we agreed to build, so help me work out what to keep and what to throw away.",
+        "routes_to": "post-review-pivot"
+      },
+      {
+        "prompt": "TASK_STATE.md says slice 3 is open but the code and the plan both show it was finished last week. Find every place where the notes disagree and fix them.",
+        "routes_to": "state-reconcile"
+      },
+      {
+        "prompt": "Production is throwing a 500 on the export endpoint and here is the stack trace. Is this a hotfix or does it need a full slice?",
+        "routes_to": "incident-triage"
+      },
+      {
+        "prompt": "Slice 02 is already implemented and I spotted a missing log line and a typo in an error message inside the same files. Patch those small things and note them in the slice.",
+        "routes_to": "implement-slice-complement"
+      },
+      {
+        "prompt": "Every review comment from the first round is resolved and pushed, and the diff against main has stopped changing. Rewrite the PR title and body from the actual diff and list what the second-round reviewers should look at.",
+        "routes_to": "pr-package"
+      }
+    ]
+  }
+}

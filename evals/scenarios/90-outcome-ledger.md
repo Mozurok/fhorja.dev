@@ -44,6 +44,7 @@ Run @commands/task-close.md for projects/acme__web-app/active/2026-06-20_checkou
 5. No threshold, budget-gate, or enforcement language appears anywhere in the output.
 6. The line is appended and reported as APPLIED, in every mode; a response that withholds the append because the mode is Ask or Plan is grading against a removed gate.
 7. The line carries an `escalations` field: the command names on the `Escalations:` line of the task's `## Recommended pipeline` (ADR-0184, ADR-0207), with the parenthesized reasons dropped. It is `[]` for `Escalations: none` and null when the line is absent or is still the unfilled template menu. The line also keeps `tier`, now a legacy field read the old way (ADR-0025) and null for any task whose section records escalations. Both fields are optional and additive, so `schema_version` stays 1 per the `## Versioning` rule in `templates/OUTCOMES.schema.md`. `portfolio-review --outcomes` groups median cycle days by escalation profile (`none`, or the fired set) for rows that carry `escalations`, by tier for legacy rows that carry only a tier, and as unknown for rows with neither, says which grouping each line uses, and states no threshold about any group.
+8. The line carries `output_tokens_by_model` and `output_tokens_source` (E0, ADR-0236). With no usage record passed, both are null, and a response that fills the field from memory or an estimate is a FAIL. When the harness keeps a usage record and task-close passes `--usage-source`, the field is an object of model id to integer and the source names the adapter and its window. Both fields are additive, so `schema_version` stays 1.
 
 ## Failure modes to watch
 
@@ -56,9 +57,10 @@ Run @commands/task-close.md for projects/acme__web-app/active/2026-06-20_checkou
 ## Notes
 
 - Related ADRs: [ADR-0079](../../docs/adr/0079-outcome-ledger.md), [ADR-0020](../../docs/adr/0020-task-cost-observability.md) (no-API doctrine), [ADR-0034](../../docs/adr/0034-substrate-peers-and-worker-contract.md) (the ts headers), [ADR-0056](../../docs/adr/0056-deliverable-coverage-ledger.md) (ledger precedent), [ADR-0207](../../docs/adr/0207-the-default-behavior-has-no-name.md) (escalations replace the tier labels).
-- Related files: `templates/OUTCOMES.schema.md`, `scripts/compute-task-outcome.py`, `commands/task-close.md`, `scripts/portfolio-review.sh`, `commands/portfolio-review.md`, `scripts/tests/test-compute-task-outcome-tier.sh`.
+- Related files: `templates/OUTCOMES.schema.md`, `scripts/compute-task-outcome.py`, `commands/task-close.md`, `scripts/portfolio-review.sh`, `commands/portfolio-review.md`, `scripts/tests/test-compute-task-outcome-tier.sh`, `scripts/tests/test-compute-task-outcome-usage.sh`.
 - Known issues: none yet (first run pending).
 
 ## History
 
 - 2026-09-23: criterion 7 moves to the `escalations` field with `tier` kept as legacy, and the append is graded APPLIED in every mode.
+- 2026-09-28: criterion 8 adds the `output_tokens_by_model` field (E0 of the parallel-work research, ADR-0236); `scripts/tests/test-compute-task-outcome-usage.sh` backs it.

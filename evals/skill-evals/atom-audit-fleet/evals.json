@@ -1,0 +1,22 @@
+{
+  "skill_name": "atom-audit-fleet",
+  "version": "1.0",
+  "description": "Trigger evals for atom-audit-fleet: it fires when a design system has 6 or more atoms and COMPONENT_GUIDELINES.md exists, so the audit can run in parallel, while atom-audit, design-spec-review, design-bootstrap and foundation-audit handle small atom counts, one component against its spec, a missing design system, and token drift.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "We have 23 atoms in packages/ui and COMPONENT_GUIDELINES.md is up to date. Audit all of them against it, in parallel if you can, and give me one table.",
+      "audit all the atoms, there are like 15 of them now",
+      "Guidelines added a new reduced-motion rule last week. Check every atom (Button, Chip, Badge, Switch, Avatar, Tag, Toggle, IconButton, Divider) for memo, inline styles, touch target and a11y and merge the rows into ATOM_AUDIT.md.",
+      "We have 14 atoms now and COMPONENT_GUIDELINES.md picked up a new touch-target rule. Audit all of them against it, a few atoms per worker in parallel, and give me one merged table.",
+      "Can you fan the atoms out over several workers? 12 components, one guidelines doc, I want a single merged ATOM_AUDIT.md at the end."
+    ],
+    "should_not_trigger": [
+      { "prompt": "We only have 4 atoms so far: Button, Badge, Chip and Divider. Audit them against COMPONENT_GUIDELINES.md.", "routes_to": "atom-audit" },
+      { "prompt": "Button was reworked yesterday. Check just that one against its spec doc for variants, states and tokens.", "routes_to": "design-spec-review" },
+      { "prompt": "There is no design system in this repo yet, only a Figma file. Set up the tokens and the component inventory first.", "routes_to": "design-bootstrap" },
+      { "prompt": "The Stepper and Slider atoms have Figma nodes but no spec docs yet. Before anyone audits them, write the full spec for Stepper with its variants, states and accessibility notes.", "routes_to": "component-spec" },
+      { "prompt": "Map the checkout flow screens to WCAG 2.2 AA and give me a conformance ledger.", "routes_to": "a11y-audit" }
+    ]
+  }
+}

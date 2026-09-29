@@ -1,0 +1,22 @@
+{
+  "skill_name": "delivery-asset",
+  "version": "1.0",
+  "description": "Trigger evals for delivery-asset: it fires when finished task work must be written up for a non-engineering audience such as executives, customers, or partners in a chosen format, while team-update, pr-package, release-plan, postmortem-author and task-init handle a quick team note, reviewer-facing PR text, a rollout strategy, an incident record, and a new task.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "the new export feature is done, I need something to send to our customers about it",
+      "Leadership is asking what came out of the search migration. Can you turn the task into a one-page readout for the execs, no jargon, and lead with what we shipped?",
+      "Write a release note for the customer-facing side of the billing change. Keep it to what is actually recorded in the task, please, no made-up numbers.",
+      "I have a demo for the all-hands on Friday. Put together a demo script with stage directions for the onboarding flow we just finished.",
+      "draft a short email to our partners saying the API change shipped, formal tone, under 200 words"
+    ],
+    "should_not_trigger": [
+      { "prompt": "Post a quick note in our engineering channel saying the retry work is done and I am waiting on review.", "routes_to": "team-update" },
+      { "prompt": "The diff is stable now. Give me the PR title, body, and reviewer attention points against main.", "routes_to": "pr-package" },
+      { "prompt": "We are about to deploy the queue change. How should we roll it out, with a canary and a rollback trigger?", "routes_to": "release-plan" },
+      { "prompt": "The outage last Tuesday is resolved. Write up a blameless timeline with contributing causes and action items.", "routes_to": "postmortem-author" },
+      { "prompt": "I want to start work on adding audit logging to the admin panel. Set up the task folder for it.", "routes_to": "task-init" }
+    ]
+  }
+}

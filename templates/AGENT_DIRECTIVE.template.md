@@ -1,8 +1,8 @@
 # Agent directive template
 
 Paste this into the always-loaded instruction file of the repository you work in: `CLAUDE.md` for
-Claude Code, `AGENTS.md` for Codex and agents that read it, your rules file for Cursor. One time,
-per repository.
+Claude Code, `AGENTS.md` for Codex and agents that read it, `.cursor/rules/fhorja.mdc` with
+`alwaysApply: true` in its frontmatter for Cursor. One time, per repository.
 
 Installing Fhorja gives an agent the commands. This gives it the instruction to use them. Measured
 2026-09-01: with the skills installed and nothing else, an agent handed a one-file task does the

@@ -1,0 +1,22 @@
+{
+  "skill_name": "performance-budget",
+  "version": "1.0",
+  "description": "Trigger evals for performance-budget: it fires when a latency- or size-sensitive change needs numeric limits and a regression action declared before it ships, while test-strategy, post-deploy-verifier, web-runtime-verify, slo-define and release-plan handle test selection, live post-ship checks, browser runs, reliability targets, and rollout.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "we're adding a paginated search endpoint and nobody has said how slow is too slow. Set the numbers before I start coding",
+      "The dashboard bundle keeps growing with each PR. I want hard limits written down for JS size and first render so a bad PR gets blocked instead of argued about.",
+      "Slice 2 rewrites the orders list query in the checkout service. Before it goes out, define what p95 and rows scanned it has to stay under and what we do if it goes over.",
+      "our RN feed screen janks on low-end Androids, what frame and startup limits should we hold the next release to?",
+      "DECISIONS.md just says \"the game must run smooth on phones\". Turn that into actual numbers for frame time, draw calls and texture memory."
+    ],
+    "should_not_trigger": [
+      { "prompt": "I changed the invoice rounding logic and the retry handler. Which unit and integration tests are worth writing so we do not regress?", "routes_to": "test-strategy" },
+      { "prompt": "The release went live an hour ago. What logs and dashboard panels should I check to confirm it is healthy, and when do we roll back?", "routes_to": "post-deploy-verifier" },
+      { "prompt": "The frontend build is done. Serve it, check nothing overflows from 320px wide up, and run Lighthouse and axe to tell me if it passes.", "routes_to": "web-runtime-verify" },
+      { "prompt": "The payments API has no reliability target yet. Pick the indicators, a 99.9 percent goal over 30 days, and write the policy for when the error budget runs out.", "routes_to": "slo-define" },
+      { "prompt": "We are shipping the new pricing page next week. Should it go behind a flag or a canary, and what exposure steps should we use?", "routes_to": "release-plan" }
+    ]
+  }
+}

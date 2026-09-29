@@ -10,7 +10,7 @@ metadata:
   tools: [Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch]
   x-wos-profiles: [minimal, core, full]
   provenance: first-party
-  suggested-model: claude-sonnet-5
+  suggested-model: claude-sonnet-5-5
 ---
 # capture-references
 
@@ -158,8 +158,7 @@ Produce the command output using this structure (English only):
 
 ### Handoff
 <!-- shared:handoff-body -->
-Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state). Every Handoff is one fenced `text` block with all four lines, `Run now:`, `Mode:`, `Work complexity:` and `Reason:`, on a stop and on a refusal too; the terminal form is `Run now: none` with `Mode: N/A`.
-
+Use the adaptive ending format of `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract`. Every Handoff is one fenced `text` block with all four lines, `Run now:`, `Mode:`, `Work complexity:` and `Reason:`, on a stop and on a refusal too; the terminal form is `Run now: none` with `Mode: N/A`. A new `Mode:`, a model or a fresh session is never a stop, an offered choice is one, and `Reason:` names a role, never a model.
 ### Definition of done (command output)
 - Each entry has all required fields: title, URL, accessed date in `YYYY-MM-DD`, summary, the `Context within project` clause (required at all depths per ADR-0018), tags, and a `Consumes-by:` consumer pointer (a command, the task slug, or `TBD`). `detailed` depth additionally includes 1 to 3 quoted key points, and for a technical source an `Implementation contract` block (signature, minimal example, version) populated only from the source.
 - No URL appears twice in the resulting `REFERENCES.md`; duplicates are skipped with an explicit `NO_OP_TRACE` note.

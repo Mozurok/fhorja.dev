@@ -1825,6 +1825,50 @@ for file in "${REPO_ROOT}"/wos/*.md; do
   done < <(grep -iE 'max_fanout.*ceiling[[:space:]]+[0-9]+' "$file" || true)
 done
 
+# Dispatch roles (ADR-0236). A command names the role of each sub-agent it
+# dispatches, `mechanical` or `judgment`, and never a model: the one mapping to
+# a model and an effort is wos/model-routing.md ## Dispatch roles. Until
+# 2026-09-28 seven fleets wrote a model SKU into `workers[].tier` and their
+# prose said which model the workers ran, so every lineup change was a sweep
+# across command files that nothing checked. Four shapes fail:
+#   1. a `tier:` line inside a frontmatter `workers:` block;
+#   2. a `dispatch-role:` value the table does not define;
+#   3. a `claude-` model id on any line except the command's own
+#      `suggested-model:` hint, which is not a dispatch (P-3 of the task);
+#   4. a model family name attached to workers or sub-agents in prose.
+ROLE_TABLE="${REPO_ROOT}/wos/model-routing.md"
+DISPATCH_ROLES="$(awk '/^## Dispatch roles/{f=1;next} f&&/^## /{exit} f&&/^\| `[a-z]+` \|/{s=$0; sub(/^\| `/,"",s); sub(/`.*/,"",s); print s}' "$ROLE_TABLE" 2>/dev/null | tr '\n' ' ')"
+if [[ -z "$DISPATCH_ROLES" ]]; then
+  ORCH_FAILURES+=("wos/model-routing.md: no role rows under ## Dispatch roles, so no dispatch-role value can be checked (ADR-0236)")
+fi
+for file in "${COMMAND_FILES[@]}" "${REPO_ROOT}"/commands/_shared/*.md; do
+  [[ -f "$file" ]] || continue
+  dr_name="$(basename "${file%.md}")"
+  [[ "$file" == */SKILL.md ]] && dr_name="$(basename "$(dirname "$file")")"
+
+  while IFS= read -r hit; do
+    ORCH_FAILURES+=("${dr_name}: ${hit}")
+  done < <(awk -v roles=" ${DISPATCH_ROLES}" '
+    NR==1 && $0=="---" {fm=1; next}
+    fm && $0=="---" {fm=0; next}
+    fm && /^  workers:/ {w=1; next}
+    fm && w && /^  [^ ]/ {w=0}
+    fm && w && /^[[:space:]]+tier:/ {print "workers[] carries a tier: line (line " NR "); declare dispatch-role: instead (ADR-0236)"}
+    fm && w && /^[[:space:]]+dispatch-role:/ {
+      v=$0; sub(/^[[:space:]]+dispatch-role:[[:space:]]*/,"",v); sub(/[[:space:]]*(#.*)?$/,"",v)
+      if (index(roles, " " v " ")==0) print "dispatch-role " v " (line " NR ") is not a row of wos/model-routing.md ## Dispatch roles"
+    }
+  ' "$file")
+
+  while IFS= read -r hit; do
+    ORCH_FAILURES+=("${dr_name}: a model id outside suggested-model: (line ${hit%%:*}); name a dispatch role, never a model (ADR-0236)")
+  done < <(grep -nE 'claude-(haiku|sonnet|opus|fable)' "$file" | grep -vE '^[0-9]+:[[:space:]]*suggested-model:' || true)
+
+  while IFS= read -r hit; do
+    ORCH_FAILURES+=("${dr_name}: a model family names workers or sub-agents (line ${hit%%:*}); name a dispatch role instead (ADR-0236)")
+  done < <(grep -niE '(sonnet|opus|haiku|fable)(-class)?[ -](workers?|sub-?agents?)\b|workers? runs? (sonnet|opus|haiku|fable)' "$file" || true)
+done
+
 if [[ ${#ORCH_FAILURES[@]} -gt 0 ]]; then
   echo ""
   echo "Orchestrator-contract failures (${#ORCH_FAILURES[@]}):"

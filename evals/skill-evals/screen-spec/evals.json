@@ -1,0 +1,22 @@
+{
+  "skill_name": "screen-spec",
+  "version": "1.0",
+  "description": "Trigger evals for screen-spec: it fires when one Figma screen frame needs a written screen spec, while screen-spec-fleet, image-to-spec, component-spec, extract-foundations-from-screens and journey-map handle many screens, an image with no Figma source, a single component, token convergence, and a multi-screen flow.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "Can you write up the login screen from Figma? Here's the frame link, it's screen 03 and it's an auth screen.",
+      "I have the settings page frame open in Figma (node 412:88) and the developers need to build it from our component library without opening the file. Document that one screen as screen 07, controller persona, route /settings.",
+      "document the checkout confirmation frame, I want the layout, the copy, and the empty and error states written down",
+      "Design handed off the operative dashboard yesterday. Pull the frame, work out which of our components it uses, and give me a spec for that screen with the spacing mapped to our tokens.",
+      "spec this one screen from the Figma frame, shared persona, number 12"
+    ],
+    "should_not_trigger": [
+      { "prompt": "We have 14 frames for the onboarding redesign, each with a node id and a persona. Generate all the screen docs in parallel and update the screen map and routes.", "routes_to": "screen-spec-fleet" },
+      { "prompt": "There's no Figma file for this, only a PNG screenshot of the profile screen that the client emailed. Turn it into a structured spec.", "routes_to": "image-to-spec" },
+      { "prompt": "Document the primary button from the Figma library: all its variants, sizes, states, motion and haptics.", "routes_to": "component-spec" },
+      { "prompt": "All twelve screen specs now list raw hex values and pixel paddings. Converge those into color, typography and spacing role tokens without overwriting what we already curated.", "routes_to": "extract-foundations-from-screens" },
+      { "prompt": "Map the signup flow from welcome to first dashboard across the five screens, with the user story and the critical states along the way.", "routes_to": "journey-map" }
+    ]
+  }
+}

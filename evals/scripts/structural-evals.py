@@ -3493,6 +3493,7 @@ NON_COMMAND_FLAGS = {
     "--force": "git (task-close and task-workspace name it to forbid it)",
     "--revert": "compute-task-outcome.py (task-close)",
     "--residual": "compute-task-outcome.py (review-hard)",
+    "--usage-source": "compute-task-outcome.py (task-close, ADR-0236)",
 }
 
 
@@ -3732,6 +3733,10 @@ ONE_SLICE_ROUTE_NEEDLES = (
     ("Operating mode: strict", "condition 1: a declared strict rules the route out"),
     ("at most two files", "condition 2"),
     ("Locked decisions` stays empty", "condition 3"),
+    ("Impact: normal", "condition 3 since ADR-0239: a normal-impact provisional decision keeps the route"),
+    ("Impact: high", "condition 3 since ADR-0239: a high-impact provisional decision keeps the full path"),
+    ("Task branch:", "condition 3 since ADR-0239: an admitted P-N needs a task branch, so the draft PR lists it"),
+    ("rests on provisional P-N", "the route's slice cites each P-N it rests on (ADR-0239)"),
     ("Depends-on: none", "the slice field the route fixes"),
     ("Status: approved", "the slice field the route fixes"),
     ("Work complexity: LOW", "the slice field the route fixes"),
@@ -3759,12 +3764,27 @@ def check_one_slice_route():
     ti = p("commands", "task-init.md")
     if not os.path.isfile(ti):
         return (False, ["commands/task-init.md: missing, so the one-slice route has no home"])
-    m = re.search(r"\*\*One-slice route \(ADR-0225\)\.\*\*(.*)", read(ti))
+    m = re.search(r"\*\*One-slice route \(ADR-0225[^)]*\)\.\*\*(.*)", read(ti))
     if not m:
         return (False, ["commands/task-init.md: no one-slice route bullet (ADR-0225)"])
     for needle, why in ONE_SLICE_ROUTE_NEEDLES:
         if needle not in m.group(1):
             msgs.append(f"commands/task-init.md: the one-slice route no longer names {needle!r}, {why}")
+    # ADR-0239: the pre-0239 condition 3 refused every provisional decision. Its wording
+    # coming back means the route is closed again to the normal-impact P-N it now admits.
+    if "as do `## Provisional decisions`" in m.group(1):
+        msgs.append("commands/task-init.md: the one-slice route again requires `## Provisional decisions` "
+                    "to stay empty; since ADR-0239 an `Impact: normal` P-N keeps the route")
+    wn = p("commands", "what-next.md")
+    if os.path.isfile(wn):
+        w = re.search(r"\*\*Re-check the one-slice route \(ADR-0225, ADR-0239\):\*\*(.*)", read(wn))
+        if not w or "Impact: normal" not in w.group(1) or "Task branch:" not in w.group(1):
+            msgs.append("commands/what-next.md: the one-slice route re-check does not apply ADR-0239 "
+                        "(an `Impact: normal` P-N, cited, on a task branch keeps the route)")
+    cov = p("scripts", "check-plan-coverage.sh")
+    if os.path.isfile(cov) and "provimpact" not in read(cov):
+        msgs.append("scripts/check-plan-coverage.sh: rule 5 no longer reads a provisional decision's "
+                    "Impact:, so it cannot tell the P-N the route admits from the one it refuses")
     ias = p("commands", "implement-approved-slice.md")
     body = read(ias) if os.path.isfile(ias) else ""
     r = re.search(r"\*\*Renumber check on the one-slice route \(ADR-0225\)\.\*\*(.*)", body)
@@ -5415,6 +5435,64 @@ def check_fanout_floor_consistency(root=None):
     return (not fails, fails)
 
 
+def check_items_per_worker(root=None):
+    """[ADR-0240] The items-per-worker rule stays stated, and every fleet is classified against it.
+
+    E5 measured 20 one-item workers against 4 five-item workers on the same kind of work: 17.69
+    against 9.58 USD, 1.40M against 0.40M cache-creation tokens, and the same review outcome. Each
+    worker pays its own prompt-cache build, so worker count is a fixed cost. The rule that follows
+    is prose, and prose is removed by an edit nobody flags, so this reads the three places it lives.
+
+    - The spec's `## Parallel workflow` carries `### Items per worker` with its two numbers: about
+      5 items per worker and at most 9 workers.
+    - The worker contract keeps `files_read`, the return field that makes a skipped read visible
+      (E5's watch item: a batched drafter wrote five files without opening the ones it was told to).
+    - `wos/workflow-patterns.md ## Items per worker` has a table row for every
+      `commands/*-fleet.md`, so a new fleet cannot arrive without saying whether it batches.
+    """
+    root = root or _repo()
+    fails = []
+    spec = read(os.path.join(root, SPEC_PATH))
+    # The heading line, not the first mention: the read map and other sections cite
+    # `## Parallel workflow` in prose long before the section itself starts.
+    m = re.search(r"^## Parallel workflow[ \t]*$", spec, re.M)
+    body = spec[m.end():].split("\n## ", 1)[0] if m else ""
+    if not body:
+        fails.append(f"{SPEC_PATH}: no '## Parallel workflow' section")
+    else:
+        sub = body.split("### Items per worker", 1)
+        if len(sub) < 2:
+            fails.append(f"{SPEC_PATH}: '## Parallel workflow' has no '### Items per worker' subsection")
+        else:
+            text = sub[1].split("\n### ", 1)[0]
+            if not re.search(r"about 5 items per worker", text):
+                fails.append(f"{SPEC_PATH}: '### Items per worker' does not say 'about 5 items per worker'")
+            if not re.search(r"[Aa]t most 9 workers", text):
+                fails.append(f"{SPEC_PATH}: '### Items per worker' does not say 'at most 9 workers'")
+            if "files_read" not in text:
+                fails.append(f"{SPEC_PATH}: '### Items per worker' does not name the `files_read` return field")
+
+    contract = read(os.path.join(root, "commands/_shared/worker-contract.md"))
+    if '"files_read"' not in contract:
+        fails.append("commands/_shared/worker-contract.md: the output shape has no \"files_read\" field")
+
+    patterns = read(os.path.join(root, "wos/workflow-patterns.md"))
+    m = re.search(r"^## Items per worker[ \t]*$", patterns, re.M)
+    if not m:
+        fails.append("wos/workflow-patterns.md: no '## Items per worker' section")
+        return (not fails, fails)
+    table = patterns[m.end():].split("\n## ", 1)[0]
+    classified = set(re.findall(r"^\|\s*`([a-z0-9-]+-fleet)`\s*\|", table, re.M))
+    fleets = sorted(os.path.basename(p)[:-3] for p in glob.glob(os.path.join(root, "commands/*-fleet.md")))
+    if not fleets:
+        fails.append("commands/: no *-fleet.md command found to classify")
+    for name in fleets:
+        if name not in classified:
+            fails.append(f"commands/{name}.md: not classified in the '## Items per worker' table of "
+                         f"wos/workflow-patterns.md")
+    return (not fails, fails)
+
+
 def check_internal_refs_annotated(root=None):
     """[H13] Every live reference to _internal/ says what _internal/ is.
 
@@ -5673,6 +5751,441 @@ def check_experience_verdict_attester(root=None):
     return (not fails, fails)
 
 
+# ADR-0237: the phrase that put every background session on the unattended side.
+OLD_UNATTENDED_LIST_RE = re.compile(r"unattended,\s+background|background,?\s+(?:or|and)\s+fleet", re.I)
+
+# One anchor per condition of the test, plus the fail-closed sentence. Each is a phrase the
+# guardrails rule states literally, so a reword that drops a condition drops its anchor.
+BACKGROUND_TEST_ANCHORS = (
+    ("condition 1 (a person launched it)", "A person launched it for this task"),
+    ("condition 2 (not autonomous-run)", "It is not an `autonomous-run` session"),
+    ("condition 2 (not a fleet worker)", "worker contract"),
+    ("condition 3 (on the task branch)", "equals the `Task branch:` line"),
+    ("condition 4 (stops at the draft)", "never marks the pull request ready for review, merges, pushes to the base branch, or force-pushes"),
+    ("condition 5 (P-Ns stay provisional)", "never writes the `Confirms:` or `Supersedes:` D-N"),
+    ("fail-closed sentence", "WHEN any condition fails"),
+)
+
+
+def check_background_session_test(root=None):
+    """[scenario 146, ADR-0237] A background session is attended only under the five-condition test.
+
+    Until 2026-09-28 about twenty surfaces listed "unattended, background, or fleet-dispatched"
+    together, so a background session the maintainer launched on a task branch stalled at
+    decision-interview with PROPOSED blocks and branch-commit --apply and pr-package --apply
+    refused it. ADR-0237 moved "background" out of that list and into one test, kept in
+    wos/cross-cutting-workflow-guardrails.md ### Unattended sessions.
+
+    Four assertions, each a way the distinction can quietly come undone:
+    1. the old three-item list is absent from every command, shared block, wos topic, the spec
+       and the FAQ (a copy pasted back from an older surface restores the stall);
+    2. the Unattended sessions rule states all five conditions and the fail-closed sentence;
+    3. decision-interview, task-init, branch-commit and pr-package cite ADR-0237, since those are
+       where the stall and the two --apply refusals are decided;
+    4. wos/autonomous-track.md keeps its detached background runs unattended by name.
+
+    Path-parameterized like check_skill_load_budget(root=...) so the negative proof runs on a
+    FIXTURE and never on the live tree.
+    """
+    base = root or _repo()
+    fails = []
+    scan = []
+    for pattern in ("commands/*.md", "commands/*/SKILL.md", "commands/_shared/*.md", "wos/*.md"):
+        scan.extend(glob.glob(os.path.join(base, *pattern.split("/"))))
+    for rel in ("WORKFLOW_OPERATING_SYSTEM.md", "docs/FAQ.md"):
+        scan.append(os.path.join(base, *rel.split("/")))
+    for f in sorted(scan):
+        if not os.path.isfile(f):
+            fails.append(f"{os.path.relpath(f, base)}: missing; this check lost part of its subject")
+            continue
+        with open(f, "r", encoding="utf-8") as fh:
+            for n, line in enumerate(fh, 1):
+                if OLD_UNATTENDED_LIST_RE.search(line):
+                    fails.append(
+                        f"{os.path.relpath(f, base)}:{n}: lists background next to unattended or "
+                        f"fleet-dispatched; cite the ADR-0237 test instead, or a background "
+                        f"session a person launched stalls again")
+
+    guard = os.path.join(base, "wos", "cross-cutting-workflow-guardrails.md")
+    if not os.path.isfile(guard):
+        return (False, fails + ["wos/cross-cutting-workflow-guardrails.md: missing"])
+    with open(guard, "r", encoding="utf-8") as fh:
+        text = fh.read()
+    m = re.search(r"^### Unattended sessions.*?(?=^### |\Z)", text, re.S | re.M)
+    if not m:
+        fails.append("wos/cross-cutting-workflow-guardrails.md: no ### Unattended sessions section")
+    else:
+        section = m.group(0)
+        if "ADR-0237" not in section:
+            fails.append("wos/cross-cutting-workflow-guardrails.md ### Unattended sessions: does not cite ADR-0237")
+        for label, anchor in BACKGROUND_TEST_ANCHORS:
+            if anchor not in section:
+                fails.append(f"wos/cross-cutting-workflow-guardrails.md ### Unattended sessions: "
+                             f"{label} is gone (anchor: {anchor!r})")
+
+    for name in ("decision-interview", "task-init", "branch-commit", "pr-package"):
+        f = os.path.join(base, "commands", f"{name}.md")
+        if not os.path.isfile(f):
+            fails.append(f"commands/{name}.md: missing")
+            continue
+        with open(f, "r", encoding="utf-8") as fh:
+            if "ADR-0237" not in fh.read():
+                fails.append(f"commands/{name}.md: no longer cites the ADR-0237 test")
+
+    auto = os.path.join(base, "wos", "autonomous-track.md")
+    if os.path.isfile(auto):
+        with open(auto, "r", encoding="utf-8") as fh:
+            atext = fh.read()
+        bm = re.search(r"^## Background runs.*?(?=^## |\Z)", atext, re.S | re.M)
+        if not bm or "ADR-0237" not in bm.group(0) or "stays unattended" not in bm.group(0):
+            fails.append("wos/autonomous-track.md ## Background runs: no longer says those runs "
+                         "stay unattended under ADR-0237")
+    else:
+        fails.append("wos/autonomous-track.md: missing")
+    return (not fails, fails)
+
+
+# The ADR-0241 sentences. Each is the operative clause of one part of the rule. A rewording
+# that keeps the meaning fails this check on purpose, the ADR-0208 convention: the sentence is
+# the contract every command reads, so an edit to it updates the guard in the same change.
+NOT_A_STOP = "Three things are never a reason to stop"
+MODE_IS_INTENT = "is the next step's intent, not a harness mode the user has to switch to"
+NO_HANDBACK_TO_A_MODEL = "no Handoff hands the chain back to the user to reopen on another model"
+CHOICE_IS_A_STOP = "Offering the user a choice between continuing and anything else is itself a stop"
+HANDOFF_BODY_NEVER_A_STOP = "a model or a fresh session is never a stop"
+VALIDATOR_MODEL_CHECK = "Handoff names a model"
+# One sentence per surface the task corrected (its P-4), so a revert of any one is named.
+ADR0241_CORRECTIONS = (
+    (("commands", "approve-plan.md"), "the same turn continues into it"),
+    (("wos", "editor-mode-mappings.md"), "never asks the user to switch the harness"),
+    (("wos", "model-routing.md"), "not a step in a running chain"),
+    (("wos", "context-budget.md"), "never a Handoff step"),
+)
+# A live instruction that hands the chain to the human per model or per session.
+PER_SESSION_HANDBACK = re.compile(
+    r"claude\s+--model\b|--model\s+(claude-|opus|sonnet|haiku|fable)"
+    r"|one slice per session|(fresh|new|separate) (\w+ )?session (for|per) (each )?slice"
+    r"|each slice in (a )?(fresh|new|separate) (\w+ )?session",
+    re.I)
+
+
+def check_handoff_continues_across_mode():
+    """[ADR-0241] A Mode change, a model or a new session never stops the chain.
+
+    On 2026-09-28 a session ended its turn after approve-plan with `Mode: Plan`, a `Reason:`
+    naming a model for the next wave, and a question offering the maintainer a choice between
+    continuing and reopening on that model. None of the four stop reasons applied. Three gaps
+    let it happen: nothing said a `Mode:` change is not a stop, nothing kept a model or a new
+    session out of a Handoff, and nothing said an offered choice is itself a stop.
+
+    This pins the parts a file can carry: the spec sentences, the shared Handoff block every
+    command inlines, the validator's model check (the deterministic half, run on a real
+    Handoff), the four corrected surfaces, and the absence of a live instruction to reopen the
+    chain on a named model or one session per slice. Whether a turn actually stopped cannot be
+    read from a file; scenario 147 grades that.
+    """
+    fails = []
+    spec = p(SPEC_PATH)
+    if not os.path.isfile(spec):
+        return (False, [f"{SPEC_PATH}: missing; the continuation rule has no home"])
+    body = read(spec)
+    for needle, what in (
+        (NOT_A_STOP, "no longer names what is never a reason to stop"),
+        (MODE_IS_INTENT, "no longer says a changed `Mode:` is intent, not a harness switch"),
+        (NO_HANDBACK_TO_A_MODEL, "no longer forbids handing the chain back to reopen on another model"),
+        (CHOICE_IS_A_STOP, "no longer says an offered choice is itself a stop that names its reason"),
+    ):
+        if needle not in body:
+            fails.append(f"{SPEC_PATH}: {what} (ADR-0241; missing {needle!r})")
+
+    handoff = p("commands", "_shared", "handoff-body.md")
+    if not os.path.isfile(handoff) or HANDOFF_BODY_NEVER_A_STOP not in read(handoff):
+        fails.append(f"commands/_shared/handoff-body.md: no longer carries the ADR-0241 sentence "
+                     f"({HANDOFF_BODY_NEVER_A_STOP!r}), so a command that does not reread the spec "
+                     f"treats a new Mode, a model or a new session as a stop")
+
+    validator = p("scripts", "validate-transcript.sh")
+    if not os.path.isfile(validator) or VALIDATOR_MODEL_CHECK not in read(validator):
+        fails.append("scripts/validate-transcript.sh: no longer refuses a Handoff that names a "
+                     "model (ADR-0241); the one deterministic check on real output is gone")
+
+    for parts, needle in ADR0241_CORRECTIONS:
+        path = p(*parts)
+        rel = "/".join(parts)
+        if not os.path.isfile(path) or needle not in read(path):
+            fails.append(f"{rel}: the ADR-0241 correction is gone (missing {needle!r})")
+
+    for top in ("commands", "templates", "wos"):
+        base = p(top)
+        for dirpath, _, files in os.walk(base):
+            for name in sorted(files):
+                if not name.endswith(".md"):
+                    continue
+                path = os.path.join(dirpath, name)
+                rel = os.path.relpath(path, _repo()).replace(os.sep, "/")
+                for n, line in enumerate(read(path).split("\n"), 1):
+                    if PER_SESSION_HANDBACK.search(line):
+                        fails.append(f"{rel}:{n}: tells the reader to reopen the chain on a named "
+                                     f"model (--model) or one session per slice; an attended "
+                                     f"session continues and dispatches by role (ADR-0241)")
+    return (not fails, fails)
+
+
+
+# The two anchors ADR-0242 put in `implement-fleet`, and the two phrases it took out. The E4
+# simulation (2026-09-29) failed its first wave on the old Step 6 sentence: read as "create the
+# worktree, then dispatch", it bound each worker to a worktree the orchestrator made, which carries
+# the orchestrator's own write sandbox. The old Step 7 sentence sent the worker's slice note and
+# return file into the task folder, outside the only tree an isolated worker can write.
+FLEET_DISPATCH_RETIRED = (
+    ("create an isolated git worktree off",
+     "the old Step 6 has the orchestrator make each slice worktree by hand, which binds the "
+     "worker to the orchestrator's own write sandbox (ADR-0242 D-1)"),
+    ("the resolved return path belongs to the orchestrator's task inbox",
+     "the old Step 7 sends the worker's return file outside its own worktree, where an "
+     "isolated worker cannot write (ADR-0242 D-3)"),
+)
+FLEET_DISPATCH_ANCHORS = (
+    ("harness isolation", "isolation` on the `Agent` tool"),
+    ("no hand-made worktree", "create slice worktrees by hand"),
+    ("the sequential fallback", "no per-agent isolation option"),
+    ("the move to base_ref", "git reset --hard <base_ref>"),
+    ("the HEAD check", "git rev-parse HEAD"),
+    ("the return folder", "`.fleet-out/`"),
+    ("the return folder is never committed", "never staged or committed"),
+    ("the merge leaves the return folder out", "never the return folder"),
+    ("worktree discovery after dispatch (ADR-0243)", "run `git worktree list` in the product repo"),
+    ("the merge_include line's section (ADR-0243)", "`section='## Slices'`"),
+    ("the fleet-merge line's section (ADR-0243)", "`section='## Execution waves'`"),
+)
+
+
+def check_fleet_dispatch_isolation(root=None):
+    """[ADR-0242] implement-fleet dispatches with harness isolation and returns through the worktree.
+
+    Three assertions, each a way the E4 repair can quietly come undone:
+    1. neither retired phrase is back in commands/implement-fleet.md;
+    2. every anchor of the new Steps 6, 7 and 9 is present there;
+    3. commands/_shared/worker-contract.md names `.fleet-out/` and ADR-0242, so the contract
+       every fleet cites carries the second carrier location.
+
+    Path-parameterized like check_skill_load_budget(root=...) so the negative proof runs on a
+    FIXTURE and never on the live tree.
+    """
+    base = root or _repo()
+    fails = []
+    fleet = os.path.join(base, "commands", "implement-fleet.md")
+    if not os.path.isfile(fleet):
+        return (False, ["commands/implement-fleet.md: missing; this check lost its subject"])
+    with open(fleet, "r", encoding="utf-8") as fh:
+        body = fh.read()
+    for phrase, why in FLEET_DISPATCH_RETIRED:
+        if phrase in body:
+            fails.append(f"commands/implement-fleet.md: carries {phrase!r} again: {why}")
+    for label, anchor in FLEET_DISPATCH_ANCHORS:
+        if anchor not in body:
+            fails.append(f"commands/implement-fleet.md: {label} is gone (anchor: {anchor!r})")
+    contract = os.path.join(base, "commands", "_shared", "worker-contract.md")
+    if not os.path.isfile(contract):
+        fails.append("commands/_shared/worker-contract.md: missing")
+    else:
+        with open(contract, "r", encoding="utf-8") as fh:
+            text = fh.read()
+        for anchor in (".fleet-out/", "ADR-0242"):
+            if anchor not in text:
+                fails.append(f"commands/_shared/worker-contract.md: does not name {anchor}, so "
+                             f"the contract every fleet cites has one carrier location, not two")
+    return (not fails, fails)
+
+
+# Scripts a command names that deliberately stay out of the install payload, each with the reason.
+# A script on neither this list nor SHIPPED_SCRIPTS is a command step an installed copy cannot run,
+# which is what the E4 simulation hit with monitor-fleet-progress.sh (2026-09-29).
+SCRIPTS_NOT_SHIPPED = {
+    "check-doc-sync.sh": "derives its root from its own location, which fails ADR-0214 test 1; "
+                         "the one-slice route requires it in the workflow root and keeps the "
+                         "full path without it",
+    "lint-commands.sh": "maintainer tooling for this repository",
+    "sync-shared-blocks.sh": "maintainer tooling for this repository",
+    "sync-workflow-slash-commands.sh": "the installer itself",
+    "build-agent-skills.sh": "maintainer tooling for this repository",
+    "reconcile-counts.sh": "maintainer tooling for this repository",
+    "build-closure-floor-views.py": "maintainer tooling for this repository",
+    "build-portfolio-board.py": "an optional viewer run from a clone",
+    "build-activity-timeline.py": "an optional viewer run from a clone",
+    "check-instruction-budget.sh": "maintainer tooling for this repository",
+    "check-claim-grounding.sh": "a lint delegate over this repository's own doctrine",
+    "typecheck-hook.sh": "an example hook a product repository wires itself",
+}
+# Named because a command runs them on a user's task, so an install without them breaks a step.
+SCRIPTS_RUNTIME_REQUIRED = ("monitor-fleet-progress.sh",)
+_SCRIPT_REF_RE = re.compile(r"scripts/([A-Za-z0-9_.-]+\.(?:sh|py))\b")
+_SHIPPED_RE = re.compile(r"^SHIPPED_SCRIPTS=\((.*)\)$", re.M)
+# The shared blocks an installed run reads by path (ADR-0243 task, the E4 rerun's first residual
+# gap): implement-fleet names worker-contract.md as its workers' contract, and the closure writers
+# follow task-state-slice-closure-pattern.md. Neither was in the payload the rerun installed.
+_SHARED_REF_RE = re.compile(r"commands/_shared/([A-Za-z0-9_.-]+\.md)\b")
+_SHIPPED_BLOCKS_RE = re.compile(r"^SHIPPED_SHARED_BLOCKS=\((.*)\)$", re.M)
+SHARED_BLOCKS_RUNTIME_REQUIRED = ("worker-contract.md", "task-state-slice-closure-pattern.md")
+
+
+def _shared_block_fails(base, installer_text):
+    """Every commands/_shared block an installed file cites is in SHIPPED_SHARED_BLOCKS.
+
+    Installed files are the command files, the spec and wos/ (both ship with the payload), and
+    the listed blocks themselves. A fixture without the spec or wos/ is read without them."""
+    fails = []
+    m = _SHIPPED_BLOCKS_RE.search(installer_text)
+    if not m:
+        return ["scripts/sync-workflow-slash-commands.sh: no SHIPPED_SHARED_BLOCKS=(...) line, so "
+                "no commands/_shared block reaches an installed workflow root"]
+    shipped = set(m.group(1).split())
+    files = []
+    for pattern in ("commands/*.md", "commands/*/SKILL.md", "wos/*.md", "wos/*/*.md"):
+        files.extend(glob.glob(os.path.join(base, *pattern.split("/"))))
+    spec = os.path.join(base, "WORKFLOW_OPERATING_SYSTEM.md")
+    if os.path.isfile(spec):
+        files.append(spec)
+    files.extend(os.path.join(base, "commands", "_shared", b) for b in sorted(shipped))
+    cited = {}
+    for f in sorted(files):
+        if not os.path.isfile(f):
+            continue
+        with open(f, "r", encoding="utf-8") as fh:
+            for name in _SHARED_REF_RE.findall(fh.read()):
+                cited.setdefault(name, os.path.relpath(f, base))
+    for name, where in sorted(cited.items()):
+        if name not in shipped:
+            fails.append(f"{where}: cites commands/_shared/{name}, which is not in "
+                         f"SHIPPED_SHARED_BLOCKS, so an installed run reads it against nothing")
+    for name in sorted(shipped):
+        if not os.path.isfile(os.path.join(base, "commands", "_shared", name)):
+            fails.append(f"SHIPPED_SHARED_BLOCKS names {name}, which is not in commands/_shared/")
+    for name in SHARED_BLOCKS_RUNTIME_REQUIRED:
+        if name not in shipped:
+            fails.append(f"SHIPPED_SHARED_BLOCKS lacks {name}, which installed commands read by path "
+                         f"(the E4 rerun found it missing from an installed run)")
+    return fails
+
+
+def check_command_scripts_shipped(root=None):
+    """[ADR-0242, ADR-0214] Every script a command names ships, or is named as not shipping.
+
+    The installer copies `SHIPPED_SCRIPTS` into the workflow root on every sync, and an installed
+    run resolves a command's `scripts/<name>` there. A script a command names that is on neither
+    `SHIPPED_SCRIPTS` nor SCRIPTS_NOT_SHIPPED is a step an installed run cannot take. Four
+    assertions: every named script is accounted for; every shipped script exists on disk; a
+    not-shipped entry is not also shipped; the runtime-required scripts ship.
+
+    Path-parameterized like check_skill_load_budget(root=...) so the negative proof runs on a
+    FIXTURE and never on the live tree.
+    """
+    base = root or _repo()
+    fails = []
+    installer = os.path.join(base, "scripts", "sync-workflow-slash-commands.sh")
+    if not os.path.isfile(installer):
+        return (False, ["scripts/sync-workflow-slash-commands.sh: missing; this check lost its subject"])
+    with open(installer, "r", encoding="utf-8") as fh:
+        installer_text = fh.read()
+    m = _SHIPPED_RE.search(installer_text)
+    if not m:
+        return (False, ["scripts/sync-workflow-slash-commands.sh: no SHIPPED_SCRIPTS=(...) line"])
+    shipped = set(m.group(1).split())
+    files = []
+    for pattern in ("commands/*.md", "commands/*/SKILL.md", "commands/_shared/*.md"):
+        files.extend(glob.glob(os.path.join(base, *pattern.split("/"))))
+    if not files:
+        return (False, ["commands/: no command files found; this check lost its subject"])
+    named = {}
+    for f in sorted(files):
+        with open(f, "r", encoding="utf-8") as fh:
+            for name in _SCRIPT_REF_RE.findall(fh.read()):
+                named.setdefault(name, os.path.relpath(f, base))
+    for name, where in sorted(named.items()):
+        if name not in shipped and name not in SCRIPTS_NOT_SHIPPED:
+            fails.append(f"{where}: names scripts/{name}, which is neither in SHIPPED_SCRIPTS nor "
+                         f"on the not-shipped list, so an installed run cannot take that step")
+    for name in sorted(shipped):
+        if not os.path.isfile(os.path.join(base, "scripts", name)):
+            fails.append(f"SHIPPED_SCRIPTS names {name}, which is not in scripts/")
+        if name in SCRIPTS_NOT_SHIPPED:
+            fails.append(f"{name} is both shipped and on the not-shipped list; drop the list entry")
+    for name in SCRIPTS_RUNTIME_REQUIRED:
+        if name not in shipped:
+            fails.append(f"SHIPPED_SCRIPTS lacks {name}, which a command runs on a user's task "
+                         f"(the E4 simulation found it missing from an installed run)")
+    fails.extend(_shared_block_fails(base, installer_text))
+    return (not fails, fails)
+
+
+# ADR-0243: implement-fleet is the default for a wave of two or more slices on a harness with
+# per-agent worktree isolation. Each surface that routes execution names that condition in the
+# same line as the fleet, or a session without the isolation is routed to a command that then
+# tells it to run the slices in turn.
+FLEET_ROUTE_SURFACES = (
+    "commands/approve-plan.md",
+    "commands/implementation-plan.md",
+    "commands/what-next.md",
+    "commands/implement-approved-slice.md",
+    "WORKFLOW_OPERATING_SYSTEM.md",
+)
+FLEET_ROUTE_CONDITION = "per-agent worktree isolation"
+
+
+def check_fleet_default_route(root=None):
+    """[ADR-0243] implement-fleet is the default route for a parallel wave, on the right harness.
+
+    Four assertions, each a way the default can quietly come undone:
+    1. every routing surface has a line naming both `implement-fleet` and the harness condition;
+    2. implement-fleet no longer calls itself a pilot, and cites ADR-0243;
+    3. implement-fleet ships in the minimal profile, so the default route lands on an installed
+       command (the ADR-0229 shape);
+    4. wos/command-roles.md drops the pilot label and ADR-0041's Status line names ADR-0243.
+
+    Path-parameterized like check_skill_load_budget(root=...) so the negative proof runs on a
+    FIXTURE and never on the live tree.
+    """
+    base = root or _repo()
+    fails = []
+    for rel in FLEET_ROUTE_SURFACES:
+        path = os.path.join(base, *rel.split("/"))
+        if not os.path.isfile(path):
+            fails.append(f"{rel}: missing; this check lost its subject")
+            continue
+        with open(path, "r", encoding="utf-8") as fh:
+            lines = fh.read().splitlines()
+        if not any("implement-fleet" in ln and FLEET_ROUTE_CONDITION in ln for ln in lines):
+            fails.append(f"{rel}: no line routes to implement-fleet with the harness condition "
+                         f"({FLEET_ROUTE_CONDITION!r}), so a session without it is sent to the fleet")
+    fleet = os.path.join(base, "commands", "implement-fleet.md")
+    if not os.path.isfile(fleet):
+        fails.append("commands/implement-fleet.md: missing; this check lost its subject")
+    else:
+        with open(fleet, "r", encoding="utf-8") as fh:
+            body = fh.read()
+        if "Pilot per ADR-0041" in body:
+            fails.append("commands/implement-fleet.md: calls itself a pilot again (ADR-0243 retired it)")
+        if "ADR-0243" not in body:
+            fails.append("commands/implement-fleet.md: does not cite ADR-0243")
+        m = re.search(r"^  x-wos-profiles:\s*\[([^\]]*)\]", body, re.M)
+        tiers = {s.strip() for s in m.group(1).split(",")} if m else set()
+        if "minimal" not in tiers:
+            fails.append("commands/implement-fleet.md: not in the minimal profile, so the default "
+                         "route names a command an explicit minimal install lacks")
+    roles = os.path.join(base, "wos", "command-roles.md")
+    if os.path.isfile(roles):
+        with open(roles, "r", encoding="utf-8") as fh:
+            if "ADR-0041 (PILOT)" in fh.read():
+                fails.append("wos/command-roles.md: still calls implement-fleet a pilot")
+    adr = glob.glob(os.path.join(base, "docs", "adr", "0041-*.md"))
+    if adr:
+        with open(adr[0], "r", encoding="utf-8") as fh:
+            status = next((ln for ln in fh.read().splitlines()[:15] if "Status" in ln), "")
+        if "ADR-0243" not in status:
+            fails.append("docs/adr/0041: its Status line does not name ADR-0243, which ended the pilot")
+    return (not fails, fails)
+
+
 CHECKS = [
     ("corpus-wellformed", "scenario corpus", "every scenario has a goal, criteria, and a FAIL section", check_corpus_wellformed),
     ("corpus-indexed", "scenario corpus", "every scenario is linked from evals/README.md", check_corpus_indexed),
@@ -5702,7 +6215,7 @@ CHECKS = [
     ("no-mode-gate-phrasing", "ADR-0199, ADR-0220", "no live document states the retired editor-mode write gate in any of the phrasings found on disk; only compact-task-memory keeps it", check_no_mode_gate_phrasing),
     ("task-memory-every-mode", "ADR-0199", "no command conditions APPLIED on the mode in its Artifact changes line, outside two named pending cases, and the spec and FAQ no longer describe the removed write gate as current", check_task_memory_written_in_every_mode),
     ("agent-directive-copies-match", "B17", "AGENTS.md carries the directive template's block byte for byte and CLAUDE.md its first paragraph", check_agent_directive_copies_match),
-    ("one-slice-route", "ADR-0225", "the one-slice route writes both lock signals the attended lock reads, implement-approved-slice runs check-doc-sync.sh --against HEAD at inline close and routes its exit 1, autonomous-run refuses a route line, and the lint runs the mode", check_one_slice_route),
+    ("one-slice-route", "ADR-0225", "the one-slice route writes both lock signals the attended lock reads, implement-approved-slice runs check-doc-sync.sh --against HEAD at inline close and routes its exit 1, autonomous-run refuses a route line, the lint runs the mode, and the route admits only a cited Impact: normal P-N on a task branch (ADR-0239) in task-init, what-next and the coverage checker", check_one_slice_route),
     ("projects-ignore-in-creators", "ADR-0223", "both commands that create projects/ carry the self-ignoring projects/.gitignore rule, and task-init checks an existing tree", check_projects_ignore_in_creators),
     ("default-skill-roots-agree", "ADR-0228", "the installer usage, README, FAQ and MIGRATION name the same default skill roots, and none of those documents calls another root a default", check_default_skill_roots_agree),
     ("mcp-routing-view-matches", "B32", "the lazy wos copy task-init reads for its MCP seed is byte-identical to the shared block the other three consumers inline", check_mcp_routing_view_matches),
@@ -5751,11 +6264,17 @@ CHECKS = [
     ("unity-scene-plan-gates", "scenario 131", "unity-scene-plan keeps its two REQUIRED declarations, its human-applied step, and an inbound route (ADR-0132)", check_unity_scene_plan_gates),
     ("unity-multiplayer-surface", "scenario 130", "multiplayer is one Unity-scoped topic plus two conditional blocks, with no engine-neutral extraction (ADR-0131)", check_unity_multiplayer_surface),
     ("fanout-floor-consistency", "ADR-0173", "the fan-out floor is named once in wos/workflow-patterns.md and the spec and every fleet command agree with it, or the exception is registered", check_fanout_floor_consistency),
+    ("items-per-worker", "ADR-0240", "the spec keeps its items-per-worker subsection with about 5 items per worker and at most 9 workers, the worker contract keeps files_read, and every fleet command is classified in wos/workflow-patterns.md", check_items_per_worker),
     ("internal-refs-annotated", "H13", "every live reference to the gitignored _internal/ says so, in the docs and templates a user reads; the frozen historical record is out of scope on purpose", check_internal_refs_annotated),
     ("private-repo-name-absent", "D-10", "no command, skill, wos topic, template, script or root doc names the staging repository's old name; docs/, evals/, CHANGELOG.md and CLAUDE.md are history or maintainer memory and stay out", check_private_repo_name_absent),
     ("scenario-content-floor", "scenario 138", "every scenario clears a per-file character floor and the corpus clears a mean floor, so emptying the corpus fails the build instead of passing every presence-only check", check_scenario_content_floor),
     ("criteria-content-floor", "scenario 138", "every scenario's criteria section holds at least three enumerable checks, so a rubric cannot decay into a paragraph the grader cannot score", check_criteria_content_floor),
     ("unity-topics-indexed", "scenario 129", "every wos/unity-*.md is in the read map, the map cites nothing absent from disk, and no Unity topic copies a sentence from a Godot or RN topic", check_unity_topics_indexed),
+    ("handoff-continues-across-mode", "scenario 147", "a new Mode:, a model or a fresh session never stops the chain and an offered choice is a stop: the spec and the shared Handoff block say so, the validator refuses a Handoff naming a model, the four corrected surfaces keep their sentence, and no command, template or topic sends the chain to --model or one session per slice (ADR-0241)", check_handoff_continues_across_mode),
+    ("fleet-dispatch-isolation", "ADR-0242", "implement-fleet dispatches every worker with the harness's per-agent isolation and has it return through `.fleet-out/` in its own worktree: the old Step 6 hand-made worktree and the old Step 7 inbox write stay out, the reset-and-verify, return-folder and merge anchors stay in, and the worker contract names the second carrier location", check_fleet_dispatch_isolation),
+    ("command-scripts-shipped", "ADR-0242, ADR-0243", "every scripts/<name> a command or shared block names is in the installer's SHIPPED_SCRIPTS or on the named not-shipped list with its reason, every shipped script exists, and monitor-fleet-progress.sh ships (ADR-0214 decides whether a script can); every commands/_shared block a command, the spec, a wos topic or a shipped block cites is in SHIPPED_SHARED_BLOCKS and exists, worker-contract.md and the closure pattern among them", check_command_scripts_shipped),
+    ("fleet-default-route", "ADR-0243", "implement-fleet is the default route for a wave of two or more slices on a harness with per-agent worktree isolation: the four routing commands and the spec name that condition beside the fleet, implement-fleet is in the minimal profile and no longer a pilot, and ADR-0041's Status line names ADR-0243", check_fleet_default_route),
+    ("background-session-test", "scenario 146", "a background session is attended only under the ADR-0237 five-condition test: the old unattended, background or fleet list is gone from every live surface, the guardrails rule keeps all five conditions and its fail-closed sentence, and the four commands that decide the stall and the --apply refusals cite it", check_background_session_test),
 ]
 
 

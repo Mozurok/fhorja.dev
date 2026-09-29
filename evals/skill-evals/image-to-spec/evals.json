@@ -1,0 +1,37 @@
+{
+  "skill_name": "image-to-spec",
+  "version": "1.0",
+  "description": "Trigger evals for image-to-spec: it fires when the only source is a screenshot, mockup, or gameplay capture and a structured spec is wanted, while component-spec, screen-spec, implement-approved-slice, journey-map and pattern-doc handle Figma-backed specs, code, multi-screen flows, and reusable patterns.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "I only have a PNG of the pricing card, no Figma file. Can you write up a spec for it?",
+      "The designer sent a JPG mockup of the settings page (settings-v2.jpg in the assets folder) and there is nothing in Figma yet. Turn it into a screen spec with the copy quoted exactly so we can hand it to i18n.",
+      "Here is a screenshot of the login screen from the competitor app. Document the layout, spacing and components you can see, and flag anything you are only guessing.",
+      "I extracted twelve frames from a playtest video of the platformer plus my notes. Derive the rules of the jump and dash mechanics from them, marking what you actually saw versus what you assume.",
+      "grab this screenshot of the chip and describe it as a component doc, I'm not sure if it counts as a molecule"
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "The designer finally put the pricing card into Figma (node 412:88), so we can stop working from the old screenshot. Document the card from the Figma node with its variants, states and tokens.",
+        "routes_to": "component-spec"
+      },
+      {
+        "prompt": "The checkout frame is already in Figma. Pull it with the design tools and produce the screen spec with layout and copy.",
+        "routes_to": "screen-spec"
+      },
+      {
+        "prompt": "Take this screenshot of the profile screen and build it in React Native, the plan is approved and slice 02 covers it.",
+        "routes_to": "implement-approved-slice"
+      },
+      {
+        "prompt": "I have screenshots of all six onboarding screens in order and the user story. I don't need each screen written up on its own, I need the flow between them: what the user is trying to finish, which components each step uses, and the critical states along the way.",
+        "routes_to": "journey-map"
+      },
+      {
+        "prompt": "I collected screenshots of how five different apps handle pull to refresh. I don't want a spec of any one of them. I want our own reusable pull to refresh pattern that every product we build can follow.",
+        "routes_to": "pattern-doc"
+      }
+    ]
+  }
+}

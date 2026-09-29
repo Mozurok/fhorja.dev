@@ -1,0 +1,37 @@
+{
+  "skill_name": "incident-triage",
+  "version": "1.0",
+  "description": "Trigger evals for incident-triage: it fires on a concrete pasted failure (trace, error, red test, alert) that needs a fix-size call, while vague stalls, new features, finished fixes, review comments, and post-incident write-ups go to their own siblings.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "CI just went red on main after the merge, nobody can land anything. Test is checkout.spec.ts > applies coupon, expected 90 got 100. Hotfix or slice?",
+      "prod is throwing 500s on /api/orders since the 14:10 deploy. Log says TypeError: Cannot read properties of undefined (reading 'currency') at buildInvoice (invoice.ts:88). Last deploy was the slice 03 merge. Triage this before I touch anything.",
+      "staging app crashes on launch, here's the stack: java.lang.NullPointerException at com.app.auth.TokenStore.load(TokenStore.kt:41). Started after we bumped the secure-storage lib yesterday. TASK_STATE.md says we're mid slice 04. Do I stop and replan or just patch it?",
+      "This one test keeps failing only on CI, passes locally: AssertionError in sync.test.ts, timeout after 5000ms. Env is ci, blocking my PR. How big is the fix?",
+      "our nightly job died with ECONNRESET talking to the payments sandbox, third night in a row. Full stderr pasted below. Is this our bug or theirs, and how do we handle it?"
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "I keep going around in circles on this task. Same three questions every session, nothing is moving and I don't even know what is failing anymore.",
+        "routes_to": "im-stuck"
+      },
+      {
+        "prompt": "Users keep filing it as a bug that the reports page cannot export to CSV. There is no error or stack trace, the export was simply never built. Set up the work for adding it.",
+        "routes_to": "task-init"
+      },
+      {
+        "prompt": "The null check fix for the invoice crash is already in and tests pass. Write up the branch name, commit messages and PR description from the diff against main.",
+        "routes_to": "pr-package"
+      },
+      {
+        "prompt": "Greptile left 7 comments on PR #212 and the reviewer flagged a race in the retry loop. Turn all of that into a backlog we can work through.",
+        "routes_to": "pr-feedback-ingest"
+      },
+      {
+        "prompt": "The outage from last Tuesday is resolved and root cause is confirmed. Write the blameless writeup with timeline, impact against the error budget and action items.",
+        "routes_to": "postmortem-author"
+      }
+    ]
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "skill_name": "backend-system-design",
+  "version": "1.0",
+  "description": "Trigger evals for backend-system-design: it fires when a new backend service, endpoint or feature needs an architecture-level design document before any slicing, while implementation-plan, impact-analysis, api-contract-review, frontend-system-design and slo-define handle slicing, blast radius, a contract audit, the client surface, and a reliability target.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "We need a notifications service from scratch. Before anyone writes code, I want the architecture worked out: storage, queue or no queue, how it scales, what breaks first.",
+      "Need a design for the new bulk CSV import endpoint. Expect about 50k rows per file, a few hundred uploads a day, Postgres already chosen in DECISIONS.md. Cover data model, retries, caching, and how we roll it out.",
+      "Write the design doc for the rate limiter we want in front of the public API. Solo team, no multi-region, so keep it sized to reality and explain what we rejected.",
+      "task folder is set up for the webhook delivery worker. Design it end to end: schema, failure handling, idempotency, observability, migration path.",
+      "how should we architect the audit log backend?"
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "The design doc for the ingestion service is signed off. Break it into small reviewable slices with exit criteria and an order of work.",
+        "routes_to": "implementation-plan"
+      },
+      {
+        "prompt": "The orders service is already built and nobody wants to redesign it. We are adding a discount field to its checkout response. Before planning, work out which consumers, jobs and contracts that touches and what could break.",
+        "routes_to": "impact-analysis"
+      },
+      {
+        "prompt": "Here are the draft endpoints for the invoices API: paths, request bodies, error codes and the pagination scheme. Check the naming, versioning and idempotency before we build anything.",
+        "routes_to": "api-contract-review"
+      },
+      {
+        "prompt": "Design the dashboard screen for the new analytics feature: client state, rendering strategy, accessibility and the web and mobile layout.",
+        "routes_to": "frontend-system-design"
+      },
+      {
+        "prompt": "The architecture doc for the webhook delivery worker is written and approved. The piece still missing is its reliability contract: which indicators we measure, the target over what window, and what we freeze when the error budget is gone.",
+        "routes_to": "slo-define"
+      }
+    ]
+  }
+}

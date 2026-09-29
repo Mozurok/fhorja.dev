@@ -1,0 +1,22 @@
+{
+  "skill_name": "design-bootstrap",
+  "version": "1.0",
+  "description": "Trigger evals for design-bootstrap: it fires when a new project has a Figma file and no design system docs yet, while extract-foundations-from-screens, foundation-audit, screen-spec and inventory-snapshot handle token convergence from written specs, drift checks against existing docs, one screen, and a component library snapshot.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "New app, empty docs folder, and design gave us a Figma file: https://figma.com/design/AbC123xyz/Mobile-App. Set up the design system from it.",
+      "we have a figma file for the whole product and nothing written down yet. pull out the tokens and make the docs structure",
+      "Starting the redesign project today. Read the variables and components from the Figma library, create docs/research with the foundation stubs, and list every component by atom, molecule and organism.",
+      "bootstrap the design system for this repo from the figma link I pasted, only the Settings page for now",
+      "There is no docs/research yet in this workspace. Use the design file to seed colors, type, spacing, radii and a component inventory."
+    ],
+    "should_not_trigger": [
+      { "prompt": "We already wrote 14 screen docs with raw hex values and pixel sizes. Turn them into role tokens for color, type, spacing and radii without overwriting anything.", "routes_to": "extract-foundations-from-screens" },
+      { "prompt": "Our foundations docs exist and the code has been changing for two months. Are there tokens in the theme file that aren't documented, or documented ones that are gone?", "routes_to": "foundation-audit" },
+      { "prompt": "Foundations and the component inventory were set up from Figma last month. The designer just added a Notifications settings frame; document that one screen.", "routes_to": "screen-spec" },
+      { "prompt": "Design shipped a library update yesterday. Which Figma components are new, and which ones still have no spec or code?", "routes_to": "inventory-snapshot" },
+      { "prompt": "I only have a screenshot from the old app, no Figma file at all. Can you turn it into a structured spec for the login screen?", "routes_to": "image-to-spec" }
+    ]
+  }
+}

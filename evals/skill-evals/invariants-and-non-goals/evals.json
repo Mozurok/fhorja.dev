@@ -1,0 +1,22 @@
+{
+  "skill_name": "invariants-and-non-goals",
+  "version": "1.0",
+  "description": "Trigger evals for invariants-and-non-goals: it fires when the blast radius is understood and the task needs its hard boundaries written down before planning, while targeted-questions, impact-analysis, contract-signoff, implement-approved-slice and resolve-contract-gaps handle missing facts, mapping the change, hardening wording, doing the edits, and settling contradictory rules.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "what must not change while we do the ledger migration? lock that down before we plan",
+      "IMPACT_ANALYSIS.md for the payments retry rework is finished. Before anyone slices it, write down what has to stay true, what we are explicitly not doing, and which files and behaviors are off limits.",
+      "We are about to touch the session refresh path and the users table. List the invariants we cannot break and the non-goals so nobody wanders into a redesign of auth halfway through.",
+      "Analysis is done for moving PDF generation to a worker. I want forbidden changes spelled out, like the public download URL format and the audit log schema, as a saved artifact for this task.",
+      "set the boundaries for this task: keep the webhook signature check as is, no schema changes, no new dependencies"
+    ],
+    "should_not_trigger": [
+      { "prompt": "I do not yet know whether the legacy export job still runs or who consumes its output. Ask me the factual questions you need before we can define anything safe.", "routes_to": "targeted-questions" },
+      { "prompt": "Nobody has looked at this change yet. Work out which services, tables and clients it touches and how risky it is.", "routes_to": "impact-analysis" },
+      { "prompt": "The decisions are all made. Tighten the wording of D-1 through D-4 so there is no room for interpretation, then persist it.", "routes_to": "contract-signoff" },
+      { "prompt": "Slice 02 is approved and the boundaries were locked last week. Go make the edits in the listed files.", "routes_to": "implement-approved-slice" },
+      { "prompt": "Two of our rules contradict each other: one says soft delete, the other says hard delete on account closure. Settle on one canonical rule.", "routes_to": "resolve-contract-gaps" }
+    ]
+  }
+}

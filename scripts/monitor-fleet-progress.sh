@@ -2,125 +2,194 @@
 #
 # monitor-fleet-progress.sh
 #
-# Polls a fleet inbox directory and prints per-worker status until all workers
-# reach a terminal state or a 15-minute timeout elapses.
+# Polls a fleet run's worker returns and prints per-worker status until every
+# worker it knows about is terminal or a 15-minute timeout elapses.
 #
 # Usage:
-#   scripts/monitor-fleet-progress.sh <run_id> <task_folder>
+#   scripts/monitor-fleet-progress.sh <run_id> <task_folder> [<return_dir> ...]
 #
 # Inputs:
-#   run_id       Identifier of the fleet run; the script watches
+#   run_id       Identifier of the fleet run; the script reads
 #                <task_folder>/.wos/fleet-inbox/<run_id>/
-#   task_folder  Absolute or relative path to the active task folder
-#                (must contain .wos/fleet-inbox/<run_id>/ once dispatch starts).
+#   task_folder  Absolute or relative path to the active task folder.
+#   return_dir   Optional, one per worker: the return folder a worktree-isolated
+#                worker writes inside its own worktree (<worktree>/.fleet-out/,
+#                ADR-0242). The worker's return is the one <worker_id>.json in it;
+#                until that file exists the worker counts as pending.
 #
-# Layout expected inside the run inbox (one entry per dispatched worker):
-#   <worker_id>/
-#     status                    plain-text status token, one of:
-#                               pending | in-progress | completed | failed
-#     partial.md (or partial.*) optional partial-output file used for size
-#     terminal.json (optional)  when present, classifies terminal outcome:
-#                                 { "outcome": "merge_include"
-#                                            | "worker_failed"
-#                                            | "worker_timeout"
-#                                            | "partial_merge" }
+# What it reads, in the run inbox and in each return_dir:
+#   <worker_id>.json          the flat return carrier (ADR-0158 D-1, ADR-0242): a
+#                             payload matching the orchestrator's worker_output_schema.
+#                             Its "status" field is shown; a written return is terminal.
+#   <worker_id>/              the older per-worker directory layout, still read:
+#     status                  plain-text token: pending | in-progress | completed | failed
+#     partial.*               optional partial output, shown by size
+#     terminal.json           optional { "outcome": "merge_include" | "worker_failed"
+#                                        | "worker_timeout" | "partial_merge" }
 #
 # Behavior:
-#   - Refreshes every 5 seconds.
-#   - Prints a table: worker_id | status | partial-bytes | last-updated.
-#   - Exits 0 when every worker is terminal (completed or failed) or when the
-#     15-minute wall-clock timeout fires.
-#   - macOS-compatible: uses `stat -f%z` for size and `find -newer`-free
-#     mtime lookup via `stat -f%Sm`.
+#   - Refreshes every 5 seconds; prints worker_id | status | partial-bytes |
+#     last-updated (partial-bytes is the size of a flat return, or of the
+#     largest partial.* in a worker directory).
+#   - Exits 0 when every known worker is terminal, and exits 0 when the 15-minute
+#     timeout fires after at least one worker was seen (the timeout: line and the
+#     worker_timeout count carry that signal).
+#   - Names what it could not read and exits 2 (ADR-0214 D-3 test 2), instead of
+#     printing an empty summary: a task folder that does not exist; a run inbox
+#     that does not exist when no return_dir is named (the orchestrator creates the
+#     inbox before dispatch, so its absence means a wrong run id or folder); a
+#     timeout with no worker ever seen.
+#   - Reads no path from its own location, so an installed copy works from any
+#     directory (ADR-0214 D-3 test 1).
+#   - FLEET_MONITOR_POLL_SECONDS and FLEET_MONITOR_TIMEOUT_SECONDS override the two
+#     intervals; the tests use them to keep a run short.
 #
-# Final dispatch_summary line format:
+# Final line:
 #   dispatch_summary: N dispatched / M merge_include / K worker_failed / \
 #     L worker_timeout / P partial_merge / T total
 #
 set -uo pipefail
 
-readonly POLL_INTERVAL_SECONDS=5
-readonly TIMEOUT_SECONDS=$((15 * 60))
+POLL_INTERVAL_SECONDS="${FLEET_MONITOR_POLL_SECONDS:-5}"
+TIMEOUT_SECONDS="${FLEET_MONITOR_TIMEOUT_SECONDS:-900}"
 
 usage() {
-  echo "usage: $(basename "$0") <run_id> <task_folder>" >&2
+  echo "usage: $(basename "$0") <run_id> <task_folder> [<return_dir> ...]" >&2
   exit 2
 }
 
-if [[ $# -ne 2 ]]; then
+if [[ $# -lt 2 ]]; then
   usage
 fi
 
 run_id="$1"
 task_folder="$2"
+shift 2
+return_dirs=("$@")
 
 if [[ -z "$run_id" || -z "$task_folder" ]]; then
   usage
 fi
 
+if [[ ! -d "$task_folder" ]]; then
+  echo "monitor-fleet-progress: not measured, no such task folder: ${task_folder}" >&2
+  exit 2
+fi
+
 inbox_dir="${task_folder%/}/.wos/fleet-inbox/${run_id}"
 
-# read_status: echoes the status token for a worker dir, or "pending" when the
-# status file is missing or empty.
-read_status() {
-  local worker_dir="$1"
-  local status_file="${worker_dir}/status"
-  if [[ -f "$status_file" ]]; then
-    local raw
-    raw=$(tr -d '[:space:]' < "$status_file" 2>/dev/null || true)
-    if [[ -n "$raw" ]]; then
-      echo "$raw"
-      return
-    fi
+if [[ ! -d "$inbox_dir" && ${#return_dirs[@]} -eq 0 ]]; then
+  echo "monitor-fleet-progress: not measured, no fleet inbox at ${inbox_dir} and no return folder named" >&2
+  exit 2
+fi
+
+# file_bytes: size of a file in bytes, portable (no stat flavor).
+file_bytes() {
+  wc -c < "$1" 2>/dev/null | tr -d ' ' || echo 0
+}
+
+# file_mtime: human mtime of a path, BSD stat first, then GNU date -r.
+file_mtime() {
+  stat -f%Sm -t "%Y-%m-%d %H:%M:%S" "$1" 2>/dev/null \
+    || date -r "$1" "+%Y-%m-%d %H:%M:%S" 2>/dev/null \
+    || echo "-"
+}
+
+# json_status: the "status" value of a flat return, or "unreadable".
+json_status() {
+  local v
+  v=$(grep -o '"status"[[:space:]]*:[[:space:]]*"[^"]*"' "$1" 2>/dev/null \
+    | head -n1 \
+    | sed -E 's/.*"status"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')
+  echo "${v:-unreadable}"
+}
+
+# dir_status: the status token of a per-worker directory, "pending" when absent.
+dir_status() {
+  local raw
+  if [[ -f "$1/status" ]]; then
+    raw=$(tr -d '[:space:]' < "$1/status" 2>/dev/null || true)
+    if [[ -n "$raw" ]]; then echo "$raw"; return; fi
   fi
   echo "pending"
 }
 
-# partial_size_bytes: prints size in bytes of the largest partial.* file in the
-# worker dir, or 0 when none exists. Uses macOS-flavored stat.
-partial_size_bytes() {
-  local worker_dir="$1"
-  local biggest=0 size
-  local f
-  for f in "$worker_dir"/partial*; do
+dir_bytes() {
+  local biggest=0 size f
+  for f in "$1"/partial*; do
     [[ -e "$f" ]] || continue
-    size=$(stat -f%z "$f" 2>/dev/null || echo 0)
-    if (( size > biggest )); then
-      biggest=$size
-    fi
+    size=$(file_bytes "$f")
+    if (( size > biggest )); then biggest=$size; fi
   done
   echo "$biggest"
 }
 
-# last_updated: prints the most recent mtime (human format) across files in the
-# worker dir; falls back to the dir's own mtime, then "-" if missing.
-last_updated() {
-  local worker_dir="$1"
-  local newest="" mtime f
-  for f in "$worker_dir"/* "$worker_dir"/.[!.]*; do
+dir_mtime() {
+  local newest="" m f
+  for f in "$1"/* "$1"/.[!.]*; do
     [[ -e "$f" ]] || continue
-    mtime=$(stat -f%Sm -t "%Y-%m-%d %H:%M:%S" "$f" 2>/dev/null || true)
-    if [[ -n "$mtime" && "$mtime" > "$newest" ]]; then
-      newest="$mtime"
-    fi
+    m=$(file_mtime "$f")
+    if [[ "$m" != "-" && "$m" > "$newest" ]]; then newest="$m"; fi
   done
-  if [[ -z "$newest" ]]; then
-    newest=$(stat -f%Sm -t "%Y-%m-%d %H:%M:%S" "$worker_dir" 2>/dev/null || echo "-")
-  fi
+  [[ -n "$newest" ]] || newest=$(file_mtime "$1")
   echo "$newest"
 }
 
-# terminal_outcome: prints the outcome label found in terminal.json, or "".
-terminal_outcome() {
-  local worker_dir="$1"
-  local f="${worker_dir}/terminal.json"
+dir_outcome() {
+  local f="$1/terminal.json"
   [[ -f "$f" ]] || { echo ""; return; }
   grep -o '"outcome"[[:space:]]*:[[:space:]]*"[^"]*"' "$f" 2>/dev/null \
     | head -n1 \
     | sed -E 's/.*"outcome"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/'
 }
 
-is_terminal_status() {
+# collect: one tab-separated row per known worker:
+#   id <TAB> status <TAB> bytes <TAB> mtime <TAB> kind <TAB> outcome
+# kind is json (a written flat return), dir (per-worker directory) or pending
+# (a named return folder with no return yet). A worker id seen twice (a return
+# already copied into the inbox and still in its return folder) is listed once.
+collect() {
+  local seen="|" f d id rd found
+  shopt -s nullglob
+  if [[ -d "$inbox_dir" ]]; then
+    for f in "$inbox_dir"/*.json; do
+      id=$(basename "$f" .json)
+      case "$seen" in *"|$id|"*) continue ;; esac
+      seen="${seen}${id}|"
+      printf '%s\t%s\t%s\t%s\tjson\t\n' "$id" "$(json_status "$f")" "$(file_bytes "$f")" "$(file_mtime "$f")"
+    done
+    for d in "$inbox_dir"/*/; do
+      d="${d%/}"
+      id=$(basename "$d")
+      case "$seen" in *"|$id|"*) continue ;; esac
+      seen="${seen}${id}|"
+      printf '%s\t%s\t%s\t%s\tdir\t%s\n' "$id" "$(dir_status "$d")" "$(dir_bytes "$d")" "$(dir_mtime "$d")" "$(dir_outcome "$d")"
+    done
+  fi
+  for rd in "${return_dirs[@]+"${return_dirs[@]}"}"; do
+    found=""
+    for f in "${rd%/}"/*.json; do
+      found="$f"
+      break
+    done
+    if [[ -n "$found" ]]; then
+      id=$(basename "$found" .json)
+      case "$seen" in *"|$id|"*) continue ;; esac
+      seen="${seen}${id}|"
+      printf '%s\t%s\t%s\t%s\tjson\t\n' "$id" "$(json_status "$found")" "$(file_bytes "$found")" "$(file_mtime "$found")"
+    else
+      printf '%s\tpending\t0\t-\tpending\t\n' "$rd"
+    fi
+  done
+  shopt -u nullglob
+}
+
+is_terminal() {
+  # $1 status, $2 kind
+  case "$2" in
+    json) return 0 ;;
+    pending) return 1 ;;
+  esac
   case "$1" in
     completed|failed) return 0 ;;
     *) return 1 ;;
@@ -128,100 +197,96 @@ is_terminal_status() {
 }
 
 print_table() {
-  local now_label="$1"
-  printf '\n=== fleet run %s @ %s ===\n' "$run_id" "$now_label"
-  printf '%-28s %-13s %-22s %s\n' "worker_id" "status" "partial-bytes" "last-updated"
-  printf '%-28s %-13s %-22s %s\n' "----------------------------" "-------------" "----------------------" "-------------------"
-  local worker_dir worker_id status bytes updated
-  shopt -s nullglob
-  for worker_dir in "$inbox_dir"/*/; do
-    worker_id=$(basename "$worker_dir")
-    status=$(read_status "$worker_dir")
-    bytes=$(partial_size_bytes "$worker_dir")
-    updated=$(last_updated "$worker_dir")
-    printf '%-28s %-13s %-22s %s\n' "$worker_id" "$status" "$bytes" "$updated"
-  done
-  shopt -u nullglob
+  local rows="$1" id status bytes mtime kind outcome
+  printf '\n=== fleet run %s @ %s ===\n' "$run_id" "$(date "+%Y-%m-%d %H:%M:%S")"
+  printf '%-28s %-16s %-14s %s\n' "worker_id" "status" "partial-bytes" "last-updated"
+  printf '%-28s %-16s %-14s %s\n' "----------------------------" "----------------" "--------------" "-------------------"
+  while IFS=$'\t' read -r id status bytes mtime kind outcome; do
+    [[ -n "$id" ]] || continue
+    printf '%-28s %-16s %-14s %s\n' "$id" "$status" "$bytes" "$mtime"
+  done <<< "$rows"
 }
 
-all_workers_terminal() {
-  local worker_dir status any=0
-  shopt -s nullglob
-  for worker_dir in "$inbox_dir"/*/; do
+all_terminal() {
+  local rows="$1" id status bytes mtime kind outcome any=0
+  while IFS=$'\t' read -r id status bytes mtime kind outcome; do
+    [[ -n "$id" ]] || continue
     any=1
-    status=$(read_status "$worker_dir")
-    if ! is_terminal_status "$status"; then
-      shopt -u nullglob
-      return 1
-    fi
-  done
-  shopt -u nullglob
-  # Treat "no workers yet" as not-terminal so we keep polling for late arrivals.
-  if (( any == 0 )); then
-    return 1
-  fi
-  return 0
+    is_terminal "$status" "$kind" || return 1
+  done <<< "$rows"
+  (( any == 1 ))
+}
+
+count_rows() {
+  local rows="$1" n=0 id rest
+  while IFS=$'\t' read -r id rest; do
+    [[ -n "$id" ]] && n=$((n + 1))
+  done <<< "$rows"
+  echo "$n"
 }
 
 print_dispatch_summary() {
-  local total=0 merge_include=0 worker_failed=0 worker_timeout=0 partial_merge=0
-  local worker_dir status outcome
-  shopt -s nullglob
-  for worker_dir in "$inbox_dir"/*/; do
+  local rows="$1" total=0 mi=0 wf=0 wt=0 pm=0 id status bytes mtime kind outcome
+  while IFS=$'\t' read -r id status bytes mtime kind outcome; do
+    [[ -n "$id" ]] || continue
     total=$((total + 1))
-    status=$(read_status "$worker_dir")
-    outcome=$(terminal_outcome "$worker_dir")
+    if [[ "$kind" == "json" ]]; then
+      case "$status" in
+        satisfied) mi=$((mi + 1)) ;;
+        interrupted|timed_out) wt=$((wt + 1)) ;;
+        *) wf=$((wf + 1)) ;;
+      esac
+      continue
+    fi
+    if [[ "$kind" == "pending" ]]; then
+      wt=$((wt + 1))
+      continue
+    fi
     case "$outcome" in
-      merge_include)  merge_include=$((merge_include + 1)) ;;
-      worker_failed)  worker_failed=$((worker_failed + 1)) ;;
-      worker_timeout) worker_timeout=$((worker_timeout + 1)) ;;
-      partial_merge)  partial_merge=$((partial_merge + 1)) ;;
-      "")
-        # No explicit outcome: infer from final status so the summary still
-        # accounts for every dispatched worker.
+      merge_include)  mi=$((mi + 1)) ;;
+      worker_failed)  wf=$((wf + 1)) ;;
+      worker_timeout) wt=$((wt + 1)) ;;
+      partial_merge)  pm=$((pm + 1)) ;;
+      *)
         case "$status" in
-          completed) merge_include=$((merge_include + 1)) ;;
-          failed)    worker_failed=$((worker_failed + 1)) ;;
-          *)         worker_timeout=$((worker_timeout + 1)) ;;
+          completed) mi=$((mi + 1)) ;;
+          failed)    wf=$((wf + 1)) ;;
+          *)         wt=$((wt + 1)) ;;
         esac
         ;;
     esac
-  done
-  shopt -u nullglob
-
+  done <<< "$rows"
   printf '\ndispatch_summary: %d dispatched / %d merge_include / %d worker_failed / %d worker_timeout / %d partial_merge / %d total\n' \
-    "$total" "$merge_include" "$worker_failed" "$worker_timeout" "$partial_merge" "$total"
+    "$total" "$mi" "$wf" "$wt" "$pm" "$total"
 }
 
-start_epoch=$(date +%s)
-deadline=$((start_epoch + TIMEOUT_SECONDS))
-timed_out=0
+deadline=$(( $(date +%s) + TIMEOUT_SECONDS ))
+seen_any=0
+rows=""
 
 while true; do
-  now_epoch=$(date +%s)
-  now_label=$(date "+%Y-%m-%d %H:%M:%S")
-
-  if [[ ! -d "$inbox_dir" ]]; then
-    printf '[%s] waiting for inbox dir: %s\n' "$now_label" "$inbox_dir"
-  else
-    print_table "$now_label"
-    if all_workers_terminal; then
+  rows=$(collect)
+  if [[ "$(count_rows "$rows")" -gt 0 ]]; then
+    print_table "$rows"
+    if [[ -n "$(printf '%s\n' "$rows" | grep -v $'\tpending\t0\t-\tpending\t' || true)" ]]; then
+      seen_any=1
+    fi
+    if all_terminal "$rows"; then
       break
     fi
+  else
+    printf '[%s] no worker return yet under %s\n' "$(date "+%Y-%m-%d %H:%M:%S")" "$inbox_dir"
   fi
-
-  if (( now_epoch >= deadline )); then
-    printf '\n[%s] timeout: 15 minutes elapsed, stopping monitor.\n' "$now_label"
-    timed_out=1
+  if (( $(date +%s) >= deadline )); then
+    printf '\n[%s] timeout: %s seconds elapsed, stopping monitor.\n' "$(date "+%Y-%m-%d %H:%M:%S")" "$TIMEOUT_SECONDS"
+    if (( seen_any == 0 )); then
+      echo "monitor-fleet-progress: not measured, no worker return appeared under ${inbox_dir} or a named return folder" >&2
+      exit 2
+    fi
     break
   fi
-
   sleep "$POLL_INTERVAL_SECONDS"
 done
 
-print_dispatch_summary
-
-if (( timed_out == 1 )); then
-  exit 0
-fi
+print_dispatch_summary "$rows"
 exit 0

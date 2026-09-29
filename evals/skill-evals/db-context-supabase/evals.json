@@ -1,0 +1,22 @@
+{
+  "skill_name": "db-context-supabase",
+  "version": "1.0",
+  "description": "Trigger evals for db-context-supabase: it fires when an active task touches a Supabase database and needs the real schema and RLS policies captured, while db-context-postgres, task-init, decision-interview, rls-auth-boundary-auditor and migration-safety-steward handle other Postgres hosts, a missing task folder, schema decisions, policy audits, and DDL safety.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "pull the real schema for the profiles and teams tables from Supabase so we stop guessing",
+      "The task changes how invites work and it reads public.invites, public.team_members and their policies. Snapshot those tables with columns, types and RLS into the task folder before we plan.",
+      "I never trust my memory of our Supabase schema. Introspect the orders table, include the functions and the latest migration files touching it, and link the result from SOURCE_OF_TRUTH.md.",
+      "DB_CONTEXT.md is three weeks old and the billing tables changed since. Regenerate it for the public schema tables billing_accounts and billing_events.",
+      "the supabase MCP isn't connected on this machine, but the local CLI project is under ./supabase. can you still capture the tables for this task?"
+    ],
+    "should_not_trigger": [
+      { "prompt": "Our database is a self-hosted Postgres on a VM, no Supabase involved. Introspect the tables and indexes for the reporting task with psql.", "routes_to": "db-context-postgres" },
+      { "prompt": "I have not opened a task folder yet, but I know I will be changing the Supabase schema this week. Get the workspace set up first.", "routes_to": "task-init" },
+      { "prompt": "Should the audit table keep rows forever or be pruned after 90 days? I need to lock that as a decision for this task.", "routes_to": "decision-interview" },
+      { "prompt": "Here are the new migration files with CREATE POLICY statements. Check the policies for tenant isolation gaps before we deploy.", "routes_to": "rls-auth-boundary-auditor" },
+      { "prompt": "The migration adds a NOT NULL column to a large table and drops an old one. Is that safe to apply in production in one step?", "routes_to": "migration-safety-steward" }
+    ]
+  }
+}

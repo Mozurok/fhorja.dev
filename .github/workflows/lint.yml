@@ -135,6 +135,7 @@ jobs:
             ./scripts/tests/test-install-payload.sh \
             ./scripts/tests/test-skill-in-profile.sh \
             ./scripts/tests/test-compute-task-outcome-tier.sh \
+            ./scripts/tests/test-compute-task-outcome-usage.sh \
             ./scripts/tests/test-ingest-scan.sh \
             ./scripts/tests/test-scan-substrate-orphans.sh \
             ./scripts/tests/test-spine-eval-extract.sh \

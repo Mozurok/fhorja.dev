@@ -39,7 +39,7 @@ Role:
 - sets the default pipeline `task-init` -> `implementation-plan` -> `approve-plan` -> `implement-approved-slice` -> `branch-commit --apply` -> `pr-package --apply` (ADR-0184, ADR-0208, ADR-0233) and records the fired disqualifiers, or none, on the `Escalations:` line (ADR-0207)
 - in an attended git repository with a configured remote, on the default branch and without requested isolation, creates `task/<task-dir>` in place and records it on a `Task branch:` line (ADR-0233)
 - lists the decisions it expects to assume and continues without waiting; an answer that arrives while the chain runs replaces the matching provisional `P-N`
-- on the one-slice route (attended, no escalation, one sentence, at most two named files, no decision beyond the brief, no provisional `P-N`) writes the single approved slice, both lock signals and a `Route: one-slice` line itself (ADR-0225)
+- on the one-slice route (attended, no escalation, one sentence, at most two named files, no locked decision beyond the brief, and no provisional `P-N` but `Impact: normal` ones on a task branch) writes the single approved slice, each such `P-N`, both lock signals and a `Route: one-slice` line itself (ADR-0225, ADR-0239)
 
 Typical next commands:
 - `implementation-plan` (default)
@@ -273,8 +273,8 @@ Guard rails:
 - does not modify slice content or decision content; the review routes a fix to `implementation-plan` or `decision-interview` rather than editing the plan
 
 Typical next commands (waves-aware per ADR-0042):
-- `implement-fleet` when a remaining wave in the plan's `## Execution waves` has size 2 or more with `Scope` and `Depends-on` declared
-- `implement-approved-slice` (for the first slice in the locked plan) otherwise, or whenever the slice DAG is a chain
+- `implement-fleet` when a remaining wave in the plan's `## Execution waves` has size 2 or more with `Scope` and `Depends-on` declared, on a harness with per-agent worktree isolation (the default for that wave, ADR-0243)
+- `implement-approved-slice` (for the first slice in the locked plan) otherwise, whenever the slice DAG is a chain, or on a harness without that isolation
 
 ### approve-proposed
 Role:
@@ -318,8 +318,8 @@ Role:
 - minimal, bounded implementation of a single approved slice
 
 Typical next commands (waves-aware and terminal-safe per ADR-0042):
-- `implement-fleet` when the remaining `## Execution waves` show a wave of size 2 or more with `Scope` and `Depends-on` declared
-- `implement-approved-slice` for the next sequential slice when the remainder is a chain
+- `implement-fleet` when the remaining `## Execution waves` show a wave of size 2 or more with `Scope` and `Depends-on` declared, on a harness with per-agent worktree isolation
+- `implement-approved-slice` for the next sequential slice when the remainder is a chain or the harness lacks that isolation
 - `sync-task-state` for the LOW/MEDIUM inline-close path (keeps `TASK_STATE.md` fresh without a separate prompt)
 - `slice-closure` (HIGH complexity or exit criteria not fully verifiable inline)
 - `review-hard`
@@ -328,7 +328,7 @@ Typical next commands (waves-aware and terminal-safe per ADR-0042):
 
 ### implement-fleet
 Role:
-- orchestrator-workers variant of `implement-approved-slice` per ADR-0041 (PILOT); executes independent approved slices in parallel
+- orchestrator-workers variant of `implement-approved-slice` per ADR-0041; executes independent approved slices in parallel, and is the default path for a wave of two or more slices on a harness with per-agent worktree isolation (ADR-0243)
 - computes waves from `IMPLEMENTATION_PLAN.md` `Scope` + `Depends-on`, validates file-scope disjointness pre-dispatch, runs one worktree-isolated worker per slice per wave, and gates each wave on an integrated build + typecheck + test
 - not a replacement for `implement-approved-slice` (the canonical single-slice unit and the fallback); falls back to it when the DAG is a chain or a wave cannot be made disjoint
 

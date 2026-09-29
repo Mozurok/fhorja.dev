@@ -1,0 +1,22 @@
+{
+  "skill_name": "inventory-snapshot",
+  "version": "1.0",
+  "description": "Trigger evals for inventory-snapshot: it fires when the upstream Figma component library should be listed into figma_components.md with coverage and a delta versus the last run, while design-spec-review, design-bootstrap, foundation-audit and component-spec handle one component review, first-time setup, token drift, and a single component spec.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "design pushed a library update to Figma yesterday. Refresh the component list and tell me what changed since the last one.",
+      "seed the Figma component inventory for the new project, I want to see which components already have a spec, code or story",
+      "Can you go through the upstream Figma library and write docs/research/_inventory/figma_components.md with tier, node id and whether we've built each one?",
+      "what components did the designers add or remove in Figma since our last snapshot?",
+      "New quarter, new library version from design. Re-list every component with its node ID and mark the gaps on our side."
+    ],
+    "should_not_trigger": [
+      { "prompt": "The Chip component was built last week. Does its code match the Chip spec for the selected, disabled and focus states?", "routes_to": "design-spec-review" },
+      { "prompt": "Brand new project with a Figma file and nothing else. Extract the variables, set up the foundations folder and scaffold the design system.", "routes_to": "design-bootstrap" },
+      { "prompt": "Design renamed a batch of color variables in the Figma library. Compare them with the tokens in our theme file and the foundation docs and list every mismatch.", "routes_to": "foundation-audit" },
+      { "prompt": "Write the full spec for the Tabs component from its Figma node, anatomy, sizes, states and accessibility.", "routes_to": "component-spec" },
+      { "prompt": "List every component file under packages/ui in our code, ranked by how much the rest of the app imports it, with exported signatures, so the assistant can find things fast.", "routes_to": "code-context-map" }
+    ]
+  }
+}

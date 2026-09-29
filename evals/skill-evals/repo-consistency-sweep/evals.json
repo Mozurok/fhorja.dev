@@ -1,0 +1,22 @@
+{
+  "skill_name": "repo-consistency-sweep",
+  "version": "1.0",
+  "description": "Trigger evals for repo-consistency-sweep: it fires when at least one slice is implemented and the code should be checked against known bug classes before packaging, while review-hard, apply-sweep-triage, security-review and pr-package handle design-level risk review, saving triage choices, a security pass, and PR delivery.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "Slice 2 is coded. Before I open the PR, scan the changed files for convention drift, ordering bugs and missing tenant checks.",
+      "run a pre-PR pass over my diff for the usual defect classes",
+      "I want the boring half of code review handled automatically: type-safety gaps, missing awaits, unscoped queries in the orders service. Check the branch and skip anything I already declined last time.",
+      "Two slices are done in the invoicing task. Compare the new handlers against our bug-class library and give me a findings snapshot I can triage.",
+      "Can you look for the same kinds of defects our reviewers keep flagging (log injection, unhandled promise rejections, hardcoded timeouts) across the files this task touched?"
+    ],
+    "should_not_trigger": [
+      { "prompt": "The slice is done. I want a real engineering review of whether the design holds up and what could break in production, not a pattern scan.", "routes_to": "review-hard" },
+      { "prompt": "I edited the triage values in the findings file, 5 apply and 3 decline. Save them so they are remembered.", "routes_to": "apply-sweep-triage" },
+      { "prompt": "This task adds a login endpoint with JWT refresh. Do a threat model and an ASVS pass on the changes.", "routes_to": "security-review" },
+      { "prompt": "Nothing is coded yet. Here is the endpoint list for the refunds service; check the paths, error codes and pagination for consistency with our existing handlers before anyone writes them.", "routes_to": "api-contract-review" },
+      { "prompt": "Everything is reviewed and stable. Write the PR title, body and reviewer notes from the diff against main.", "routes_to": "pr-package" }
+    ]
+  }
+}

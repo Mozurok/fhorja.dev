@@ -1,0 +1,22 @@
+{
+  "skill_name": "harvest-session-learnings",
+  "version": "1.0",
+  "description": "Trigger evals for harvest-session-learnings: it fires when a session or task produced durable, reusable lessons that should be appended to LEARNINGS.md, while capture-observation, slice-closure, task-close and compact-task-memory handle one in-flight note, closing a slice, archiving a task, and shrinking task memory.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "that migration fix took three tries and the cause was surprising. Write down what the next task should do differently.",
+      "Long session, we burned two hours on a flaky test before finding the shared fixture. Sweep this and propose entries for LEARNINGS.md so it isn't lost.",
+      "before I close the laptop: what did we learn today that is worth keeping for future tasks?",
+      "Go through the task artifacts and the chat, pull out the generalizable lessons, skip the one-off trivia, and don't touch the entries already in LEARNINGS.md.",
+      "we hit the same cache invalidation bug twice this week, capture it as a lesson"
+    ],
+    "should_not_trigger": [
+      { "prompt": "Quick note to self: I suspect the retry loop is what causes the duplicate emails, check it later.", "routes_to": "capture-observation" },
+      { "prompt": "Slice 04 is done and reviewed. Can it close, and what is the state going into slice 05?", "routes_to": "slice-closure" },
+      { "prompt": "Everything is merged and every slice is closed. Finish the task and move the folder to archive.", "routes_to": "task-close" },
+      { "prompt": "TASK_STATE.md has grown huge after eight slices and resuming takes forever. Shrink it but keep the decisions and next step.", "routes_to": "compact-task-memory" },
+      { "prompt": "Write a short Slack note for the team on where the migration stands today.", "routes_to": "team-update" }
+    ]
+  }
+}

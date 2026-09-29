@@ -1,0 +1,37 @@
+{
+  "skill_name": "capture-observation",
+  "version": "1.0",
+  "description": "Trigger evals for capture-observation: it logs one small passing thought into TASK_STATE.md and keeps going, while its siblings record a decision, sync progress, reconcile drift, or open a task.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "note for later: the retry helper swallows 429s. Not touching it now.",
+      "Quick thing before I forget. While working on slice 02 I saw that the fixtures under tests/orders still hardcode the 2025 tax rate. Not fixing it now, just park it in TASK_STATE.md so it does not get lost.",
+      "Hypothesis to check before we close: the flaky checkout test only fails when the clock crosses midnight UTC. Jot that down against the task so we test it later.",
+      "Reading the PR #212 diff I wondered if the new cache key includes the tenant id. Might be fine, might not. Log it as an open question and let me keep going.",
+      "Log this on the task: the staging deploy took 14 minutes today, usually it is about 4. No action yet, I just want it on record."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "Halfway through slice 03 I realized the batch import should stream rows instead of loading the whole file into memory. That changes how we finish the slice, so write it up as a numbered decision in DECISIONS.md and adjust the plan.",
+        "routes_to": "direction-adjust"
+      },
+      {
+        "prompt": "Slice 02 just wrapped and D-3 got locked. Bring TASK_STATE.md fully up to date so I can pick this up from a fresh chat tomorrow.",
+        "routes_to": "sync-task-state"
+      },
+      {
+        "prompt": "I just noticed the public API has no rate limits at all. There is no task open for it and I want to start fixing it right now, so get that work set up before I edit anything.",
+        "routes_to": "task-init"
+      },
+      {
+        "prompt": "We have not settled whether soft-deleted users keep their API keys. Ask me the questions we need answered so the rule is locked before we plan.",
+        "routes_to": "decision-interview"
+      },
+      {
+        "prompt": "TASK_STATE.md says slice 04 is in progress but IMPLEMENTATION_PLAN.md marks it done and the code is already merged. Cross-check the artifacts against the repo and propose the fixes so the state can be trusted again.",
+        "routes_to": "state-reconcile"
+      }
+    ]
+  }
+}

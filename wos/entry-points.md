@@ -143,24 +143,24 @@ There are two different parallel shapes; pick by what you are fanning out.
 
 ### Executing 2 or more independent approved slices (parallel slice execution)
 
-Use: `implement-fleet` (per ADR-0041).
+Use: `implement-fleet` (per ADR-0041; the default for such a wave per ADR-0243).
 
-When to use: the approved plan's `## Execution waves` section shows a remaining wave of size 2 or more whose slices declare `Scope` and `Depends-on`. The wave-size sizing for research batches (below) does NOT apply here: two file-disjoint slices are enough to warrant a fleet. `implement-fleet` computes the waves, validates file-scope disjointness, runs one worktree-isolated worker per slice, and runs a build + typecheck + test integration gate after each wave.
+When to use: the approved plan's `## Execution waves` section shows a remaining wave of size 2 or more whose slices declare `Scope` and `Depends-on`, and the session runs on a harness with per-agent worktree isolation. The wave-size sizing for research batches (below) does NOT apply here: two file-disjoint slices are enough to warrant a fleet. `implement-fleet` computes the waves, validates file-scope disjointness, runs one worktree-isolated worker per slice, and runs a build + typecheck + test integration gate after each wave.
 
-When NOT to use: the slice DAG is a pure chain (every wave has size one) -- use `implement-approved-slice`; slices are unapproved -- run `approve-plan` first; `Scope`/`Depends-on` are not declared -- run `implementation-plan` in its annotate-only retrofit mode to backfill them.
+When NOT to use: the slice DAG is a pure chain (every wave has size one), or the harness cannot give each sub-agent its own worktree -- use `implement-approved-slice`; slices are unapproved -- run `approve-plan` first; `Scope`/`Depends-on` are not declared -- run `implementation-plan` in its annotate-only retrofit mode to backfill them.
 
 A hand-authored Workflow script over already-approved slices is a contract bypass: it skips slice notes, wave computation, and the `TASK_STATE.md` writes the fleet owns. Route to `implement-fleet` instead.
 
-### Fanning out 15-25 identical research or audit items via the workflow tool (batch dispatch)
+### Fanning out many small identical items (batch dispatch)
 
-Recommended first command: review wos/workflow-patterns.md and check ADR-0038 + ADR-0039.
+Recommended first command: review `WORKFLOW_OPERATING_SYSTEM.md` → `## Parallel workflow` → `### Items per worker (ADR-0240)`. The per-fleet classification is in `wos/workflow-patterns.md`.
 
-When to use: 15-25 independent items requiring identical read-only processing dispatched via the workflow tool (e.g. eval batch updates, multi-doc consolidation, atom-by-atom analysis). The example list used to name fleet audits, which the next line already excludes: a fleet command dispatches on the `Agent`-tool path, where its own `max_fanout` binds and the ceiling is 20.
+When to use: 3 or more small independent items needing identical processing (drafting a set of eval files, summarizing a set of sources, multi-doc consolidation). Give each `mechanical` worker about five items, run at most 9 workers at once, name every file a worker must read in `must_read`, and compare its `files_read` before merging (ADR-0240). The example list used to name fleet audits: a fleet command dispatches on the `Agent`-tool path, where its own `max_fanout` binds and the ceiling is 20.
 
-When NOT to use: tasks with shared substrate writes (use sequential), <10 items (overhead dominates), >25 items (split into 2 batches). This sizing is for research/audit batches, not for slice fleets.
+When NOT to use: tasks with shared substrate writes (use sequential); fewer than 3 items; items that each fill a worker on their own, such as approved slices (use `implement-fleet`); judgment items that need isolation, such as a blinded review. Above 45 items, run sequential sub-batches of at most 9 workers rather than larger batches.
 
-Per-batch checklist: 300-500 word focused prompts; explicit StructuredOutput final-line reminder; scan-substrate-orphans.py post-apply; monitor-fleet-progress.sh during long runs.
+Per-batch checklist: 300-500 word focused prompts; the carrier line for the dispatch path you named as the last line (ADR-0158); scan-substrate-orphans.py post-apply; monitor-fleet-progress.sh during long runs.
 
-Tools that support: Claude Code (Workflow tool). Other tools degrade to sequential.
+Tools that support: Claude Code (Workflow tool and `Agent` tool). Other tools degrade to sequential.
 
-References: ADR-0041 (slice fleets), ADR-0038, ADR-0039 (research batches), wos/workflow-patterns.md, wos/sub-agent-orchestration.md.
+References: ADR-0240 (items per worker), ADR-0041 (slice fleets), ADR-0038, ADR-0039 (batch limits of the Workflow tool, superseded in part by ADR-0240), wos/workflow-patterns.md, wos/sub-agent-orchestration.md.

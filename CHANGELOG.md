@@ -13,9 +13,271 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 The alpha caveat that stood here ("while the project is in alpha (0.x.y), MINOR may include breaking changes") is retired: 1.0.0 shipped 2026-07-10 and 1.1.0 on 2026-07-21, so the policy above applies as written.
 
-**On git tags.** Releases are tagged `vX.Y.Z` on the public repository: `v1.0.0`, `v1.1.0` and `v2.0.0`. An older `v2.0.0-rc1` tag from 2026-05-25 belongs to a numbering the project abandoned before 1.0.0 and does not mark a release, so read the `## [x.y.z]` headings below, not `git describe`, in a checkout that still has it.
+**On git tags.** Releases are tagged `vX.Y.Z` on the public repository: `v1.0.0`, `v1.1.0`, `v2.0.0` and `v2.1.0`. An older `v2.0.0-rc1` tag from 2026-05-25 belongs to a numbering the project abandoned before 1.0.0 and does not mark a release, so read the `## [x.y.z]` headings below, not `git describe`, in a checkout that still has it.
 
 ## [Unreleased]
+
+## [2.1.0] - 2026-09-29
+
+Everything shipped between 2.0.0 and 2026-09-29, tagged `v2.1.0`. It is a MINOR release under the
+versioning policy above: new normative rules and backward-compatible additions, and no change to the
+command output contract or the `TASK_STATE.md` schema. The thread running through it is horizontal work
+measured on real tasks: sub-agents route by role to a model and an effort (ADR-0236), a background
+session you launch runs the attended chain (ADR-0237), closure records tokens per task (ADR-0238), the
+one-slice route keeps a normal-impact open decision (ADR-0239), a mechanical fan-out batches about five
+items per worker (ADR-0240), a new Mode, a model or a fresh session never stops the chain (ADR-0241), and
+`implement-fleet` dispatches through harness isolation (ADR-0242) and is the default for a parallel wave
+(ADR-0243). 68 of the 98 commands now carry trigger evals.
+
+### implement-fleet is the default for a parallel wave, and the installer ships the cited shared blocks (2026-09-29)
+
+- The E4 rerun of `implement-fleet`, dispatching per ADR-0242, passed every line on the first
+  dispatch: the wave 1 barrier came about 62 s after dispatch against 173.6 s for its three
+  workers in sequence (64 percent less), and both integration gates passed first try. D-6 of the
+  parallel-work research said a pass makes the fleet the default path for such waves. ADR-0243
+  records it and supersedes ADR-0041's pilot status in part. The gain was shown on slices of about
+  a minute, against a fixed cost of about 45 s per wave.
+- The waves-aware rule gains one condition in every surface that routes execution (approve-plan,
+  implementation-plan, what-next, implement-approved-slice, the spec's `## Default workflow` and
+  `## Parallel workflow`, the wos topics, AGENTS.md, README, FAQ, MIGRATION): a remaining wave of
+  two or more slices goes to `implement-fleet` on a harness with per-agent worktree isolation, and
+  a chain, a single slice or a harness without that isolation goes to `implement-approved-slice`.
+- `implement-fleet` joins the minimal and core profiles (minimal 24, core 52), so an explicit
+  profile install carries the command its default route names, and it stops calling itself a
+  pilot. It now runs `git worktree list` right after dispatch to find each worker's worktree, and
+  its `merge_include` and `fleet-merge` log lines name `IMPLEMENTATION_PLAN.md` with `## Slices`
+  and `## Execution waves`, which `verify-log-validator.py` requires. `wos/substrate-peers.md`
+  names it as the logging co-writer of `## Execution waves`.
+- The installer ships `SHIPPED_SHARED_BLOCKS` with the runtime payload on every sync: the 13
+  `commands/_shared/` blocks a command, the spec, a wos topic or another listed block cites,
+  worker-contract.md and task-state-slice-closure-pattern.md among them, under
+  `<workflow-docs>/commands/_shared/`. A block dropped from the list is removed on the next sync.
+- task-init writes a `## Brief` section in the task README, the brief verbatim, so a provisional
+  decision can quote it and approve-plan's blinded review can resolve the quote.
+- Checks: the new structural check `fleet-default-route`; `command-scripts-shipped` also fails on a
+  cited but unshipped shared block; `fleet-dispatch-isolation` pins the worktree-discovery and
+  log-line sentences; nine new guard mutations; test-install-payload.sh check 1d. Scenario 53
+  gains a turn for a harness without per-agent isolation, and scenario 63 names the condition.
+
+### implement-fleet dispatches with harness isolation and workers return through their own worktree (2026-09-29)
+
+- A simulated `implement-fleet` run on 2026-09-29 (E4) failed its first wave: Step 6 read as
+  "create the worktree, then dispatch", so the driver made each slice worktree with
+  `git worktree add` and dispatched without the harness option, and every worker inherited the
+  driver's own write sandbox. The second dispatch passed only after the workers improvised two
+  steps. ADR-0242 records the repair and supersedes ADR-0158 D-2 in part.
+- Step 6 dispatches every worker with the harness's per-agent worktree isolation and never makes a
+  slice worktree by hand. A harness with no per-agent isolation runs the wave's slices in turn
+  through `implement-approved-slice`. `worktree_path` leaves the required worker inputs, since the
+  harness picks it; the worker returns it with `commit_sha`.
+- Step 7 makes the worker's first act a move to `base_ref`: it confirms the worktree is its own,
+  runs `git reset --hard <base_ref>`, and checks `git rev-parse HEAD` before any edit, returning
+  `failed` on a mismatch. It commits only its `scope_files`, by explicit path. Its slice note and
+  return payload go to `.fleet-out/` in its own worktree, never staged or committed.
+- Step 9 has the orchestrator, the single writer, copy each `.fleet-out/` return into the fleet
+  inbox and each note into `SLICES/` after the barrier, then merge the worker's commit or its
+  `scope_files` diff and never the return folder. `commands/_shared/worker-contract.md`,
+  `wos/workflow-patterns.md`, `wos/substrate-peers.md` and `wos/sub-agent-orchestration.md` name
+  the second carrier location; eval scenarios 52 and 54 follow.
+- `scripts/monitor-fleet-progress.sh` now reads the flat `<worker_id>.json` returns in the run
+  inbox and in any return folder named after its two arguments, still reads the per-worker
+  directories, and exits 2 naming a missing task folder, a missing inbox with no return folder
+  named, or a timeout with no worker seen, where it used to poll 15 minutes and print
+  `0 dispatched` with exit 0. It passes both ADR-0214 tests, so the installer ships it
+  (`SHIPPED_SCRIPTS`), and Step 8 names it again. Scenario 30 and `docs/MIGRATION.md` follow.
+- Of the other scripts commands name, only `check-doc-sync.sh` runs on a task (the one-slice
+  route), and it stays out of the payload: it derives its root from its own location, which fails
+  ADR-0214 test 1. The rest are maintainer tooling.
+- `implementation-plan`: in an attended chain on a task branch it records the provisional `P-N` a
+  new behavioral commitment needs itself (`Evidence:`, `Impact:`, `Status: provisional`) and
+  continues, instead of routing to `decision-interview`; `wos/substrate-peers.md` names it a
+  writer of `## Provisional decisions` for that case. The skill paid for the sentence by
+  tightening the coverage-checker bullet and stays under its previous size.
+- New structural checks `fleet-dispatch-isolation` (the old Step 6 and Step 7 wording stays out,
+  the new anchors stay in) and `command-scripts-shipped` (every script a command names ships or is
+  on a named not-shipped list, and the monitor ships), each failing on the tree before this change,
+  with eight guard mutations. `scripts/tests/test-shipped-helpers-absence.sh` gains six monitor
+  checks.
+- Decisions made without the maintainer, provisional P-1 to P-8 of the fleet-dispatch-fixes task:
+  the `.fleet-out/` name, dropping the hand-made worktree path, the reset-and-verify rule, the
+  ADR, the monitor contract, leaving `check-doc-sync.sh` unshipped, `implementation-plan` as a
+  P-N writer, and leaving the always-read spec unedited.
+
+### Headroom under the Load ceiling for task-close, task-init and decision-interview (2026-09-28)
+
+- The three generated skills sat 18 to 39 chars under the 36,000-char Load ceiling (ADR-0227), so
+  the next rule change to any of them would have failed the build. Their command files now point at
+  the home that already carries a restated rule instead of repeating it, and a few wordy sentences
+  are tighter. No rule, gate, floor, route, output contract or named check changed.
+- `task-close`: the Definition of done no longer restates the six closure floors and the platform
+  floors; it requires each floor applied by its own `On missing evidence:` line in
+  `wos/closure-floors.task-close.md` and `wos/platform-runtime-floors.md`. The knowledge-note
+  bullet points at `wos/project-level-memory.md ## Human knowledge layer` and the two templates.
+- `task-init`: the conflict rule, the naming lists, the ADR-0103 tagging test and the memory
+  precedence now point at the spec `## LLM execution contract`, the spec `## Naming conventions`,
+  `templates/TASK_STATE.template.md` and `wos/project-level-memory.md ### Layered precedence`.
+- `decision-interview`: `## Decision history` placement and the defeasible-claim revision contract
+  point at `wos/substrate-peers.md ## Decision history`; duplicated no-op, output and lock-signal
+  sentences are merged.
+- Sizes: task-close 35,982 to 33,591 chars, task-init 35,975 to
+  33,971, decision-interview 35,961 to 33,925.
+
+### The coverage checker reads a maintainer's confirmation (2026-09-28)
+
+- `scripts/check-plan-coverage.sh` rule 2 now treats a locked `### D-N` carrying `Confirms: P-M`
+  as covered when a slice cites P-M through its `Decision-ref:`, a line saying
+  `rests on provisional`, or an exit criterion. A confirmation promotes the same decision
+  (ADR-0233), so the plan that cites the P-N already cites it. Before, rule 2 read D-N ids only,
+  and after the maintainer confirmed 46 provisional decisions on 2026-09-28 it reported the
+  confirming D-Ns of closed plans as cited by no slice.
+- Both sides follow `Replaces:` to the newest entry of their chain (ADR-0235), so a citation of
+  any entry of P-M's chain counts, and a chain that loops counts for nothing. Only a P-M that
+  `## Provisional decisions` carries counts, a D-N confirming several P-Ns needs every one cited,
+  and an uncovered confirmation is reported with the P-N it confirms.
+- A D-N carrying `Supersedes: P-M` chose something else, so citing P-M does not cover it. It is
+  judged as before. Rule 5 is unchanged and still counts a confirming D-N as a lock on the
+  one-slice route; no task on disk shows that shape yet.
+- `scripts/tests/test-check-plan-coverage.sh` checks 36 to 44 pin the reading. Seven of them fail
+  on the previous checker (37 of 44 passed there). The rule-2 sentence in
+  `commands/implementation-plan.md` says the same.
+
+### A new Mode, a model or a fresh session no longer stops the chain (2026-09-28)
+
+- The continuation rule in `WORKFLOW_OPERATING_SYSTEM.md ### Adaptive handoff` now names three
+  things that are never a reason to stop: a `Mode:` different from the current one, a suggested
+  model, and a fresh session (ADR-0241, superseding ADR-0186 in part). An attended session continues
+  in the harness mode and model it is in and dispatches sub-agents by role. Offering the user a
+  choice between continuing and anything else is itself a stop and names its reason in `Reason:`
+  (reason 1 or 3 in an attended chain on a task branch). A Handoff's `Reason:` names a role, never a
+  model. The trigger was a session that ended its turn after `approve-plan` with `Mode: Plan`, a
+  model named for the next wave, and a question asking the maintainer to pick.
+- `commands/_shared/handoff-body.md` carries the rule into all 98 commands. `approve-plan` says its
+  `test-strategy` route continues in the same turn; `wos/editor-mode-mappings.md`,
+  `wos/model-routing.md` and `wos/context-budget.md` no longer read as a per-mode, per-model or
+  per-session hand-back. `task-close` and `task-init` lose a few redundant words so every skill stays
+  under the 36,000-char Load ceiling.
+- `scripts/validate-transcript.sh` refuses a Handoff that names a model (a `claude-` id, a
+  `--model` flag, or a capitalized family name), with self-test fixtures built from the observed
+  Handoff. The structural check `handoff-continues-across-mode` pins the rule text and the
+  corrections, with three guard mutations. Scenario 147 grades the part one transcript cannot show.
+- The always-read spec grew, so the bootstrap tiers are re-measured: full 12109, reduced 11074,
+  leaf-reviewer 5215 tokens, propagated to every command, the FAQ, `wos/context-budget.md` and the
+  guard mutations.
+
+### A mechanical fan-out gives each worker about five small items instead of one (2026-09-28)
+
+- `WORKFLOW_OPERATING_SYSTEM.md` `## Parallel workflow` gains `### Items per worker (ADR-0240)`.
+  When a `mechanical` fan-out's items are small and independent, the dispatcher batches about five
+  per worker (about N/5 workers, 4 to 6 items each), at most 9 workers at once, with sequential
+  sub-batches above 45 items. The floor of 3 and the one-writer rule are unchanged. Experiment E5
+  measured the reason: 20 one-item workers cost 17.69 USD and 1.40M Sonnet cache-creation tokens,
+  4 five-item workers cost 9.58 USD and 0.40M, and the judgment review replaced 18 of 100 near
+  misses against 20.
+- The worker contract gains a `must_read` input (every file the worker must open) and a
+  `files_read` return field, which the dispatcher compares before merging, because one batched
+  worker in E5 wrote its files without opening the ones its brief named.
+- One item per worker stays for an item that fills a worker and for a judgment item that needs
+  isolation. `wos/workflow-patterns.md` `## Items per worker` classifies all seven fleet commands;
+  none of their caps change. `external-research` Mode C now batches about five sources per
+  sub-agent.
+- ADR-0240 supersedes in part ADR-0039 rules 1 and 2 (15 to 25 agents per batch). The FAQ, the
+  migration guide, `wos/entry-points.md` and the USER_MEMORY template stop recommending 15 to 25.
+- `check_items_per_worker` in `evals/scripts/structural-evals.py` fails when the spec subsection or
+  its numbers go, when the contract drops `files_read`, or when a fleet command is missing from the
+  table; `evals/scripts/guard-mutation.py` carries four mutations proving each branch bites.
+
+### A normal-impact open decision no longer takes a small change off the one-slice route (2026-09-28)
+
+- The one-slice route (ADR-0225) no longer needs the brief to carry every decision (ADR-0239,
+  superseding in part ADR-0225's condition 3 and ADR-0233's P-7). On a run with a task branch, an
+  open decision of `Impact: normal` is written by `task-init` as a provisional `### P-N`, the route's
+  slice cites it as `rests on provisional P-N`, and the draft PR lists it under "Decisions made
+  without you". An `Impact: high` decision, a missing impact, a locked decision, an uncited `P-N` or
+  a run with no task branch still takes the full path.
+- `scripts/check-plan-coverage.sh` rule 5 reads each provisional decision's `Impact:` and refuses
+  the cases above instead of refusing every `P-N`. `scripts/tests/test-check-plan-coverage.sh`
+  check 28 is now the admission control (it fails on the old checker), and checks 32 to 35 cover
+  the refusals. `what-next` re-checks the same conditions, `task-init` is a listed co-writer of
+  `## Provisional decisions`, and `check_one_slice_route` plus a new mutation guard fail if the old
+  condition comes back.
+- Why: experiment E1 measured a one-line template change at 68,986 Opus output tokens on the full
+  path, sent there only by a phrasing choice in `### Assumptions`, against 40,479 for a
+  multi-paragraph FAQ change that took the route.
+
+### Output tokens are charged to the task that used them (2026-09-28)
+
+- The `claude-code` usage reader in `scripts/compute-task-outcome.py` no longer sums every
+  assistant message in a task's time window (ADR-0238, superseding in part ADR-0236's output-token
+  sentence). A transcript counts for a task only when its own tool calls, or those of the agent that
+  dispatched it (`parentAgentId` in the sub-agent's `.meta.json`), name the task folder or branch
+  and no concurrent task. A concurrent task is any other task folder in the `projects/` tree whose
+  write window overlaps; one still under `active/` stays open. A transcript naming two concurrent
+  tasks counts for neither.
+- A message counts only with its final line (the one with a `stop_reason`). Sub-agent transcripts
+  from Claude Code 2.1.280 on keep only a message-start snapshot for most messages (1,150 final of
+  10,679 measured, against 2,203 of 2,256 before), so a task whose attributed work has such a
+  message records null instead of a floor.
+- The outcome line gains `output_tokens_null_reason`, which says why the count is null, and the
+  source string says how many transcripts were counted and excluded. `templates/OUTCOMES.schema.md`
+  documents the rule; `scripts/tests/test-compute-task-outcome-usage.sh` grows from 16 to 35 checks,
+  20 of which fail on the old reader. `task-close` passes `--usage-source` as before.
+- Before and after, on the two tasks that ran at once on 2026-09-28 as sub-agents of one session:
+  2026-09-28_background-session-attended-chain went from 40,627 Opus and 335 Sonnet tokens to null
+  (83 of 89 attributed messages without a final count), and 2026-09-28_model-effort-by-role from
+  45,366 Opus and 335 Sonnet to null (224 of 233). Of the old counts, 71 and 72 percent was the
+  dispatching session's own output, which now counts for neither task. The attribution itself
+  separates the two cleanly: each of the six sub-agent transcripts names one task. E1 cannot measure
+  sub-agent work from transcripts until another usage source feeds the `json` adapter.
+
+### Claude Sonnet 5.5 replaces Sonnet 5 in the model table (2026-09-28)
+
+The vendor's models overview (fetched 2026-09-28) lists Claude Sonnet 5.5 (`claude-sonnet-5-5`, $2/$10 per MTok, default effort `high`, retirement not sooner than 2027-09-28) as current and moves Sonnet 5 to its legacy list. `wos/model-routing.md` now names 5.5 in the `impact-analysis` and `decision-interview` rows and in the `mechanical` dispatch role (effort stays `medium`, provisional P-1). The `Last scanned:` line moved to 2026-09-28. The 63 `suggested-model` lines in `commands/` follow, and the generated skills and command catalog were rebuilt. Opus 5.5 stays the recommended starting point. The Claude Code alias `sonnet` already resolved to `claude-sonnet-5-5` in a session transcript on the same day. Table refresh only: no ADR, no change to any ADR's Decision text.
+
+### A background session a person launched on a task branch runs the attended chain (2026-09-28)
+
+- A background session no longer counts as unattended just for being in the background (ADR-0237).
+  It runs the attended chain to the draft PR only while five conditions hold: a person launched it
+  for this task, it is neither `autonomous-run` nor a fleet worker, it runs on its task branch with a
+  remote and no assisted mode, its outward acts stop at the draft PR, and it never promotes its own
+  provisional decision. Any failed condition keeps the ADR-0044 unattended rule unchanged.
+- The test is written once in `wos/cross-cutting-workflow-guardrails.md ### Unattended sessions`.
+  Thirteen commands, three wos topics, the spec and the FAQ drop "background" from the old
+  "unattended, background, or fleet-dispatched" list and cite it, including the `--apply` refusals
+  of `branch-commit` and `pr-package`. The session states its classification in its transcript and
+  writes nothing about it to `TASK_STATE.md`.
+- `wos/autonomous-track.md` says the detached background runs of `autonomous-run` stay unattended
+  whoever launches them. ADR-0233 and ADR-0159 are marked superseded in part.
+- Scenario 146 grades a launched background session against a fleet worker and a nightly cron run.
+  The structural check `background-session-test` fails when the old list returns or the test loses
+  a condition. `scripts/tests/test-plan-authorization-review.sh` follows the new `approve-plan` wording.
+- The test itself ships as provisional decisions P-1 to P-5 of its task (P-2, the five conditions,
+  is `Impact: high`), for the maintainer to confirm.
+
+### Dispatched sub-agents route by role; review fans out by default; closure records tokens per model (2026-09-28)
+
+- Every sub-agent a command dispatches now carries a dispatch role, `mechanical` or `judgment`, and the
+  command names the role, never a model or an effort (ADR-0236, from D-4 of the 2026-09-28 parallel-work
+  research). `wos/model-routing.md ## Dispatch roles` is the one table that maps each role to a Claude Code
+  model and effort and a Codex effort, and says how Cursor and other harnesses degrade. The rows ship as
+  provisional P-1: `mechanical` is Sonnet 5 at medium, `judgment` is Opus 5.5 at high.
+- Plans, the `approve-plan` review, review and verification verdicts and cross-item synthesis are `judgment`.
+  The seven fleets declare `workers[].dispatch-role` in place of a model SKU in `workers[].tier`, the worker
+  contract carries `dispatch_role`, and `verify-against-rubric-fleet` and `atom-audit-fleet` now run
+  `judgment` workers with an Opus-class orchestrator. ADR-0004 and ADR-0034's J.3 tiers are superseded in part.
+- `scripts/lint-commands.sh` fails a `tier:` line in a `workers:` block, a `dispatch-role:` the table does
+  not define, a `claude-` model id outside a `suggested-model:` line, and a model family name attached to
+  workers or sub-agents in command prose.
+- Review and verification fan out read-only `judgment` workers by default when the work splits into 3 or
+  more independent units, at most 9 at once, with the dispatching command as the only writer (D-5,
+  `WORKFLOW_OPERATING_SYSTEM.md ## Parallel workflow`). `review-hard`, `security-review`,
+  `repo-consistency-sweep`, `verify-against-rubric-fleet` and `atom-audit-fleet` apply it; the two fleets
+  cap `max_fanout` at 9. `--consistency N` stays opt-in.
+- `scripts/compute-task-outcome.py --usage-source json:<file>|claude-code:<path>` records
+  `output_tokens_by_model` and `output_tokens_source` on the outcome line, null when no usage record exists
+  (experiment E0). The Claude Code reader sums assistant messages inside the task's time window at the
+  largest count per message id, with no branch filter, because a transcript records the branch a session
+  was launched on. `task-close` passes the flag when the harness keeps a record.
+  `scripts/tests/test-compute-task-outcome-usage.sh` covers it and failed 16 of 16 checks before the change.
 
 ## [2.0.0] - 2026-09-28
 
@@ -1479,12 +1741,12 @@ First public release: Fhorja goes open source under AGPL-3.0, published with a f
 
 ### Notes
 - `## [0.1.0]` was cut on 2026-04-30; the "Initial public release under AGPL-3.0" entries below it remain as the pre-launch baseline.
-- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->234<!-- /count --> (0001-0209, with 0037 as the reserved gap).
-- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->234<!-- /count --> (0001-0209, with 0037 as the reserved gap).
-- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->234<!-- /count --> (0001-0209, with 0037 as the reserved gap).
-- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->234<!-- /count --> (0001-0209, with 0037 as the reserved gap).
-- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->234<!-- /count --> (0001-0209, with 0037 as the reserved gap).
-- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->234<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->242<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->242<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->242<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->242<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->242<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->242<!-- /count --> (0001-0209, with 0037 as the reserved gap).
 
 ---
 

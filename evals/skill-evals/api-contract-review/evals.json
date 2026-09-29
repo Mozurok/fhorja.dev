@@ -1,0 +1,22 @@
+{
+  "skill_name": "api-contract-review",
+  "version": "1.0",
+  "description": "Trigger evals for api-contract-review: it fires when a REST-style API contract is still on paper and needs a design review, while review-hard, graphql-contract-review, security-review, api-runtime-verify and repo-consistency-sweep handle written code, GraphQL schemas, security posture of built features, live probing, and pattern scans.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "can you look over the endpoints I sketched for the new invoices API before we build anything?",
+      "Here is the draft OpenAPI for POST /v2/orders, GET /v2/orders/{id} and PATCH /v2/orders/{id}. Check the naming against our other services, the error shape, and whether the create call needs an idempotency key.",
+      "We are adding a list endpoint for audit events that could return tens of thousands of rows. Nothing is coded yet. Is offset paging fine or should we use cursors, and how should we version it?",
+      "Before slice 01 starts, review the request and response shapes in the contract section of DECISIONS.md. I suspect the 404 versus 422 usage is inconsistent with the rest of the service.",
+      "we're changing the /users/{id}/roles response from an array to an object with a data field. does that line up with how our other endpoints look and what does it do to existing clients?"
+    ],
+    "should_not_trigger": [
+      { "prompt": "The refund endpoints shipped last sprint and the code is on the branch. Look at the diff for correctness and safety risks before we close the slice.", "routes_to": "review-hard" },
+      { "prompt": "We are designing a federated GraphQL subgraph for accounts. Check nullability, N+1 risk and the query depth limits in the schema draft.", "routes_to": "graphql-contract-review" },
+      { "prompt": "The partner webhook receiver is coded: it accepts POSTs from outside our network and writes the payload straight to the orders table. Check how it verifies the caller and what an attacker could push through it.", "routes_to": "security-review" },
+      { "prompt": "The server is running locally on port 4000. Hit each route in the slice, show me the status codes and body shapes, and tell me if they match acceptance.", "routes_to": "api-runtime-verify" },
+      { "prompt": "The handlers are written already. Scan them against our bug-class templates for convention drift and missing tenant checks before I package the PR.", "routes_to": "repo-consistency-sweep" }
+    ]
+  }
+}

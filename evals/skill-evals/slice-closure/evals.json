@@ -1,0 +1,22 @@
+{
+  "skill_name": "slice-closure",
+  "version": "1.0",
+  "description": "Trigger evals for slice-closure: it judges whether one just-implemented slice can be marked done and records that in the slice note and TASK_STATE.md, unlike where-we-at (whole-task progress), task-close (archiving the task) or implement-slice-complement (small fixes inside the slice).",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "slice 02 is finished, can I call it done?",
+      "Slice 03 of IMPLEMENTATION_PLAN.md is coded and the typecheck and tests pass locally. Is anything still missing before I mark it done and start slice 04?",
+      "the last fix landed and tests are green, wrap up this slice",
+      "SLICES/02-token-refresh.md still says Status: in progress, but the code is on my branch and validation ran clean. Fill in the note and tell me if the leftover items block closing it.",
+      "Slice 01 has two follow-ups from the review: a missing log line and a docs tweak. Decide whether they hold up the slice or get tracked and carried forward, and record the outcome in TASK_STATE.md."
+    ],
+    "should_not_trigger": [
+      { "prompt": "We're four slices into the plan for this task. What is actually done, what is left, and how far are we from finishing everything?", "routes_to": "where-we-at" },
+      { "prompt": "Slice 02 is implemented, but I spotted a typo in an error message and there's no test for the empty-list case. Fix those two things in the same files, nothing more.", "routes_to": "implement-slice-complement" },
+      { "prompt": "Every slice in IMPLEMENTATION_PLAN.md is closed and PR #212 is merged. Finish the whole task and archive the folder.", "routes_to": "task-close" },
+      { "prompt": "This session ran long and I hit three odd bugs in the retry queue. Pull out the lessons worth keeping for the next task before the context is gone.", "routes_to": "harvest-session-learnings" },
+      { "prompt": "Slice 03 is approved in IMPLEMENTATION_PLAN.md and no code exists for it yet. Go ahead and build it.", "routes_to": "implement-approved-slice" }
+    ]
+  }
+}

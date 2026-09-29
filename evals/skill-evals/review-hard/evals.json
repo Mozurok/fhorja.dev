@@ -1,0 +1,37 @@
+{
+  "skill_name": "review-hard",
+  "version": "1.0",
+  "description": "Trigger evals for review-hard: it is the skeptical engineering-risk pass over finished code changes, unlike security-review (threat and ASVS focus), repo-consistency-sweep (known bug-class matching), api-contract-review (pre-build contract), or pr-feedback-ingest (turns existing review comments into a backlog).",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "sanity check my diff, anything that could bite us in prod?",
+      "Slice 03 is coded and the tests are green. Read the diff like a skeptic and tell me if anything is risky before I close it out.",
+      "I just finished the retry wrapper around the payment client in slice 02. Are there race conditions or swallowed errors in what I changed, and what is the smallest fix if so?",
+      "TASK_STATE.md says slices 01 to 04 are implemented. Before I package anything, review the whole change and tell me which files you actually looked at and what you skipped.",
+      "Run three independent passes over this branch's diff and keep only the findings they agree on."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "Here is the draft OpenAPI spec for the new /invoices endpoints. Check the naming, pagination, and idempotency story before we write any handlers.",
+        "routes_to": "api-contract-review"
+      },
+      {
+        "prompt": "Slice 02 is implemented. Scan the changed files against our known defect classes for ordering bugs and convention drift, and skip anything I already declined last time.",
+        "routes_to": "repo-consistency-sweep"
+      },
+      {
+        "prompt": "The diff rewrites the login handler and token refresh. Do a threat model and an OWASP ASVS pass, and trace who can call what.",
+        "routes_to": "security-review"
+      },
+      {
+        "prompt": "PR #212 has twelve comments from Greptile and two reviewers. Turn them into a backlog mapped to files and slices so I can fix them one by one.",
+        "routes_to": "pr-feedback-ingest"
+      },
+      {
+        "prompt": "I just wrote IMPLEMENTATION_PLAN.md. Critique it against the plan rubric and give me a revised draft with the weak slices fixed.",
+        "routes_to": "self-critique-and-revise"
+      }
+    ]
+  }
+}

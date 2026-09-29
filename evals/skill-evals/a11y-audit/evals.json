@@ -1,0 +1,37 @@
+{
+  "skill_name": "a11y-audit",
+  "version": "1.0",
+  "description": "Trigger evals for a11y-audit: it maps a whole UI surface to WCAG 2.2 at a named level and writes a per-criterion ledger, while its siblings check contrast pairs, one component against its spec, a running build, or the atom library.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "We promised AA for the checkout flow and nobody has written down what we actually meet. Can you go through every WCAG criterion for it?",
+      "Checkout screens are implemented in src/screens/checkout and the charter says AA. Before sign-off next week, I need a list of what passes, what fails and what a person still has to check by hand.",
+      "Ran axe on the signup form and it flagged two things, but I do not trust that as a full check. Map the whole form to WCAG 2.2 AA and tell me which rows the tool cannot decide.",
+      "Our React Native onboarding flow ships to the stores soon. Do a screen reader conformance pass for it, and keep the native labels and roles separate from anything web-specific.",
+      "Legal asked whether the settings area is WCAG 2.2 compliant. There is a screen spec but no conformance record anywhere. Build one with severity and a concrete fix for each failure."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "I have 12 foreground and background color pairs across light and dark themes. Check every one against 4.5:1 and 3:1 before we lock the palette.",
+        "routes_to": "color-contrast-architect"
+      },
+      {
+        "prompt": "Only the DatePicker changed in this slice. Its spec doc lists the keyboard behavior, the focus states and the aria labels, so check the built component against that doc and nothing else on the screen.",
+        "routes_to": "design-spec-review"
+      },
+      {
+        "prompt": "The staging build is up at localhost:4173. Serve it, tab through the pages, check for horizontal overflow at 320px and read the console for errors, then give me a pass or fail.",
+        "routes_to": "web-runtime-verify"
+      },
+      {
+        "prompt": "It has been a month since the last check and we still only have four atoms. Go through all four against COMPONENT_GUIDELINES.md for memo, touch target and reduced motion and give me the table.",
+        "routes_to": "atom-audit"
+      },
+      {
+        "prompt": "This task only changes the nightly CSV export, there is no screen anywhere. The PM still wants the file to be \"accessible\", and that could mean header rows, plain-language column names or a different encoding, each of which changes the format. Settle with me which one we mean before planning.",
+        "routes_to": "decision-interview"
+      }
+    ]
+  }
+}

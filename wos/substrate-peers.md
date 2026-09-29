@@ -73,7 +73,7 @@ Legend: O = conventional owner (writes via Edit/Write); P = conventionally stage
 | Section | Owner | Co-writers | Readers |
 |---|---|---|---|
 | `## Locked decisions` (D-N) | decision-interview | contract-signoff, direction-adjust, post-review-pivot | all |
-| `## Provisional decisions` (P-N, P-1) | decision-interview | resolve-contract-gaps, direction-adjust, targeted-questions | all |
+| `## Provisional decisions` (P-N, P-1) | decision-interview | resolve-contract-gaps, direction-adjust, targeted-questions, task-init (the one-slice route, ADR-0239: it writes each `Impact: normal` P-N the route admits), implementation-plan (in an attended chain on a task branch, the P-N a new behavioral commitment in its plan needs, ADR-0233) | all |
 | `## Decision history` | decision-interview | contract-signoff, direction-adjust, post-review-pivot | all |
 | `## Open questions` | targeted-questions | resolve-contract-gaps | all |
 | `## Discarded alternatives` | NONE (forbidden per `wos/task-file-contracts.md`) | n/a | n/a |
@@ -93,7 +93,7 @@ Legend: O = conventional owner (writes via Edit/Write); P = conventionally stage
 | `## Constraints` | invariants-and-non-goals | implementation-plan (direct write while no `INVARIANTS_AND_NON_GOALS.md` exists for the task; propose-only after the owner runs, ADR-0101) | all |
 | `## Infrastructure prerequisites` | implementation-plan | NONE | all |
 | `## Slices` | implementation-plan | task-init (the one-slice route, ADR-0225: it writes the single approved slice itself), implement-slice-complement (micro-delta only), slice-closure and sync-task-state (opt-in slice-status propagation, Regime 1, logged H3-scoped) | all |
-| `## Execution waves` | implementation-plan | NONE | all (implement-fleet reads to compute waves, per ADR-0041/0042) |
+| `## Execution waves` | implementation-plan | implement-fleet (its `fleet-merge` log lines only, one per wave; it writes no bytes here, ADR-0243) | all (implement-fleet reads to compute waves, per ADR-0041/0042) |
 | `### Slice N` (per-slice body) | implementation-plan | implement-approved-slice (status only), implement-fleet (status only, via its workers), slice-closure (status only), sync-task-state (status only, Slice-08 P2 slice-status field); these H3-scoped co-writes are LOGGED at the owning `## Slices` H2 per `commands/_shared/substrate-write-protocol.md` (ADR-0101) | all |
 | `## Validation expectations` | test-strategy | implementation-plan (direct write while no `TEST_STRATEGY.md` exists for the task; propose-only after the owner runs, ADR-0101) | all |
 | `## Rollout and rollback notes` | implementation-plan | release-plan (P) | all |
@@ -224,9 +224,10 @@ Fleet workers return a payload matching `worker_output_schema` through the selec
 
 ```
 fleet-inbox/<run_id>/<worker_id>.json   # resolved by the orchestrator before native dispatch
+<worktree>/.fleet-out/<worker_id>.json  # a worktree-isolated worker (ADR-0242); the orchestrator copies it into the run inbox
 ```
 
-The native JSON file is the return carrier, not a replay aid. The orchestrator may persist a runtime result or a separate replay copy, with its producer and consumer named; copies never count as extra workers. The ADR-0158 D-2 exception grants no writes outside the assigned run inbox. Existing command-specific grants for disjoint task folders, screen specs and implementation worktrees remain in force; other substrate writes belong to the orchestrator.
+The native JSON file is the return carrier, not a replay aid. The orchestrator may persist a runtime result or a separate replay copy, with its producer and consumer named; copies never count as extra workers. The ADR-0158 D-2 exception grants no writes outside the assigned run inbox, or, for a worktree-isolated worker, outside its own `.fleet-out/`, which is never staged or committed (ADR-0242). Existing command-specific grants for disjoint task folders, screen specs and implementation worktrees remain in force; other substrate writes belong to the orchestrator.
 
 The orchestrator command (e.g. `atom-audit-fleet`, `screen-spec-fleet`) is the SOLE merger.
 
@@ -399,8 +400,8 @@ The skill writes its owned section or report file directly, `APPLIED` in every e
 
 ### Pattern C -- Epic J fleet worker partial -> orchestrator merger
 
-1. Orchestrator dispatches N workers (J.3 tier-aware dispatch).
-2. Each worker supplies ONE typed payload via the selected ADR-0158 carrier: a runtime result or its assigned `fleet-inbox/<run_id>/<worker_id>.json` file. The orchestrator validates and counts it once; prose and absent or malformed payloads do not satisfy the return contract.
+1. Orchestrator dispatches N workers (J.3 dispatch, role-aware per ADR-0236).
+2. Each worker supplies ONE typed payload via the selected ADR-0158 carrier: a runtime result or its assigned `fleet-inbox/<run_id>/<worker_id>.json` file (for a worktree-isolated worker, `.fleet-out/<worker_id>.json` in its own worktree, which the orchestrator copies into the inbox, ADR-0242). The orchestrator validates and counts it once; prose and absent or malformed payloads do not satisfy the return contract.
 3. Orchestrator waits for all OR timeout (J.4 convergence).
 4. Orchestrator merges per declared `merge_strategy`; emits transaction headers; appends one `VERIFICATION_LOG.jsonl` line per merged section with `event=fleet-merge`.
 5. Inbox cleaned by `slice-closure` or `task-close` (J.5).

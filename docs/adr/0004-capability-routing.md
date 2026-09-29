@@ -1,6 +1,6 @@
 # ADR-0004: Capability routing without model SKUs
 
-- **Status**: Accepted
+- **Status**: Accepted; superseded in part by [ADR-0236](./0236-subagents-route-by-role.md) for the sub-agents a command dispatches, which now carry a dispatch role that `wos/model-routing.md` maps to a model and an effort. Handoff lines and the `Work complexity` rubric stay vendor-neutral as decided here.
 - **Date**: 2026-05-08
 - **Tags**: capability-routing, model-agnostic, work-complexity, future-proofing
 

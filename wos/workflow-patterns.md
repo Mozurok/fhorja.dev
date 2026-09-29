@@ -33,7 +33,7 @@ Anti-pattern: letting parallel agents each run K.2 on shared substrate. Always f
 
 ## 3. Structured-output-schema pattern
 
-On the dynamic-workflow path, pass `schema` to `agent(prompt, {schema})` so the runtime supplies the typed result; never ask the worker to call StructuredOutput. On the `Agent` path, assign `fleet_inbox_artifact` to the resolved run-inbox `<worker_id>.json`; the worker writes the typed payload there and the parent validates it (ADR-0158 D-1). Benefits:
+On the dynamic-workflow path, pass `schema` to `agent(prompt, {schema})` so the runtime supplies the typed result; never ask the worker to call StructuredOutput. On the `Agent` path, assign `fleet_inbox_artifact` to the resolved run-inbox `<worker_id>.json`; the worker writes the typed payload there and the parent validates it (ADR-0158 D-1). A worker dispatched with worktree isolation cannot reach the run inbox, so it gets `.fleet-out/<worker_id>.json` in its own worktree instead, and the parent copies it into the inbox after the barrier (ADR-0242). Benefits:
 - The orchestrator can iterate over results without re-parsing prose.
 - Schema validation catches half-formed agent runs at the boundary.
 - Downstream `apply` logic is mechanical, not interpretive.
@@ -62,7 +62,7 @@ The 2026-06-05 session itself: 14 Workflow batches run back-to-back to gather in
 
 Patterns 1-5 keep parallel agents read-only and funnel every write through a sequential apply step, because parallel writes to shared substrate race (pattern 2). Product-code execution is the one case where parallel writes are safe, under strict conditions, because each worker can own an isolated git worktree.
 
-`implement-fleet` (ADR-0041) dispatches one worker per independent approved slice, each in its own worktree off a shared base. Safety rests on five conditions, all checked by the orchestrator before dispatch:
+`implement-fleet` (ADR-0041) dispatches one worker per independent approved slice, each with the harness's per-agent worktree isolation, and each worker first moves its worktree to the shared committed base and checks HEAD against it (ADR-0242). The orchestrator does not create the worktrees itself: a worker bound to one the orchestrator made inherits the orchestrator's write sandbox, and on 2026-09-29 that refused every write of a simulated fleet's first wave. A harness with no per-agent isolation runs the slices in turn through `implement-approved-slice`. Safety rests on five conditions, all checked by the orchestrator before dispatch:
 - The slices' declared `Scope` file sets are pairwise disjoint.
 - No two slices share an implicit-coupling artifact (migration, schema, lockfile, codegen output, barrel export) even if their explicit files differ.
 - Every slice's `Depends-on` set completed in an earlier wave (the waves are the topological layering of the slice DAG).
@@ -71,7 +71,7 @@ Patterns 1-5 keep parallel agents read-only and funnel every write through a seq
 
 When the slice DAG is a chain (every wave is size one) there is nothing to parallelize: `implement-fleet` returns a NO_OP and routes to sequential `implement-approved-slice`. The realized speedup is bounded by the width of the DAG (Amdahl); cohesive features tend to be deep chains, so this pattern pays off mainly for tasks with genuinely independent slices (standalone modules, the same change across disjoint files).
 
-Contrast with pattern 2: substrate writes still funnel through the orchestrator (no worktree owns the shared task-memory files); only product-code writes, isolated per worktree and disjoint by scope, may run in parallel. Each worker is still the sole writer of its own `SLICES/<NN>.md` (single-writer-per-folder, ADR-0040); the shared `TASK_STATE.md` is written only by the orchestrator.
+Contrast with pattern 2: substrate writes still funnel through the orchestrator (no worktree owns the shared task-memory files); only product-code writes, isolated per worktree and disjoint by scope, may run in parallel. Each worker is still the sole author of its own `SLICES/<NN>.md` (single-writer-per-folder, ADR-0040): it leaves the note and its return payload in `.fleet-out/` inside its worktree, never staged or committed, and the orchestrator copies both into the task folder and never merges that folder (ADR-0242). The shared `TASK_STATE.md` is written only by the orchestrator.
 
 ## 7. Audit-then-execute two-model pattern
 
@@ -95,6 +95,34 @@ The spec names the same number in `### When to use` and `### When NOT to use`, a
 
 A number below the floor belongs in this list with its reason, not alone in a command file.
 
+## Items per worker
+
+The rule is in `WORKFLOW_OPERATING_SYSTEM.md` → `## Parallel workflow` → `### Items per worker (ADR-0240)`: a `mechanical` fan-out over small independent items batches about five items per worker, at most 9 workers at once, and each worker's brief names the files it must read (`must_read`) while its return lists the ones it read (`files_read`). This section keeps the evidence and the classification of every fleet command. See [ADR-0240](../docs/adr/0240-a-mechanical-fan-out-batches-about-five-items-per-worker.md).
+
+Evidence. Experiment E5 ran the same kind of work twice on 2026-09-28: trigger evals for two sets of twenty skills, category-balanced, measured from each session's cost-state at stop.
+
+| | 20 workers, 1 item each | 4 workers, 5 items each |
+|---|---|---|
+| Session cost | 17.69 USD | 9.58 USD |
+| Sonnet cache creation | 1,404,486 tokens | 403,889 tokens |
+| Near misses the judgment review replaced | 20 of 100 | 18 of 100 |
+
+Cache creation fell 71 percent while the item count stayed at 20, which is what a per-worker fixed cost looks like (inferred from the numbers, not measured directly): each worker builds its own prompt cache, the `system`, `tools` and task baseline that `wos/context-budget.md` says is paid once per subagent, before it touches an item. E1 arm 3 showed the same overhead with 23 workers and 1.94M cache-creation tokens. One batched drafter in E5 wrote its files from the command descriptions without opening the files its brief named, which is why `must_read` and `files_read` are part of the rule. One run per arm, so five is a default with a range (4 to 6), not a measured optimum.
+
+A session's own fan-out (drafting a set of files, summarizing a set of sources, as in `external-research` Mode C) batches by this rule. The fleet commands are classified here; a fleet missing from this table fails `check_items_per_worker` in `evals/scripts/structural-evals.py`.
+
+| Fleet | Role | Items per worker | Why |
+|---|---|---|---|
+| `atom-audit-fleet` | judgment | 3 to 5 atoms (default 4) | Batched already. Each row is a verdict against the same guidelines, and one atom is small. |
+| `verify-against-rubric-fleet` | judgment | one artifact | Each verdict stays isolated from the others' reasoning. |
+| `implement-fleet` | mechanical | one slice | A slice fills a worker, in its own worktree. |
+| `screen-spec-fleet` | mechanical | one screen | The 12-step `screen-spec` flow, with Figma context and a screenshot, fills a worker. |
+| `task-init-fleet` | mechanical | one sub-task | A whole `task-init`, five files in the worker's own folder. |
+| `external-research-fleet` | mechanical | one angle | An angle is a group of sources read in depth. |
+| `feature-library-scout-fleet` | mechanical | one feature problem | Registry and adoption research for one problem fills a worker. |
+
+The mechanical fleets keep their own `max_fanout`; the cap of 9 binds the batched fan-out. No experiment has measured them, so moving one of them to batches needs its own measurement.
+
 ## Evidence
 
 2026-06-05 session: 14 Workflow batches dispatched 2026-06-05, parallel agents per batch, all returning typed payloads (through the `StructuredOutput` call that ADR-0158 later replaced on the `Agent` path). Confirmed: parallel reads + sequential K.2 apply held; no substrate corruption; per-batch failure isolation worked as designed.
@@ -104,11 +132,12 @@ A number below the floor belongs in this list with its reason, not alone in a co
 - K.2 (canonical write protocol)
 - Epic J multi-agent foundation
 - K.8 parallel dispatch learnings (2026-06-04)
-- sub-agent-orchestration.md (sibling topic; tier-aware dispatch protocol)
+- sub-agent-orchestration.md (sibling topic; role-aware dispatch protocol)
 - ADR-0038 (the Workflow tool as the parallel-orchestration primitive; Rule 3 is substrate-bullet ownership)
-- ADR-0039 (the empirical batch-dispatch sweet spot)
+- ADR-0039 (the empirical batch-dispatch sweet spot; rules 1 and 2 superseded in part by ADR-0240)
+- ADR-0240 (a mechanical fan-out batches about five items per worker)
 - ADR-0040 (the single-writer-per-folder exception to ADR-0038)
-- tier-aware dispatch (J.3 under ADR-0034; `wos/sub-agent-orchestration.md ## Tier-aware dispatch protocol`)
+- role-aware dispatch (J.3 under ADR-0034, roles per ADR-0236; `wos/sub-agent-orchestration.md ## Role-aware dispatch protocol`)
 - scan-substrate-orphans.py (post-apply orphan gate)
 - ADR-0041 (parallel slice execution via worktree isolation + file-scope disjointness gate)
 - implement-fleet.md (orchestrator command for the write-fleet pattern)
@@ -141,5 +170,7 @@ One session on 2026-06-05 dispatched 14 Workflow batches (125 agents in the batc
 2. Parallel reads and proposals are safe; serialize all substrate writes through an apply step gated by `scan-substrate-orphans.py`.
 3. Mega-batch (15 to 25 agents) is the right shape for broad read-only discovery.
 4. Target batches of 16 to 20 agents to stay within the effective concurrency cap.
+
+Rules 3 and 4 sized a batch by agents, for the broad read-only discovery of that session. For a `mechanical` fan-out of small items they are superseded in part by ADR-0240: size by items per worker instead, at most 9 workers of about five items each (`## Items per worker` above). The concurrency facts in the paragraph above still hold.
 
 The per-batch table and the full narrative stay in the repository history at commit `052440cb`; ADR-0039 is the decision they support.

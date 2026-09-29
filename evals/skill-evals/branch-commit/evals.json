@@ -1,0 +1,37 @@
+{
+  "skill_name": "branch-commit",
+  "version": "1.0",
+  "description": "Trigger evals for branch-commit: it only names a branch and a short commit from a real diff (and can create that commit), while pr-package writes the full delivery write-up and the closure, state, review, and update commands work on memory, judgment, or messages.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "what should I call this commit?",
+      "I have staged changes in scripts/lint-commands.sh and commands/task-init.md. Give me a branch name and a one-line commit message for them.",
+      "Slice 03 is finished and the working tree only touches src/billing/invoice.ts. Just write the commit message from the diff, I don't need anything longer than that.",
+      "My branch is still called wip-stuff and the diff against main only changes docs/FAQ.md. Suggest a better branch name and a commit subject.",
+      "Everything for this task is staged. Write the commit message, show me what is going in, and make the commit so the closure check finds one."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "The scope is done and the diff against origin/main is stable. Write up the PR title, the description, and the reviewer notes for PR #212, and give me the git commands to push it.",
+        "routes_to": "pr-package"
+      },
+      {
+        "prompt": "I just committed the slice 02 changes. Update TASK_STATE.md so it shows what was done and I can pick this up again tomorrow.",
+        "routes_to": "sync-task-state"
+      },
+      {
+        "prompt": "Slice 03 is implemented and the tests pass. Is it ready to be closed, or is something still missing before I mark it done?",
+        "routes_to": "slice-closure"
+      },
+      {
+        "prompt": "The diff is staged and ready. Before I commit, look it over for correctness bugs or anything risky I might have missed.",
+        "routes_to": "review-hard"
+      },
+      {
+        "prompt": "Write a short note for the team channel saying slice 02 is done and the change is committed on the task branch.",
+        "routes_to": "team-update"
+      }
+    ]
+  }
+}

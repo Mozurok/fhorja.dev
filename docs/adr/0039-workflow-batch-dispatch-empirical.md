@@ -1,6 +1,6 @@
 # ADR-0039: Workflow Batch Dispatch Empirical Sweet Spot
 
-- Status: Accepted
+- Status: Accepted; rules 1 and 2 superseded in part by [ADR-0240](./0240-a-mechanical-fan-out-batches-about-five-items-per-worker.md): a `mechanical` fan-out of small items is sized at about five items per worker, at most 9 workers, not 15 to 25 agents per batch. Rules 3 to 6 stand.
 - Date: 2026-06-05
 - Tags: orchestration, workflow-tool, batch-dispatch, empirical, parallelism
 

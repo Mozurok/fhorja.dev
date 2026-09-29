@@ -49,7 +49,7 @@ commands/<skill-name>/evals/evals.json
 
 - `skill_name` (string, required) -- matches folder name.
 - `version` (string) -- semver of the eval set; bump on assertion changes.
-- `evals[]` (array, required, non-empty).
+- `evals[]` (array, required; non-empty unless the file carries only a `trigger_evals` block). A trigger-only file writes `"evals": []`, which `run-skill-evals.sh` accepts and scaffolds no outcome evals for.
   - `id` (string, required, unique within set) -- kebab-case slug.
   - `prompt` (string, required) -- exact user message handed to the model.
   - `expected_output` (string) -- human-readable description; not auto-graded.
@@ -130,6 +130,15 @@ The `evals[]` above grade OUTCOME (did the skill produce the right output). They
 Rules:
 
 - Aim for a handful each (the K.7 gate's 3-to-5 minimum is a good floor): queries that SHOULD route to this skill, and adjacent queries that should NOT (they belong to a sibling like `security-review` or `review-hard`).
+- A `should_not_trigger` entry is either a plain string, as above, or an object that also names the sibling the query belongs to. New files use the object form, so a grader can check that the query went to the right place and not only that it stayed away from this skill:
+
+  ```json
+  "should_not_trigger": [
+    { "prompt": "review my own code changes for security issues", "routes_to": "security-review" }
+  ]
+  ```
+
+  `routes_to` is the basename of an existing command (`commands/<name>.md` or `commands/<name>/SKILL.md`) other than the skill itself. Keep the answer out of `prompt`: the query is what gets routed.
 - Advisory only. A trigger-eval miss is a warn that the description needs sharpening; it never fails the build, consistent with the natural-voice advisory precedent in `lint-commands.sh`.
 - Grade by asking the host to route each query against the current command descriptions and checking the selected skill. This reuses the existing `run-skill-evals.sh` workspace; it does not modify `build-agent-skills.sh` (the skills generator stays byte-stable and CI-safe).
 - Author trigger evals alongside the outcome evals when adding a command, especially when its description overlaps a sibling (the over-/under-fire risk is highest there).

@@ -1,0 +1,22 @@
+{
+  "skill_name": "apply-sweep-triage",
+  "version": "1.0",
+  "description": "Trigger evals for apply-sweep-triage: it fires when the user has marked apply, decline or discuss on each finding of a sweep snapshot and wants those choices saved, while repo-consistency-sweep, review-hard, pr-feedback-ingest, state-reconcile and implement-slice-complement handle running a sweep, judging risk, ingesting PR comments, repairing task memory, and fixing the applied findings.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "I went through the SWEEP snapshot and set triage on all 14 findings. Save my decisions so the next run stops flagging the declined ones.",
+      "done triaging, 9 apply, 4 decline, 1 discuss. record it",
+      "Edited SWEEP_2026-09-27.md: I declined the two naming-convention findings in the billing module on purpose. Please write that down in REVIEW_PREFERENCES.md and track the ones I marked apply.",
+      "The triage: values in the sweep file are filled in now. Persist them at the project level, and create REVIEW_PREFERENCES.md if it does not exist yet.",
+      "I said decline on the missing-index finding because we have a migration for it next sprint. Make sure future sweeps stay quiet about it until that file changes."
+    ],
+    "should_not_trigger": [
+      { "prompt": "Slice 3 is implemented. Before I package the PR, check the diff against our known bug classes and give me a findings file to triage.", "routes_to": "repo-consistency-sweep" },
+      { "prompt": "The sweep on slice 2 came back clean, but before I close the slice I want a close look at whether my new retry logic in the payment webhook can charge a customer twice.", "routes_to": "review-hard" },
+      { "prompt": "Reviewers on PR #88 flagged the same missing await in two handlers that last week's sweep never caught. Turn their comments into fix items and propose a new bug-class template so future sweeps catch it.", "routes_to": "pr-feedback-ingest" },
+      { "prompt": "REVIEW_PREFERENCES.md says the tenant-filter finding was applied and the fix is in the code, but TASK_STATE.md and the slice 03 notes still list it as open. Make the task files agree with what actually happened.", "routes_to": "state-reconcile" },
+      { "prompt": "My triage in the sweep file is saved already. Now fix the three findings I marked apply: the missing await in orders.ts, the log line without a request id, and the hardcoded 30 second timeout.", "routes_to": "implement-slice-complement" }
+    ]
+  }
+}

@@ -538,7 +538,9 @@ sync_one_dest() {
   echo "    wrote ${copied} markdown files (profile: ${PROFILE:-all})"
 }
 
-# The RUNTIME payload: wos/, and only wos/. Distinct from --with-docs, which by its own
+# The RUNTIME payload: the spec, wos/, SHIPPED_SCRIPTS and SHIPPED_SHARED_BLOCKS (both lists
+# below). It began as wos/ alone; the spec, the scripts and the shared blocks joined it one at a
+# time for the same reason wos/ did. Distinct from --with-docs, which by its own
 # help text carries optional reading material (the spec, README, demo, stubs, templates/).
 # This is a runtime dependency: every command file cites at least one `wos/<topic>.md`, and
 # several of those loads are declared MANDATORY, so a session bootstrapping from an
@@ -593,7 +595,25 @@ sync_one_dest() {
 # check-live-markers.sh, check-plan-coverage.sh, plan-adherence.py, memory-lint.sh,
 # secret-scan-gate.sh and portfolio-review.sh, which now reads the directory it runs from
 # and refuses one with no projects/, the D-3 failure above.
-SHIPPED_SCRIPTS=(rank-learnings.sh compute-task-outcome.py ingest-scan.py scan-substrate-orphans.py rank-references.sh emit-substrate-write.sh scan-substrate-headers.sh verify-log-validator.py verify-substrate-batch.sh check-live-markers.sh check-plan-coverage.sh plan-adherence.py memory-lint.sh secret-scan-gate.sh portfolio-review.sh)
+# monitor-fleet-progress.sh, measured 2026-09-29 (ADR-0242): an installed run of implement-fleet
+# lacked it (the E4 simulation), and as it stood it would have failed test 2, polling a missing
+# inbox for 15 minutes and then printing "0 dispatched" with exit 0. It now exits 2 naming a
+# missing task folder, a missing inbox with no return folder named, or a timeout with no worker
+# seen; it reads the flat <worker_id>.json returns, and it has no self-location and no
+# macOS-only stat call.
+SHIPPED_SCRIPTS=(rank-learnings.sh compute-task-outcome.py ingest-scan.py scan-substrate-orphans.py rank-references.sh emit-substrate-write.sh scan-substrate-headers.sh verify-log-validator.py verify-substrate-batch.sh check-live-markers.sh check-plan-coverage.sh plan-adherence.py memory-lint.sh secret-scan-gate.sh portfolio-review.sh monitor-fleet-progress.sh)
+
+# The commands/_shared/ blocks an installed file cites, shipped to <dest>/commands/_shared/.
+# Most blocks are inlined into the commands by sync-shared-blocks.sh and need no copy, but
+# some are cited by path as a contract to read: implement-fleet's frontmatter names
+# commands/_shared/worker-contract.md as its workers' contract_ref, and nine closure writers
+# follow commands/_shared/task-state-slice-closure-pattern.md. Measured 2026-09-29: the E4
+# rerun of implement-fleet, run from an installed tree, found neither under
+# ~/.claude/workflow-docs. The list is every block a command file, the spec, a wos topic or
+# another listed block names by its commands/_shared/ path (13 of 24 on that date);
+# check_command_scripts_shipped in evals/scripts/structural-evals.py fails when a cited block
+# is missing from it, so the list cannot fall behind the citations.
+SHIPPED_SHARED_BLOCKS=(claim-grounding.md convergence-policy.md definition-completeness-reader.md deliverable-reconcile.md grounded-residue-termination.md mandatory-context-bootstrap.md mcp-capability-routing.md orchestrator-bootstrap.md reference-grounding.md substrate-digest-fallback.md substrate-write-protocol.md task-state-slice-closure-pattern.md worker-contract.md)
 
 sync_runtime_payload() {
   local label="$1"
@@ -623,6 +643,7 @@ sync_runtime_payload() {
     for s in "${SHIPPED_SCRIPTS[@]}"; do
       echo "    cp scripts/${s} -> $(printf '%q' "${dest}/scripts")"
     done
+    echo "    cp ${#SHIPPED_SHARED_BLOCKS[@]} shared block(s) -> $(printf '%q' "${dest}/commands/_shared")"
     return 0
   fi
   mkdir -p "${dest}/wos"
@@ -654,6 +675,21 @@ sync_runtime_payload() {
     done
     echo "    copied ${#SHIPPED_SCRIPTS[@]} script(s): ${SHIPPED_SCRIPTS[*]}"
   fi
+  # The payload's commands/_shared/ belongs to Fhorja alone, so a block dropped from the list
+  # is removed from it too, the rule wos/ follows above.
+  mkdir -p "${dest}/commands/_shared"
+  local b listed
+  while IFS= read -r rel; do
+    listed=0
+    for b in "${SHIPPED_SHARED_BLOCKS[@]}"; do
+      [[ "$rel" == "$b" ]] && listed=1
+    done
+    [[ "$listed" -eq 1 ]] || rm -f "${dest}/commands/_shared/${rel}"
+  done < <(cd "${dest}/commands/_shared" && find . -maxdepth 1 -type f -name '*.md' | sed 's|^\./||')
+  for b in "${SHIPPED_SHARED_BLOCKS[@]}"; do
+    cp "${REPO_ROOT}/commands/_shared/${b}" "${dest}/commands/_shared/${b}"
+  done
+  echo "    copied ${#SHIPPED_SHARED_BLOCKS[@]} shared block(s) to commands/_shared/"
 }
 
 # The OPTIONAL reading material, behind --with-docs. The spec is deliberately NOT here

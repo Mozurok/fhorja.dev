@@ -1,0 +1,37 @@
+{
+  "skill_name": "autonomous-board",
+  "version": "1.0",
+  "description": "Trigger evals for autonomous-board: it fires on a read-only, glanceable status view of an autonomous run (slices by column, gates, live-run line), while sync-task-state, where-we-at, what-next, portfolio-review and autonomous-readiness handle writing state, a normal task checkpoint, routing, a cross-task board, and the boot check.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "show me the board for last night's run",
+      "The overnight run on the export task should be finished by now. I don't want to open every file, just lay out which slices are still to-do, which are waiting on me, and which have a diff sitting there for me to merge.",
+      "Give me a kanban-style view of the unattended run on the search-indexing task: one row per slice with its complexity and whether the exit criterion is met. Read only, please, do not touch any file.",
+      "Is the autonomous run still alive? Check the runs feed for this task and tell me the current step and when it last updated, plus anything stuck at a gate.",
+      "quick glance at where the supervised run stands, columns only"
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "The run finished two slices and hit a boundary I resolved by hand. Update TASK_STATE.md so it records that and the next step.",
+        "routes_to": "sync-task-state"
+      },
+      {
+        "prompt": "This is a normal three-phase task done by hand, no unattended run involved. Where do we stand against the approved plan and what is still missing to finish?",
+        "routes_to": "where-we-at"
+      },
+      {
+        "prompt": "I don't care about the columns. Just tell me the single best command to run next on this task and in which editor mode.",
+        "routes_to": "what-next"
+      },
+      {
+        "prompt": "I have six tasks open across three projects. Rank them by whose move it is and flag any that went quiet or are finished but not archived.",
+        "routes_to": "portfolio-review"
+      },
+      {
+        "prompt": "Give me a status of the search-indexing project before tonight. I don't mean what a run did, since none has started yet. I mean whether each item needed to leave it running unattended is covered, with a go or no-go I can trust and a list of any gaps.",
+        "routes_to": "autonomous-readiness"
+      }
+    ]
+  }
+}

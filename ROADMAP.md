@@ -6,7 +6,7 @@ For granular changes per release, see [CHANGELOG.md](./CHANGELOG.md).
 
 ## Project status
 
-**Currently at 2.0.0**, released and tagged `v2.0.0` on 2026-09-28. The project passed 1.0.0 on 2026-07-10 and 1.1.0 on 2026-07-21. The contract for command outputs and `TASK_STATE.md` is the defined public API: a breaking change to either requires a major version bump under SemVer, which is why the `Tier:` to `Escalations:` change made the release after 1.1.0 a 2.0.0.
+**Currently at 2.1.0**, released and tagged `v2.1.0` on 2026-09-29. The project passed 1.0.0 on 2026-07-10 and 1.1.0 on 2026-07-21. The contract for command outputs and `TASK_STATE.md` is the defined public API: a breaking change to either requires a major version bump under SemVer, which is why the `Tier:` to `Escalations:` change made the release after 1.1.0 a 2.0.0.
 
 The project is maintained as a personal open-source effort under BDFL governance. See [CONTRIBUTING.md](./CONTRIBUTING.md) for what that implies.
 
@@ -17,7 +17,7 @@ The project follows a phased release strategy to balance refinement quality with
 - **Phase 1 (private refinement, done)**: internal use, testing, and polishing. License, contributor guides, examples, lint script, and CI were prepared ahead of the public release in Phase 3.
 - **Phase 2 (private beta, dropped 2026-08-30)**: it was to be 1 to 2 months of beta testing with 5 to 10 invited developers before going public. It was overtaken by events: Phase 3 shipped the repository public and Phase 4 reached v1.1.0 while this phase still read `planned`, so the gate it was meant to be had already been passed without it. Declared dead with a date rather than left pending, because a phase that cannot happen before the phase after it is not a plan.
 - **Phase 3 (public MIT, done)**: repository made public, first version tagged, announced to relevant communities.
-- **Phase 4 (stabilization, in progress)**: continued open-source releases (1.1.0 shipped 2026-07-21 and 2.0.0 shipped 2026-09-28; see [CHANGELOG.md](./CHANGELOG.md)), community growth, and API stability toward a mature contract.
+- **Phase 4 (stabilization, in progress)**: continued open-source releases (1.1.0 shipped 2026-07-21 2.0.0 shipped 2026-09-28 and 2.1.0 on 2026-09-29; see [CHANGELOG.md](./CHANGELOG.md)), community growth, and API stability toward a mature contract.
 - **Phase 5 (Layer 2 SaaS, exploratory)**: separate hosted service that builds on top of the open-source workflow. No commitment yet.
 
 ## Waves 1 to 3 (closed)
@@ -27,7 +27,7 @@ The three build-out waves are done, and [CHANGELOG.md](./CHANGELOG.md) records w
 - **Wave 1, foundation**: MIT license, contributor and security policies, issue and PR templates, the command lint and CI, the [FAQ](./docs/FAQ.md), the [migration guide](./docs/MIGRATION.md), and the first ADRs in [`docs/adr/`](./docs/adr/).
 - **Wave 2, refinement**: the editor mode mapping, Agent Skills generated from `commands/*.md` by `scripts/build-agent-skills.sh`, and the short flows for docs-only, test-only and refactor tasks, now in [`wos/workflow-shapes.md`](./wos/workflow-shapes.md). The sync script installs the skills by default since 2026-07-18; `--with-skills` is kept for backward compatibility and `--no-skills` opts out. Two items stayed partial and are closed here. The auto-sync trigger for PROPOSED-but-not-applied turns is superseded: since ADR-0199 task memory is written `APPLIED` in every mode, so those turns no longer pile up, and the optional session-continuity hook (ADR-0052) covers the session boundary. The lazy-loaded spec work cut the spec about 29 per cent by the May 2026 measurement; the spec has grown since, and ADR-0136 now holds it under a non-regression ceiling of 126,000 chars instead of chasing a smaller target.
 - **Waves 2.5 to 2.8**: the context engineering uplift (ADR-0012 to ADR-0023), `approve-proposed` (ADR-0024), `repo-consistency-sweep` with its bug-class library, and the design-system command family.
-- **Wave 3, expansion**: the eval harness at [`evals/`](./evals/), now <!-- count:scenarios -->142<!-- /count --> scenarios indexed in [`evals/README.md`](./evals/README.md); operating modes; `incident-triage`, `external-research`, `delivery-asset` and `db-context-supabase`; multi-repo support v1.
+- **Wave 3, expansion**: the eval harness at [`evals/`](./evals/), now <!-- count:scenarios -->144<!-- /count --> scenarios indexed in [`evals/README.md`](./evals/README.md); operating modes; `incident-triage`, `external-research`, `delivery-asset` and `db-context-supabase`; multi-repo support v1.
 
 Still open from Wave 3:
 

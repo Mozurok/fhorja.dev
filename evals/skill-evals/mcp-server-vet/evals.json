@@ -1,0 +1,22 @@
+{
+  "skill_name": "mcp-server-vet",
+  "version": "1.0",
+  "description": "Trigger evals for mcp-server-vet: it fires when a third-party MCP server has not been trusted yet and its tools, scopes and env surface need a safety look, while skill-vet, security-review, capture-references and review-hard handle third-party skills, first-party security, saving web sources, and general risk review.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "Someone shared a GitHub MCP server on a forum and I want to put it in .mcp.json. Is it safe to add?",
+      "vet this mcp server before I trust it",
+      "I cloned a community Postgres MCP server into ~/quarantine/pg-mcp. Read its tool descriptions and input schemas and tell me whether to add, decline or sandbox it.",
+      "Before we wire in this third-party Slack connector, check whether its tool descriptions carry hidden instructions and what env vars and scopes it asks for.",
+      "The README for this file-system MCP looks fine but it exposes 14 tools. Compare what it declares with what the tools can actually reach, and check for egress."
+    ],
+    "should_not_trigger": [
+      { "prompt": "There is a marketplace plugin with a SKILL.md and a helper script that I want to install. Look through the whole folder first.", "routes_to": "skill-vet" },
+      { "prompt": "Review the auth changes in my current branch for security problems, threat model and secrets.", "routes_to": "security-review" },
+      { "prompt": "Grab this vendor's API docs page, summarize it with a freshness note and store it in REFERENCES.md.", "routes_to": "capture-references" },
+      { "prompt": "We wrote our own MCP server in this repo. Review the diff for correctness and maintainability risks before we close the slice.", "routes_to": "review-hard" },
+      { "prompt": "Is this npm package for date parsing well maintained, and what are the top alternatives by downloads?", "routes_to": "feature-library-scout" }
+    ]
+  }
+}

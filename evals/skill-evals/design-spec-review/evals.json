@@ -1,0 +1,37 @@
+{
+  "skill_name": "design-spec-review",
+  "version": "1.0",
+  "description": "Trigger evals for design-spec-review: it checks an implemented component or screen against its written spec doc, while component-spec, review-hard, foundation-audit, a11y-audit and atom-audit-fleet handle writing specs, general risk review, token drift, WCAG audits, and bulk atom audits.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "Button.tsx is finished. Can you check it against docs/research/components/atoms/button.md and tell me what I missed?",
+      "I just merged the new Chip component under packages/ui. The spec lists three variants and two sizes, and I want to know whether the code really matches what is written in the doc before I call the slice done.",
+      "The profile screen is built now. Compare it with docs/app/screens/member/04-profile.md and list anything that drifted: missing states, hardcoded colors, wrong props.",
+      "Somebody touched the shared IconButton in the design-system package again. Before this lands, verify it still follows its spec: variants, pressed and disabled states, touch target, haptics.",
+      "does the toggle we shipped match its spec doc?"
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "We have a Figma frame for the new Tooltip but nothing written down yet. Produce the full spec doc from that node so the team can build against it.",
+        "routes_to": "component-spec"
+      },
+      {
+        "prompt": "The checkout slice is implemented. Do a hard pass on the diff for correctness bugs, race conditions and risky assumptions before I close it.",
+        "routes_to": "review-hard"
+      },
+      {
+        "prompt": "No single component this time. The radius and typography scales in packages/tokens were edited over the last few sprints without anyone touching radii.md or typography.md. List what is undocumented, what is documented but missing in code, and any value that differs.",
+        "routes_to": "foundation-audit"
+      },
+      {
+        "prompt": "The profile screen matches its spec doc already, we checked. Legal now wants to know which WCAG 2.2 AA success criteria the whole member area meets, which fail, and which need a person with a screen reader to confirm.",
+        "routes_to": "a11y-audit"
+      },
+      {
+        "prompt": "We now have twelve atoms and it has been a month. Audit all of them against COMPONENT_GUIDELINES.md for memo, callbacks, press animation and touch targets in one go.",
+        "routes_to": "atom-audit-fleet"
+      }
+    ]
+  }
+}

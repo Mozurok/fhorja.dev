@@ -1,7 +1,7 @@
 # Eval scenario 52: implement-fleet wave computation and integration gate
 
 - **Tags**: ADR-0041, ADR-0040, ADR-0038, fleet-dispatch, slice-parallelism, scope-disjointness, integration-gate, worktree-isolation
-- **Last reviewed**: 2026-06-09
+- **Last reviewed**: 2026-09-29
 - **Status**: active
 
 ## Goal
@@ -55,7 +55,7 @@ Mode: Agent
 
 - The orchestrator emits the wave plan. Slice 1 is the root (Wave 1). Slices 2 and 3 depend only on Slice 1 and have disjoint scopes, so they form a parallel wave. Slice 4 also depends only on Slice 1 but shares `src/lib/csv.ts` with Slice 2, so it cannot join that wave and is serialized to a later wave. A correct plan is `Wave 1: [1]`, `Wave 2: [2, 3]`, `Wave 3: [4]`.
 - Step 3 states scope-disjointness PASS for Wave 2 (slices 2 and 3 share no file) and explicitly notes that Slice 4 was held out of Wave 2 because its `Scope` overlaps Slice 2 on `src/lib/csv.ts`.
-- Wave 2 dispatches two workers, each in its own git worktree off `origin/main`; the response says the workers are worktree-isolated.
+- Wave 2 dispatches two workers with the harness's per-agent worktree isolation, not worktrees the orchestrator made by hand; each worker first moves its worktree to the committed base ref and checks HEAD equals it, and leaves its return and slice note in `.fleet-out/` for the orchestrator to copy in (ADR-0242).
 - After each wave merge, the response records an integration gate (build + typecheck + affected tests) with the exact commands run and a pass result before the next wave dispatches.
 - Realized parallel width is reported honestly (max wave width 2).
 
@@ -71,7 +71,7 @@ Mode: Agent
 2. **Turn 1 -- parallel wave correct**: Slices 2 and 3 are in one wave (disjoint scope, deps met); the response shows them dispatched concurrently.
 3. **Turn 1 -- serialize on overlap**: Slice 4 is held out of the 2-3 wave because it shares `src/lib/csv.ts` with Slice 2, even though its dependency (Slice 1) is satisfied. The overlap is named explicitly.
 4. **Turn 1 -- disjointness PASS cited**: Step 3 states scope-disjointness PASS for the parallel wave and cites ADR-0041.
-5. **Turn 1 -- worktree isolation**: The parallel workers are described as running in their own git worktrees off the base ref.
+5. **Turn 1 -- worktree isolation**: The parallel workers are dispatched with the harness's isolation option and move their worktrees to the base ref before editing; the orchestrator creates no slice worktree itself, and the merge carries the slices' files and not `.fleet-out/`.
 6. **Turn 1 -- integration gate**: After each wave merge, the response records build + typecheck + affected tests on the merged tree with the exact commands and a pass result; the next wave does not dispatch before the gate passes.
 7. **Turn 1 -- honest width**: The response reports the realized max parallel width (2), not an inflated claim.
 8. **Turn 2 -- chain NO_OP**: When every wave is size one, the run is a NO_OP_TRACE that routes to `implement-approved-slice` for the first slice; no workers dispatched, no worktrees created.

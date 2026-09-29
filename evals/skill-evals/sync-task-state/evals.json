@@ -1,0 +1,37 @@
+{
+  "skill_name": "sync-task-state",
+  "version": "1.0",
+  "description": "Trigger evals for sync-task-state: it writes a small, trusted progress update into TASK_STATE.md, unlike state-reconcile (cross-artifact drift repair), compact-task-memory (lossy shrinking), or capture-observation (a single appended note).",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "log what we just did in TASK_STATE.md",
+      "Slice 02 is done and merged into the task branch, tests green. TASK_STATE.md still says slice 02 is in progress and the next step is stale. Bring the task memory up to date so I can pick it up tomorrow.",
+      "We just locked D-4 in DECISIONS.md (soft delete, no hard purge). TASK_STATE.md does not mention it yet. Write it into the known facts and update the recommended next step.",
+      "I'm stopping for the day and handing this task to a teammate. Update the state file with where we are, what is open, and what they should run first.",
+      "PR #212 is open and the plan was approved an hour ago, but TASK_STATE.md still shows the phase as planning. Refresh the phase, the active files in scope, and the blockers section."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "TASK_STATE.md says slice 03 is in progress, IMPLEMENTATION_PLAN.md marks it closed, and the SLICES notes list files that do not exist in the diff. Cross-check all of it against the code and tell me which one is lying.",
+        "routes_to": "state-reconcile"
+      },
+      {
+        "prompt": "TASK_STATE.md has ballooned after seven closed slices and every session now burns tokens re-reading it. Shrink it and keep only the decisions and the next step.",
+        "routes_to": "compact-task-memory"
+      },
+      {
+        "prompt": "Side thought while I'm in the middle of slice 04: the retry helper might swallow timeouts. Don't change anything, just park that somewhere so I don't forget it.",
+        "routes_to": "capture-observation"
+      },
+      {
+        "prompt": "New chat window, I have no idea where we left off on this task. Read the artifacts and rebuild the full picture for me before we do anything else.",
+        "routes_to": "resume-from-state"
+      },
+      {
+        "prompt": "Requirements just changed and we now also need CSV export as a separate piece of work. Set up a fresh task folder for it with the usual starter files.",
+        "routes_to": "task-init"
+      }
+    ]
+  }
+}

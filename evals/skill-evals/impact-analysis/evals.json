@@ -1,0 +1,37 @@
+{
+  "skill_name": "impact-analysis",
+  "version": "1.0",
+  "description": "Trigger evals for impact-analysis: it maps what a requested change touches and writes IMPACT_ANALYSIS.md, while its siblings locate code, triage a live failure, sync memory, or execute an approved slice.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "What would break if we change the shape of the orders webhook payload?",
+      "Just opened the task for switching our session tokens from opaque IDs to signed JWTs. Before anyone plans slices, work out which services, tests and mobile clients read those tokens and what could go wrong.",
+      "TASK_STATE.md says we are still in discovery on moving billing from monthly to usage-based. I need the blast radius written down: which tables, background jobs and downstream exports depend on the current invoice totals.",
+      "Product wants the user_id column renamed across the monolith and the two worker repos. Map what reads or writes it, per repo, and flag the integration points so we know how risky this is.",
+      "PR #212 is not open yet, but the request is to swap our queue library for a different one. Figure out which runtime paths, retry behaviors and critical flows are exposed to that swap before we commit to a plan."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "Prod alert just fired: TypeError cannot read properties of undefined in the refund handler, started right after last night's deploy. Here is the stack trace. Is this a hotfix or a proper slice?",
+        "routes_to": "incident-triage"
+      },
+      {
+        "prompt": "IMPACT_ANALYSIS.md is done and slice 02 is approved in IMPLEMENTATION_PLAN.md. Go ahead and make the edits in the files listed for that slice.",
+        "routes_to": "implement-approved-slice"
+      },
+      {
+        "prompt": "I have no idea which file sends the password reset email. Can you find the candidate code paths and line ranges for that behavior?",
+        "routes_to": "code-locate"
+      },
+      {
+        "prompt": "We just finished the analysis and locked D-2 about keeping the legacy endpoint alive. Update TASK_STATE.md so I can pick this up tomorrow from a fresh chat.",
+        "routes_to": "sync-task-state"
+      },
+      {
+        "prompt": "Greenfield ingestion service, nothing exists yet. Write the full design doc: architecture, data model, caching, scaling, SLOs and rollout.",
+        "routes_to": "backend-system-design"
+      }
+    ]
+  }
+}

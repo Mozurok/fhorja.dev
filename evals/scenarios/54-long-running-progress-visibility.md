@@ -1,7 +1,7 @@
 # Eval scenario 54: long-running execution progress visibility
 
 - **Tags**: ADR-0042, progress-visibility, implement-fleet, observability, stall-rule
-- **Last reviewed**: 2026-06-13
+- **Last reviewed**: 2026-09-29
 - **Status**: active
 
 ## Goal
@@ -42,13 +42,13 @@ Wave 1 has been running for 6 minutes. Worker for Slice 2 has not transitioned
 ## Expected response shape (turn 1: dispatch)
 
 - Before waiting, the orchestrator emits a per-wave dispatch line naming the wave, the worker count, the slice ids, and the expected upper-bound duration (up to 15 min).
-- It polls the assigned flat `.json` return files and the host's worker lifecycle status and reports each worker's last observed state, rather than going silent until the barrier. Naming `scripts/monitor-fleet-progress.sh` is not required: Step 8 no longer cites it, and that script reads a per-worker directory layout rather than the flat return files.
+- It polls the host's worker lifecycle status and each known worker's `.fleet-out/` return, and reports each worker's last observed state, rather than going silent until the barrier. It may run `scripts/monitor-fleet-progress.sh` for this, which Step 8 names as optional and which reads the flat `<worker_id>.json` returns (ADR-0242); naming it is not required.
 
 ## Expected response shape (turn 2: stall)
 
 - The orchestrator applies the stall rule: it emits a status summary (which workers are running, elapsed time, each worker's last observable action) instead of waiting silently for `timeout_ms`.
 - It does not weaken the integration gate: `partial_ok` stays false and the wave still gates on build + typecheck + tests.
-- It states that on abort or timeout it would persist worker partials from `.wos/fleet-inbox/<run_id>/` so the run stays resumable.
+- It states that on abort or timeout it would copy every return already in a worker's `.fleet-out/` into `.wos/fleet-inbox/<run_id>/` so the run stays resumable.
 
 ## What a FAIL looks like
 

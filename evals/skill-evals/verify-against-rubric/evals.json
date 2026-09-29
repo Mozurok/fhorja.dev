@@ -1,0 +1,37 @@
+{
+  "skill_name": "verify-against-rubric",
+  "version": "1.0",
+  "description": "Trigger evals for verify-against-rubric: it hands one artifact and a locked rubric to a fresh stateless reader for an independent verdict, unlike self-critique-and-revise (same context, rewrites) or the fleet variant (many artifacts).",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "Can a fresh agent with no context grade PR_PACKAGE.md against my rubric? I don't trust my own read anymore.",
+      "contract-signoff just hardened DECISIONS.md for this task. I wrote six pass/fail criteria in the plan under Rubric. Send the sign-off to a cold reader that hasn't seen our chat and give me its per-criterion feedback.",
+      "Slice 04 is the risky one (HIGH complexity) and I finished implementing it. Before I close it I want a judgment from something that never saw this conversation, checked only against the acceptance list in IMPLEMENTATION_PLAN.md.",
+      "Independent check please: the slice 02 notes against the exit criteria I pasted below, judged by a reader with read-only access and no other task files.",
+      "The code review on PR #212 came back with zero findings, which feels too clean. Have a blind reader go through the diff against the review checklist and tell me if it holds up."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "I have eight slice notes under SLICES/ and one shared acceptance rubric. Run the same check on every one of them at the same time and tell me which criterion fails most often across the set.",
+        "routes_to": "verify-against-rubric-fleet"
+      },
+      {
+        "prompt": "I just drafted IMPLEMENTATION_PLAN.md for this task and it is a small, low-risk change. Critique it against the usual plan checklist and fix the weak parts right in the file.",
+        "routes_to": "self-critique-and-revise"
+      },
+      {
+        "prompt": "Slice 02 is implemented. Look over the code changes for correctness and safety problems and tell me the smallest safe next step before I close it.",
+        "routes_to": "review-hard"
+      },
+      {
+        "prompt": "I want someone independent to check the sign-off document, but the only criteria I have are that it looks good and the feature works. Can you get it verified?",
+        "routes_to": "resolve-contract-gaps"
+      },
+      {
+        "prompt": "PR_PACKAGE.md from yesterday is out of date because two more commits landed since. Rebuild it from the current diff against main so I can open the PR.",
+        "routes_to": "pr-package"
+      }
+    ]
+  }
+}

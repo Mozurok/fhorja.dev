@@ -1,0 +1,37 @@
+{
+  "skill_name": "frontend-architecture-review",
+  "version": "1.0",
+  "description": "Trigger evals for frontend-architecture-review: it gates micro-frontend adoption and checks a frontend architecture at scale, while its siblings design a single frontend system, review API contracts, set numeric performance budgets, or capture external references.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "Are we crazy to split the storefront into micro-frontends? We are two teams and one repo.",
+      "Leadership wants us to move the checkout, account and search areas into separate apps loaded at runtime. Before we commit, tell me if this is justified for a team our size and what would go wrong.",
+      "The plan in IMPLEMENTATION_PLAN.md has five remotes behind a host shell, all sharing one React runtime and one design kit. Poke holes in it: who owns each boundary, how do version mismatches get handled, what happens when one remote is down?",
+      "We have four squads shipping the same web app and releases keep colliding. Review whether our current module layout and deploy setup still holds at this scale, including routing across areas and where auth and error reporting live.",
+      "Our proposal composes pages at the edge with per-route rendering and a shared state layer between sections. Sanity check the whole thing for scale before we build it."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "Write the full design doc for our new dashboard app: requirements, component architecture, data model, rendering, accessibility, security, rollout and trade-offs.",
+        "routes_to": "frontend-system-design"
+      },
+      {
+        "prompt": "Here is the new GraphQL schema for the BFF. Check nullability, pagination, query depth limits and how errors are returned before we build resolvers.",
+        "routes_to": "graphql-contract-review"
+      },
+      {
+        "prompt": "We decided to stay a single deployable app, so no split. The open item is the new REST contract between the web app and the account service: resource names, versioning, pagination and error codes. Review it before anyone builds the endpoints.",
+        "routes_to": "api-contract-review"
+      },
+      {
+        "prompt": "Give me numeric budgets for the new landing page: LCP, total blocking time and JS bundle size, with what we do when a metric regresses.",
+        "routes_to": "performance-budget"
+      },
+      {
+        "prompt": "Grab the official docs and a couple of solid articles on our federation tooling and save them to the project references so later tasks can cite them.",
+        "routes_to": "capture-references"
+      }
+    ]
+  }
+}

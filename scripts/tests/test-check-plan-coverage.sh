@@ -292,6 +292,139 @@ run_cov "$R4H"
   && pass "31. control: a slice citing the newest entry of a replacement chain passes" \
   || fail "31. a citation of the chain's newest P-N was flagged (exit $COV_CODE): $(printf '%s' "$COV_OUT" | tail -5)"
 
+# --- rule 2 and a maintainer confirmation (ADR-0233 P-1, fixed 2026-09-28) -----
+# The maintainer confirms a P-N with a locked D-N carrying `Confirms: P-N`. That D-N
+# is the P-N promoted, so a slice citing the P-N already covers it. Before the fix
+# rule 2 read D-tokens only and reported every such D-N as cited by no slice: 46
+# confirmations on 2026-09-28 turned closed plans red. Checks 36 to 41 and 44 fail
+# on the old checker (37 of 44 passed there); 42 and 43 are controls that pass on
+# both.
+# The Confirms line sits one line below the heading on purpose, as it does in
+# real DECISIONS.md files.
+DEC_CONFIRM_P2="$DEC_ONE
+
+### D-2: the mechanism, confirmed
+
+Maintainer, 2026-09-28: confirm all.
+Confirms: P-2"
+CONF_SLICE1='- Deliverable-tag: user-facing-content
+- Decision-ref: D-1
+'
+
+# 36. The reproduction's shape: a bare `Decision-ref: P-2`, D-2 confirming P-2.
+C36="$(make_task c36 "$LEDGER_TAGGED" "$DEC_CONFIRM_P2" \
+  "$(slice 1 "$CONF_SLICE1")
+$(slice 2 '- Decision-ref: P-2
+')" "$PROV_ONE")"
+run_cov "$C36"
+[ "$COV_CODE" = "0" ] && ! printf '%s\n' "$COV_OUT" | grep -q 'decision-coverage' \
+  && pass "36. fix: a D-N confirming P-2 is covered by a slice whose Decision-ref: cites P-2" \
+  || fail "36. a confirming D-N was reported although its P-N is cited (exit $COV_CODE): $(printf '%s' "$COV_OUT" | tail -3)"
+
+# 37. The same D-N with no slice citing P-2 is still reported, and says which P-N.
+C37="$(make_task c37 "$LEDGER_TAGGED" "$DEC_CONFIRM_P2" \
+  "$(slice 1 "$CONF_SLICE1")" "$PROV_ONE")"
+run_cov "$C37"
+[ "$COV_CODE" = "1" ] && printf '%s\n' "$COV_OUT" | grep -q 'decision-coverage: D-2: the mechanism, confirmed is cited by no slice.*no slice cites P-2, which it confirms' \
+  && pass "37. mutation: a confirming D-N whose P-N no slice cites is reported with that P-N" \
+  || fail "37. an uncited confirmation was not reported by P-N (exit $COV_CODE): $(printf '%s' "$COV_OUT" | tail -3)"
+
+# 38. P-2 named in an exit criterion covers it.
+C38="$(make_task c38 "$LEDGER_TAGGED" "$DEC_CONFIRM_P2" \
+  "$(slice 1 "$CONF_SLICE1")
+$(printf '### Slice 2 (S2): demo\n\n- Scope: one file\n- Depends-on: none\n- Status: PENDING\n- Work complexity: S\n- Decision-ref: D-1\n- Exit criteria: WHEN the gate runs THEN the P-2 mechanism SHALL hold\n')" "$PROV_ONE")"
+run_cov "$C38"
+[ "$COV_CODE" = "0" ] \
+  && pass "38. fix: a confirmed P-N named in an exit criterion covers the confirming D-N" \
+  || fail "38. an exit criterion naming the confirmed P-N did not cover it (exit $COV_CODE): $(printf '%s' "$COV_OUT" | tail -3)"
+
+# 39. A "rests on provisional" line outside Decision-ref: covers it too.
+C39="$(make_task c39 "$LEDGER_TAGGED" "$DEC_CONFIRM_P2" \
+  "$(slice 1 '- Deliverable-tag: user-facing-content
+- Decision-ref: D-1
+- Rests on provisional P-2 for the mechanism
+')" "$PROV_ONE")"
+run_cov "$C39"
+[ "$COV_CODE" = "0" ] \
+  && pass "39. fix: a rests-on-provisional line outside Decision-ref: covers the confirming D-N" \
+  || fail "39. a rests-on-provisional line did not cover the confirmation (exit $COV_CODE): $(printf '%s' "$COV_OUT" | tail -3)"
+
+# 40. The maintainer confirmed P-1, which P-2 replaces, and the slice cites P-2,
+# the newest entry of the chain (ADR-0235). One chain, so the D-N is covered.
+DEC_CONFIRM_P1="$DEC_ONE
+
+### D-2: the reading, confirmed
+Confirms: P-1"
+C40="$(make_task c40 "$LEDGER_TAGGED" "$DEC_CONFIRM_P1" \
+  "$(slice 1 "$CONF_SLICE1")
+$(slice 2 '- Decision-ref: rests on provisional P-2
+')" "$PROV_CHAIN")"
+run_cov "$C40"
+[ "$COV_CODE" = "0" ] \
+  && pass "40. fix: a confirmation of a replaced P-N is covered by a slice citing the chain's newest entry" \
+  || fail "40. a confirmation along a Replaces: chain was not covered (exit $COV_CODE): $(printf '%s' "$COV_OUT" | tail -3)"
+
+# 41. Control: the maintainer confirmed P-2 and the slice still cites the replaced
+# P-1. Rule 2 stays silent on D-2, and rule 4b still reports the stale citation.
+DEC_CONFIRM_P2_CHAIN="$DEC_ONE
+
+### D-2: the reading, confirmed
+Confirms: P-2"
+C41="$(make_task c41 "$LEDGER_TAGGED" "$DEC_CONFIRM_P2_CHAIN" \
+  "$(slice 1 "$CONF_SLICE1")
+$(slice 2 '- Decision-ref: rests on provisional P-1
+')" "$PROV_CHAIN")"
+run_cov "$C41"
+! printf '%s\n' "$COV_OUT" | grep -q 'decision-coverage: D-2' \
+  && printf '%s\n' "$COV_OUT" | grep -q 'cites provisional P-1, which P-2 replaces' \
+  && pass "41. control: a stale citation in the confirmed chain covers D-2 and rule 4b still reports it" \
+  || fail "41. chain coverage or the rule 4b report changed (exit $COV_CODE): $(printf '%s' "$COV_OUT" | tail -3)"
+
+# 42. Control (P-2 of this task): a D-N carrying `Supersedes: P-2` chose something
+# else, so a slice citing P-2 does not cover it.
+DEC_SUPERSEDE_P2="$DEC_ONE
+
+### D-2: a different mechanism
+Supersedes: P-2"
+C42="$(make_task c42 "$LEDGER_TAGGED" "$DEC_SUPERSEDE_P2" \
+  "$(slice 1 "$CONF_SLICE1")
+$(slice 2 '- Decision-ref: rests on provisional P-2
+')" "$PROV_ONE")"
+run_cov "$C42"
+[ "$COV_CODE" = "1" ] && printf '%s\n' "$COV_OUT" | grep -q 'decision-coverage: D-2: a different mechanism is cited by no slice' \
+  && pass "42. control: a D-N superseding P-2 is not covered by a slice citing P-2" \
+  || fail "42. a superseding D-N was covered through the P-N it replaces (exit $COV_CODE): $(printf '%s' "$COV_OUT" | tail -3)"
+
+# 43. Control: a D-N with no Confirms: line is judged exactly as before, even when
+# a slice cites a P-N whose title matches it.
+DEC_PLAIN="$DEC_ONE
+
+### D-2: the mechanism to try"
+C43="$(make_task c43 "$LEDGER_TAGGED" "$DEC_PLAIN" \
+  "$(slice 1 "$CONF_SLICE1")
+$(slice 2 '- Decision-ref: rests on provisional P-2
+')" "$PROV_ONE")"
+run_cov "$C43"
+[ "$COV_CODE" = "1" ] && printf '%s\n' "$COV_OUT" | grep -q 'decision-coverage: D-2: the mechanism to try is cited by no slice Decision-ref: and named in no exit criterion$' \
+  && pass "43. control: a D-N with no Confirms: line needs its own citation" \
+  || fail "43. a plain D-N was covered through a P-N citation (exit $COV_CODE): $(printf '%s' "$COV_OUT" | tail -3)"
+
+# 44. A Confirms: naming a P-N the section does not carry covers nothing, even when
+# a slice cites that P-N, and the finding says the P-N is missing.
+DEC_CONFIRM_P9="$DEC_ONE
+
+### D-2: a confirmation of nothing
+Confirms: P-9"
+C44="$(make_task c44 "$LEDGER_TAGGED" "$DEC_CONFIRM_P9" \
+  "$(slice 1 "$CONF_SLICE1")
+$(slice 2 '- Decision-ref: rests on provisional P-2
+- Exit criteria: WHEN it lands THEN P-9 SHALL hold
+')" "$PROV_ONE")"
+run_cov "$C44"
+[ "$COV_CODE" = "1" ] && printf '%s\n' "$COV_OUT" | grep -q 'D-2: a confirmation of nothing is cited by no slice.*confirms P-9, which DECISIONS.md ## Provisional decisions does not carry' \
+  && pass "44. mutation: a Confirms: naming a P-N the section does not carry covers nothing and says so" \
+  || fail "44. a confirmation of a missing P-N was covered or not named (exit $COV_CODE): $(printf '%s' "$COV_OUT" | tail -3)"
+
 # --- advisory tier never fails the build ----------------------------------
 out="$("$CHECKER" --all --advisory --root "$TMP" 2>&1)"; code=$?
 [ "$code" = "0" ] && pass "9. --all --advisory exits 0 with findings present" \
@@ -382,14 +515,48 @@ run_cov "$d"
   && pass "24. mutation: a route slice not marked approved is refused" \
   || fail "24. an unapproved route slice passed: $(printf '%s' "$COV_OUT" | tail -3)"
 
-# P-7: any provisional decision disqualifies the route the same way a locked
-# one does; the route needs the brief to have settled every decision, and a
-# provisional P-N is by definition one the brief did not settle.
-d="$(make_route route-provisional "$ROUTE_SLICE" "None locked in this task." "$PROV_ONE")"
+# ADR-0239 (superseding ADR-0233 P-7 in part): an `Impact: normal` provisional
+# decision keeps the route when the slice cites it and TASK_STATE.md records a task
+# branch, because the draft PR is where the person reads it. Check 28 pinned the old
+# rule (any P-N refused); it is now the admission control and FAILS on the pre-ADR-0239
+# checker, which refused this fixture with "carries 1 provisional decision(s)".
+ROUTE_SLICE_P2="${ROUTE_SLICE/none (the brief carries every decision)/rests on provisional P-2}"
+add_branch() { printf '\n## Resume notes\n- Task branch: task/2026-09-23_demo\n- Base branch: main\n' >> "$1/TASK_STATE.md"; }
+d="$(make_route route-provisional "$ROUTE_SLICE_P2" "None locked in this task." "$PROV_ONE")"
+add_branch "$d"
 run_cov "$d"
-[ "$COV_CODE" = "1" ] && printf '%s' "$COV_OUT" | grep -q "DECISIONS.md carries 1 provisional decision(s)" \
-  && pass "28. mutation: a provisional decision under the route line is refused" \
-  || fail "28. a route plan with a provisional decision passed: $(printf '%s' "$COV_OUT" | tail -3)"
+[ "$COV_CODE" = "0" ] \
+  && pass "28. an Impact: normal P-N the slice cites, on a task branch, keeps the route (ADR-0239)" \
+  || fail "28. a route plan with a cited normal P-N on a task branch was refused: $(printf '%s' "$COV_OUT" | tail -3)"
+
+PROV_HIGH="${PROV_ONE/Impact: normal/Impact: high}"
+d="$(make_route route-prov-high "$ROUTE_SLICE_P2" "None locked in this task." "$PROV_HIGH")"
+add_branch "$d"
+run_cov "$d"
+[ "$COV_CODE" = "1" ] && printf '%s' "$COV_OUT" | grep -q "provisional P-2 is Impact: high" \
+  && pass "32. mutation: an Impact: high P-N under the route line is refused" \
+  || fail "32. a route plan with a high-impact P-N passed: $(printf '%s' "$COV_OUT" | tail -3)"
+
+PROV_NOIMPACT="${PROV_ONE/Impact: normal. /}"
+d="$(make_route route-prov-noimpact "$ROUTE_SLICE_P2" "None locked in this task." "$PROV_NOIMPACT")"
+add_branch "$d"
+run_cov "$d"
+[ "$COV_CODE" = "1" ] && printf '%s' "$COV_OUT" | grep -q "provisional P-2 is Impact: missing" \
+  && pass "33. mutation: a P-N with no Impact: line under the route line is refused (doubt keeps the full path)" \
+  || fail "33. a route plan with an unlabeled P-N passed: $(printf '%s' "$COV_OUT" | tail -3)"
+
+d="$(make_route route-prov-uncited "$ROUTE_SLICE" "None locked in this task." "$PROV_ONE")"
+add_branch "$d"
+run_cov "$d"
+[ "$COV_CODE" = "1" ] && printf '%s' "$COV_OUT" | grep -q "no slice Decision-ref: cites provisional P-2" \
+  && pass "34. mutation: a normal P-N the route's slice does not cite is refused" \
+  || fail "34. a route plan with an uncited P-N passed: $(printf '%s' "$COV_OUT" | tail -3)"
+
+d="$(make_route route-prov-nobranch "$ROUTE_SLICE_P2" "None locked in this task." "$PROV_ONE")"
+run_cov "$d"
+[ "$COV_CODE" = "1" ] && printf '%s' "$COV_OUT" | grep -q "records no Task branch:, so no draft PR lists them" \
+  && pass "35. mutation: a normal P-N on a run with no task branch is refused" \
+  || fail "35. a route plan with a P-N and no task branch passed: $(printf '%s' "$COV_OUT" | tail -3)"
 
 # Control: the same two slices with NO route line are an ordinary plan, and rule 5 is silent.
 d="$(make_task route-none "- none named" "None locked in this task." "$ROUTE_SLICE

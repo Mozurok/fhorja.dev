@@ -11,7 +11,7 @@ metadata:
   tools: "Read, Write, Edit, Bash, Glob, Grep"
   x-wos-profiles: "full"
   provenance: "first-party"
-  suggested-model: "claude-sonnet-5"
+  suggested-model: "claude-sonnet-5-5"
 ---
 > **Output contract, in brief.** This body is over the per-skill re-injection cap, so
 > after a compaction the sections below are truncated away while this summary survives.
@@ -20,7 +20,7 @@ metadata:
 > - `Standard output layout (required)`: Produce the command output using this structure (English only):
 > - `Artifact changes`: Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules. Every listed file...
 > - `Command transcript`: Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
-> - `Handoff`: Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per...
+> - `Handoff`: Use the adaptive ending format of `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract`. Every Handoff is one fenced `text` b...
 > - `Definition of done (command output)`: The MCP precondition check is performed first and its result is reported. When it fails, the local CLI path is checked next; when...
 
 
@@ -192,8 +192,7 @@ Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIE
 Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
 
 ### Handoff
-Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state). Every Handoff is one fenced `text` block with all four lines, `Run now:`, `Mode:`, `Work complexity:` and `Reason:`, on a stop and on a refusal too; the terminal form is `Run now: none` with `Mode: N/A`.
-
+Use the adaptive ending format of `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract`. Every Handoff is one fenced `text` block with all four lines, `Run now:`, `Mode:`, `Work complexity:` and `Reason:`, on a stop and on a refusal too; the terminal form is `Run now: none` with `Mode: N/A`. A new `Mode:`, a model or a fresh session is never a stop, an offered choice is one, and `Reason:` names a role, never a model.
 ### Definition of done (command output)
 - The MCP precondition check is performed first and its result is reported. When it fails, the local CLI path is checked next; when neither path is available, no `DB_CONTEXT.md` content is proposed and the run ends with `NO_OP_TRACE` plus the actionable configuration line.
 - The proposed `DB_CONTEXT.md` includes `Provider`, `Introspection path`, `Project ref`, `Last refreshed`, `Depth`, and `Scope` metadata, and at least one populated `## Tables` entry (or an explicit `NO_OP_TRACE` if the requested scope returned no tables).

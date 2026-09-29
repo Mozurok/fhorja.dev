@@ -1,6 +1,6 @@
 # Eval scenario 63: implement-approved-slice on-slice-close fleet handoff
 
-- **Tags**: ADR-0042, routing, implement-approved-slice, what-next, implement-fleet, handoff-contract, careers-page-dogfooding
+- **Tags**: ADR-0042, ADR-0243, routing, implement-approved-slice, what-next, implement-fleet, handoff-contract, careers-page-dogfooding
 - **Last reviewed**: 2026-06-23
 - **Status**: active
 
@@ -57,7 +57,7 @@ Slice 1 is closed. Remaining waves per the approved plan: Wave 2 [2, 3, 4], file
 - The output contains a `Next-wave decision:` line that reads `fleet` and names the parallelizable
   wave (e.g. "fleet because the next wave [Slice 2, Slice 3, Slice 4] has size 3 with Scope and
   Depends-on declared").
-- The Handoff `Run now:` line is `implement-fleet` (not `implement-approved-slice` for Slice 2).
+- The Handoff `Run now:` line is `implement-fleet` (not `implement-approved-slice` for Slice 2). The session runs on Claude Code, whose sub-agents each get their own worktree, which the fleet route requires (ADR-0243); on a harness without that isolation the same close routes to `implement-approved-slice` and says why.
 
 ## Expected response shape (turn 2: what-next)
 

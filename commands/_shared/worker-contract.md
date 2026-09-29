@@ -6,15 +6,16 @@ Per ADR-0034 (Substrate peers + worker contract) and ADR-0038 (Workflow tool pri
 
 ```yaml
 worker_role: <persona-slug | command-name | fleet-worker-id>
-worker_tier: claude-haiku-4-5 | claude-sonnet-5 | claude-opus-5-5
+dispatch_role: mechanical | judgment   # never a model id; ADR-0236 maps it in wos/model-routing.md ## Dispatch roles
 context_injection:
   task_state_excerpt: <relevant TASK_STATE.md sections, read-only>
   decisions_excerpt: <relevant DECISIONS.md D-N entries, read-only>
   source_of_truth_excerpt: <relevant SOURCE_OF_TRUTH.md sections, read-only>
   parent_artifact_paths: [<path>, ...]
+must_read: [<path>, ...]   # every file the worker must open before it writes, read-only, repository or task paths (ADR-0240); echoed back in files_read
 parent_artifacts: read-only mounted
 substrate_writes: forbidden (workers NEVER write substrate directly)
-fleet_inbox_artifact: fleet-inbox/<run_id>/<worker_id>.json   # Agent-path carrier (ADR-0158 D-1); on the dynamic-workflow path the runtime's typed return carries it and this field is unused. Never a prose file
+fleet_inbox_artifact: fleet-inbox/<run_id>/<worker_id>.json   # Agent-path carrier (ADR-0158 D-1); a worktree-isolated worker gets .fleet-out/<worker_id>.json in its own worktree instead (ADR-0242); on the dynamic-workflow path the runtime's typed return carries it and this field is unused. Never a prose file
 task_input:
   <orchestrator-specific structured input; declared in orchestrator command's frontmatter `worker_input_schema`>
 timeout_ms: <integer | null>
@@ -31,22 +32,27 @@ Per ADR-0038 Rule 1, the worker returns its result as a typed payload matching t
 
   This is the ONE place a worker may write, and the exception is scoped to `fleet-inbox/<run_id>/` keyed to this run (ADR-0158 D-2). It grants nothing outside that directory. The scoping matters more than it looks: a background sub-agent retains `Edit` and `Write`, and this repository ships no agent definition withholding them, so every other line of this contract rests on the worker refusing rather than on the platform stopping it. Widening this exception would remove the only rule holding that boundary.
 
+  **A worktree-isolated worker returns through its own worktree (ADR-0242).** A worker dispatched with the harness's per-agent worktree isolation cannot write outside that worktree, so the run inbox is out of its reach. Its carrier is `.fleet-out/<worker_id>.json` at its worktree root, and any other file its orchestrator command lets it return (`implement-fleet`'s slice note) goes in the same folder. The folder is never staged or committed. After the barrier the orchestrator, the single writer, copies each file into `fleet-inbox/<run_id>/` or the task folder, and never merges the folder. The exception moves with the worker and does not widen: one folder, keyed to one worker, inside a tree nobody else writes.
+
 The payload carries these fields (orchestrator declares the full schema in `worker_output_schema`):
 
 ```json
 {
   "worker_id": "<unique within run>",
   "worker_role": "<echoed from input>",
-  "worker_tier": "<echoed from input>",
+  "dispatch_role": "<echoed from input>",
   "ts_started": "<ISO 8601>",
   "ts_completed": "<ISO 8601>",
   "status": "satisfied | needs_revision | max_iterations_reached | failed | interrupted",
   "deliverables": "<one or more structured findings; shape per worker_output_schema>",
   "open_questions": ["<one line each; empty array if none>"],
   "evidence": ["<file:line, URL, or transcript excerpt; one per claim that affects substrate>"],
+  "files_read": ["<every path the worker opened; the orchestrator compares it with must_read>"],
   "notes_for_orchestrator": "<free-form, optional; orchestrator may consume or ignore>"
 }
 ```
+
+**Reads are declared and echoed (ADR-0240).** The orchestrator lists in `must_read` every file a worker must open, which matters most when a worker carries a batch of items (`WORKFLOW_OPERATING_SYSTEM.md` → `## Parallel workflow` → `### Items per worker (ADR-0240)`). The worker opens each one and lists what it actually opened in `files_read`. Before merging, the orchestrator compares the two: for a `must_read` path absent from `files_read`, it rechecks that worker's items against the file itself or re-dispatches them, and records the gap in the merge log. A missing `files_read` reads as "no reads shown", never as "all read". `must_read` is separate from `parent_artifact_paths`, whose task-folder limit below is unchanged, because the files a worker must open (a command file, a captured source) often live outside the task folder.
 
 ## Status taxonomy (verbatim Outcomes API)
 
@@ -73,7 +79,7 @@ When `status: failed`, the StructuredOutput payload MUST also include an `error`
 
 ## Partial shape (Epic J fleet merger consumption)
 
-The orchestrator-merger consumes ALL workers' typed payloads (keyed by `<worker_id>`, from the runtime's `StructuredOutput` result on the dynamic-workflow path or from `fleet-inbox/<run_id>/<worker_id>.json` on the `Agent` path, per ADR-0158 D-1) after convergence (J.4) and merges per declared `merge_strategy`:
+The orchestrator-merger consumes ALL workers' typed payloads (keyed by `<worker_id>`, from the runtime's `StructuredOutput` result on the dynamic-workflow path or from `fleet-inbox/<run_id>/<worker_id>.json` on the `Agent` path, per ADR-0158 D-1, where a worktree-isolated worker's return lands once the orchestrator copies it from `.fleet-out/`, per ADR-0242) after convergence (J.4) and merges per declared `merge_strategy`:
 
 - `union`: aggregate all deliverables across workers, deduplicate by canonical key declared in `worker_output_schema`.
 - `last-by-timestamp`: when two workers emit deliverables targeting the same section, keep the latest by `ts_completed`.
@@ -88,7 +94,7 @@ Merger writes ONE transaction header per merged substrate section and ONE `VERIF
 A worker MUST refuse with `status: failed`, `error_class: contract-violation` when:
 
 - `task_input` violates the orchestrator's declared `worker_input_schema`.
-- `worker_tier` is below the minimum declared in the orchestrator command's `min_worker_tier` field.
+- `dispatch_role` differs from the `dispatch-role` the orchestrator command declares for this worker in `workers[]`.
 - `parent_artifact_paths` references files outside `active/<task>/` or violates read-only mount.
 - `substrate_writes` is requested. This is a real gate, NOT a sanity check: a background sub-agent retains `Edit` and `Write` (Claude Code documents the background tool filter as keeping `Read, Grep, Glob, Bash, PowerShell, Edit, Write, NotebookEdit, ...`), so nothing in the platform prevents a worker from writing substrate. Withholding those tools requires an agent definition carrying `disallowedTools`, which this repository does not ship. Treat the refusal as the only thing standing between a worker and a substrate write.
 

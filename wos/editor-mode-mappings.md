@@ -22,6 +22,8 @@ There are two Codex commands with no row here, because neither has a workflow-mo
 
 When the user is in a tool that does not have a direct mode equivalent (for example, no native `Plan` mode), the workflow's behavior is unchanged: the model still drafts a plan, and its task-memory files land directly and marked `APPLIED` like in any other mode (ADR-0199). `PROPOSED` survives only for a block staged inside a section the command does not own (ADR-0034), which no mode changes. The mode names are about the agent's intent, not the tool's UI. The `Why this mode:` block in each command file describes intent, not tool features.
 
+The same holds for a Handoff. A `Mode:` line that differs from the last one never asks the user to switch the harness: in Claude Code a `Plan` step after an `Agent` step runs in the harness mode the session is already in, writes its task memory, and continues in the same turn (ADR-0241). The user enters Claude Code plan mode by choice; a Handoff never hands that step to them.
+
 ## Source currency
 
 Last scanned: 2026-09-20

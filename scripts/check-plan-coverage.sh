@@ -26,6 +26,18 @@
 #      whose title carries `PROPOSED` (a staged draft, not yet locked) is never
 #      counted as a locked decision here, so it cannot satisfy this rule and cannot
 #      make rule 4 vacuous either (fixed 2026-09-24: it used to count on sight).
+#      A D-N whose block carries `Confirms: P-M` is the maintainer promoting P-M
+#      (ADR-0233 P-1), so it is also covered when a slice cites P-M through its
+#      `Decision-ref:`, a line saying `rests on provisional`, or an exit criterion.
+#      Both sides follow `Replaces:` to the newest entry of their chain (ADR-0235),
+#      so citing any entry of P-M's chain counts; a chain that loops counts for
+#      nothing. Only a P-M that `## Provisional decisions` carries counts, a D-N
+#      confirming several P-Ns needs every one cited, and an uncovered one is
+#      reported with the P-N it confirms. A D-N carrying `Supersedes: P-M` chose
+#      something other than P-M, so citing P-M does not cover it; it is judged
+#      like any other D-N (fixed 2026-09-28: before, a confirmation counted only
+#      when a slice cited the D-N itself, which no plan written before the
+#      confirmation does).
 #   3. slice-fields: every slice declares `Scope:`, `Depends-on:`, `Status:`, an
 #      exit criterion in EARS form (the canonical sentence carries SHALL), and a
 #      work-complexity value.
@@ -34,9 +46,8 @@
 #      `Decision-ref:` cites a P-N that section carries satisfies rule 4 (it
 #      traced to something, labeled provisional rather than authorized); a cited
 #      P-N the section does not carry is reported as a dangling citation and
-#      traces nothing. Any P-N present at all
-#      disqualifies the one-slice route (rule 5), the same way a locked decision
-#      does: the route needs the brief to carry every decision, provisional or not.
+#      traces nothing. Under the one-slice route (rule 5) a P-N is admitted only
+#      as ADR-0239 allows: `Impact: normal`, cited by the slice, on a task branch.
 #   4b. replaced provisional decisions (ADR-0235): a `### P-N` whose block carries
 #      `Replaces: P-M` replaces P-M, and plans cite only the newest entry of a
 #      replacement chain. A slice whose `Decision-ref:` cites a replaced P-M is
@@ -45,8 +56,10 @@
 #   5. one-slice-route (ADR-0225): when the plan's `## Approval log` carries a
 #      `one-slice route` line, or `TASK_STATE.md ## Recommended pipeline` carries
 #      `Route: one-slice`, the plan has exactly one slice, its Scope names at most two
-#      paths, `DECISIONS.md` locks no decision and records no provisional decision,
-#      and the slice says `Depends-on: none`,
+#      paths, `DECISIONS.md` locks no decision, every provisional decision is
+#      `Impact: normal`, cited by the slice's `Decision-ref:` and recorded on a run
+#      whose `TASK_STATE.md` carries a `Task branch:` line (ADR-0239: the draft PR
+#      is where it is read), and the slice says `Depends-on: none`,
 #      `Status: approved`, `Work complexity: LOW` and names
 #      `check-doc-sync.sh --against HEAD` in its exit criterion. task-init writes that
 #      plan itself and nothing reviews it, so these are the conditions a person would
@@ -118,7 +131,7 @@ while [ $# -gt 0 ]; do
     # Point the --all scan at another checkout, so this check is itself testable
     # (the same reason check-substrate-ownership.py takes --matrix).
     --root) shift; REPO_ROOT="${1:-}" ;;
-    -h|--help) sed -n '2,60p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,72p' "$0"; exit 0 ;;
     -*) echo "Plan-coverage: not measured (unknown option: $1)"; exit 2 ;;
     *) FOLDER="$1" ;;
   esac
@@ -174,6 +187,28 @@ function ptokens(s, i,   t) {
   }
 }
 
+# Record every P-N token s names into covp, the set rule 2 reads to cover a
+# `Confirms: P-M` D-N. A token counts only at a word boundary: a longer id whose
+# last letter is P, followed by a dash and digits, does not read as a P-N.
+function pcover(s,   t, m) {
+  t = s
+  while (match(t, /(^|[^A-Za-z0-9_])P-[0-9]+/)) {
+    m = substr(t, RSTART, RLENGTH)
+    sub(/^[^P]/, "", m)
+    covp[m] = 1
+    t = substr(t, RSTART + RLENGTH)
+  }
+}
+
+# The newest entry of p's `Replaces:` chain (ADR-0235), or "" when the chain
+# loops. The step cap stops a cycle, the same cap rule 4b uses.
+function chainhead(p,   h, steps) {
+  h = p
+  for (steps = 0; (h in replacedby) && steps <= nprov; steps++) h = replacedby[h]
+  if (h in replacedby) return ""
+  return h
+}
+
 function shorten(s, n) {
   if (length(s) <= n) return s
   return substr(s, 1, n - 3) "..."
@@ -188,6 +223,9 @@ function add(cat, msg) {
 # --- TASK_STATE.md ---------------------------------------------------------
 function ts_line(   row) {
   if ($0 ~ /^## /) { tssec = $0; return }
+  # ADR-0239: a provisional decision keeps the one-slice route only on a task branch,
+  # because the draft PR is where the person reads it. A placeholder value is no branch.
+  if ($0 ~ /Task branch:[` \t]*[A-Za-z0-9]/) taskbranch = 1
   if (tssec ~ /^## Recommended pipeline/ && $0 ~ /Route:[ \t]*one-slice/) route = 1
   if (tssec !~ /^## Requested deliverables/) return
   if ($0 !~ /^[ \t]*[-*][ \t]+/) return
@@ -228,6 +266,13 @@ function dec_line(   h, id, m) {
       }
       return
     }
+    # ADR-0239: the first `Impact:` word of a P-N block, read by rule 5. The value
+    # can share a line with `Status:` (`Impact: normal. Status: provisional.`).
+    if (curprov != "" && !(curprov in provimpact) && match($0, /Impact[*]*:[* \t]*[A-Za-z]+/)) {
+      m = substr($0, RSTART, RLENGTH)
+      sub(/^Impact[*]*:[* \t]*/, "", m)
+      provimpact[curprov] = tolower(m)
+    }
     # Rule 4b (ADR-0235): a `Replaces: P-M` line inside a P-N block records that
     # this P-N replaces P-M. Only P-to-P links; a D-N's `Supersedes:` is read above.
     if (curprov != "" && match($0, /Replaces:[* \t]*P-[0-9]+([ ]*(,|and)[ ]*P-[0-9]+)*/)) {
@@ -260,6 +305,17 @@ function dec_line(   h, id, m) {
   }
   # Form B: the decision's own block declares itself superseded.
   if (curdec != "" && $0 ~ /[Ss]uperseded by/) sup[curdec] = 1
+  # Rule 2 (ADR-0233 P-1): the maintainer confirms a P-N with a D-N carrying
+  # `Confirms: P-N`, on any line of the D-N's block. A `Supersedes: P-N` marks the
+  # D-N as a different choice, which keeps it out of the confirmation path.
+  if (curdec != "" && match($0, /Confirms:[* \t]*P-[0-9]+([ ]*(,|and)[ ]*P-[0-9]+)*/)) {
+    m = substr($0, RSTART, RLENGTH)
+    while (match(m, /P-[0-9]+/)) {
+      confirms[curdec] = confirms[curdec] " " substr(m, RSTART, RLENGTH)
+      m = substr(m, RSTART + RLENGTH)
+    }
+  }
+  if (curdec != "" && $0 ~ /[Ss]upersedes:[* \t]*P-[0-9]+/) supersedesp[curdec] = 1
 }
 
 # --- IMPLEMENTATION_PLAN.md ------------------------------------------------
@@ -312,13 +368,18 @@ function flush_slice(   b, n, lines, i, l, ll, v,
       # A slice resting on a provisional decision names it here too (P-1); it
       # traces for rule 4 the same as a locked D-N, labeled rather than authorized.
       ptokens(valueof(l), nslice)
+      pcover(valueof(l))
     }
     else if (isfield(ll, "exit criteria") || isfield(ll, "exit criterion")) {
       hasExit = 1
       sexit[nslice] = sexit[nslice] " " l
       if (l ~ /SHALL/) hasEars = 1
       dtokens(valueof(l), namedinexit)
+      pcover(valueof(l))
     }
+    # A "rests on provisional P-N" label outside `Decision-ref:` still names the
+    # P-N the slice rests on, which is enough to cover a D-N confirming it.
+    if (ll ~ /rests on provisional/) pcover(l)
   }
   sliceid[nslice] = sid
   if (!hasScope)  add("slice-fields", sid " declares no Scope:")
@@ -329,7 +390,7 @@ function flush_slice(   b, n, lines, i, l, ll, v,
   else if (!hasEars) add("slice-fields", sid " has an exit criterion with no SHALL (EARS form required)")
 }
 
-BEGIN { nfind = 0; nled = 0; ndec = 0; nslice = 0; route = 0 }
+BEGIN { nfind = 0; nled = 0; ndec = 0; nslice = 0; route = 0; taskbranch = 0 }
 
 # Crossing into a new file ends the previous one, and a plan whose `## Slices`
 # is its LAST H2 leaves a slice open at that boundary. Resetting insl without
@@ -414,10 +475,21 @@ END {
   if (route) {
     if (nslice != 1) add("one-slice-route", "the plan carries the one-slice route and " nslice " slice(s); the route is exactly one")
     if (ndec > 0) add("one-slice-route", "the plan carries the one-slice route and DECISIONS.md locks " ndec " decision(s); the route needs the brief to carry every decision")
-    # P-7: any provisional decision disqualifies the route the same way a locked
-    # one does. The route needs the brief to settle every decision up front; a
-    # provisional P-N is, by definition, one the brief did not settle.
-    if (nprov > 0) add("one-slice-route", "the plan carries the one-slice route and DECISIONS.md carries " nprov " provisional decision(s); the route needs the brief to carry every decision")
+    # ADR-0239 (superseding ADR-0233 P-7 in part): a provisional P-N keeps the route
+    # only when it is `Impact: normal`, the slice cites it, and a task branch exists,
+    # so the draft PR lists it. A missing or unreadable impact is not normal: a
+    # condition that cannot be shown has failed. A P-N a later one replaces needs no
+    # citation, since plans cite only the newest entry of a chain (rule 4b).
+    for (j = 1; j <= nprov; j++) {
+      id = provid[j]
+      imp = (id in provimpact) ? provimpact[id] : "missing"
+      if (imp != "normal") add("one-slice-route", "the plan carries the one-slice route and provisional " id " is Impact: " imp "; only an Impact: normal provisional decision keeps the route")
+      if (id in replacedby) continue
+      pcited = 0
+      for (i = 1; i <= nslice; i++) if (index(slicepcite[i] " ", " " id " ") > 0) pcited = 1
+      if (!pcited) add("one-slice-route", "the plan carries the one-slice route and no slice Decision-ref: cites provisional " id "; the route's slice names every provisional decision it rests on")
+    }
+    if (nprov > 0 && TSF != "" && !taskbranch) add("one-slice-route", "the plan carries the one-slice route and " nprov " provisional decision(s), and TASK_STATE.md records no Task branch:, so no draft PR lists them")
     for (i = 1; i <= nslice; i++) {
       np = 0
       sc = sscope[i]
@@ -432,13 +504,32 @@ END {
     }
   }
 
-  # Rule 2: a live locked decision cited by no slice.
+  # Rule 2: a live locked decision cited by no slice. A D-N confirming P-M is also
+  # covered when a slice cites an entry of P-M's `Replaces:` chain (ADR-0233 P-1,
+  # ADR-0235); `covhead` holds the newest entry of every chain a slice cites.
   if (DECF != "") {
+    for (p in covp) if (p in provset) { h = chainhead(p); if (h != "") covhead[h] = 1 }
     for (i = 1; i <= ndec; i++) {
       id = decid[i]
       if (id in sup) continue
       if (id in cited) continue
       if (id in namedinexit) continue
+      if ((id in confirms) && !(id in supersedesp)) {
+        nc = split(confirms[id], cp, " ")
+        uncov = ""; missing = ""
+        for (j = 1; j <= nc; j++) {
+          if (cp[j] == "") continue
+          if (!(cp[j] in provset)) { missing = missing ", " cp[j]; continue }
+          h = chainhead(cp[j])
+          if (h == "" || !(h in covhead)) uncov = uncov ", " cp[j]
+        }
+        if (uncov == "" && missing == "") continue
+        msg = dectitle[id] " is cited by no slice Decision-ref: and named in no exit criterion"
+        if (uncov != "") msg = msg ", and no slice cites " substr(uncov, 3) ", which it confirms, or a later entry of its Replaces: chain"
+        if (missing != "") msg = msg ", and it confirms " substr(missing, 3) ", which DECISIONS.md ## Provisional decisions does not carry"
+        add("decision-coverage", msg)
+        continue
+      }
       add("decision-coverage", dectitle[id] " is cited by no slice Decision-ref: and named in no exit criterion")
     }
   }

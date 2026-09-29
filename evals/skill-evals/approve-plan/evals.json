@@ -1,0 +1,37 @@
+{
+  "skill_name": "approve-plan",
+  "version": "1.0",
+  "description": "Trigger evals for approve-plan: it fires when a finished plan is being locked as the execution baseline, and stays quiet when the plan is still being written, revised, decided, or already executing.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "ok the plan looks good, lock it",
+      "IMPLEMENTATION_PLAN.md has 4 slices and I have read all of them. Sign it off so we can start on slice 01.",
+      "Mark the plan for the retry-queue task as approved, write the approval entry into the plan, and point me at whatever should run the first wave.",
+      "The revised plan came back clean after the last critique round. Freeze IMPLEMENTATION_PLAN.md as the baseline and stamp the approval date in TASK_STATE.md before anyone touches the slices.",
+      "We are ready to go on the export task. Baseline the plan, slices 02 and 03 are independent of each other, so tell me how to kick off execution once it is locked."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "IMPLEMENTATION_PLAN.md still has two [NEEDS CLARIFICATION:] markers on whether failed jobs retry or go to a dead-letter queue. Interview me on that policy choice so we can settle it.",
+        "routes_to": "decision-interview"
+      },
+      {
+        "prompt": "The export plan was drafted before we added the refund path, so half the work is missing from it. Throw the draft away and re-slice IMPLEMENTATION_PLAN.md from scratch with scope, ordering and exit criteria for every slice.",
+        "routes_to": "implementation-plan"
+      },
+      {
+        "prompt": "Last turn ended with an Artifact changes block listing three files marked PROPOSED. I read them all and they are fine, write them to disk.",
+        "routes_to": "approve-proposed"
+      },
+      {
+        "prompt": "The plan was just drafted. Run a critique pass against the plan rubric and give me a revised IMPLEMENTATION_PLAN.md with the weak slices fixed.",
+        "routes_to": "self-critique-and-revise"
+      },
+      {
+        "prompt": "The plan is already locked and slice 01 is approved. Start implementing slice 01 now and keep the diff small.",
+        "routes_to": "implement-approved-slice"
+      }
+    ]
+  }
+}

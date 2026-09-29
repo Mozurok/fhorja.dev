@@ -1,0 +1,22 @@
+{
+  "skill_name": "post-review-pivot",
+  "version": "1.0",
+  "description": "Trigger evals for post-review-pivot: it fires when a review changes the intended approach and the task needs a keep versus replace digest, while pr-feedback-ingest, implement-slice-complement, sync-task-state, task-init and direction-adjust handle corrective comments, trivial fixes, memory drift, unrelated new work, and self-found course corrections.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "the reviewers said we picked the wrong integration shape, so what do we keep and what do we throw away?",
+      "PR #148 came back with a big one from the tech lead: we should store the totals on the invoice row, not compute them from line items in a view. Two migrations and the serializer are now wrong. Sort out what survives and what has to be redone.",
+      "Team review decided the export should be a scheduled job instead of an on-demand endpoint. Slices 02 and 03 assumed the endpoint. Write up the pivot and the smallest set of plan updates, no code yet.",
+      "After the design review the field we built everything around, customer_ref, turns out to be the wrong identifier. Capture the change in direction, mark which slices stay valid, and tell me what to rewrite.",
+      "review says the whole caching layer should go through the gateway instead of the service. I need a digest of what is now revert or replace before I touch the plan."
+    ],
+    "should_not_trigger": [
+      { "prompt": "Greptile left 9 comments on PR #148: a missing null check, two naming nits and a stale test. Map each one to files and slices so I can fix them under the current plan.", "routes_to": "pr-feedback-ingest" },
+      { "prompt": "A reviewer spotted a typo in an error message and a missing log line inside the approved slice. Just apply the fix.", "routes_to": "implement-slice-complement" },
+      { "prompt": "The review is done and nothing changed in direction, but TASK_STATE.md still says slice 02 is in progress. Bring the state file up to date.", "routes_to": "sync-task-state" },
+      { "prompt": "A teammate commented that we should also build a notification center. That is a different feature altogether, so open it as its own task.", "routes_to": "task-init" },
+      { "prompt": "Nobody has reviewed anything yet, but I feel like the approach we chose might be wrong. Record this course correction from my own work in the decisions file.", "routes_to": "direction-adjust" }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 # ADR-0158: The fleet worker return transport is the file on the Agent path
 
-- **Status**: Accepted
+- **Status**: Accepted; D-2 superseded in part by [ADR-0242](./0242-a-fleet-worker-returns-through-its-own-worktree.md): a worker dispatched with worktree isolation writes its return file to `.fleet-out/` inside its own worktree, which the orchestrator copies into `fleet-inbox/<run_id>/`.
 - **Date**: 2026-08-22
 Supersedes, in part: ADR-0038 (Rule 1's return mechanism, not its typed-return invariant)
 - **Tags**: fleet, orchestration, worker-contract, adr-0038, transport, open-decision, measured

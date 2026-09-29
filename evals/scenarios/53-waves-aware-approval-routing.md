@@ -1,12 +1,12 @@
 # Eval scenario 53: waves-aware approval routing
 
-- **Tags**: ADR-0042, ADR-0041, routing, approve-plan, implement-fleet, handoff-contract
-- **Last reviewed**: 2026-06-13
+- **Tags**: ADR-0042, ADR-0041, ADR-0243, routing, approve-plan, implement-fleet, handoff-contract
+- **Last reviewed**: 2026-09-29
 - **Status**: active
 
 ## Goal
 
-Validates **ADR-0042** (waves-aware routing promotion) as enforced by `approve-plan` and `implement-approved-slice`. When the approved plan's `## Execution waves` section shows a remaining wave of size 2 or more whose slices declare `Scope` and `Depends-on`, the execution handoff must route to `implement-fleet`; when the plan is a chain, it must route to `implement-approved-slice`. This closes the gap where the fleet was unreachable from the routing graph and the operator had to ask for parallelism.
+Validates **ADR-0042** (waves-aware routing promotion) as enforced by `approve-plan` and `implement-approved-slice`. When the approved plan's `## Execution waves` section shows a remaining wave of size 2 or more whose slices declare `Scope` and `Depends-on`, the execution handoff must route to `implement-fleet` on a harness with per-agent worktree isolation, where the fleet is that wave's default (ADR-0243); when the plan is a chain, or the harness cannot give each sub-agent its own worktree, it must route to `implement-approved-slice`. This closes the gap where the fleet was unreachable from the routing graph and the operator had to ask for parallelism.
 
 This exercises:
 
@@ -55,6 +55,17 @@ IMPLEMENTATION_PLAN.md slices (ready to lock):
 Mode: Agent
 ```
 
+## Input prompt (turn 3: the same plan as turn 1, on a harness without per-agent isolation)
+
+```text
+Run @commands/approve-plan.md
+
+Task folder: projects/acme__widgets/active/2026-06-13_widget-dashboard/
+The plan is the turn 1 plan (Wave 1: [1, 2], Wave 2: [3]).
+This session runs in a tool whose sub-agents cannot each get their own git worktree.
+Mode: Agent
+```
+
 ## Expected response shape (turn 1: parallelizable first wave)
 
 - The plan is locked: a `## Approval log` entry is appended with date, slice count, and first slice id, and `TASK_STATE.md` is stamped APPROVED.
@@ -68,8 +79,14 @@ Mode: Agent
 - The Handoff `Run now:` line is `implement-approved-slice` for Slice 1, because every wave has size one (the DAG is a chain).
 - The response does not claim any parallelism.
 
+## Expected response shape (turn 3: no per-agent isolation)
+
+- The plan is locked the same way.
+- The Handoff `Run now:` line is `implement-approved-slice` for Slice 1, because the harness cannot isolate the workers' worktrees (ADR-0243); the reason says so rather than claiming the plan is a chain.
+
 ## What a FAIL looks like
 
 - The handoff routes to `implement-approved-slice` in turn 1 despite a width-2 first wave (the pre-ADR-0042 hard-coded behavior).
 - The handoff routes to `implement-fleet` in turn 2 (a chain has nothing to parallelize).
+- The handoff routes to `implement-fleet` in turn 3, on a harness that cannot give each worker its own worktree.
 - Approval is half-applied (Approval log without the TASK_STATE stamp, or vice versa).

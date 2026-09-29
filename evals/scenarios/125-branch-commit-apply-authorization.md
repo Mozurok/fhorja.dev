@@ -11,7 +11,7 @@ Validates the refusal conditions that make `branch-commit --apply` safe now that
 The conditions under test, from `commands/branch-commit.md`:
 
 1. Agent mode only.
-2. Never unattended, background, or fleet-dispatched.
+2. Never unattended or fleet-dispatched; a background session counts as unattended unless it passes the ADR-0237 test.
 3. Show the content (the commit message, `git status --porcelain`, and the full `git diff --staged`)
    before any call that moves HEAD. A NAME LIST is explicitly insufficient.
 4. After a complete display, create the commit in the same turn. Do not wait for a second confirmation.

@@ -293,12 +293,14 @@ if base is not None:
     sl = real.get("## Slices", (set(), False))[0]
     al = real.get("## Approval log", (set(), False))[0]
     want = {"implement-approved-slice", "implement-fleet", "slice-closure", "task-init"}
-    if want <= sl and "task-init" in al:
+    pv = real.get("## Provisional decisions", (set(), False))[0]
+    if want <= sl and "task-init" in al and "task-init" in pv:
         ok("15. live matrix: `## Slices` carries the `### Slice N` co-writers and task-init; "
-           "`## Approval log` carries task-init")
+           "`## Approval log` and `## Provisional decisions` (ADR-0239) carry task-init")
     else:
         bad(f"15. live matrix rows missing: ## Slices lacks {sorted(want - sl)}, "
-            f"## Approval log has task-init={'task-init' in al}")
+            f"## Approval log has task-init={'task-init' in al}, "
+            f"## Provisional decisions has task-init={'task-init' in pv}")
     mf = base.matrix_files()
     need = {"TASK_STATE.md", "DECISIONS.md", "IMPLEMENTATION_PLAN.md", "SOURCE_OF_TRUTH.md"}
     if need <= mf:

@@ -1,0 +1,37 @@
+{
+  "skill_name": "pattern-doc",
+  "version": "1.0",
+  "description": "Trigger evals for pattern-doc: it writes a reusable, cross-project UX pattern spec, while its siblings document one component, one journey, one Figma screen, or a design-system implementation review.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "We keep solving empty states differently on every screen. Write up one reusable version: first-use, no-results and error-empty, and when to pick each.",
+      "Every team has its own delete confirmation. Can you write down a single confirmation-dialog pattern with good and bad examples so other projects can copy it?",
+      "Need a standard for search, filter and sort lists that works on any product we build. Reference Material 3 and Polaris where it helps, and save it under docs/research/patterns.",
+      "Loading skeletons look different in the inbox, the feed and the settings page. Document the shared approach, including reduced motion and screen reader behavior.",
+      "Write the inline form error handling pattern, not tied to any one app."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "The confirmation dialog in our Figma library is one component with destructive and neutral variants. Write its doc from the Figma node: anatomy, variants, states, focus handling and props. This is only for this component, not a cross-project guideline.",
+        "routes_to": "component-spec"
+      },
+      {
+        "prompt": "Document how a new user goes from the signup screen through email verification to the first dashboard, for this app only.",
+        "routes_to": "journey-map"
+      },
+      {
+        "prompt": "The checkout page in Figma has its own error banner and empty cart state. Document just that one page from its frame, with layout, spacing, copy and error states. I'm not after a reusable guideline.",
+        "routes_to": "screen-spec"
+      },
+      {
+        "prompt": "The new Toast component is merged. Check it against its spec doc for missing variants, tokens and accessibility gaps.",
+        "routes_to": "design-spec-review"
+      },
+      {
+        "prompt": "All I have is a screenshot of a competitor's onboarding screen, no Figma file. Turn it into a structured spec for me.",
+        "routes_to": "image-to-spec"
+      }
+    ]
+  }
+}

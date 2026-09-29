@@ -18,7 +18,7 @@ Navigation note:
 6. `implementation-plan`
 7. `test-strategy` (added on a strict surface, or when the plan names behavior worth pinning with tests)
 8. `approve-plan`
-9. `implement-fleet` when the plan's `## Execution waves` show a remaining wave of size 2 or more with `Scope` and `Depends-on` declared; otherwise `implement-approved-slice` (waves-aware per ADR-0042)
+9. `implement-fleet` when the plan's `## Execution waves` show a remaining wave of size 2 or more with `Scope` and `Depends-on` declared, on a harness with per-agent worktree isolation; otherwise `implement-approved-slice` (waves-aware per ADR-0042)
 
 ## Contract-sensitive task
 1. `task-init`
@@ -41,8 +41,8 @@ For well-scoped tasks where the user provides all decisions upfront and the scop
 Skip rationale: `impact-analysis` is unnecessary when the blast radius is obvious from the task description. `decision-interview` is unnecessary when all decisions are provided upfront. `slice-closure` is handled inline by `implement-approved-slice` (see Slice completion check). This shape is what `task-init` produces when no disqualifier fires and its `Escalations:` line reads `none` (ADR-0184, ADR-0207); it is not a named tier and `task-init` emits the fired rule rather than a label.
 
 ## One-slice change (the one-slice route, ADR-0225)
-For an attended change that fits one sentence, touches at most two files the brief names, and needs no decision beyond the brief (any provisional `P-N` sends the task through `implementation-plan` and `approve-plan`), with no escalation fired and no `Operating mode: strict` declared.
-1. `task-init` (writes `Route: one-slice` with its evidence, the single approved slice, both lock signals, and runs `check-plan-coverage.sh`)
+For an attended change that fits one sentence, touches at most two files the brief names, and needs no locked decision beyond the brief (an open decision of `Impact: normal`, on a task branch, becomes a provisional `P-N` that `task-init` writes and the draft PR lists; an `Impact: high` one sends the task through `implementation-plan` and `approve-plan`, ADR-0239), with no escalation fired and no `Operating mode: strict` declared.
+1. `task-init` (writes `Route: one-slice` with its evidence, the single approved slice, any normal-impact `P-N`, both lock signals, and runs `check-plan-coverage.sh`)
 2. `implement-approved-slice` (runs `check-doc-sync.sh --against HEAD` at inline close; exit 1 goes to `implement-slice-complement`, a second to `implementation-plan`)
 3. `branch-commit --apply` (then `pr-package --apply` in an attended chain with a configured remote, ADR-0233)
 
@@ -57,7 +57,7 @@ For starting a new product from an empty workspace where framework, libraries, a
 5. `decision-interview` (lock the stack and the build-vs-buy and approach decisions)
 6. `implementation-plan`
 7. `approve-plan`
-8. `implement-fleet` when the plan's `## Execution waves` show a remaining wave of size 2 or more with `Scope` and `Depends-on` declared; otherwise `implement-approved-slice`
+8. `implement-fleet` when the plan's `## Execution waves` show a remaining wave of size 2 or more with `Scope` and `Depends-on` declared, on a harness with per-agent worktree isolation; otherwise `implement-approved-slice`
 
 Skip rationale: `impact-analysis` is replaced by `stack-recommend` because an empty workspace has no existing blast radius; the discovery that matters is choosing a current, compatible stack rather than analyzing impact on code that does not exist yet. The first real product task after scaffolding rejoins the Typical flow or the small task with impact-analysis. This is a documented sequence, not a single composite command.
 
@@ -66,7 +66,7 @@ Skip rationale: `impact-analysis` is replaced by `stack-recommend` because an em
 2. `impact-analysis` (the scope needs more than one sentence, or the change touches 5 or more files)
 3. `implementation-plan`
 4. `approve-plan`
-5. `implement-fleet` when the plan's `## Execution waves` show a remaining wave of size 2 or more with `Scope` and `Depends-on` declared; otherwise `implement-approved-slice` (waves-aware per ADR-0042)
+5. `implement-fleet` when the plan's `## Execution waves` show a remaining wave of size 2 or more with `Scope` and `Depends-on` declared, on a harness with per-agent worktree isolation; otherwise `implement-approved-slice` (waves-aware per ADR-0042)
 6. `slice-closure` (opt-in for LOW/MEDIUM; see `commands/slice-closure.md`)
 7. `branch-commit --apply` (then `pr-package --apply` in an attended chain with a configured remote, ADR-0233)
 

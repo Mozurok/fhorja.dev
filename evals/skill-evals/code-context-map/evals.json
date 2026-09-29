@@ -1,0 +1,22 @@
+{
+  "skill_name": "code-context-map",
+  "version": "1.0",
+  "description": "Trigger evals for code-context-map: it fires when an assistant needs a ranked structural overview of a codebase (files, imports, signatures, boundary calls) or an existing map is stale, while code-locate, impact-analysis, db-context-supabase, stack-recommend and workflow-guide handle finding one behavior, blast radius, a database schema, choosing a stack with no code yet, and onboarding someone to the workflow.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "I just joined this repo and it has around 800 files. Build me a structural map I can hand to the assistant before we touch anything.",
+      "regenerate the code map for ~/work/billing-api, it's out of date since the refactor last week",
+      "Before editing the checkout flow, produce a token-budgeted overview of src/checkout and everything it imports, including the outbound http and queue calls.",
+      "give the agent a quick lay of the land for this monorepo, ranked by importance, gitignored output is fine",
+      "Starting from src/orders/service.ts, map the import chain with function signatures so grep has good seeds later."
+    ],
+    "should_not_trigger": [
+      { "prompt": "Where in the codebase do we retry failed webhook deliveries? I just need the file and line range.", "routes_to": "code-locate" },
+      { "prompt": "We plan to rename the Invoice status enum. What breaks across services, contracts and the schema if we do?", "routes_to": "impact-analysis" },
+      { "prompt": "Pull the tables, columns and RLS policies for the profiles and teams tables from our hosted Supabase project so planning uses the real schema.", "routes_to": "db-context-supabase" },
+      { "prompt": "A new engineer starts on this repo Monday and has never used our task workflow. Walk them through where this task stands, which step comes next, and why.", "routes_to": "workflow-guide" },
+      { "prompt": "There is no codebase yet for the new pricing service, so nothing to map. Research current stable versions and recommend the language, framework and database we should start on.", "routes_to": "stack-recommend" }
+    ]
+  }
+}

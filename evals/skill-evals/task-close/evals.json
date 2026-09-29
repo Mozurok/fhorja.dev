@@ -1,0 +1,22 @@
+{
+  "skill_name": "task-close",
+  "version": "1.0",
+  "description": "Trigger evals for task-close: it fires when the whole task is finished and its folder should go to archive, while slice-closure, where-we-at, sync-task-state and task-init handle a single slice, a progress check, a memory update, and new scope.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "we're done with this one, archive it",
+      "PR #212 got merged this morning and all four slices are marked closed in IMPLEMENTATION_PLAN.md. Time to wrap up the task and move the folder out of active.",
+      "Nothing left on this task. Mark TASK_STATE.md as closed and put the whole folder under archive so it stops showing up as active.",
+      "Slice 03 was the last one, the branch is merged, and the one leftover nice-to-have is explicitly waived in DECISIONS.md. Can you finish this off properly and archive the task?",
+      "close out the docs-typo task, it shipped yesterday"
+    ],
+    "should_not_trigger": [
+      { "prompt": "Slice 02 is implemented and its tests pass. Is it ready to close, and does anything block starting slice 03?", "routes_to": "slice-closure" },
+      { "prompt": "We're halfway through the plan with two slices closed and two open. Where do we stand against IMPLEMENTATION_PLAN.md and what is still missing to finish?", "routes_to": "where-we-at" },
+      { "prompt": "I just made a decision about the retry policy and finished a slice. TASK_STATE.md is behind, please bring it up to date so I can resume tomorrow.", "routes_to": "sync-task-state" },
+      { "prompt": "The merged work is fine, but now we also want to add rate limiting to the same endpoint. Start a fresh task folder for that.", "routes_to": "task-init" },
+      { "prompt": "This session was long and we hit a few surprising failures. Before the context is gone, pull out the durable lessons into LEARNINGS.md.", "routes_to": "harvest-session-learnings" }
+    ]
+  }
+}

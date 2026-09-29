@@ -1,0 +1,37 @@
+{
+  "skill_name": "pr-package",
+  "version": "1.0",
+  "description": "Trigger evals for pr-package: it writes the full GitHub delivery package (PR title and body, branch, commits, reviewer notes) from a stable diff, unlike branch-commit (names only), the PR feedback commands (review already happened) or slice-closure (no PR).",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "get this ready to open as a PR",
+      "All three slices in IMPLEMENTATION_PLAN.md are done and the diff against origin/main looks stable. I need a PR title, a body, the git commands to push the branch, and a list of things the reviewer should look at first.",
+      "Draft the PR description for this branch. The base is release/2.4, not main, and I want the commit messages worked out from what actually changed in the diff.",
+      "Slice 04 just landed on the task branch and the diff is final. SOURCE_OF_TRUTH.md lists an api repo and a web repo, so give me the PR title, body, commit messages and push commands with one section per repo.",
+      "Coding is finished and I'm not touching the files anymore. Write up everything a reviewer needs on GitHub for this change: what it does, how I tested it, and where the risky bits are."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "What should I call this branch, and can you give me a two-line commit message for the change I have staged right now?",
+        "routes_to": "branch-commit"
+      },
+      {
+        "prompt": "PR #212 got nine comments from Greptile and two humans. Turn them into a backlog mapped to files and slices before I start fixing anything.",
+        "routes_to": "pr-feedback-ingest"
+      },
+      {
+        "prompt": "The reviewers on PR #212 said we should store the totals on the order instead of computing them on read. That changes our whole approach, so sort out what we keep and what we throw away.",
+        "routes_to": "post-review-pivot"
+      },
+      {
+        "prompt": "Slice 03 is implemented and its tests pass. Can it be closed, and what should go into the slice notes and TASK_STATE.md?",
+        "routes_to": "slice-closure"
+      },
+      {
+        "prompt": "I already have PR_PACKAGE.md drafted for this branch. Critique it against the rubric and give me a revised version.",
+        "routes_to": "self-critique-and-revise"
+      }
+    ]
+  }
+}

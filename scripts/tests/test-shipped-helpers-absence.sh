@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# test-shipped-helpers-absence.sh -- four helpers that join the install payload name what they
-# did not scan instead of reporting clean, and read the tree they are run from.
+# test-shipped-helpers-absence.sh -- five helpers that join the install payload name what they
+# did not scan instead of reporting clean, and read the tree they are run from (the fleet
+# monitor joined on 2026-09-29, ADR-0242).
 # Run from anywhere:  bash scripts/tests/test-shipped-helpers-absence.sh
 #
 # Why this exists (ADR-0224). Measured 2026-09-23, each of these reported a pass on nothing:
@@ -76,6 +77,34 @@ RC=0; OUT=$(cd "$REPO" && bash "$INST/portfolio-review.sh" --json 2>&1) || RC=$?
 check "7. portfolio-review: an installed copy reads the working directory's projects/" $([[ "$RC" -eq 0 ]] && grep -q '2026-09-23_demo' <<<"$OUT"; echo $?)
 RC=0; OUT=$(cd "$WORK/installed" && bash "$INST/portfolio-review.sh" 2>&1) || RC=$?
 check "8. portfolio-review: a directory with no projects/ is refused with exit 2" $([[ "$RC" -eq 2 ]] && grep -q 'not scanned, no projects/ directory' <<<"$OUT"; echo $?)
+
+# ---------- monitor-fleet-progress.sh (ADR-0242) ----------
+# Until 2026-09-29 it polled a missing inbox for 15 minutes and then printed "0 dispatched" with
+# exit 0, and it read only per-worker directories, not the flat <worker_id>.json returns. Short
+# intervals keep the timeout cases to a few seconds.
+MON="$S/monitor-fleet-progress.sh"
+FAST="FLEET_MONITOR_POLL_SECONDS=1 FLEET_MONITOR_TIMEOUT_SECONDS=2"
+RC=0; OUT=$(bash "$MON" run1 "$WORK/no-such-task" 2>&1) || RC=$?
+check "9. monitor: a task folder that does not exist exits 2 and is named" $([[ "$RC" -eq 2 ]] && grep -q 'not measured, no such task folder' <<<"$OUT"; echo $?)
+MT="$WORK/mon-task"; mkdir -p "$MT"
+RC=0; OUT=$(bash "$MON" run1 "$MT" 2>&1) || RC=$?
+check "10. monitor: no inbox and no return folder exits 2 at once" $([[ "$RC" -eq 2 ]] && grep -q 'no fleet inbox at' <<<"$OUT" && ! grep -q 'dispatch_summary' <<<"$OUT"; echo $?)
+mkdir -p "$MT/.wos/fleet-inbox/flat"
+printf '{"status": "satisfied", "slice_id": "S1"}' > "$MT/.wos/fleet-inbox/flat/w1.json"
+printf '{"slice_id": "S2", "status":"needs_revision"}' > "$MT/.wos/fleet-inbox/flat/w2.json"
+RC=0; OUT=$(env $FAST bash "$MON" flat "$MT" 2>&1) || RC=$?
+check "11. monitor: flat returns in the inbox are read and summed" $([[ "$RC" -eq 0 ]] && grep -q 'dispatch_summary: 2 dispatched / 1 merge_include / 1 worker_failed / 0 worker_timeout' <<<"$OUT"; echo $?)
+mkdir -p "$WORK/wt1/.fleet-out" "$WORK/wt2/.fleet-out"
+printf '{"status": "satisfied"}' > "$WORK/wt1/.fleet-out/w1.json"
+RC=0; OUT=$(env $FAST bash "$MON" none "$MT" "$WORK/wt1/.fleet-out" "$WORK/wt2/.fleet-out" 2>&1) || RC=$?
+check "12. monitor: a named return folder is read, and an empty one counts as pending" $([[ "$RC" -eq 0 ]] && grep -q 'dispatch_summary: 2 dispatched / 1 merge_include / 0 worker_failed / 1 worker_timeout' <<<"$OUT"; echo $?)
+mkdir -p "$MT/.wos/fleet-inbox/empty"
+RC=0; OUT=$(env $FAST bash "$MON" empty "$MT" 2>&1) || RC=$?
+check "13. monitor: a timeout with no worker seen exits 2 with no summary" $([[ "$RC" -eq 2 ]] && grep -q 'no worker return appeared' <<<"$OUT" && ! grep -q 'dispatch_summary' <<<"$OUT"; echo $?)
+mkdir -p "$MT/.wos/fleet-inbox/done/worker-01"
+echo completed > "$MT/.wos/fleet-inbox/done/worker-01/status"
+RC=0; OUT=$(env $FAST bash "$MON" done "$MT" 2>&1) || RC=$?
+check "14. monitor: the per-worker directory layout is still read" $([[ "$RC" -eq 0 ]] && grep -q 'dispatch_summary: 1 dispatched / 1 merge_include' <<<"$OUT"; echo $?)
 
 echo "----"
 echo "pass=$PASS fail=$FAIL"

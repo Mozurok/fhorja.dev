@@ -13,6 +13,8 @@
 #     shape: commands/<name>.md or commands/<name>/SKILL.md
 #   - the terminal form "Run now: none" (ADR-0126) names no command and is
 #     paired with "Mode: N/A", checked in both directions
+#   - the Handoff block names no model: no claude- id, no --model flag, no
+#     capitalized family name (ADR-0241; a Reason names a role instead)
 #   - NO_OP outputs (NO_OP_TRACE in the Command transcript) and Mode B
 #     handoffs (a Resume context: block) are conforming, not special cases:
 #     they pass the same checks as any other transcript, no extra branches
@@ -115,6 +117,19 @@ validate_transcript() {
     fi
     if [[ -z "$reason_line" ]]; then
       printf '%s\n' "Handoff missing required field: Reason"
+      has_failure=1
+    fi
+
+    # ADR-0241. A Handoff names a role, never a model, and never hands the chain back
+    # to be reopened on another one. Scoped to the Handoff block and to model names: a
+    # claude- id, a --model flag, or a capitalized family name as a whole word. The words
+    # "session" and "mode" are not matched, because a Mode B handoff to resume-from-state
+    # legitimately talks about a new session. Observed 2026-09-28: a Reason ending "then
+    # implement-fleet from Wave 1 on <family> 5.5" turned a continuation into a hand-back.
+    local model_hit
+    model_hit="$(printf '%s\n' "$handoff_body" | grep -m1 -E -e '--model|claude-(opus|sonnet|haiku|fable)|(^|[^A-Za-z])(Opus|Sonnet|Haiku|Fable)([^A-Za-z]|$)' || true)"
+    if [[ -n "$model_hit" ]]; then
+      printf '%s\n' "Handoff names a model (${model_hit}); name the dispatch role (mechanical or judgment) and continue in this session (ADR-0241)"
       has_failure=1
     fi
 
@@ -403,6 +418,52 @@ Work complexity: LOW
 Reason: nine commands are folder-shaped and the Run now line must resolve for them too.
 EOF
 
+  # ADR-0241 fixtures. The first is the observed 2026-09-28 failure, reduced to its Handoff.
+  cat >"${self_test_dir}/mutation_reason_names_a_model.md" <<'EOF'
+### Artifact changes
+- IMPLEMENTATION_PLAN.md: APPLIED
+
+### Command transcript
+Plan re-approved after a review round.
+
+### Handoff
+Run now: test-strategy
+Mode: Plan
+Work complexity: MEDIUM
+Reason: Plan re-approved (BUDGET exit, findings applied); no TEST_STRATEGY.md and the work carries regression risk; then implement-fleet from Wave 1 (S00) on Sonnet 5.5.
+EOF
+
+  cat >"${self_test_dir}/mutation_reason_offers_model_flag.md" <<'EOF'
+### Artifact changes
+None
+
+### Command transcript
+Plan approved.
+
+### Handoff
+Run now: implement-approved-slice
+Mode: Agent
+Work complexity: MEDIUM
+Reason: open a separate session with --model and run each slice there.
+EOF
+
+  cat >"${self_test_dir}/mode_change_names_a_role.md" <<'EOF'
+### Artifact changes
+- IMPLEMENTATION_PLAN.md: APPLIED
+
+### Command transcript
+Plan approved; continuing in this session.
+
+### Handoff
+Run now: test-strategy
+Mode: Plan
+Work complexity: MEDIUM
+Reason: plan locked and no TEST_STRATEGY.md; then implement-fleet, Wave 1 to mechanical workers, in this session.
+EOF
+
+  check_fixture "mode change naming a role (ADR-0241)" "${self_test_dir}/mode_change_names_a_role.md" 0 "" "$self_test_commands_dir" || overall_rc=1
+  check_fixture "mutation: Reason names a model (ADR-0241)" "${self_test_dir}/mutation_reason_names_a_model.md" 1 "Handoff names a model" "$self_test_commands_dir" || overall_rc=1
+  check_fixture "mutation: Reason offers a --model session (ADR-0241)" "${self_test_dir}/mutation_reason_offers_model_flag.md" 1 "Handoff names a model" "$self_test_commands_dir" || overall_rc=1
   check_fixture "conforming (Mode A)" "${self_test_dir}/conforming.md" 0 "" "$self_test_commands_dir" || overall_rc=1
   check_fixture "terminal form (ADR-0126)" "${self_test_dir}/terminal.md" 0 "" "$self_test_commands_dir" || overall_rc=1
   check_fixture "folder-shaped command basename" "${self_test_dir}/folder_shaped_command.md" 0 "" "$self_test_commands_dir" || overall_rc=1

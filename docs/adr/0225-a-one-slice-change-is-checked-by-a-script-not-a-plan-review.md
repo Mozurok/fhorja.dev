@@ -1,6 +1,6 @@
 # ADR-0225: A one-slice change is checked by a script, not a plan review
 
-- **Status**: Accepted
+- **Status**: Accepted; condition (3) superseded in part by [ADR-0239](./0239-the-one-slice-route-admits-normal-impact-provisional-decisions.md): an open decision recorded as an `Impact: normal` provisional `P-N`, cited by the slice on a task branch, keeps the route. The rest stands.
 - **Date**: 2026-09-23
 - **Supersedes**: in part, [ADR-0208](./0208-plan-approval-self-runs.md), for the one-slice route only: a plan `task-init` writes under that route skips `approve-plan` and its blinded review. Every plan `implementation-plan` writes still reaches `approve-plan`, and the rest of ADR-0208 stands.
 - **Tags**: task-init, one-slice-route, approve-plan, implement-approved-slice, check-doc-sync, renumber-check, blinded-verification, adr-0184, adr-0207, adr-0208, adr-0159

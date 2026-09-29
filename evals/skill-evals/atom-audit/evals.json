@@ -1,0 +1,22 @@
+{
+  "skill_name": "atom-audit",
+  "version": "1.0",
+  "description": "Trigger evals for atom-audit: it fires when the atom components need a table check against the component guidelines and the atom count is small, while atom-audit-fleet, design-spec-review, foundation-audit, design-bootstrap and a11y-audit handle a large parallel audit, a single component against its spec, token drift, a new design system, and a WCAG pass.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "it's been about three weeks since we last checked the atoms. Can you go through them all and tell me which ones still break our component rules?",
+      "We added a new normative rule to COMPONENT_GUIDELINES.md yesterday about reduced motion. I need a table showing which of our atoms fail it, plus the other rules, one row per atom.",
+      "Five new atoms shipped this sprint (Chip, Badge, Toggle, Avatar, Tag). Give me a row for each in ATOM_AUDIT.md so I can see who is missing memo or a 44pt touch target.",
+      "audit the atoms against the guidelines and give me the changes_needed count per row",
+      "I want to know how many atoms still use inline style objects or a useState press animation. Refresh the audit table and tell me the top fix groups, I'll turn them into slices myself."
+    ],
+    "should_not_trigger": [
+      { "prompt": "We have 14 atoms in packages/design-system and I want every one checked against the component guidelines in one go, split across parallel workers to save time.", "routes_to": "atom-audit-fleet" },
+      { "prompt": "I just finished the Button atom. Can you compare it with its COMPONENT_SPEC.md for variants, states and token usage?", "routes_to": "design-spec-review" },
+      { "prompt": "Our color and spacing tokens in code may have drifted from the foundations docs and the Figma variables. Find what was added or changed without documentation.", "routes_to": "foundation-audit" },
+      { "prompt": "We have a Figma file for the new app and no design system folder yet. Set up the token docs and the component inventory from it.", "routes_to": "design-bootstrap" },
+      { "prompt": "Check the checkout flow screens against WCAG 2.2 AA and give me a per-criterion ledger with what needs manual review.", "routes_to": "a11y-audit" }
+    ]
+  }
+}

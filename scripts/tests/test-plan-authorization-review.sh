@@ -83,7 +83,7 @@ EOF
     || out="${out}\n      does not pass a provisional P-N labeled and never as authorization"
   printf '%s' "$blk" | grep -qiE 'evidence .*exist on the task branch' \
     || out="${out}\n      does not ask whether each P-N's evidence exists on the task branch"
-  printf '%s' "$blk" | grep -qF 'Unattended, background and fleet-dispatched runs keep the hand-back' \
+  printf '%s' "$blk" | grep -qF 'Unattended and fleet-dispatched runs (ADR-0237) keep the hand-back' \
     || out="${out}\n      does not keep the unattended hand-back unchanged"
 
   # The rubric returns three values and only two are exits. A mapping that names
@@ -237,7 +237,7 @@ mutate "20. mutation: the per-P-N evidence question dropped is detected" \
        's/exist on the task branch/look plausible/' \
        'evidence exists on the task branch'
 mutate "21. mutation: unattended runs losing the hand-back is detected" \
-       's/Unattended, background and fleet-dispatched runs keep the hand-back/Every run drops the hand-back/' \
+       's/Unattended and fleet-dispatched runs (ADR-0237) keep the hand-back/Every run drops the hand-back/' \
        'unattended hand-back unchanged'
 
 echo

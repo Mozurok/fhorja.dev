@@ -1,0 +1,37 @@
+{
+  "skill_name": "db-context-postgres",
+  "version": "1.0",
+  "description": "Trigger evals for db-context-postgres: it reads a live non-Supabase Postgres schema read-only and writes DB_CONTEXT.md, while its siblings handle Supabase, migration safety, code maps, schema decisions, and blast-radius analysis.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "Can you pull the real schema for the invoices and payments tables off our RDS instance? I don't want to plan the migration from memory.",
+      "The DB_CONTEXT.md in this task folder is three weeks old and someone added columns to orders since then. Redo it against the staging Cloud SQL box, and include the RLS policies this time.",
+      "Task is set up. We're about to add a tenant_id to the accounts and memberships tables in the self-hosted Postgres. I have DATABASE_URL exported. Look at what the tables, indexes and foreign keys actually are before we write any slices.",
+      "Need the actual column types and FKs for the reporting schema on our GKE Postgres. Read-only please.",
+      "Before we plan the audit-log work, connect with psql using my PGHOST and PGUSER env vars and snapshot the public schema plus installed extensions so planning stops guessing."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "Our backend is on Supabase. Grab the tables, columns and RLS policies for profiles and teams through the MCP server so we can plan the permissions change.",
+        "routes_to": "db-context-supabase"
+      },
+      {
+        "prompt": "I wrote 0042_add_status.sql that adds a NOT NULL column and a plain CREATE INDEX on a 200M row table. Check it for anything that will lock production before I apply it.",
+        "routes_to": "migration-safety-steward"
+      },
+      {
+        "prompt": "We haven't decided whether orders should be soft-deleted or hard-deleted in the Postgres tables, and the answer changes the migration, the reporting queries and how long we keep data. Ask me what you need so we can settle it before planning.",
+        "routes_to": "decision-interview"
+      },
+      {
+        "prompt": "Give me a ranked map of the repo: which files import which, the main signatures, and where the code calls the database or external HTTP APIs. I'm new to this codebase.",
+        "routes_to": "code-context-map"
+      },
+      {
+        "prompt": "We want to drop the legacy_customer_id column. Work out which services, jobs and exports read it and how risky the change is.",
+        "routes_to": "impact-analysis"
+      }
+    ]
+  }
+}

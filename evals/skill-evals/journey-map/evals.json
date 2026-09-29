@@ -1,0 +1,22 @@
+{
+  "skill_name": "journey-map",
+  "version": "1.0",
+  "description": "Trigger evals for journey-map: it fires when a user flow across several documented screens needs one journey doc, while screen-spec, pattern-doc, component-spec and screen-spec-fleet handle a single screen, a reusable UX solution, one component, and many screens in parallel.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "Map the onboarding journey for a new client: sign up, verify email, set a PIN, land on home. I have the four screen docs ready.",
+      "document how a controller goes from the alerts list to approving a request, across screens 12, 13, 14 and 19. Include what happens on a network error or timeout.",
+      "write up the password reset flow end to end, with the happy path, validation failures, and what VoiceOver users hear between screens",
+      "I need a flow diagram and critical states for the checkout journey. Screens are in docs/research/screens, persona is a first-time buyer.",
+      "journey doc for the invite-a-teammate flow please"
+    ],
+    "should_not_trigger": [
+      { "prompt": "Document just the payment confirmation screen from its Figma frame: layout, spacing, copy and error states.", "routes_to": "screen-spec" },
+      { "prompt": "We show empty states on a dozen screens with the same illustration, headline and button. Write down the reusable approach so every team does it the same way.", "routes_to": "pattern-doc" },
+      { "prompt": "Spec the bottom sheet component from Figma: anatomy, variants, states, motion and API.", "routes_to": "component-spec" },
+      { "prompt": "Here are 8 Figma frames for the account area. Produce one document per screen, all at once, and update the screen map.", "routes_to": "screen-spec-fleet" },
+      { "prompt": "The signup flow is built and served at localhost:3000. Walk its three pages and check keyboard focus, console errors and layout overflow at a small phone width.", "routes_to": "web-runtime-verify" }
+    ]
+  }
+}

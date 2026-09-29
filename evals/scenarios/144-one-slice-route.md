@@ -1,15 +1,16 @@
 # Eval scenario 144: the one-slice route skips the plan and checks the change instead
 
-- **Tags**: task-init, one-slice-route, implement-approved-slice, check-doc-sync, renumber-check, branch-commit, attended, ADR-0225, ADR-0208, ADR-0159, ADR-0233
-- **Last reviewed**: 2026-09-24
+- **Tags**: task-init, one-slice-route, implement-approved-slice, check-doc-sync, renumber-check, branch-commit, attended, ADR-0225, ADR-0208, ADR-0159, ADR-0233, ADR-0239
+- **Last reviewed**: 2026-09-28
 - **Status**: active
 
 ## Goal
 
 Validates ADR-0225. When no escalation fires in an attended run, the change fits one sentence and
-touches at most two files the brief names, and the brief carries every decision (so `DECISIONS.md`
-stays empty under `## Locked decisions` and, per ADR-0233's extension of the route's third
-condition, under `## Provisional decisions` too), `task-init` writes the single approved slice,
+touches at most two files the brief names, and the brief leaves no decision open (so `DECISIONS.md`
+stays empty under `## Locked decisions` and under `## Provisional decisions`; since ADR-0239 an
+open decision of `Impact: normal` on a task branch would be written as a cited provisional `P-N`
+and keep the route, and neither turn here has one), `task-init` writes the single approved slice,
 both lock signals and a `Route: one-slice` line itself, and hands straight to
 `implement-approved-slice`. `implementation-plan` and `approve-plan` do not run. In their place,
 `implement-approved-slice` runs `check-doc-sync.sh --against HEAD` at inline close. Neither fixture
@@ -124,9 +125,11 @@ Mode: Agent
 - Turn 2's brief pins the placement on purpose. The research behind ADR-0225 asked for a trap where
   the obvious placement renumbers a cited section, and the revert condition in that ADR reads route
   tasks' corrective feedback, which this turn is the first measurement of.
-- ADR-0233 (rests on its provisional P-7) disqualifies the route the moment any entry exists under
-  `DECISIONS.md ## Provisional decisions`, not only under `## Locked decisions`: a brief that leaves
-  even one normal-impact choice open sends the task through `implementation-plan` and `approve-plan`
-  like any other plan. Neither turn here has an open decision, so this scenario does not exercise
-  that disqualifier; it is the condition scenario 137's three-file brief and scenario 145's
-  provisional brief both rely on staying outside the route for a different reason (file count).
+- ADR-0239 superseded ADR-0233's P-7 in part: a brief that leaves a normal-impact choice open
+  keeps the route when the run has a `Task branch:` line, `task-init` writes the choice as a
+  `### P-N`, and the slice cites it as `rests on provisional P-N`; an `Impact: high` choice, an
+  uncited one, or one on a run with no task branch still sends the task through
+  `implementation-plan` and `approve-plan`. Neither turn here has an open decision or a remote, so
+  this scenario does not exercise the admission. `scripts/tests/test-check-plan-coverage.sh`
+  checks 28 and 32 to 35 grade it and its refusals mechanically; scenario 137's three-file brief
+  and scenario 145's provisional brief stay outside the route on file count.

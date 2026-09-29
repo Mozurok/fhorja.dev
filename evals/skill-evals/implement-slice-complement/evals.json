@@ -1,0 +1,37 @@
+{
+  "skill_name": "implement-slice-complement",
+  "version": "1.0",
+  "description": "Trigger evals for implement-slice-complement: a small named fix inside a slice that already exists, as opposed to new scope (implementation-plan), an open decision (decision-interview), a review-driven pivot (post-review-pivot), or pure bookkeeping (slice-closure, sync-task-state).",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "Slice 02 is done but the empty-state text on the invoice list still says \"No data\". Change that one string in InvoiceList.tsx and log it in the slice notes.",
+      "quick one: the retry log line in retry.ts should include the request id. Add it under slice 03, nothing else.",
+      "Slice 03 passes its tests, but I found two loose ends. parseDate in utils/date.ts breaks on an empty string, and there is no test for that case. Both belong to the same acceptance story, so fix them in those two files and record what you ran in SLICES/03.",
+      "IMPLEMENTATION_PLAN.md shows slice 01 as checked off, but I forgot the aria-label on the close button in Modal.tsx. Add it without touching the plan or the other artifacts.",
+      "My self-review of slice 04 turned up an off-by-one in the pagination helper and a typo in the 404 error message. Patch both under the existing slice, this does not need its own slice."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "Slice 02 works, but now I also want CSV export on the invoice list, with a column picker and a download button. Break that into slices before anyone writes code.",
+        "routes_to": "implementation-plan"
+      },
+      {
+        "prompt": "For the slice 03 retry fix, nothing in DECISIONS.md says whether a failed webhook should be retried three times or dropped after the first failure, and the code depends on that choice. What should we pick?",
+        "routes_to": "decision-interview"
+      },
+      {
+        "prompt": "Reviewers on PR #212 said polling is the wrong approach and we should switch slice 02 to webhooks. Work out what we keep and what gets thrown away.",
+        "routes_to": "post-review-pivot"
+      },
+      {
+        "prompt": "Slice 03 is implemented and the tests are green. Can we close it, or is something still open?",
+        "routes_to": "slice-closure"
+      },
+      {
+        "prompt": "TASK_STATE.md still says slice 02 is in progress, but I finished and verified it yesterday. Bring the file up to date so I can resume from it later.",
+        "routes_to": "sync-task-state"
+      }
+    ]
+  }
+}

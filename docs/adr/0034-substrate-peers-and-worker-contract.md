@@ -1,6 +1,6 @@
 # ADR-0034: Substrate peers + worker contract (Epic J/K foundation)
 
-- **Status**: Accepted; the REFUSE conflict rule and the propose-only co-writer requirement are superseded in part by [ADR-0232](./0232-substrate-ownership-is-descriptive.md), which makes section ownership descriptive. The transaction header, the JSONL line, the SHA chain and the worker contract stand.
+- **Status**: Accepted; the REFUSE conflict rule and the propose-only co-writer requirement are superseded in part by [ADR-0232](./0232-substrate-ownership-is-descriptive.md), which makes section ownership descriptive. The transaction header, the JSONL line, the SHA chain and the worker contract stand. The J.3 tier-aware dispatch is superseded in part by [ADR-0236](./0236-subagents-route-by-role.md): a worker declares a dispatch role, not a model SKU, and the orchestrator-at-or-above rule compares the model each role resolves to.
 - **Date**: 2026-06-04
 - **Tags**: multi-agent, substrate, worker-contract, ownership, audit-trail, joint-j1-k1
 - **Promotes**: ADR-0022 (Sub-agent orchestration) from documentary to enforceable

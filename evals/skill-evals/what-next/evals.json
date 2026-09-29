@@ -1,0 +1,37 @@
+{
+  "skill_name": "what-next",
+  "version": "1.0",
+  "description": "Trigger evals for what-next: it gives one fast routing answer (single next command, mode, complexity) from trusted task memory, unlike the checkpoint, resume, onboarding, and loop-recovery commands that sit next to it.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "ok, what do I run now?",
+      "Slice 02 just got closed and TASK_STATE.md is up to date. What is the next command I should run, and in which editor mode?",
+      "DECISIONS.md has D-1 through D-4 locked and IMPLEMENTATION_PLAN.md is approved, but I have not touched slice 01 yet. Tell me the one thing to do next, no big explanation.",
+      "Review came back clean on the last change and the state file says so. Where does the pipeline go from here?",
+      "I have the impact analysis and the invariants file written, nothing else. Quick answer please: plan next, or do I still owe someone a question?"
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "I want to start on replacing the CSV exporter with a streaming one. There is no folder or notes for it yet, so set the work up so I can begin.",
+        "routes_to": "task-init"
+      },
+      {
+        "prompt": "New chat window and yesterday's transcript is gone. Rebuild what we knew about this task from TASK_STATE.md and the linked files before we do anything else.",
+        "routes_to": "resume-from-state"
+      },
+      {
+        "prompt": "We have gone over the slice 03 plan three times and keep circling the same two questions. Every pass ends where it started. Help us break out of this.",
+        "routes_to": "im-stuck"
+      },
+      {
+        "prompt": "I'm new to this way of working. Walk me through what each phase means, why we are in this one, and what the next few steps look like so I actually understand the process.",
+        "routes_to": "workflow-guide"
+      },
+      {
+        "prompt": "The plan has five slices and three are closed. Give me a full checkpoint against IMPLEMENTATION_PLAN.md: what is finished, what is missing, and what is left before the whole task is done.",
+        "routes_to": "where-we-at"
+      }
+    ]
+  }
+}

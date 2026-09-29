@@ -11,7 +11,7 @@ metadata:
   tools: "Read, Write, Edit, Bash, Glob, Grep"
   x-wos-profiles: "core, full"
   provenance: "first-party"
-  suggested-model: "claude-sonnet-5"
+  suggested-model: "claude-sonnet-5-5"
 ---
 
 Act as a senior/staff engineering project initializer.
@@ -54,7 +54,7 @@ Adaptive question flow (loop control):
   6. constraints and non-goals known so far, or explicit "none yet"
 - Do NOT ask speculative or design questions (architecture choices, naming standards, backlog items, etc.). The command is for context capture, not for solving.
 - Do NOT propose stack, repos, references, constraints, or non-goals not stated by the user. Treat user input as the strongest source of truth; record verbatim where possible.
-- **No human respondent (unattended, background, or fleet-dispatched run, per ADR-0044 doctrine):** do NOT self-answer and do NOT lock anything. Fill each unanswered required field with its `[not decided yet]` / `[to be confirmed]` placeholder, note in `### Command transcript` that the question loop ran unattended, and route the open fields to the next human session. Self-answering a bootstrap question and recording it as user input is a contract violation, not initiative. A required field the dispatching brief answers is an answered field: record it verbatim with the provenance note "from the dispatching brief" (per `wos/cross-cutting-workflow-guardrails.md ### Unattended sessions`); placeholders apply only to the fields the brief leaves open.
+- **No human respondent (unattended or fleet-dispatched run, or a background session failing the ADR-0237 test; ADR-0044 doctrine):** do NOT self-answer and do NOT lock anything. Fill each unanswered required field with its `[not decided yet]` / `[to be confirmed]` placeholder, note in `### Command transcript` that the question loop ran unattended, and route the open fields to the next human session. Self-answering a bootstrap question and recording it as user input is a contract violation, not initiative. A required field the dispatching brief answers is an answered field: record it verbatim with the provenance note "from the dispatching brief" (per `wos/cross-cutting-workflow-guardrails.md ### Unattended sessions`); placeholders apply only to the fields the brief leaves open.
 
 Project repository structure to use:
 - projects/<client>__<project>/
@@ -209,8 +209,7 @@ Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIE
 - Include `NO_OP_TRACE` (1-3 lines) when this run is a no-op (for example, the project folder already exists, in which case route the user to `task-init` or `capture-references` instead).
 
 ### Handoff
-Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state). Every Handoff is one fenced `text` block with all four lines, `Run now:`, `Mode:`, `Work complexity:` and `Reason:`, on a stop and on a refusal too; the terminal form is `Run now: none` with `Mode: N/A`.
-
+Use the adaptive ending format of `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract`. Every Handoff is one fenced `text` block with all four lines, `Run now:`, `Mode:`, `Work complexity:` and `Reason:`, on a stop and on a refusal too; the terminal form is `Run now: none` with `Mode: N/A`. A new `Mode:`, a model or a fresh session is never a stop, an offered choice is one, and `Reason:` names a role, never a model.
 ### Definition of done (command output)
 - Resolved project path is explicit and naming rules are satisfied.
 - Both mandatory files (`PROJECT_CHARTER.md`, `REFERENCES.md`) are emitted with the full structure specified in `Files to generate`. Missing or partial files invalidate the run; placeholders are required where facts are unknown but the file itself must exist.

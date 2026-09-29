@@ -15,6 +15,13 @@ Two modes:
        compute-task-outcome.py <task-folder> --merge-status merged|waived|not-merged \
            [--evidence "..."] [--close-ts ISO]
 
+   Optional: --usage-source <adapter>:<path> fills output_tokens_by_model and
+   output_tokens_source (E0, ADR-0236). Adapters: `json` (a {model: tokens}
+   file any harness can write) and `claude-code` (a transcript file or a
+   directory of them, attributed to the task by name per ADR-0238). No source,
+   nothing readable, nothing attributable, or a count the transcript does not
+   hold records null, and output_tokens_null_reason says which.
+
 2. Revert mode: record a human-observed revert of previously merged work.
 
        compute-task-outcome.py --revert <task-slug> --project <client__project> \
@@ -427,7 +434,329 @@ def read_escalations(task_state_text):
         return None
 
 
-def build_outcome_record(task_folder, merge_status, evidence, close_ts_arg):
+def usage_from_json(path):
+    """The neutral adapter: a JSON object of model id to integer output tokens,
+    written by any harness. Anything else is unreadable, so None."""
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            obj = json.load(f)
+    except (OSError, ValueError):
+        return None
+    if not isinstance(obj, dict) or not obj:
+        return None
+    out = {}
+    for model, tokens in obj.items():
+        if not isinstance(model, str) or isinstance(tokens, bool) or not isinstance(tokens, int) or tokens < 0:
+            return None
+        out[model] = tokens
+    return out
+
+
+def transcript_files(path):
+    """A transcript file plus the session directory beside it (where Claude Code
+    keeps subagent and workflow transcripts), or every *.jsonl under a directory."""
+    files = []
+    if os.path.isfile(path):
+        files.append(path)
+        stem = path[:-len(".jsonl")] if path.endswith(".jsonl") else None
+        roots = [stem] if stem and os.path.isdir(stem) else []
+    elif os.path.isdir(path):
+        roots = [path]
+    else:
+        return files
+    for root in roots:
+        for dirpath, _dirs, names in os.walk(root):
+            for name in sorted(names):
+                if name.endswith(".jsonl"):
+                    files.append(os.path.join(dirpath, name))
+    return files
+
+
+TASK_DIR_RE = re.compile(r"^\d{4}-\d{2}-\d{2}_[A-Za-z0-9][A-Za-z0-9_-]*$")
+AGENT_FILE_RE = re.compile(r"^agent-([A-Za-z0-9]+)\.jsonl$")
+
+
+def task_write_window(folder):
+    """(first, last) wos:write ts in a task folder's TASK_STATE.md, or None.
+    Another task's file is read with undecodable bytes replaced, so one damaged
+    sibling can never fail this task's outcome line."""
+    try:
+        with open(os.path.join(folder, "TASK_STATE.md"), "r", encoding="utf-8", errors="replace") as f:
+            text = f.read()
+    except OSError:
+        return None
+    stamps = [ts for _, ts in parse_task_state_headers(text)]
+    return (min(stamps), max(stamps)) if stamps else None
+
+
+def concurrent_tasks(project_root, task, start_dt, end_dt):
+    """The other task folders, in any project of the same projects/ tree, whose
+    own wos:write window overlaps [start_dt, end_dt]. A folder under active/ is
+    still running, so its window stays open at the end. A folder with no headers
+    has no window and is left out: nothing says when it ran."""
+    found = set()
+    if not project_root or start_dt is None or end_dt is None:
+        return found
+    projects_dir = os.path.dirname(project_root)
+    try:
+        projects = sorted(os.listdir(projects_dir))
+    except OSError:
+        return found
+    for project in projects:
+        for lifecycle in ("active", "archive", "done"):
+            parent = os.path.join(projects_dir, project, lifecycle)
+            try:
+                names = os.listdir(parent)
+            except OSError:
+                continue
+            for name in names:
+                if name == task or not TASK_DIR_RE.match(name):
+                    continue
+                window = task_write_window(os.path.join(parent, name))
+                if window is None or window[0] > end_dt:
+                    continue
+                if lifecycle == "active" or window[1] >= start_dt:
+                    found.add(name)
+    return found
+
+
+def names_in(text, names):
+    """The task folder names that occur in text as whole names: a match must not
+    touch a letter, digit, underscore or hyphen on either side, nor be followed by
+    a dot and a letter or digit, so one task's name never matches inside a longer
+    one."""
+    hits = set()
+    for name in names:
+        i = text.find(name)
+        while i != -1:
+            before = text[i - 1] if i > 0 else " "
+            j = i + len(name)
+            after = text[j] if j < len(text) else " "
+            longer = after.isalnum() or after in "_-" or (
+                after == "." and j + 1 < len(text) and text[j + 1].isalnum())
+            if not (before.isalnum() or before in "_-") and not longer:
+                hits.add(name)
+                break
+            i = text.find(name, i + 1)
+    return hits
+
+
+def input_strings(value):
+    """Every string inside a tool call's input, walked through dicts and lists,
+    so a name is matched against the raw text rather than its JSON escaping (in
+    `json.dumps`, a name after a newline follows the letter n)."""
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from input_strings(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from input_strings(item)
+
+
+def session_root_of(fpath):
+    """The session transcript a sub-agent file belongs to: Claude Code keeps
+    <session>.jsonl beside a <session>/ directory that holds subagents/."""
+    d = os.path.dirname(fpath)
+    while d and d != os.path.dirname(d):
+        if os.path.isfile(d + ".jsonl"):
+            return d + ".jsonl"
+        d = os.path.dirname(d)
+    return None
+
+
+def agent_node(fpath):
+    """(node key, parent key or None) for one transcript file. A session file is
+    a root. A sub-agent file agent-<id>.jsonl names its dispatcher in the sibling
+    agent-<id>.meta.json as parentAgentId; without one its parent is the session."""
+    m = AGENT_FILE_RE.match(os.path.basename(fpath))
+    if not m:
+        return fpath, None
+    root = session_root_of(fpath)
+    parent_id = None
+    try:
+        with open(fpath[:-len(".jsonl")] + ".meta.json", "r", encoding="utf-8") as f:
+            meta = json.load(f)
+        if isinstance(meta, dict) and isinstance(meta.get("parentAgentId"), str):
+            parent_id = meta["parentAgentId"] or None
+    except (OSError, ValueError):
+        pass
+    parent = ("agent", root, parent_id) if parent_id else root
+    return ("agent", root, m.group(1)), parent
+
+
+def scan_transcript(fpath, start_dt, end_dt, wanted):
+    """One transcript file: the wanted task names its tool calls carry inside
+    the window, and per message that STARTED inside the window [model, largest
+    output count, final]. A message is final when one of its lines has a
+    stop_reason; only that line holds the whole count. A message's later lines
+    count even past the close, so a response cut by the boundary is not read as
+    unfinished. Reads names, model ids and integers, never keeps text."""
+    named = set()
+    messages = {}
+    started = {}
+    try:
+        fh = open(fpath, "r", encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    with fh:
+        for n, line in enumerate(fh):
+            if '"assistant"' not in line:
+                continue
+            try:
+                obj = json.loads(line)
+            except ValueError:
+                continue
+            if not isinstance(obj, dict) or obj.get("type") != "assistant":
+                continue
+            ts = parse_iso8601(obj.get("timestamp"))
+            if ts is None:
+                continue
+            msg = obj.get("message")
+            if not isinstance(msg, dict):
+                continue
+            inside = start_dt <= ts <= end_dt
+            content = msg.get("content")
+            if inside and isinstance(content, list):
+                for block in content:
+                    if isinstance(block, dict) and block.get("type") == "tool_use":
+                        for text in input_strings(block.get("input")):
+                            named |= names_in(text, wanted)
+            model = msg.get("model")
+            usage = msg.get("usage")
+            tokens = usage.get("output_tokens") if isinstance(usage, dict) else None
+            if not isinstance(model, str) or isinstance(tokens, bool) or not isinstance(tokens, int):
+                continue
+            key = msg.get("id") or ("line", fpath, n)
+            if key not in started or ts < started[key]:
+                started[key] = ts
+            entry = messages.setdefault(key, [model, 0, False])
+            entry[1] = max(entry[1], tokens)
+            entry[2] = entry[2] or bool(msg.get("stop_reason"))
+    kept = {k: v for k, v in messages.items() if start_dt <= started[k] <= end_dt}
+    return named, kept
+
+
+def usage_from_claude_code(path, start_dt, end_dt, task=None, project_root=None):
+    """The Claude Code adapter (ADR-0238). Returns (totals, detail): totals is
+    {model: output tokens} or None, and detail is the scope of the count or,
+    when totals is None, the reason.
+
+    Attribution, per transcript file (one file is one agent: the session or one
+    sub-agent). An agent belongs to the task when its tool calls inside the
+    window name the task's folder anywhere in their inputs (a path, the
+    task/<name> branch, a mention) and name no concurrent task, meaning another
+    task folder in any project of the same projects/ directory whose write
+    window overlaps this one (an active/ folder's window stays open). An agent
+    whose tool calls name no task takes the attribution of the agent that
+    dispatched it (agent-<id>.meta.json parentAgentId, else the session). An
+    agent that names this task and a concurrent one is ambiguous and is not
+    counted.
+
+    Signals measured on 2026-09-28 against two tasks that ran at once as
+    sub-agents of one session, and not used: the line's cwd (one task's agent
+    wrote the main checkout path on 151 of 157 lines, the same path its parent
+    wrote) and gitBranch (the launch branch, `main`, on every line).
+
+    Counting. Each message id counts once, at the largest output count any of its
+    lines carries. Every counted message must be final, meaning one of its lines
+    has a stop_reason. Sub-agent transcripts written by Claude Code 2.1.280 and
+    later keep only a streaming snapshot for most messages (measured: 1150 final
+    of 10679 such messages, against 2203 of 2256 before 2.1.280), so an
+    attributed message with no final line makes the whole count null, with the
+    reason, rather than a floor that reads like a total."""
+    if start_dt is None or end_dt is None:
+        return None, "claude-code: no task window (no wos:write header in TASK_STATE.md)"
+    if not task:
+        return None, "claude-code: no task name to attribute by"
+    files = transcript_files(path)
+    if not files:
+        return None, "claude-code: no transcript at the given path"
+    concurrent = concurrent_tasks(project_root, task, start_dt, end_dt)
+    wanted = set(concurrent) | {task}
+    nodes = {}
+    for fpath in files:
+        scanned = scan_transcript(fpath, start_dt, end_dt, wanted)
+        if scanned is None:
+            continue
+        key, parent = agent_node(fpath)
+        nodes[key] = {"parent": parent, "named": scanned[0], "messages": scanned[1]}
+
+    def verdict(key, seen):
+        node = nodes.get(key)
+        if node is None or key in seen:
+            return "none"
+        named = node["named"]
+        if task in named:
+            return "ambiguous" if named & concurrent else "task"
+        if named & concurrent:
+            return "other"
+        if node["parent"] is None:
+            return "none"
+        return verdict(node["parent"], seen | {key})
+
+    tally = {"task": 0, "ambiguous": 0, "other": 0, "none": 0}
+    counted = {}
+    for key, node in nodes.items():
+        if not node["messages"]:
+            continue
+        v = verdict(key, frozenset())
+        tally[v] += 1
+        if v == "task":
+            for mid, (model, tokens, final) in node["messages"].items():
+                prior = counted.get(mid)
+                if prior is None:
+                    counted[mid] = [model, tokens, final]
+                else:
+                    prior[1] = max(prior[1], tokens)
+                    prior[2] = prior[2] or final
+    agents_in_window = sum(tally.values())
+    if agents_in_window == 0:
+        return None, "claude-code: no assistant line inside the task window"
+    excluded = "%d excluded: %d ambiguous, %d of a concurrent task, %d unattributed" % (
+        tally["ambiguous"] + tally["other"] + tally["none"], tally["ambiguous"], tally["other"], tally["none"])
+    if not counted:
+        return None, "claude-code: no transcript in the window is attributed to the task; " + excluded
+    not_final = sum(1 for _, _, final in counted.values() if not final)
+    if not_final:
+        return None, ("claude-code: %d of %d attributed messages have no final count (a sub-agent "
+                      "transcript kept only a streaming snapshot); %d transcripts attributed, %s"
+                      % (not_final, len(counted), tally["task"], excluded))
+    totals = {}
+    for model, tokens, _ in counted.values():
+        totals[model] = totals.get(model, 0) + tokens
+    return totals, "claude-code; time window %s to %s; attributed by task name: %d transcripts counted, %s" % (
+        format_iso_ms(start_dt), format_iso_ms(end_dt), tally["task"], excluded)
+
+
+def read_usage(usage_source, start_dt, end_dt, task=None, project_root=None):
+    """(output_tokens_by_model, output_tokens_source, output_tokens_null_reason).
+    Tool-agnostic at the contract: the adapter name picks a reader. Absent,
+    unreadable or unattributable data is a null count plus a reason, never an
+    estimate."""
+    if not usage_source:
+        return None, None, "no usage source passed"
+    if ":" not in usage_source:
+        return None, None, "usage source is not <adapter>:<path>"
+    adapter, path = usage_source.split(":", 1)
+    try:
+        if adapter == "json":
+            got = usage_from_json(path)
+            if got is None:
+                return None, None, "json: the file is missing or is not a {model: non-negative integer} object"
+            return got, "json", None
+        if adapter == "claude-code":
+            got, detail = usage_from_claude_code(path, start_dt, end_dt, task, project_root)
+            if got is None:
+                return None, None, detail
+            return got, detail, None
+    except Exception:
+        return None, None, "%s: the reader failed" % adapter
+    return None, None, "unknown adapter: %s" % adapter
+
+
+def build_outcome_record(task_folder, merge_status, evidence, close_ts_arg, usage_source=None):
     project, project_root, task = derive_project_task(task_folder)
 
     task_state_path = os.path.join(task_folder, "TASK_STATE.md")
@@ -474,6 +803,11 @@ def build_outcome_record(task_folder, merge_status, evidence, close_ts_arg):
 
     sweep = compute_sweep(project_root, task)
     deliverables = compute_deliverables(task_state_text)
+    usage_start = earliest(pool, INIT_OWNERS) if pool else None
+    if usage_start is None and pool:
+        usage_start = min(ts for _, ts in pool)
+    tokens_by_model, tokens_source, tokens_reason = read_usage(
+        usage_source, usage_start, close_dt, task, project_root)
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -489,6 +823,9 @@ def build_outcome_record(task_folder, merge_status, evidence, close_ts_arg):
         "deliverables": deliverables,
         "tier": read_pipeline_tier(task_state_text),
         "escalations": read_escalations(task_state_text),
+        "output_tokens_by_model": tokens_by_model,
+        "output_tokens_source": tokens_source,
+        "output_tokens_null_reason": tokens_reason,
         "source": SOURCE_NAME,
         "run_id": generate_run_id(),
     }
@@ -641,6 +978,14 @@ def build_arg_parser():
     parser.add_argument("--findings", type=int, default=0, help="How many findings the pass produced.")
     parser.add_argument("--escalated-on", default=None, help="What the review could not ground; only on ESCALATED.")
     parser.add_argument(
+        "--usage-source",
+        dest="usage_source",
+        default=None,
+        metavar="ADAPTER:PATH",
+        help="Where to read output tokens per model (outcome mode): json:<file> or "
+             "claude-code:<transcript file or directory>. Absent or unreadable records null.",
+    )
+    parser.add_argument(
         "--close-ts",
         dest="close_ts",
         default=None,
@@ -717,7 +1062,8 @@ def main(argv=None):
         parser.error(f"task folder not found: {args.task_folder}")
 
     try:
-        record = build_outcome_record(args.task_folder, args.merge_status, args.evidence, args.close_ts)
+        record = build_outcome_record(args.task_folder, args.merge_status, args.evidence, args.close_ts,
+                                      args.usage_source)
     except Exception as exc:  # degradation rule: never traceback
         sys.stderr.write(f"compute-task-outcome: warning: {exc}\n")
         _, _, task = derive_project_task(args.task_folder)
@@ -735,6 +1081,9 @@ def main(argv=None):
             "deliverables": None,
             "tier": None,
             "escalations": None,
+            "output_tokens_by_model": None,
+            "output_tokens_source": None,
+            "output_tokens_null_reason": "the helper failed before reading usage",
             "source": SOURCE_NAME,
             "run_id": generate_run_id(),
         }

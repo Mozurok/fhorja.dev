@@ -27,6 +27,7 @@ Should contain:
 - short summary
 - objective
 - current status
+- `## Brief`: the brief the task was opened with, verbatim (the dispatching brief in an unattended run, a pointer to `BRIEF.md` when `task-init` consumed one). `approve-plan` counts a provisional decision's quoted evidence only when this file carries the quote verbatim, and on 2026-09-29 a blinded review could not resolve a quote until the brief was pasted here by hand.
 
 ### TASK_STATE.md
 Purpose:

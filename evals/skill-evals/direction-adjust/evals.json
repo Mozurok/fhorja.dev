@@ -1,0 +1,22 @@
+{
+  "skill_name": "direction-adjust",
+  "version": "1.0",
+  "description": "Trigger evals for direction-adjust: a self-discovered mid-task course correction that deserves a D-N record and a small change of plan, as opposed to reviewer feedback, a throwaway note, a loop, a reopened locked decision, or a whole new task.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "turns out polling won't work here, switching slice 03 to webhooks. log that so the plan matches",
+      "While building slice 02 I found the import job already dedupes by hash, so the dedupe table in IMPLEMENTATION_PLAN.md is redundant. I want to drop that step and keep going. Write it down as a decision and fix TASK_STATE.md so the next slice starts from the new shape.",
+      "I've been on this for two hours and I now think we should paginate server-side instead of loading everything and filtering in the client. Nothing else in the plan changes. Record the change and tell me which command to run next.",
+      "Small pivot from my own testing: the settings screen should save on blur, not on a Save button. The rest of slice 04 stands. Capture it as the next D-N and update the state file.",
+      "Halfway through slice 01 I realized the cache key needs the tenant id, otherwise two orgs collide. It is a modest change to the plan, not a rewrite. Make it a numbered decision and route me back into the work."
+    ],
+    "should_not_trigger": [
+      { "prompt": "Reviewer left 7 comments on PR #212 asking for renamed fields, an extra test, and a null check. Turn them into a backlog mapped to our slices before I touch any code.", "routes_to": "pr-feedback-ingest" },
+      { "prompt": "Noticed that the retry helper logs at info level, which is probably noisy. Not doing anything about it now, just want it on record in TASK_STATE.md so I don't forget.", "routes_to": "capture-observation" },
+      { "prompt": "I keep rereading the same three files and every fix breaks something else. I can't tell if this is a bug or a planning problem. Help me get unstuck.", "routes_to": "im-stuck" },
+      { "prompt": "D-2 says we store timestamps in local time and it is marked locked. I now want to reopen it and store UTC instead, which changes what the API returns. Walk me through the options before we decide.", "routes_to": "decision-interview" },
+      { "prompt": "The team just told me the whole project is now a mobile app instead of a web dashboard, so none of the current slices apply. Start fresh on this new scope.", "routes_to": "task-init" }
+    ]
+  }
+}

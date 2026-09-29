@@ -1,0 +1,37 @@
+{
+  "skill_name": "decision-interview",
+  "version": "1.0",
+  "description": "Trigger evals for decision-interview: it asks which policy or behavior to choose when nothing is decided yet, while its siblings ask for missing facts, harden decisions already made, or reconcile rules that contradict each other.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "we haven't decided what happens to in-flight orders when a user deletes their account. cancel them, or let them finish?",
+      "TASK_STATE.md says we're ready to plan, but nobody has picked a retry policy for the webhook consumer yet. Failed deliveries could retry forever, stop after 5 attempts, or go to a dead-letter queue, and each one changes what we test and how we roll out. Can you interview me on it before IMPLEMENTATION_PLAN.md gets written?",
+      "Before I slice this, DECISIONS.md is empty on soft delete vs hard delete for the invoices table. That choice changes the migration, the export job, and the retention story. Ask me the questions that settle it.",
+      "Still open for the import feature: when two rows share the same email, do we overwrite, skip, or merge? I want to lock a rule before slice 01 starts.",
+      "For the new billing job, is a double charge acceptable in an outage, or should we prefer skipping a charge and reconciling later? Nobody on the team has chosen a direction, so walk me through the trade-offs and the questions I need to answer."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "Before I plan the export feature I need to know how many rows the largest customer table has, which S3 bucket exports go to, and whether the reporting DB is a read replica. None of that is written down anywhere.",
+        "routes_to": "targeted-questions"
+      },
+      {
+        "prompt": "D-1 through D-6 in DECISIONS.md are all settled and agreed. Tighten the wording so nothing can be read two ways, and write the cleaned-up rule set back into TASK_STATE.md before we plan.",
+        "routes_to": "contract-signoff"
+      },
+      {
+        "prompt": "D-3 says exports are capped at 10k rows but D-5 says the API streams unlimited results to the same consumer. Those two rules conflict and I need one rule that both slices can implement.",
+        "routes_to": "resolve-contract-gaps"
+      },
+      {
+        "prompt": "Halfway through slice 02 I realized the cache key should include the tenant id, which is a small change of course. Log it as a numbered decision and tell me where to go from here.",
+        "routes_to": "direction-adjust"
+      },
+      {
+        "prompt": "My boss wants us to make the dashboard faster but I'm not sure that's really the problem. There's no task folder yet. Help me figure out what we're actually solving first.",
+        "routes_to": "problem-framing"
+      }
+    ]
+  }
+}

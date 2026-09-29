@@ -1,0 +1,37 @@
+{
+  "skill_name": "component-spec",
+  "version": "1.0",
+  "description": "Trigger evals for component-spec: it fires when a single Figma component needs a full spec doc written for the design system, while screen-spec, image-to-spec, design-spec-review, pattern-doc and inventory-snapshot handle a screen frame, an image-only source, a review of built code, a reusable UX pattern, and a library-wide inventory.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "Can you write up the Button component from our Figma file? I have the node link and it's an atom.",
+      "We are documenting the design system and the SearchField molecule is next. Here is the Figma URL with the node-id. I want every variant, size and state written down so a dev never has to open Figma.",
+      "The Figma library has a Chip component with filled, outlined and selected variants. Pull its tokens and spacing and produce the doc under docs/research/components/atoms, and mark whatever Figma does not show as proposed.",
+      "Next on the inventory is the Avatar. Read it straight from Figma, note the touch target and contrast numbers, and draft the props interface plus a usage snippet.",
+      "spec the ListItem organism from this Figma node, please"
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "Here is the Figma frame for the Checkout screen. Document the layout, the components it uses, the copy and the error states.",
+        "routes_to": "screen-spec"
+      },
+      {
+        "prompt": "I only have a PNG screenshot of a dropdown from the old app, no Figma file exists. Turn it into a structured spec for me.",
+        "routes_to": "image-to-spec"
+      },
+      {
+        "prompt": "The Toggle is already built in the repo and the spec doc exists. Check whether the code matches the documented variants, states and tokens.",
+        "routes_to": "design-spec-review"
+      },
+      {
+        "prompt": "We keep solving empty states differently on every page. Write up one reusable guideline for empty states that all our screens can follow.",
+        "routes_to": "pattern-doc"
+      },
+      {
+        "prompt": "Design shipped a new version of the Figma library. List every component in it, with its tier and whether we already have a spec, code or story for each, and show what changed since last time.",
+        "routes_to": "inventory-snapshot"
+      }
+    ]
+  }
+}

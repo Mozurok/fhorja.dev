@@ -1,0 +1,37 @@
+{
+  "skill_name": "security-review",
+  "version": "1.0",
+  "description": "Trigger evals for security-review: it fires on implemented changes that touch auth, public endpoints, PII, crypto or integrations and need an attacker-minded pass, while review-hard, repo-consistency-sweep, rls-auth-boundary-auditor, mcp-server-vet and api-contract-review handle general risk, pattern drift, tenant policies, third-party servers, and pre-code contract design.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "Password reset flow is finished on the branch. Can you go over the diff for holes before I merge?",
+      "added a public /avatars/upload endpoint with S3 presigned URLs. anything an attacker could abuse here?",
+      "The MFA slice is implemented and TASK_STATE.md lists auth/mfa.ts under active files, but nobody has done a security pass on it. Trace who can call what, and where the tenant filter could be skipped.",
+      "We now store customers' national ID numbers and encrypt them with a key read from an env var. Rank what could go wrong from an attacker's point of view, worst first, and give me a fix for each before this ships.",
+      "The Stripe webhook handler is in and it also emails a receipt with the customer's home address. Check the signature verification, session handling and input validation, and remind me which scans to run before merge."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "The retry-queue refactor is done. Look for correctness and maintainability problems in the diff before I close the slice.",
+        "routes_to": "review-hard"
+      },
+      {
+        "prompt": "The notification preferences slice passed its hard review and I'm about to package the PR. Before that, check the changed files against our catalog of known defect classes, things like a missing await, a loose any, or a query that forgot its tenant scope, and skip anything I declined last time.",
+        "routes_to": "repo-consistency-sweep"
+      },
+      {
+        "prompt": "My Supabase migration adds an invoices table with a write policy but no WITH CHECK. Audit the policy DDL for tenant isolation gaps before I deploy.",
+        "routes_to": "rls-auth-boundary-auditor"
+      },
+      {
+        "prompt": "A teammate shared a community MCP server for our issue tracker. Before I add it to my config, inspect what its tools declare and what scopes it asks for.",
+        "routes_to": "mcp-server-vet"
+      },
+      {
+        "prompt": "Nothing is coded yet. Review the proposed /v2/orders endpoints for naming, pagination, error codes and idempotency before we start building.",
+        "routes_to": "api-contract-review"
+      }
+    ]
+  }
+}

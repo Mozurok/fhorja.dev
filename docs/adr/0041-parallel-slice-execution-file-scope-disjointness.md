@@ -1,6 +1,6 @@
 # ADR-0041: Parallel Slice Execution and the File-Scope Disjointness Gate
 
-- **Status:** Accepted (orchestrator command `implement-fleet` ships as a pilot pending lived evidence)
+- **Status:** Accepted; the pilot status is superseded in part by [ADR-0243](./0243-implement-fleet-is-the-default-for-a-parallel-wave.md): the E4 rerun met the promotion criteria in the Notes, and `implement-fleet` is the default for a wave of two or more slices on a harness with per-agent worktree isolation. The five conditions stand.
 - **Date:** 2026-06-09
 - **Tags:** orchestration, workflow-tool, execution, slice-parallelism, scope-disjointness, integration-gate, adr-amendment, fleet-orchestration
 

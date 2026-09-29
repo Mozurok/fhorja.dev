@@ -161,7 +161,7 @@ The Chroma `Context-Rot` report (2024-2025) showed that all models degrade as co
 
 Fhorja itself, command personas, and output contracts are tight already. The lazy-load spec pattern (ADR-0006) is the compaction strategy for this layer: load `wos/<topic>.md` only when needed. This file is one such lazy topic, and every other `wos/` topic follows the same pattern.
 
-The `mandatory-context-bootstrap` shared block, inlined into 92 of the <!-- count:commands -->98<!-- /count --> command files, is the largest single piece of this layer. It is measured at 11678 tokens for the full tier (the four always-read `WORKFLOW_OPERATING_SYSTEM.md` sections it names), with a reduced tier for the light-weight and high-frequency commands listed in the block itself. A third, leaf-reviewer tier (ADR-0226) lets `verify-against-rubric` read only `## Global output contract` plus its rubric, because a blinded reviewer neither edits files nor dispatches others. Treat this floor as cache-amortized under ADR-0006, not as a per-invocation tax: it is written once per cache TTL window and read back at roughly 0.1x afterward. It is a separate accounting line from the `tools` layer's per-skill Load budget below; the two measure different things and do not sum into one number.
+The `mandatory-context-bootstrap` shared block, inlined into 92 of the <!-- count:commands -->98<!-- /count --> command files, is the largest single piece of this layer. It is measured at 12109 tokens for the full tier (the four always-read `WORKFLOW_OPERATING_SYSTEM.md` sections it names), with a reduced tier for the light-weight and high-frequency commands listed in the block itself. A third, leaf-reviewer tier (ADR-0226) lets `verify-against-rubric` read only `## Global output contract` plus its rubric, because a blinded reviewer neither edits files nor dispatches others. Treat this floor as cache-amortized under ADR-0006, not as a per-invocation tax: it is written once per cache TTL window and read back at roughly 0.1x afterward. It is a separate accounting line from the `tools` layer's per-skill Load budget below; the two measure different things and do not sum into one number.
 
 ### `memory`: compactable on growth
 
@@ -239,7 +239,7 @@ Parallel-dispatch (ADR-0038, ADR-0039) changes the context budget model in ways 
 
 ### Per-agent context is isolated
 
-Each parallel agent has its own context window. Total session context cost is roughly `N x per-agent-context + orchestrator-context`, not the sum of one shared transcript. The `system`, `tools`, and `task` baseline is paid once per subagent, not once for the batch.
+Each parallel agent has its own context window. Total session context cost is roughly `N x per-agent-context + orchestrator-context`, not the sum of one shared transcript. The `system`, `tools`, and `task` baseline is paid once per subagent, not once for the batch. That per-subagent baseline is why a `mechanical` fan-out of small items gives each worker about five items instead of one (ADR-0240, `WORKFLOW_OPERATING_SYSTEM.md` → `## Parallel workflow` → `### Items per worker (ADR-0240)`).
 
 ### Empirical token usage
 
@@ -259,6 +259,6 @@ The per-phase thresholds in `## Context-rot thresholds` above (per ADR-0023) app
 
 ### Recommendation
 
-After 3+ consecutive parallel batches, run `compact-task-memory` or start a fresh session if the orchestrator's main context exceeds ~70 percent of its window. The subagent contexts die with each batch, so the long-lived risk is orchestrator-side accumulation, not subagent-side.
+After 3+ consecutive parallel batches, run `compact-task-memory` if the orchestrator's main context exceeds ~70 percent of its window, and continue in the same session: a fresh session is the person's call, never a Handoff step (ADR-0241). The subagent contexts die with each batch, so the long-lived risk is orchestrator-side accumulation, not subagent-side.
 
 References: ADR-0038 (parallel dispatch foundations), ADR-0039 (batch sizing and cost model), ADR-0023 (context-rot thresholds), `wos/workflow-patterns.md` (fan-out / fan-in patterns).

@@ -1,0 +1,37 @@
+{
+  "skill_name": "contract-signoff",
+  "version": "1.0",
+  "description": "Trigger evals for contract-signoff: it only rewrites the wording of decisions that are already settled, while its siblings ask for missing answers, pick between contradicting rules, or move on to planning.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "D-1 to D-6 are all agreed, but half of them still say 'probably' and 'should'. Tighten the language before we plan.",
+      "Everything in DECISIONS.md is decided, it just reads like meeting notes. Rewrite it as firm policy in one voice so nobody can read a rule two ways, and show me each edit.",
+      "Decisions are locked, I just need the text cleaned up.",
+      "All eight decisions on the retention task are final. In DECISIONS.md, swap the 'we assume' phrasing for plain rules, move the old analysis notes out of the active section, then update TASK_STATE.md to match.",
+      "The team signed off on the billing contract yesterday and nothing is open. Before I ask for the plan, do a final pass over DECISIONS.md so the wording is normative and the plan can cite it without guessing."
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "D-4 says failed jobs are retried three times and D-7 says they are never retried. Pick one canonical rule and write it down so the plan can rely on it.",
+        "routes_to": "resolve-contract-gaps"
+      },
+      {
+        "prompt": "We have not decided whether soft-deleted accounts keep their API keys or lose them, and it changes the schema. Ask me whatever you need to settle that before we go further.",
+        "routes_to": "decision-interview"
+      },
+      {
+        "prompt": "I do not know which region staging runs in or whether the queue guarantees ordering. What do you need to ask me before we can move on?",
+        "routes_to": "targeted-questions"
+      },
+      {
+        "prompt": "DECISIONS.md is clean and TASK_STATE.md says ready for planning. Break the work into slices with scope, ordering and exit criteria.",
+        "routes_to": "implementation-plan"
+      },
+      {
+        "prompt": "Halfway through slice 02 I realised we should paginate by cursor instead of offset. Log that as a course correction with a new D-N entry and tell me where to go from there.",
+        "routes_to": "direction-adjust"
+      }
+    ]
+  }
+}

@@ -457,6 +457,57 @@ def mutate_spec_disagrees_with_floor(d):
     return "the spec naming a different floor than the topic"
 
 
+def build_items_per_worker_root(d):
+    """The items-per-worker rule in its three homes: the spec subsection, the worker contract's
+    `files_read` field, and a classification table naming every fleet. ADR-0240 exists because
+    one worker per small item cost 46 percent more on the same work (E5)."""
+    os.makedirs(os.path.join(d, "wos"), exist_ok=True)
+    os.makedirs(os.path.join(d, "commands", "_shared"), exist_ok=True)
+    with open(os.path.join(d, "WORKFLOW_OPERATING_SYSTEM.md"), "w") as fh:
+        fh.write("# Spec\n\n## Parallel workflow\n\n### Items per worker (ADR-0240)\n\n"
+                 "- Batch about 5 items per worker. At most 9 workers run at once.\n"
+                 "- The return lists `files_read`.\n\n### Per-batch checklist\n\n- Short prompts.\n\n"
+                 "## Next section\n")
+    with open(os.path.join(d, "commands", "_shared", "worker-contract.md"), "w") as fh:
+        fh.write('# Worker contract\n\n```json\n{\n  "files_read": ["<path>"]\n}\n```\n')
+    with open(os.path.join(d, "wos", "workflow-patterns.md"), "w") as fh:
+        fh.write("# Workflow patterns\n\n## Items per worker\n\n| Fleet | Items per worker |\n"
+                 "|---|---|\n| `example-fleet` | one item |\n\n## Evidence\n")
+    with open(os.path.join(d, "commands", "example-fleet.md"), "w") as fh:
+        fh.write("# example-fleet\n")
+    return d
+
+
+def mutate_spec_drops_items_per_worker(d):
+    """The subsection goes, which is the edit ADR-0240 guards against: the rule is prose."""
+    f = os.path.join(d, "WORKFLOW_OPERATING_SYSTEM.md")
+    open(f, "w").write("# Spec\n\n## Parallel workflow\n\n### Per-batch checklist\n\n- Short prompts.\n")
+    return "the spec losing its items-per-worker subsection"
+
+
+def mutate_spec_items_number_changes(d):
+    """The subsection stays but its number moves back to one item per worker."""
+    f = os.path.join(d, "WORKFLOW_OPERATING_SYSTEM.md")
+    open(f, "w").write("# Spec\n\n## Parallel workflow\n\n### Items per worker (ADR-0240)\n\n"
+                       "- Dispatch one item per worker. At most 9 workers run at once.\n"
+                       "- The return lists `files_read`.\n")
+    return "the items-per-worker number dropping out of the subsection"
+
+
+def mutate_contract_drops_files_read(d):
+    """The worker contract loses the field that makes a skipped read visible."""
+    f = os.path.join(d, "commands", "_shared", "worker-contract.md")
+    open(f, "w").write('# Worker contract\n\n```json\n{\n  "evidence": []\n}\n```\n')
+    return "the worker contract losing files_read"
+
+
+def mutate_fleet_unclassified(d):
+    """A new fleet arrives without saying whether it batches."""
+    with open(os.path.join(d, "commands", "other-fleet.md"), "w") as fh:
+        fh.write("# other-fleet\n")
+    return "a fleet command missing from the classification table"
+
+
 def build_closure_views_root(d):
     """The canonical closure floors and their three generated views, copied from the
     live tree because they are in a known-good state and the format is generated.
@@ -1648,14 +1699,14 @@ def build_bootstrap_copies_root(d):
 
 
 def mutate_faq_copies_a_stale_floor(d):
-    """The FAQ goes stale against every stated tier (full 11678, reduced 10643, leaf 4841)."""
-    _drop(d, "docs/FAQ.md", "about 11,678 tokens", "about 9,000 tokens")
+    """The FAQ goes stale against every stated tier (full 12109, reduced 11074, leaf 5215)."""
+    _drop(d, "docs/FAQ.md", "about 12,109 tokens", "about 9,000 tokens")
     return "the FAQ quoting a bootstrap floor the block no longer declares"
 
 
 def mutate_budget_topic_copies_a_stale_floor(d):
-    """context-budget goes stale against every stated tier (full 11678, reduced 10643, leaf 4841)."""
-    _drop(d, "wos/context-budget.md", "measured at 11678 tokens", "measured at 9,000 tokens")
+    """context-budget goes stale against every stated tier (full 12109, reduced 11074, leaf 5215)."""
+    _drop(d, "wos/context-budget.md", "measured at 12109 tokens", "measured at 9,000 tokens")
     return "the context-budget topic quoting a stale bootstrap floor"
 
 
@@ -2380,7 +2431,8 @@ def mutate_task_init_drops_ignore_check(d):
 def build_one_slice_route_root(d):
     """The three commands that carry the one-slice route and the lint that runs its check."""
     return _copy_into(d, "commands/task-init.md", "commands/implement-approved-slice.md",
-                      "commands/autonomous-run.md", "scripts/lint-commands.sh")
+                      "commands/autonomous-run.md", "scripts/lint-commands.sh",
+                      "commands/what-next.md", "scripts/check-plan-coverage.sh")
 
 
 def mutate_route_writes_one_lock_signal(d):
@@ -2389,6 +2441,18 @@ def mutate_route_writes_one_lock_signal(d):
     _drop(d, "commands/task-init.md", "`implementation (plan APPROVED, one-slice route)`",
           "`implementation (one-slice route)`")
     return "the one-slice route without the plan APPROVED stamp"
+
+
+def mutate_route_refuses_every_provisional(d):
+    """The route goes back to the pre-ADR-0239 condition 3, which refused every provisional
+    decision, including the normal-impact one the draft PR already lists."""
+    _drop(d, "commands/task-init.md",
+          "every `### Assumptions` entry is `Impact: normal` on a run with a `Task branch:` line; "
+          "write each in the same batch as a `### P-N` under `## Provisional decisions` (the draft "
+          "PR lists it), and it fires no `decision-interview`, while an `Impact: high` one keeps "
+          "the full path",
+          "so do `## Provisional decisions` and `### Assumptions`")
+    return "the one-slice route refusing every provisional decision"
 
 
 def mutate_route_check_not_run(d):
@@ -2430,7 +2494,233 @@ def mutate_claude_md_directive_drifts(d):
     return "CLAUDE.md dropped a directive sentence"
 
 
+def build_handoff_continues_root(d):
+    """The surfaces the ADR-0241 rule lives on, copied from the tree, because the spec and
+    block assertions are exact sentences a hand-written stand-in would only match itself."""
+    return _copy_into(d, se.SPEC_PATH, "commands/_shared/handoff-body.md",
+                      "scripts/validate-transcript.sh", "commands/approve-plan.md",
+                      "wos/editor-mode-mappings.md", "wos/model-routing.md",
+                      "wos/context-budget.md")
+
+
+def mutate_spec_drops_choice_is_a_stop(d):
+    """The spec stops saying an offered choice is a stop, which is how the 2026-09-28 run
+    asked the maintainer to pick a path with no reason named."""
+    _drop(d, se.SPEC_PATH, se.CHOICE_IS_A_STOP, "Offering the user a choice is fine")
+    return "the spec no longer calling an offered choice a stop"
+
+
+def mutate_handoff_block_drops_never_a_stop(d):
+    """The shared Handoff block loses the ADR-0241 sentence, so 98 commands stop carrying it."""
+    _drop(d, "commands/_shared/handoff-body.md", se.HANDOFF_BODY_NEVER_A_STOP,
+          "a model or a fresh session may be suggested")
+    return "the shared Handoff block dropping the never-a-stop sentence"
+
+
+def mutate_topic_sends_chain_to_another_model(d):
+    """A wos topic starts telling the reader to reopen each slice on a named model, the
+    execution-playbook shape the failed run wrote."""
+    path = os.path.join(d, "wos", "model-routing.md")
+    with open(path, "a") as fh:
+        fh.write("\nRun each slice in a fresh session: `claude --model claude-sonnet-5-5`.\n")
+    return "a topic sending each slice to a fresh session on a named model"
+
+
+def build_fleet_dispatch_root(d):
+    """The two files the ADR-0242 rule lives on, copied from the tree: the anchors are exact
+    phrases a hand-written stand-in would only match itself."""
+    return _copy_into(d, "commands/implement-fleet.md", "commands/_shared/worker-contract.md")
+
+
+def mutate_fleet_step6_hand_made_worktree(d):
+    """Step 6 goes back to the sentence the E4 simulation's first wave failed on."""
+    path = os.path.join(d, "commands", "implement-fleet.md")
+    with open(path, "a", encoding="utf-8") as fh:
+        fh.write("\n- For each slice, create an isolated git worktree off `base_ref` and dispatch "
+                 "one worker bound to that worktree.\n")
+    return "the old Step 6 hand-made worktree restored"
+
+
+def mutate_fleet_step7_inbox_write(d):
+    """Step 7 sends the worker's return file back into the orchestrator's task inbox."""
+    path = os.path.join(d, "commands", "implement-fleet.md")
+    with open(path, "a", encoding="utf-8") as fh:
+        fh.write("\nThe resolved return path belongs to the orchestrator's task inbox, not the "
+                 "worker worktree; the resolved return path belongs to the orchestrator's task "
+                 "inbox.\n")
+    return "the old Step 7 inbox write restored"
+
+
+def mutate_fleet_drops_head_check(d):
+    """The worker stops proving HEAD equals base_ref before it edits."""
+    _drop(d, "commands/implement-fleet.md", "`git rev-parse HEAD`", "the current commit")
+    return "the HEAD check dropped from Step 7"
+
+
+def mutate_worker_contract_drops_second_carrier(d):
+    """The shared contract loses the in-worktree carrier, so it names one location again."""
+    path = os.path.join(d, "commands", "_shared", "worker-contract.md")
+    body = open(path, encoding="utf-8").read()
+    assert "ADR-0242" in body, "fixture lost its mutation target: ADR-0242"
+    open(path, "w", encoding="utf-8").write(body.replace("ADR-0242", "a later decision"))
+    return "the worker contract no longer naming ADR-0242"
+
+
+def build_scripts_shipped_root(d):
+    """Every command file and shared block, the installer, and the top-level scripts it ships."""
+    shutil.copytree(os.path.join(REPO, "commands"), os.path.join(d, "commands"))
+    os.makedirs(os.path.join(d, "scripts"))
+    for f in glob.glob(os.path.join(REPO, "scripts", "*")):
+        if os.path.isfile(f):
+            shutil.copyfile(f, os.path.join(d, "scripts", os.path.basename(f)))
+    return d
+
+
+def _edit_shipped(d, before, after):
+    _drop(d, "scripts/sync-workflow-slash-commands.sh", before, after)
+
+
+def mutate_monitor_not_shipped(d):
+    """The installer list loses the monitor again, the E4 defect."""
+    _edit_shipped(d, " monitor-fleet-progress.sh)", ")")
+    return "monitor-fleet-progress.sh dropped from SHIPPED_SCRIPTS"
+
+
+def mutate_command_names_unshipped_script(d):
+    """A command starts running a script that neither ships nor is listed as not shipping."""
+    path = os.path.join(d, "commands", "implement-fleet.md")
+    with open(path, "a", encoding="utf-8") as fh:
+        fh.write("\nRun `scripts/fleet-merge-helper.sh` after the barrier.\n")
+    return "a command naming an unshipped, unlisted script"
+
+
+def mutate_shipped_script_missing(d):
+    """The list names a script that is not on disk."""
+    _edit_shipped(d, " monitor-fleet-progress.sh)", " monitor-fleet-progress.sh ghost-helper.sh)")
+    return "SHIPPED_SCRIPTS naming a script absent from scripts/"
+
+
+def mutate_not_shipped_entry_shipped(d):
+    """A script on the not-shipped list starts shipping, so the list lies about it."""
+    _edit_shipped(d, " monitor-fleet-progress.sh)", " monitor-fleet-progress.sh check-doc-sync.sh)")
+    return "check-doc-sync.sh both shipped and on the not-shipped list"
+
+
+def mutate_fleet_drops_worktree_discovery(d):
+    """implement-fleet stops saying how the orchestrator finds each worker's worktree (ADR-0243)."""
+    _drop(d, "commands/implement-fleet.md", "run `git worktree list` in the product repo",
+          "look for the worktrees")
+    return "worktree discovery dropped from Step 8"
+
+
+def mutate_fleet_drops_merge_section(d):
+    """The fleet-merge log line loses its section, the validator failure the E4 rerun hit."""
+    _drop(d, "commands/implement-fleet.md", "`section='## Execution waves'`", "a section")
+    return "the fleet-merge line's section dropped"
+
+
+def mutate_shared_block_not_shipped(d):
+    """The installer stops shipping the worker contract, the E4 rerun's first residual gap."""
+    _edit_shipped(d, " worker-contract.md)", ")")
+    return "worker-contract.md dropped from SHIPPED_SHARED_BLOCKS"
+
+
+def mutate_command_cites_unshipped_block(d):
+    """A command starts citing a shared block the installer does not ship."""
+    path = os.path.join(d, "commands", "implement-fleet.md")
+    with open(path, "a", encoding="utf-8") as fh:
+        fh.write("\nRead `commands/_shared/xml-review-scaffold.md` before the merge.\n")
+    return "a command citing an unshipped shared block"
+
+
+def mutate_shipped_block_missing(d):
+    """The list names a shared block that is not on disk."""
+    _edit_shipped(d, " worker-contract.md)", " worker-contract.md ghost-block.md)")
+    return "SHIPPED_SHARED_BLOCKS naming a block absent from commands/_shared/"
+
+
+def build_fleet_default_root(d):
+    """The routing surfaces, implement-fleet, the roles topic and ADR-0041, copied from the tree."""
+    import glob as _g
+    adr = os.path.relpath(_g.glob(os.path.join(REPO, "docs", "adr", "0041-*.md"))[0], REPO)
+    return _copy_into(d, "commands/approve-plan.md", "commands/implementation-plan.md",
+                      "commands/what-next.md", "commands/implement-approved-slice.md",
+                      "WORKFLOW_OPERATING_SYSTEM.md", "commands/implement-fleet.md",
+                      "wos/command-roles.md", adr)
+
+
+def mutate_route_drops_harness_condition(d):
+    """approve-plan routes a parallel wave to the fleet whatever the harness can do."""
+    _drop(d, "commands/approve-plan.md",
+          "route to `implement-fleet` on a harness with per-agent worktree isolation",
+          "route to `implement-fleet`")
+    return "approve-plan's route without the harness condition"
+
+
+def mutate_fleet_back_to_full_profile(d):
+    """implement-fleet leaves the minimal profile, so the default route names a missing command."""
+    _drop(d, "commands/implement-fleet.md", "  x-wos-profiles: [minimal, core, full]",
+          "  x-wos-profiles: [full]")
+    return "implement-fleet tagged full only again"
+
+
+def mutate_fleet_pilot_again(d):
+    """implement-fleet calls itself a pilot again."""
+    path = os.path.join(d, "commands", "implement-fleet.md")
+    with open(path, "a", encoding="utf-8") as fh:
+        fh.write("\nPilot per ADR-0041.\n")
+    return "the pilot label restored"
+
+
+def mutate_adr0041_status_unmarked(d):
+    """ADR-0041's Status line stops naming the ADR that ended the pilot."""
+    import glob as _g
+    rel = os.path.relpath(_g.glob(os.path.join(d, "docs", "adr", "0041-*.md"))[0], d)
+    _drop(d, rel, "[ADR-0243](", "[a later ADR](")
+    return "ADR-0041's Status line without ADR-0243"
+
+
 MUTATIONS = [
+    ("check_fleet_dispatch_isolation", build_fleet_dispatch_root,
+     mutate_fleet_drops_worktree_discovery, "worktree discovery after dispatch (ADR-0243) is gone"),
+    ("check_fleet_dispatch_isolation", build_fleet_dispatch_root,
+     mutate_fleet_drops_merge_section, "the fleet-merge line's section (ADR-0243) is gone"),
+    ("check_command_scripts_shipped", build_scripts_shipped_root,
+     mutate_shared_block_not_shipped, "SHIPPED_SHARED_BLOCKS lacks worker-contract.md"),
+    ("check_command_scripts_shipped", build_scripts_shipped_root,
+     mutate_command_cites_unshipped_block, "cites commands/_shared/xml-review-scaffold.md"),
+    ("check_command_scripts_shipped", build_scripts_shipped_root,
+     mutate_shipped_block_missing, "ghost-block.md, which is not in commands/_shared/"),
+    ("check_fleet_default_route", build_fleet_default_root,
+     mutate_route_drops_harness_condition, "commands/approve-plan.md: no line routes to implement-fleet"),
+    ("check_fleet_default_route", build_fleet_default_root,
+     mutate_fleet_back_to_full_profile, "not in the minimal profile"),
+    ("check_fleet_default_route", build_fleet_default_root,
+     mutate_fleet_pilot_again, "calls itself a pilot again"),
+    ("check_fleet_default_route", build_fleet_default_root,
+     mutate_adr0041_status_unmarked, "does not name ADR-0243"),
+    ("check_fleet_dispatch_isolation", build_fleet_dispatch_root,
+     mutate_fleet_step6_hand_made_worktree, "carries 'create an isolated git worktree off' again"),
+    ("check_fleet_dispatch_isolation", build_fleet_dispatch_root,
+     mutate_fleet_step7_inbox_write, "belongs to the orchestrator's task inbox"),
+    ("check_fleet_dispatch_isolation", build_fleet_dispatch_root,
+     mutate_fleet_drops_head_check, "the HEAD check is gone"),
+    ("check_fleet_dispatch_isolation", build_fleet_dispatch_root,
+     mutate_worker_contract_drops_second_carrier, "does not name ADR-0242"),
+    ("check_command_scripts_shipped", build_scripts_shipped_root,
+     mutate_monitor_not_shipped, "SHIPPED_SCRIPTS lacks monitor-fleet-progress.sh"),
+    ("check_command_scripts_shipped", build_scripts_shipped_root,
+     mutate_command_names_unshipped_script, "names scripts/fleet-merge-helper.sh"),
+    ("check_command_scripts_shipped", build_scripts_shipped_root,
+     mutate_shipped_script_missing, "ghost-helper.sh, which is not in scripts/"),
+    ("check_command_scripts_shipped", build_scripts_shipped_root,
+     mutate_not_shipped_entry_shipped, "both shipped and on the not-shipped list"),
+    ("check_handoff_continues_across_mode", build_handoff_continues_root,
+     mutate_spec_drops_choice_is_a_stop, "no longer says an offered choice is itself a stop"),
+    ("check_handoff_continues_across_mode", build_handoff_continues_root,
+     mutate_handoff_block_drops_never_a_stop, "handoff-body.md: no longer carries"),
+    ("check_handoff_continues_across_mode", build_handoff_continues_root,
+     mutate_topic_sends_chain_to_another_model, "one session per slice"),
     ("check_skill_load_budget", build_skills_root, mutate_skill_over_ceiling,
      'Load-stage ceiling (ADR-0116)'),
     ("check_skill_load_ceiling_slack", build_skills_near_ceiling, mutate_ceiling_left_slack,
@@ -2481,6 +2771,14 @@ MUTATIONS = [
      "below the floor of 3, and is not in the '### Registered exceptions'"),
     ("check_fanout_floor_consistency", build_fanout_floor_root, mutate_spec_disagrees_with_floor,
      "does not say '3 or more independent items'"),
+    ("check_items_per_worker", build_items_per_worker_root, mutate_spec_drops_items_per_worker,
+     "has no '### Items per worker' subsection"),
+    ("check_items_per_worker", build_items_per_worker_root, mutate_spec_items_number_changes,
+     "does not say 'about 5 items per worker'"),
+    ("check_items_per_worker", build_items_per_worker_root, mutate_contract_drops_files_read,
+     'has no "files_read" field'),
+    ("check_items_per_worker", build_items_per_worker_root, mutate_fleet_unclassified,
+     "commands/other-fleet.md: not classified"),
     ("check_closure_view_equivalence", build_closure_views_root, mutate_view_drops_a_floor,
      'absent from the view'),
     ("check_epistemic_doctrine_surfaces", build_epistemic_doctrine_root, mutate_command_skips_claim_grounding,
@@ -2729,6 +3027,8 @@ MUTATIONS = [
      "ignore check on an existing projects/ is gone"),
     ("check_one_slice_route", build_one_slice_route_root, mutate_route_writes_one_lock_signal,
      "no longer names 'plan APPROVED'"),
+    ("check_one_slice_route", build_one_slice_route_root, mutate_route_refuses_every_provisional,
+     "no longer names 'Impact: normal'"),
     ("check_one_slice_route", build_one_slice_route_root, mutate_route_check_not_run,
      "does not run check-doc-sync.sh --against HEAD at inline close"),
     ("check_one_slice_route", build_one_slice_route_root, mutate_autonomous_run_takes_route_line,

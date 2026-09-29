@@ -1,0 +1,37 @@
+{
+  "skill_name": "targeted-questions",
+  "version": "1.0",
+  "description": "Trigger evals for targeted-questions: it asks the few factual questions a task cannot safely proceed without and records the answers, while its siblings settle policy decisions, write the plan, locate code, log a passing thought, or implement an approved slice.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "Before we plan the CSV import, what do we still not know? I can't tell if the vendor file is UTF-8 or Latin-1, or how many rows the largest customer uploads.",
+      "The impact analysis for the invoice export is written, but it leaves open whether the finance team still consumes the old XML feed and which cron job builds it. Ask me what you need to know so we can move on.",
+      "We can't safely touch the notifications table yet. I need to find out what the retention period actually is and whether the mobile app reads the legacy read_at column. Ask me the minimum questions.",
+      "Missing facts on the SSO task: which identity provider the biggest tenant uses, and whether they send group claims. Get those answers from me and write them into the task.",
+      "quick one, I'm not sure what the max payload size is on the partner webhook. can you ask me whatever else is unconfirmed?"
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "When a payment fails three times, should we lock the account or just email the customer? Whichever way we go changes the data model and the support flow, so I need us to settle the rule before anything gets planned.",
+        "routes_to": "decision-interview"
+      },
+      {
+        "prompt": "Everything is confirmed and the decisions are locked in DECISIONS.md. Break this work into small slices with exit criteria and an order.",
+        "routes_to": "implementation-plan"
+      },
+      {
+        "prompt": "Side thought, the export job seems slower on Mondays. Just jot it down in the task so I don't forget it, I'm not going to look into it now.",
+        "routes_to": "capture-observation"
+      },
+      {
+        "prompt": "Which file actually sends the welcome email? I don't know where it lives and want the likely paths with line numbers.",
+        "routes_to": "code-locate"
+      },
+      {
+        "prompt": "Slice 02 is approved and every fact we needed is in TASK_STATE.md. Go ahead and edit the files in that slice's scope.",
+        "routes_to": "implement-approved-slice"
+      }
+    ]
+  }
+}

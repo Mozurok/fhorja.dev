@@ -59,7 +59,7 @@ skipped, which is why the two halves ship together.
 In an attended chain that reaches a draft pull request (ADR-0233), the reader is met earlier: the
 same recorded `unverified:` lines are listed under `Not verified` in the draft pull request body, built
 from the slice notes the same way, so the person sees them before marking the draft ready for review.
-`task-close` still collects them at closure. Unattended, background and fleet-dispatched runs keep
+`task-close` still collects them at closure. Unattended and fleet-dispatched runs (ADR-0237) keep
 each floor's behavior exactly as its `On missing evidence:` line states.
 
 

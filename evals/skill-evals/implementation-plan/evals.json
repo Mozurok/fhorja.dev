@@ -1,0 +1,37 @@
+{
+  "skill_name": "implementation-plan",
+  "version": "1.0",
+  "description": "Trigger evals for implementation-plan: it turns a scoped, decided task into ordered slices in IMPLEMENTATION_PLAN.md, while its siblings lock, critique, or execute a plan that already exists.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "break this into slices",
+      "Impact analysis is done and the decisions are locked. Draft IMPLEMENTATION_PLAN.md for the webhook retry work, ordered so each slice can be reviewed on its own.",
+      "The plan has 4 slices but none of them lists Scope or Depends-on. Backfill those and add execution waves so we can run the slices in parallel later.",
+      "I have the PRD at docs/notification-prd.md. Turn it into ordered slices and show me which PRD items each slice covers.",
+      "TASK_STATE.md says the next step is planning for the pagination change. What is the smallest safe order of work, with exit criteria per step, before anyone touches code?"
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "Slice 02 of IMPLEMENTATION_PLAN.md is approved and the scope is clear. Go ahead and make the code changes for the session-timeout fix.",
+        "routes_to": "implement-approved-slice"
+      },
+      {
+        "prompt": "The plan reads fine to me. Lock it in as the baseline so we can start coding.",
+        "routes_to": "approve-plan"
+      },
+      {
+        "prompt": "I just drafted the plan. Critique it against the rubric and tighten the exit criteria on slice 3.",
+        "routes_to": "self-critique-and-revise"
+      },
+      {
+        "prompt": "We have not settled whether refunds are partial or full, and it changes how the work would be cut. Ask me what you need to know first.",
+        "routes_to": "decision-interview"
+      },
+      {
+        "prompt": "Design the architecture for the new ingestion service: data model, caching, scaling limits, and SLOs.",
+        "routes_to": "backend-system-design"
+      }
+    ]
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "skill_name": "code-locate",
+  "version": "1.0",
+  "description": "Trigger evals for code-locate: it finds which files and line ranges implement a described behavior when paths are unknown, while its siblings map blast radius, build a repo-wide structural map, triage a live failure, or ask factual questions.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "Where does the app decide a coupon has expired? No idea which file.",
+      "New task is about fixing the duplicate welcome emails. I haven't opened the repo for this yet and don't know where signup triggers the mailer. Can you find the likely files before we go further?",
+      "The test 'rejects invoice with negative total' is failing with 'expected 422, got 200'. I need to know which validation code is supposed to produce that 422, and I only care about non-test files.",
+      "SOURCE_OF_TRUTH.md still just says 'somewhere in the api repo'. Track down where the rate limiting for login attempts lives, in the api workspace, and give me a shortlist I can paste in.",
+      "Our monorepo has thousands of files and I'm new to it. Someone said retries for failed webhook deliveries are handled somewhere under services/. Which functions actually do that?"
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "I already know it's in src/billing/proration.ts. What else breaks if we change how proration rounds, across the other services and the mobile app?",
+        "routes_to": "impact-analysis"
+      },
+      {
+        "prompt": "I just joined this repo and have no specific bug to chase yet. Before my assistant edits anything, build it a structural overview it can grep from: the main modules, what imports what, and where the code talks to the database and outside services.",
+        "routes_to": "code-context-map"
+      },
+      {
+        "prompt": "Here is the stack trace from the checkout crash in production, it started after this morning's release. Classify it and tell me if it needs a hotfix.",
+        "routes_to": "incident-triage"
+      },
+      {
+        "prompt": "Before we plan anything I need to confirm a few facts I don't have: which regions we deploy to and whether the legacy export job is still running. Ask me whatever you need to know.",
+        "routes_to": "targeted-questions"
+      },
+      {
+        "prompt": "Slice 03 is implemented in src/auth/session.ts and the diff is ready. Review it hard for correctness and safety problems before we close the slice.",
+        "routes_to": "review-hard"
+      }
+    ]
+  }
+}

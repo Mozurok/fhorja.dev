@@ -311,7 +311,7 @@ If your fork has diverged significantly (added several commands, restructured sh
 
 ## Upgrading between Fhorja versions
 
-The project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). It passed 1.0.0 on 2026-07-10 and 1.1.0 on 2026-07-21, and the current release is 2.0.0: see the `[2.0.0]` section of `CHANGELOG.md`. The tag `v2.0.0` marks it on the public repository. Per `README.md`'s status line, breaking changes to command output or the `TASK_STATE.md` schema require a MAJOR bump, while MINOR and PATCH stay backward compatible.
+The project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). It passed 1.0.0 on 2026-07-10 and 1.1.0 on 2026-07-21, 2.0.0 on 2026-09-28, and the current release is 2.1.0, a MINOR with no breaking change: see the `[2.1.0]` section of `CHANGELOG.md`. The tag `v2.1.0` marks it on the public repository. Per `README.md`'s status line, breaking changes to command output or the `TASK_STATE.md` schema require a MAJOR bump, while MINOR and PATCH stay backward compatible.
 
 ### Patch (2.0.x → 2.0.y)
 
@@ -341,7 +341,7 @@ What changes in behavior, in short:
 - **The chain runs itself, all the way to a draft PR when the repository has a remote.** A command's `Run now:` line is what an attended session does next, in the same turn. On a git repository with a configured remote, the chain runs from `task-init` to the pushed task branch and the draft PR, and stops only for a reason it names: an act whose audience is not bounded, meaning marking the PR ready for review, merging, publishing, or sending content outward. A decision the request did not settle, or a check the agent cannot honestly run on itself, no longer stop it; both get recorded and carried into the draft PR instead (ADR-0186, ADR-0233). Without a remote, those two still stop and wait. A declared `Operating mode: assisted` brings back every stop ADR-0233 removed: no task branch is created, open decisions and checks the agent cannot run on itself stop and wait, and the chain ends at the local commit, where you start the push and the draft PR. When one turn runs several commands you get ONE `### Handoff` for the turn (ADR-0192); the per-command record is the task folder on disk.
 - **Task memory is written, not proposed.** Commands write their task files `APPLIED` in every editor mode (ADR-0199, ADR-0215). `PROPOSED` survives only as a block a command stages in a section another command owns (ADR-0034), and `approve-proposed` left the default chain.
 - **`approve-plan` runs on every plan and approves itself** on a blinded review in an isolated context, with a second pass on a strict surface; only an ESCALATED exit reaches you (ADR-0208).
-- **The one-slice route skips the plan.** An attended one-sentence change to at most two named files, with every decision in the prompt and no escalation, gets its approved slice from `task-init`; `implement-approved-slice` runs `scripts/check-doc-sync.sh --against HEAD` at inline close in place of the review (ADR-0225).
+- **The one-slice route skips the plan.** An attended one-sentence change to at most two named files, with no escalation and no open decision beyond normal-impact ones the draft PR lists for you, gets its approved slice from `task-init`; `implement-approved-slice` runs `scripts/check-doc-sync.sh --against HEAD` at inline close in place of the review (ADR-0225, ADR-0239).
 - **Commits and pushes.** `branch-commit --apply` creates the local commit after showing the staged diff, with no second confirmation (ADR-0163, ADR-0219). On an attended run with a configured remote, `pr-package --apply` then pushes the branch and opens the draft PR on its own, without waiting to be asked (ADR-0185, ADR-0233); without a remote, or in a declared assisted mode, the chain ends at the local commit. Marking the PR ready for review and merging stay human.
 - **Closure floors record rather than wait.** A floor with no evidence records `unverified: <reason>` and the slice closes; `task-close` lists every such floor (ADR-0203, ADR-0205).
 
@@ -360,8 +360,8 @@ For anything not listed here, the `[2.0.0]` section of `CHANGELOG.md` is the ful
 
 You have been running workflow commands one at a time (linear invocation: run `decision-interview`, wait, run `implementation-plan`, wait, run `implement-approved-slice`, wait). Two parallel paths exist, and they are not interchangeable.
 
-- **Approved slice execution** uses `implement-fleet` when a remaining wave has size 2 or more with `Scope` and `Depends-on`. Each fleet command has its own `max_fanout` (8 for `implement-fleet`) under a platform ceiling of 20. The orchestrator names its dispatch path before dispatch; workers return the runtime's typed result on the dynamic-workflow path, or write `fleet-inbox/<run_id>/<worker_id>.json` on the `Agent` path.
-- **Read-only Workflow research batches** (fleet audits, multi-component spec generation, isolated refactors) fan out 15 to 25 agents in a single Workflow tool batch per ADR-0039. The same host and independence rules apply; the return carrier is the one the orchestrator named, not a universal `StructuredOutput` call by the worker.
+- **Approved slice execution** uses `implement-fleet` by default when a remaining wave has size 2 or more with `Scope` and `Depends-on`, on a tool that gives each sub-agent its own git worktree (ADR-0243); otherwise `implement-approved-slice`. Each fleet command has its own `max_fanout` (8 for `implement-fleet`) under a platform ceiling of 20. The orchestrator names its dispatch path before dispatch; workers return the runtime's typed result on the dynamic-workflow path, or write `.fleet-out/<worker_id>.json` in their own worktree on the `Agent` path, which the orchestrator copies into the fleet inbox (ADR-0242).
+- **Read-only research batches** (drafting or reviewing a set of small files, summarizing a set of sources) give each worker about five items and run at most 9 workers at once, per ADR-0240, which superseded ADR-0039's 15 to 25 agents per batch for this case. Each worker's brief names the files it must read (`must_read`), and its return lists the ones it read (`files_read`). The same host and independence rules apply; the return carrier is the one the orchestrator named, not a universal `StructuredOutput` call by the worker.
 
 This is **opt-in additive**. Existing sequential workflows are unchanged; no slash command behavior shifts. Parallel dispatch is a new operating mode you reach for when the work shape fits.
 
@@ -381,19 +381,20 @@ Run @commands/atom-audit.md   (component C)   -- 4 min
 ... 20 more components, sequentially         -- ~90 min total
 ```
 
-### After-state: research batches of 15 to 25, or an implement-fleet wave
+### After-state: batched research workers, or an implement-fleet wave
 
 ```text
 Approved slices (implement-fleet):
   remaining wave of size 2 or more, each command's max_fanout, ceiling 20
   named carrier: runtime typed result, or fleet-inbox/<run_id>/<worker_id>.json
 
-Research batch (Workflow tool):
-  Agent 1: atom-audit component A   ]
-  Agent 2: atom-audit component B   ] dispatched together
-  ...                                ] each returns through the named carrier
-  Agent 23: atom-audit component W  ]
-  total wall-clock: about 4-6 min for the slowest agent in the batch
+Research batch (23 small items, about five per worker):
+  Worker 1: items A-E    ]
+  Worker 2: items F-J    ] dispatched together, at most 9 at once
+  Worker 3: items K-O    ] each brief lists must_read, each return lists files_read
+  Worker 4: items P-T    ] each returns through the named carrier
+  Worker 5: items U-W    ]
+  total wall-clock: the slowest worker's five items
 ```
 
 ### Migration steps
@@ -402,12 +403,13 @@ Research batch (Workflow tool):
 2. **Author focused 300-500 word prompts per agent.** Each prompt is self-contained: task summary, inputs, expected output shape, success criteria. Longer than 500 words signals the work item is too broad to parallelize cleanly; split it.
 3. **Name the dispatch path, then end each prompt with the matching carrier line.** On the dynamic-workflow path the script declares `agent(prompt, {schema})` and the runtime performs the `StructuredOutput` call; end that worker prompt with `Return one payload matching worker_output_schema and nothing else`. On the `Agent` path the worker writes a schema-conforming JSON file; end that prompt with `Write one JSON payload matching worker_output_schema to fleet_inbox_artifact and nothing else`. Never instruct a worker to call `StructuredOutput`. The orchestrator reads only the named carrier.
 4. **Wrap dispatch with `python3 scripts/scan-substrate-orphans.py` after the batch settles.** Invoke it on the task folder (`python3 scripts/scan-substrate-orphans.py <task-folder>`) or on the exact files the batch wrote. It detects bullet lines that sit outside an H2-owned section. If it reports any, correct the structure and re-run until it exits 0 before advancing the phase. It does not inventory unregistered files and it does not offer keep, move, or delete.
-5. **(Optional) Use `scripts/monitor-fleet-progress.sh <run_id> <task_folder>` during dispatch.** The run inbox `<task_folder>/.wos/fleet-inbox/<run_id>/` must already exist. For long-running batches, this script tails per-agent progress so you can intervene early on a clearly-failing agent instead of waiting for the full batch to settle.
+5. **(Optional) Use `scripts/monitor-fleet-progress.sh <run_id> <task_folder> [<return_dir> ...]` during dispatch.** It reads the flat `<worker_id>.json` returns in the run inbox `<task_folder>/.wos/fleet-inbox/<run_id>/` and in each return folder you name, such as the `.fleet-out/` a worktree-isolated worker writes in its own worktree (ADR-0242). With no return folder named, the run inbox must already exist, or the script exits 2 and says so. For long-running batches, it tails per-agent progress so you can intervene early on a clearly-failing agent instead of waiting for the full batch to settle. The installer ships it with the runtime payload.
 
 ### References
 
 - [`docs/adr/0038-workflow-tool-as-parallel-orchestration-primitive.md`](./adr/0038-workflow-tool-as-parallel-orchestration-primitive.md): the decision to adopt the Workflow tool as canonical parallel-orchestration primitive.
-- [`docs/adr/0039-workflow-batch-dispatch-empirical.md`](./adr/0039-workflow-batch-dispatch-empirical.md): empirical 15-25 batch-size sweet spot for parallel dispatch waves.
+- [`docs/adr/0039-workflow-batch-dispatch-empirical.md`](./adr/0039-workflow-batch-dispatch-empirical.md): empirical 15-25 batch-size sweet spot for parallel dispatch waves, superseded in part by ADR-0240.
+- [`docs/adr/0240-a-mechanical-fan-out-batches-about-five-items-per-worker.md`](./adr/0240-a-mechanical-fan-out-batches-about-five-items-per-worker.md): about five small items per mechanical worker, at most 9 workers, with declared and echoed reads.
 - [`wos/workflow-patterns.md`](../wos/workflow-patterns.md): the canonical patterns for fan-out, prompt sizing, and post-batch reconciliation.
 
 ### Note

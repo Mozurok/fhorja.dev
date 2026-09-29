@@ -38,10 +38,7 @@ Mandatory context bootstrap (before any output):
   - `projects/<client>__<project>/REFERENCES.md`: check that it EXISTS and link to it; do NOT read it here (ADR-0214).
   - Do NOT read the `projects/<client>__<project>/knowledge/` folder (the human knowledge layer, ADR-0054 and ADR-0055), and do NOT seed `SOURCE_OF_TRUTH.md` from it. It is never auto-loaded at `task-init`; its content reaches the AI only when a human pastes an excerpt into the task prompt.
   - When either file is missing, treat the project as not yet bootstrapped and warn the user (see Operating rules); do not block the task.
-- Read user-level memory when present:
-  - `/USER_MEMORY.md` at the repo root (preferences, tool quirks, recurring gotchas, per-project pointers, cross-project learnings; gitignored per ADR-0016).
-  - When absent, proceed silently; no warning. Bootstrap is the user's responsibility (`cp templates/USER_MEMORY.template.md USER_MEMORY.md`).
-  - Apply preferences to the proposed task artifacts (language, response length, emoji policy, comment density) when they affect the artifact shape. Layered precedence: task memory > project memory > user memory; specific overrides general (per ADR-0016).
+- Read `/USER_MEMORY.md` at the repo root when present (gitignored, ADR-0016); when absent, proceed silently (bootstrapping it is the user's job). Apply its preferences where they shape the proposed artifacts (language, response length, emoji policy, comment density), by the precedence in `wos/project-level-memory.md ### Layered precedence`.
 - Read prior LEARNINGS when present (ADR-0017 consume side):
   - Resolve `scripts/rank-learnings.sh` against the WORKFLOW ROOT, the same root the two-root preflight found for the spec and `wos/` (the repository clone, or the installed docs directory, which ships this one script per ADR-0214), never against the task repository, which has no `scripts/`. When it is present in neither, say so in one `### Command transcript` line (`rank-learnings: not installed, prior LEARNINGS not consulted`) instead of skipping the step silently.
   - Run it as `rank-learnings.sh "<task keywords or objective>" <project-path>` to scan `projects/<client>__<project>/active/*/LEARNINGS.md` and the most recently archived tasks under `archive/`, ranking entries by recency plus tag and keyword overlap (ADR-0071); also read the cross-project learnings in `/USER_MEMORY.md`.
@@ -49,8 +46,7 @@ Mandatory context bootstrap (before any output):
   - Read-only: never compact, prune, or rewrite any `LEARNINGS.md` (per ADR-0017 item 6). When nothing is relevant, say nothing.
 - Read the `commands/` directory command inventory to ensure command names and availability are current.
 - Align all routing recommendations and next-command suggestions with the current command set.
-- `WORKFLOW_OPERATING_SYSTEM.md` governs cross-command behavior and a command file governs its own steps, stricter but never looser; when a command file contradicts the spec instead of narrowing it, follow the spec, flag the mismatch in the output, and route the fix to the command file
-- **Official next-command names only:** every recommended next command (including inside `TASK_STATE.md` and the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names (invalid: `task-plan`, `plan`, `execute-task`). The after-init route is set under Escalation assessment. One exception: `Run now: none` with `Mode: N/A` declares the chain ended with no honest next step, defined under `### Official command names (routing integrity)` (ADR-0126); use it only then, never to end a chain that has a real next step.
+- **Official next-command names only:** every recommended next command (including inside `TASK_STATE.md` and the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. The after-init route is set under Escalation assessment. One exception: `Run now: none` with `Mode: N/A` declares the chain ended with no honest next step, defined under `### Official command names (routing integrity)` (ADR-0126); use it only then, never to end a chain that has a real next step.
 
 Required inputs:
 - new task description / objective from the user
@@ -78,20 +74,7 @@ Optional files must NOT be created yet unless the user explicitly asks:
 - PR_PACKAGE.md
 - SLICES/
 
-Task naming rules:
-- task folder name must be:
-  - YYYY-MM-DD_<task-slug>
-- task slug must:
-  - be in English
-  - use lowercase
-  - use hyphens
-  - be specific enough to distinguish the work
-  - avoid vague names like fix-bug, updates, cleanup
-
-Project naming rules:
-- project folder name must be:
-  - <client>__<project>
-- keep names lowercase and hyphenated when possible
+Naming rules: the task folder is `YYYY-MM-DD_<task-slug>` and the project folder `<client>__<project>`, both by the spec `## Naming conventions` (an English, lowercase, hyphenated slug specific enough to distinguish the work, never a vague one such as `fix-bug`).
 
 Operating rules:
 - **Two-root preflight (before creating the task folder; ADR-0129):** the **task repository** holds `projects/<client>__<project>/`; the **workflow root** is where `WORKFLOW_OPERATING_SYSTEM.md` and `wos/` resolved from for this run's own bootstrap (the canonical checkout, or an installed `workflow-docs/`). They coincide only in the maintainer's checkout, so NEVER require `commands/`, `scripts/`, or `wos/` inside the task repository. Resolve the task repository from source-of-truth pointers, the current working directory, or a user-supplied path; validate each root for what it should hold, then:
@@ -101,7 +84,7 @@ Operating rules:
   - **Task folder already exists (the frontmatter's first do-not-use condition).** Create and overwrite
     nothing: emit `NO_OP_TRACE` naming the existing folder, then route to `where-we-at` when the work
     continues that task, or ask for a distinct slug when it is new work. An installed docs tree is the NORMAL mode, never reported as a degradation; when it carries no `scripts/`, `commands/_shared/substrate-digest-fallback.md` applies and the run says so.
-- **Git-authority preflight (after the two-root preflight; detect and recommend only):** WHEN the active PRODUCT codebase path is known at init time (from source-of-truth pointers or a user-supplied path), run ONE Bash check on it (`git -C <path> rev-parse --is-inside-work-tree`); a missing path and a not-a-git-repo result are the same outcome. WHEN the path is not yet known, skip at zero cost and leave the standard placeholder. On a no-git-authority outcome, record a `Git status: no git authority at <path>` line plus `Recommended action: git init -b main (requires human authorization)` in `SOURCE_OF_TRUTH.md ## Active codebase / repo` and mirror the same recommended-action line into `TASK_STATE.md ## Risks to watch`, inside this run's substrate-write batch; the chat handoff cites the recommended action explicitly. Task creation NEVER blocks on this check, and `git init` itself always stays behind human authorization. Late-binding hook: any command that later promotes `## Active codebase / repo` from a vague pointer to a concrete path SHALL trigger this same one-call check at that moment.
+- **Git-authority preflight (after the two-root preflight; detect and recommend only):** WHEN the active PRODUCT codebase path is known at init time (from source-of-truth pointers or a user-supplied path), run ONE check, `git -C <path> rev-parse --is-inside-work-tree` (a missing path counts as no git authority); when the path is not known, skip and leave the placeholder. On no git authority, record `Git status: no git authority at <path>` plus `Recommended action: git init -b main (requires human authorization)` in `SOURCE_OF_TRUTH.md ## Active codebase / repo`, mirror the action line into `TASK_STATE.md ## Risks to watch` in this run's batch, and cite it in the handoff. Task creation NEVER blocks on this check, and `git init` always waits for human authorization. Late-binding hook: any command that later promotes `## Active codebase / repo` from a vague pointer to a concrete path SHALL trigger this same one-call check at that moment.
 - **Task branch (ADR-0233).** WHEN the run is attended with no `Operating mode: assisted`, no worktree is requested, and the product codebase has a remote, apply `wos/task-init-opt-ins.md ## Task branch`, which writes `Task branch:` and `Base branch:` (Ask and Plan only propose the switch). Otherwise create no branch.
 - **Assumptions (ADR-0233).** In an attended run with no `Operating mode: assisted`, list under `### Assumptions` each decision the brief lacks and the option the chain will take, or `None.`, and do not wait: the command that needs it records a provisional `### P-N`; an answer arriving mid-chain replaces it.
 - **Opt-in steps (lazy; `wos/task-init-opt-ins.md`).** Read it and apply the matching rule when the harness restricts the write root, the user requests worktree isolation, or the task is product work on a project with a notable feature set.
@@ -111,21 +94,19 @@ Operating rules:
   FORBIDDEN: half-compliant pattern (JSONL emitted but inline header omitted on any section, OR `sha_after` set to `null` on any applied write).
 - Do not invent missing facts, decisions, or constraints.
 - If required initialization context is missing, ask only the minimum targeted questions needed to create the task safely.
-- **No human respondent (unattended, background, or fleet-dispatched run, per `wos/cross-cutting-workflow-guardrails.md ### Unattended sessions`):** do NOT self-answer the initialization questions. Seed every field the dispatching brief supplies, recording each with the provenance note "from the dispatching brief"; fill the rest with the explicit placeholders below; note in `### Command transcript` that the run was unattended; and never self-lock the residue (the open fields stall for the next human session).
+- **No human respondent (unattended or fleet-dispatched run, or a background session failing the ADR-0237 test in `wos/cross-cutting-workflow-guardrails.md ### Unattended sessions`):** do NOT self-answer the initialization questions. Seed every field the dispatching brief supplies, recording each with the provenance note "from the dispatching brief"; fill the rest with the explicit placeholders below; note in `### Command transcript` that the run was unattended; and never self-lock the residue (the open fields stall for the next human session).
 - **Escalation assessment (ADR-0184).** After creating the task folder the pipeline is `task-init` -> `implementation-plan` -> `approve-plan` -> `implement-approved-slice` -> `branch-commit` (-> `pr-package --apply` in an attended chain on a task branch), with the `minimal` profile suggested. Add a command only when a disqualifier below fires, and NAME the fired disqualifier on the `Escalations:` line of `## Recommended pipeline`. Uncertainty is not a disqualifier: "I am not sure" adds nothing, only a signal you can point at does. An escalation with no named disqualifier is invalid output.
   - Add `impact-analysis` before the plan when the scope needs more than one sentence to state, OR the change touches 5 or more files.
   - Add `decision-interview` when a decision the prompt does not contain is required before the first line of code, OR the change spans multiple packages or adds an external service dependency.
   - Add `invariants-and-non-goals`, `test-strategy` and `review-hard`, and suggest `Operating mode: strict`, when the surface is auth, payments, compliance, PII, or multi-tenant isolation. Categorical, not a judgment call.
   When no disqualifier fires AND the unattended bullet did not fire, that pipeline binds (ADR-0159), it is not an offer. Unless the one-slice route below applies, the Handoff is `Run now: implementation-plan`, `Mode: Agent`, in every mode: the five files are written, not proposed. When the unattended bullet fired, do not bind that pipeline. The user can override by choosing a different command. When the task description already contains locked decisions, do not re-ask them later.
 - **State the escalation set in the handoff:** name every disqualifier that fired, or say none did, plus the sentence-length scope.
-- **One-slice route (ADR-0225).** Take it only when every condition holds, each written with its evidence on a `Route: one-slice` line in `## Recommended pipeline`: (1) no escalation fired, the run is attended, and no `Operating mode: strict` is declared; (2) the change fits one sentence and touches at most two files the brief names; (3) the brief carries every decision, so `DECISIONS.md ## Locked decisions` stays empty, as do `## Provisional decisions` and `### Assumptions`; and `scripts/check-doc-sync.sh` resolves in the workflow root (the check that replaces the plan review). A condition you cannot show has failed: doubt keeps the full path, since this route drops a review. On the route, write in the same batch the one slice in `## Slices` (`Scope:` the named files, `Depends-on: none`, `Status: approved`, `Work complexity: LOW`, `Decision-ref: none (<why no decision is needed>)`, exit criterion `WHEN the slice diff is complete, check-doc-sync.sh --against HEAD SHALL exit 0`), a `## Approval log` line `<date>: APPROVED (one-slice route); check-doc-sync.sh --against HEAD replaces the blinded review.`, and `## Current phase` `implementation (plan APPROVED, one-slice route)`: both lock signals `implement-approved-slice` reads. Then run `scripts/check-plan-coverage.sh <task-folder>`; any exit but 0 ends the route and hands off to `implementation-plan`. Otherwise hand off `Run now: implement-approved-slice`, `Mode: Agent`. `implementation-plan` and `approve-plan` are skipped on this route only.
+- **One-slice route (ADR-0225, ADR-0239).** Take it only when every condition holds, each written with its evidence on a `Route: one-slice` line in `## Recommended pipeline`: (1) no escalation fired, the run is attended, and no `Operating mode: strict` is declared; (2) the change fits one sentence and touches at most two files the brief names; (3) `DECISIONS.md ## Locked decisions` stays empty and every `### Assumptions` entry is `Impact: normal` on a run with a `Task branch:` line; write each in the same batch as a `### P-N` under `## Provisional decisions` (the draft PR lists it), and it fires no `decision-interview`, while an `Impact: high` one keeps the full path; and `scripts/check-doc-sync.sh` resolves in the workflow root (the check that replaces the plan review). A condition you cannot show has failed: doubt keeps the full path, since this route drops a review. On the route, write in the same batch the one slice in `## Slices` (`Scope:` the named files, `Depends-on: none`, `Status: approved`, `Work complexity: LOW`, `Decision-ref:` `rests on provisional P-N` per P-N, else `none (<why>)`, exit criterion `WHEN the slice diff is complete, check-doc-sync.sh --against HEAD SHALL exit 0`), a `## Approval log` line `<date>: APPROVED (one-slice route); check-doc-sync.sh --against HEAD replaces the blinded review.`, and `## Current phase` `implementation (plan APPROVED, one-slice route)`: both lock signals `implement-approved-slice` reads. Then run `scripts/check-plan-coverage.sh <task-folder>`; any exit but 0 ends the route and hands off to `implementation-plan`. Otherwise hand off `Run now: implement-approved-slice`, `Mode: Agent`. `implementation-plan` and `approve-plan` are skipped on this route only.
 - Use explicit placeholders such as:
   - [unknown yet]
   - [to be confirmed]
   - [not decided yet]
-- Treat code and existing task context as the strongest source of truth when available.
-- Keep all files concise, structured, and operational.
-- The goal is to create a usable task foundation, not to fully solve the task yet.
+- Treat code and existing task context as the strongest source of truth. Keep the files concise and operational: a usable foundation, not a solved task.
 - Project-level memory handling:
   - When `projects/<client>__<project>/PROJECT_CHARTER.md` exists, seed `SOURCE_OF_TRUTH.md` automatically from it (stack, repositories, constraints, non-goals, default workspace) instead of re-asking the user.
   - When `projects/<client>__<project>/REFERENCES.md` exists, link to it from `SOURCE_OF_TRUTH.md` under `## Project-level memory` so the new task can consume external references without duplicating them.
@@ -134,7 +115,7 @@ Operating rules:
   - **Ignore check (ADR-0223 D-2).** WHEN `projects/` existed before this run, run `git -C <task repository> check-ignore -q projects/<client>__<project>/` once. Exit 1 means git would track the task memory: print one `### Command transcript` line, `projects/ is not ignored in <task repository>: add projects/.gitignore holding '*'; if task files are already committed, also run git rm -r --cached projects`. Exit 0 (ignored) and 128 (not a git repository) print nothing. Warn on every run and never write the fix yourself.
   - When `projects/<client>__<project>/BRIEF.md` exists (a transient intake brief written by `problem-framing`, ADR-0058), consume it: seed the task description, `SOURCE_OF_TRUTH.md`, and the `## Requested deliverables` ledger from its <!-- count:sections-brief -->5<!-- /count --> fields (problem statement, success criteria, non-goals, recommended approach, named deliverables), then MOVE `BRIEF.md` into the new task folder (so a stale brief never lingers at the project root). The brief is task-scoped, not durable project memory; do not leave it at the root after consuming it.
   - **MCP-sourced seed (gated, opt-in; `wos/mcp-capability-routing.md`, read only when this fires):** WHEN the user references an issue-tracker item AND a vetted issue-tracker MCP is connected, pull it: title and body seed the task description and the `## Requested deliverables` ledger (ADR-0056); identifier and URL go to `SOURCE_OF_TRUTH.md` as a `source: mcp` provenance pointer. A failed pull follows that block's failure policy, never a fabricated item. With no MCP connected this bullet does not apply.
-- Deliverable-ledger seeding (per ADR-0056): seed the `## Requested deliverables` section in `TASK_STATE.md` from the user's brief (or from the `Named deliverables` field of a consumed `BRIEF.md` when present). List one row per concrete deliverable the user named (an artifact to produce or an input to analyze), tagged `in-scope`, not every implied sub-task. When the brief names no concrete deliverable, write the section with a single `- none named` row rather than omitting it. WHEN a ledger row is user-facing product content or a new user-facing surface, the row SHALL carry the tag `user-facing-content` or `new-user-facing-surface` (ADR-0091) next to its in-scope tag. Tagging test (ADR-0103, extending ADR-0091): the tag applies when a human end user experiences the content or reaches the surface through ANY client, visual or not (an MCP prompt surface reached via chat tags, and so does an MCP tool whose RESULT a human end user consumes in the client); machine-to-machine APIs and developer-facing CLIs do not tag, and neither does a tool or API consumed only by the model or another machine.
+- Deliverable-ledger seeding (per ADR-0056): seed the `## Requested deliverables` section in `TASK_STATE.md` from the user's brief (or from the `Named deliverables` field of a consumed `BRIEF.md` when present). List one row per concrete deliverable the user named (an artifact to produce or an input to analyze), tagged `in-scope`, not every implied sub-task. When the brief names no concrete deliverable, write the section with a single `- none named` row rather than omitting it. WHEN a ledger row is user-facing product content or a new user-facing surface, the row SHALL carry the tag `user-facing-content` or `new-user-facing-surface` (ADR-0091) next to its in-scope tag, by the ADR-0103 tagging test in the `## Requested deliverables` annotation of `templates/TASK_STATE.template.md`.
 - Multi-repo handling: if the user provided 2 or more repositories (directly or inherited from `PROJECT_CHARTER.md`), generate a `## Repositories` section in `SOURCE_OF_TRUTH.md` per the schema in the spec `## Multi-repo support (v1)`. Validate that identifiers are lowercase, hyphenated, and unique within the task. If only 1 repo (or no repo) is provided, omit the `## Repositories` section entirely; single-repo tasks continue using the existing `active codebase / repo` field unchanged.
 
 Files to generate:
@@ -146,6 +127,7 @@ Must include:
 - short task summary
 - objective
 - current status
+- `## Brief`: the user's brief verbatim (in an unattended run, the dispatching brief; with a consumed `BRIEF.md`, a pointer to it), so a provisional decision can quote it and `approve-plan`'s blinded review can resolve that quote
 
 2. TASK_STATE.md
 Must use this exact structure:
@@ -218,23 +200,23 @@ LOW | MEDIUM | HIGH | N/A
 ## Current closure target
 
 3. SOURCE_OF_TRUTH.md
-Must include (seed content under the exact canonical H2 names matching the `wos/substrate-peers.md` SOURCE_OF_TRUTH rows, so the sections task-init creates and the sections later commands own carry one name):
+Must include, under the canonical H2 names of the `wos/substrate-peers.md` SOURCE_OF_TRUTH rows (one name for a section task-init creates and a later command owns):
 - `## Active codebase / repo` (carries the Git-authority preflight's `Git status:` and `Recommended action:` lines when that preflight found no git authority)
 - `## Active branch`, if known
 - `## Main files in scope`, if known (code-locate owns this section once it names concrete files)
-- `## Tickets / docs / Figma / links`: relevant tickets, docs, and links; this section also carries the one-line deliverable-ledger pointer, a `Requested deliverables: see TASK_STATE.md ## Requested deliverables` entry (the user-named deliverables tracked from intake to closure, per ADR-0056; not duplicated here)
+- `## Tickets / docs / Figma / links`: tickets, docs and links, plus the one-line pointer `Requested deliverables: see TASK_STATE.md ## Requested deliverables` (ADR-0056; the ledger is not duplicated here)
 - `## Official external docs`: official references to use before making decisions
-- optional `## Repositories` section for multi-repo tasks (only when 2 or more product repositories are in scope; see the spec `## Multi-repo support (v1)` for the schema). Each entry includes identifier, path, base branch, and role tag. Single-repo tasks omit this section.
+- `## Repositories`, only under the Multi-repo handling rule above
 - optional `## Project-level memory` section listing relative pointers to project-level files when present:
   - `../../PROJECT_CHARTER.md` (high-level project context)
   - `../../REFERENCES.md` (external references with freshness metadata)
   Omit this section entirely when the project was not bootstrapped (no `PROJECT_CHARTER.md` at the project root).
 
 4. DECISIONS.md
-Must include only approved decisions, under the exact header `## Locked decisions` (the canonical section name `decision-interview.md` and `wos/substrate-peers.md` both target). If no decisions are approved yet, state that explicitly under that same header, e.g. "None locked in this task."
+Must include only approved decisions, under the exact header `## Locked decisions`; when none are approved yet, say so there ("None locked in this task."). On the one-slice route, add its `## Provisional decisions`.
 
 5. IMPLEMENTATION_PLAN.md
-Must include (seed content under the same canonical H2 names `implementation-plan` later owns, so the sections task-init creates and the sections the planner rewrites carry one name):
+Must include, under the canonical H2 names `implementation-plan` later owns:
 - `## Target behavior`
 - `## Current gaps`
 - `## Constraints` (known constraints)
@@ -316,15 +298,13 @@ Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
 
 ### Handoff
 <!-- shared:handoff-body -->
-Use the adaptive ending format from `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full per session state). Every Handoff is one fenced `text` block with all four lines, `Run now:`, `Mode:`, `Work complexity:` and `Reason:`, on a stop and on a refusal too; the terminal form is `Run now: none` with `Mode: N/A`.
-
+Use the adaptive ending format of `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract`. Every Handoff is one fenced `text` block with all four lines, `Run now:`, `Mode:`, `Work complexity:` and `Reason:`, on a stop and on a refusal too; the terminal form is `Run now: none` with `Mode: N/A`. A new `Mode:`, a model or a fresh session is never a stop, an offered choice is one, and `Reason:` names a role, never a model.
 ### Definition of done (command output)
 - All resolved paths are explicit (project + task folder) and naming rules are satisfied.
 - All five mandatory files (`README.md`, `TASK_STATE.md`, `SOURCE_OF_TRUTH.md`, `DECISIONS.md`, `IMPLEMENTATION_PLAN.md`) are emitted with the full structure specified in `Files to generate`; missing or partial files invalidate the run (placeholders are required where facts are unknown, but the file itself must exist).
-- All mandatory task files include non-speculative placeholders where facts are unknown.
 - `### Artifact changes` marks task-memory writes `APPLIED` in every mode (ADR-0199). A section this command does not own gets a `<!-- PROPOSED by <command>: ... -->` block for its owner instead (ADR-0034): that is ownership, not a mode gate, and it holds in Agent mode too.
 - The basename in the `Run now:` line corresponds to a real file in `commands/<name>.md`; invented names such as `task-plan` or `plan` are invalid output.
-- When the user provided 2 or more repositories, `SOURCE_OF_TRUTH.md` includes a `## Repositories` section with N entries (each: identifier, path, base branch, role) per the schema in the spec `## Multi-repo support (v1)`; identifiers are lowercase, hyphenated, and unique. When the user provided 1 or zero repositories, the `## Repositories` section is omitted entirely (single-repo backwards-compat preserved).
+- `SOURCE_OF_TRUTH.md` carries `## Repositories` exactly when the Multi-repo handling rule requires it, one valid entry per repository, and omits it otherwise.
 - Output ends with a complete `### Handoff` block per the adaptive format in `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract`. A response that ends after the mandatory file contents without a complete Handoff is invalid output.
 - Optionally self-check K.2 substrate-write compliance via `bash scripts/verify-substrate-batch.sh <task-folder>` (headers, log and orphans in one call, ADR-0110) before finishing; not a gate.
 - Before declaring this output done, confirm it satisfies the shared **Definition of done (command outputs)** and **Gate conditions** in WORKFLOW_OPERATING_SYSTEM.md.

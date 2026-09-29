@@ -137,6 +137,32 @@ else
   pass "a template retired from the repo is removed from the --with-docs copy on the next sync"
 fi
 
+# 1d. The shared blocks installed commands cite ship with the payload (ADR-0243 task, the E4
+#     rerun's first residual gap). A no-flag run lands every block in SHIPPED_SHARED_BLOCKS
+#     byte-identical under commands/_shared/, worker-contract.md and the closure pattern among
+#     them, and a block planted there that is not on the list is gone after the next sync. The
+#     list is read from the installer, as 3b reads SHIPPED_SCRIPTS, so the two cannot drift.
+BLOCKS="$(sed -n 's/^SHIPPED_SHARED_BLOCKS=(\(.*\))$/\1/p' "$SYNC")"
+rc=$(run_install)
+sdest="$TMP/claude/workflow-docs/commands/_shared"
+bad=""
+for b in $BLOCKS worker-contract.md task-state-slice-closure-pattern.md; do
+  cmp -s "$REPO_ROOT/commands/_shared/$b" "$sdest/$b" || bad="${bad}${b} "
+done
+[ -d "$sdest" ] && printf 'retired block\n' > "$sdest/retired-block-for-test.md"
+rc2=$(run_install)
+if [ "$rc" != "0" ] || [ "$rc2" != "0" ]; then
+  fail "the no-flag sync exited $rc then $rc2"
+elif [ -z "$BLOCKS" ]; then
+  fail "the installer has no SHIPPED_SHARED_BLOCKS=(...) line, so no shared block ships"
+elif [ -n "$bad" ]; then
+  fail "shared blocks missing or different in the installed payload: $bad"
+elif [ -e "$sdest/retired-block-for-test.md" ]; then
+  fail "a shared block not on SHIPPED_SHARED_BLOCKS survived the next sync"
+else
+  pass "the cited shared blocks ship byte-identical and an unlisted one is removed ($(printf '%s' "$BLOCKS" | wc -w | tr -d ' ') blocks)"
+fi
+
 # 2. The payload is not gated by --with-docs. Same assertion, stated so a future edit that
 #    moves the copy back inside sync_workflow_docs() fails here rather than silently.
 grep -q 'wos' <<<"$(sed -n '/^sync_workflow_docs()/,/^}/p' "$SYNC")" \

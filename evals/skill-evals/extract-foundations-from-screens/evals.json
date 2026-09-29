@@ -1,0 +1,22 @@
+{
+  "skill_name": "extract-foundations-from-screens",
+  "version": "1.0",
+  "description": "Trigger evals for extract-foundations-from-screens: it fires when many written screen docs hold raw values that should be merged into role tokens, while foundation-audit, screen-spec, design-spec-review, component-spec and color-contrast-architect handle drift checks on curated foundations, writing a screen doc, checking built code against its spec, one component, and contrast pairs.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "I have 22 SCREEN_SPEC files under design/screens with hex codes and px values all over the place. Consolidate them into foundations for color and typography.",
+      "merge the raw values from our screen docs into role tokens, and don't touch the ones we already named in foundations/color.md",
+      "We ran this last week on 12 screens. Six more got documented since then, so run it again and only add what's new. Anything that clashes should go to a review list, not get overwritten.",
+      "Across the SCREEN_SPEC files I see 6px, 10px and 14px gaps next to the 4px grid steps. Build the spacing and radii scale from them and flag the off-grid ones instead of rounding.",
+      "screen docs are done, foundations folder is empty, can you derive the tokens from them"
+    ],
+    "should_not_trigger": [
+      { "prompt": "The foundations docs are curated and every screen already uses role tokens. I just want to know if the code theme file still matches them.", "routes_to": "foundation-audit" },
+      { "prompt": "The Settings screen is built now. Check whether the code actually uses the colors and spacing its screen spec lists, and whether every state in the spec is implemented.", "routes_to": "design-spec-review" },
+      { "prompt": "Only two screens have docs so far. The profile screen has a Figma frame but no doc; write that one before we try to pull any tokens out of the screen docs.", "routes_to": "screen-spec" },
+      { "prompt": "Document the primary button from Figma with its variants, sizes, states and accessibility notes.", "routes_to": "component-spec" },
+      { "prompt": "Check whether the contrast between our text and surface colors passes AA in both themes before we lock the palette.", "routes_to": "color-contrast-architect" }
+    ]
+  }
+}

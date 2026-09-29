@@ -1,0 +1,37 @@
+{
+  "skill_name": "where-we-at",
+  "version": "1.0",
+  "description": "Trigger evals for where-we-at: it audits a multi-slice task against its approved plan and reports done, missing and remaining, while its siblings close one slice, route one step, rebuild context, or repair artifact drift.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "how far are we from done on this task?",
+      "IMPLEMENTATION_PLAN.md has six slices across two waves and I have lost track. Slices 01 to 03 are merged. Tell me what is finished, what is missing, and what still has to happen before this task is complete.",
+      "The backend repo is through slice 03 but the frontend repo has barely started. Give me a per-repo checkpoint against the approved plan so I can see who is ahead.",
+      "We have been on this for a week and two decisions changed midway. I do not trust my own picture of it, so assess where the task really stands versus the plan and the exit criteria, not just what TASK_STATE.md claims.",
+      "macro status please: what is done vs planned across all the phases?"
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "Slice 04 is implemented and its tests pass. Can I close it, and does that finish the whole task or only this slice?",
+        "routes_to": "slice-closure"
+      },
+      {
+        "prompt": "TASK_STATE.md is current and I trust it. Just tell me the single next step, which editor mode to use, and how heavy the work is.",
+        "routes_to": "what-next"
+      },
+      {
+        "prompt": "New chat window, the transcript is gone. Rebuild what we were doing from TASK_STATE.md and the linked files so I can keep going from here.",
+        "routes_to": "resume-from-state"
+      },
+      {
+        "prompt": "TASK_STATE.md says slice 02 is in progress but IMPLEMENTATION_PLAN.md marks it done and the code has moved on since. Repair the disagreement between the artifacts.",
+        "routes_to": "state-reconcile"
+      },
+      {
+        "prompt": "I have eleven open tasks across three projects. Which one should I pick up first, and which are finished but never archived?",
+        "routes_to": "portfolio-review"
+      }
+    ]
+  }
+}

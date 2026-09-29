@@ -106,6 +106,8 @@ When a command or pattern in this repo assumes a Claude Code primitive, this tab
 | `Workflow` and fleet fan-out (parallel sub-agent orchestration, ADR-0038) | Native | Not available; documented as Claude Code-only (spec `## Parallel workflow`). Degradation: serialize the wave inline. |
 | `AskUserQuestion` (interactive gate) | Native | Becomes an unanswered paste-string. Degradation: auto-waiver by observable signal ONLY for administrative gates (team-approval, tag confirmation), following the delivered solo/local precedent in `commands/task-close.md`; merge left that precedent in ADR-0191 because it is answerable by `git merge-base --is-ancestor` rather than by asking, and a waiver for an answerable condition discards the answer; the Godot feel-verdict floor is the one closure floor that still refuses without a recorded human PASS in any harness (ADR-0203), while the generalized experience verdict (ADR-0091) records its attester, run or human, per ADR-0179. Decision-bearing surfaces follow the Unattended-sessions doctrine (`wos/cross-cutting-workflow-guardrails.md`) unchanged. |
 | `suggested-model` frontmatter (Claude SKUs) | Native | Maps to the `Codex reasoning-effort default` column in `wos/model-routing.md`. ADR-0172 moved that table out of ADR-0025 on 2026-08-30; the pointer here still named the ADR. |
+| Per-agent worktree isolation (`isolation` on the `Agent` tool, `agent(prompt, {isolation: 'worktree'})`; `implement-fleet` dispatches every worker this way, and each worker returns through `.fleet-out/` in its own worktree, ADR-0242) | Native | Not assumed. Degradation: `implement-fleet` runs the wave's slices in turn through `implement-approved-slice`. Do not create worktrees by hand for sub-agents: a sub-agent bound to one inherits the parent's write sandbox, which refused every write of a simulated fleet on 2026-09-29. |
+| Dispatch role on a sub-agent (`mechanical` or `judgment`, ADR-0236) | Native: per-call `model` on the `Agent` tool; per-call `model` and `effort` on a Workflow `agent()` call | Per-agent `model_reasoning_effort` from `wos/model-routing.md ## Dispatch roles`; the model is inherited. Cursor and harnesses with no per-agent field inherit both. |
 
 ## Pattern relationships
 
@@ -113,13 +115,13 @@ When a command or pattern in this repo assumes a Claude Code primitive, this tab
 |---|---|---|
 | Prompt chaining | Adopted | Handoff adaptive format (ADR-0002) |
 | Routing | Adopted | `what-next` + `## Command roles` index |
-| Orchestrator-workers | Adopted (J.1+J.2 2026-06-04) + J.3 tier-aware dispatch; ADR-0038/0039/0040 | `templates/ORCHESTRATOR_COMMAND.template.md` + `commands/_shared/worker-contract.md` + `commands/_shared/orchestrator-bootstrap.md` per ADR-0034 |
+| Orchestrator-workers | Adopted (J.1+J.2 2026-06-04) + J.3 dispatch, role-aware since ADR-0236; ADR-0038/0039/0040 | `templates/ORCHESTRATOR_COMMAND.template.md` + `commands/_shared/worker-contract.md` + `commands/_shared/orchestrator-bootstrap.md` per ADR-0034 |
 | Evaluator-optimizer | Adopted | `self-critique-and-revise` (ADR-0021) |
 | Parallelization | Adopted (Mode C ADR-0032 + Epic J fleet commands) | Mode C reactive fanout; orchestrator-workers proactive fleets |
-| Tier-aware dispatch | Adopted (J.3 2026-06-04) | `## Tier-aware dispatch protocol` below; orchestrator tier >= worker tier |
+| Role-aware dispatch | Adopted (J.3 2026-06-04; roles replaced SKU tiers in ADR-0236) | `## Role-aware dispatch protocol` below; orchestrator at or above its workers |
 | Substrate-bullet ownership | Adopted (ADR-0038 Rule 3) | Every parallel-dispatch wave must gate merge on `scan-substrate-orphans.py`; see `## The orphan-scan gating step pattern` below |
 
-A vocabulary note, recorded so a future absorption sweep does not re-flag a mechanism this file already describes. The external project beads, read in the work that produced ADR-0125, covers the same territory under its own names: a formula is a declarative workflow template carrying steps, variables, dependencies, and gates, compiled into a proto and then instantiated as a molecule, the concrete work graph. Fhorja's counterpart is the orchestrator-fleet pattern above. `templates/ORCHESTRATOR_COMMAND.template.md` is the template, declaring worker role, tier, `max_fanout`, the convergence pattern and its timeout, and both worker schemas as fillable placeholders; a dispatched fleet run is the instantiation; and the ordering half lives in `implementation-plan`'s per-slice `Depends-on` plus its computed `## Execution waves`.
+A vocabulary note, recorded so a future absorption sweep does not re-flag a mechanism this file already describes. The external project beads, read in the work that produced ADR-0125, covers the same territory under its own names: a formula is a declarative workflow template carrying steps, variables, dependencies, and gates, compiled into a proto and then instantiated as a molecule, the concrete work graph. Fhorja's counterpart is the orchestrator-fleet pattern above. `templates/ORCHESTRATOR_COMMAND.template.md` is the template, declaring worker role, dispatch role, `max_fanout`, the convergence pattern and its timeout, and both worker schemas as fillable placeholders; a dispatched fleet run is the instantiation; and the ordering half lives in `implementation-plan`'s per-slice `Depends-on` plus its computed `## Execution waves`.
 
 Their gates map only partly, and the gap matters more than the overlap. beads has four gate types: human, timer, a GitHub Actions run completing, and a pull request merging. Only the human one has a Fhorja counterpart, and it is narrow: `approve-plan` self-runs a blinded review with no human turn (ADR-0208), the closure floors record a verification debt rather than wait for a person (ADR-0203), and `approve-proposed` runs only on request (ADR-0199). What stays human is the Godot feel-verdict floor and the four stop reasons of ADR-0186. The three machine-checkable types have none, and Fhorja cannot currently learn on its own that CI went green or that a PR merged. That absence is deliberate on two grounds: there is no execution engine here that would evaluate a declared gate type on its own schedule, and the authorized-fetcher rule in `WORKFLOW_OPERATING_SYSTEM.md` keeps a command outside that closed set from polling a host API. Fhorja's gates are callable commands, not data a scheduler watches.
 
@@ -136,22 +138,19 @@ This is distinct from `verify-against-rubric-fleet`, which runs N DIFFERENT arti
 - **Cross-sub-agent coordination**: an orchestrator-of-orchestrators pattern is out of scope. If a sub-task needs further decomposition, the worker itself can delegate; but Fhorja does not provide an orchestrator-of-orchestrators primitive. If real-use friction surfaces, a new ADR can introduce one.
 - **Why no `Delegate now:` Handoff directive (yet)**: changing the Handoff contract (currently `Run now:` is the only primary action verb) requires a stronger signal of real use-case friction than we currently have. ADR-0022 documents this deliberate stop-short and the criteria for promoting the pattern to an enforced directive.
 
-## Tier-aware dispatch protocol (J.3, per ADR-0034)
+## Role-aware dispatch protocol (ADR-0236, replacing the J.3 tiers of ADR-0034)
 
-Adopted 2026-06-04. Orchestrator commands dispatching workers per the worker contract (`commands/_shared/worker-contract.md`) MUST respect the tier-aware dispatch protocol.
+Adopted 2026-06-04 as tier-aware dispatch; the tiers stopped being model SKUs on 2026-09-28 (ADR-0236). Orchestrator commands dispatching workers per the worker contract (`commands/_shared/worker-contract.md`) MUST respect this protocol, and every other command that dispatches a sub-agent names the sub-agent's role the same way.
 
 ### Core rule
 
-**Orchestrator tier >= every worker tier.** Concretely:
-- An Opus orchestrator (`suggested-model: claude-opus-5-5`) may dispatch Opus, Sonnet, or Haiku workers.
-- A Sonnet orchestrator (`suggested-model: claude-sonnet-5`) may dispatch Sonnet or Haiku workers; may NOT dispatch Opus workers.
-- A Haiku orchestrator (`suggested-model: claude-haiku-4-5`) may NOT dispatch any workers (Haiku is a leaf tier).
+Every worker, and every single sub-agent a command dispatches, carries a dispatch role: `mechanical` or `judgment`. The command names the role and never a model or an effort. `wos/model-routing.md` → `## Dispatch roles` maps the role to a model and an effort per harness, and says how a harness with no per-agent lever degrades.
 
-### Why the constraint exists
+**The orchestrator stays at or above its workers.** A worker-contract fleet's own `suggested-model` resolves to a model at or above the model its workers' role resolves to. Concretely, with today's table: a fleet with `judgment` workers carries an Opus-class `suggested-model`; a fleet with `mechanical` workers may carry Sonnet-class or above. The rule binds fleets only. A command that makes one dispatch, such as `approve-plan` sending its plan to a reviewer, runs that reviewer above itself on purpose: the verdict is the deliverable and the dispatching command only records it.
 
-If a Sonnet orchestrator dispatched Opus workers, the orchestrator's synthesis step would be the bottleneck on judgment quality (Opus per-worker output > Sonnet integration capacity). This is a known failure mode in production multi-agent systems (Anthropic research system 2026: Opus lead + Sonnet subagents was the validated shape, not the inverse). Workers can specialize narrowly; orchestrators must synthesize globally.
+### Why the orchestrator constraint exists
 
-Haiku as leaf tier reflects Haiku 4.5's strength on mechanical, schema-bounded tasks (regex pattern matching, structured extraction) and weakness on synthesis across heterogeneous partials.
+If a weaker orchestrator merged the output of stronger workers, the merge would be the bottleneck on judgment quality. This is a known failure mode in production multi-agent systems (Anthropic research system 2026: a strong lead with lighter subagents was the validated shape, not the inverse). Workers can specialize narrowly; orchestrators must synthesize globally.
 
 ### Declaration in orchestrator frontmatter
 
@@ -159,52 +158,50 @@ Per `templates/ORCHESTRATOR_COMMAND.template.md`:
 
 ```yaml
 metadata:
-  suggested-model: claude-opus-5-5   # orchestrator tier
+  suggested-model: <at or above the model the workers' role resolves to>
   orchestrator: true
   workers:
     - role: <worker-role-slug>
-      tier: claude-sonnet-5        # worker tier; <= orchestrator tier
-      contract_ref: commands/_shared/worker-contract.md
-    - role: <other-role-slug>
-      tier: claude-haiku-4-5         # leaf worker
+      dispatch-role: mechanical        # or judgment; resolved in wos/model-routing.md
       contract_ref: commands/_shared/worker-contract.md
 ```
 
-### Tier-mapping per role (heuristic)
+### Which role a worker gets
 
-| Worker role pattern | Default tier | Rationale |
+| Worker pattern | Role | Why |
 |---|---|---|
-| Mechanical extraction (regex/AST/schema-bounded) | Haiku | Fast, cheap, deterministic enough; Anthropic Outcomes pattern |
-| Per-target deep analysis (one screen, one file, one feature) | Sonnet | Standard coding/analysis depth |
-| Cross-target synthesis or judgment-heavy (orchestrator role) | Opus | Multi-perspective integration; cost justified by single-instance-per-run |
+| Reads and returns what it found, with no verdict (a search, a per-source summary, an extraction) | `mechanical` | The answer is in the input; depth adds cost, not correctness |
+| Generates from an approved input (one screen spec, one task folder), or executes an approved slice | `mechanical` | The judgment was made upstream and approved; the worker applies it |
+| Returns a verdict: a review finding, a rubric criterion, a pass or fail per guideline row, a refutation | `judgment` | The verdict is the deliverable, and routing it down degrades it |
+| Merges or reconciles across items (the orchestrator's own step) | `judgment` | Runs in the orchestrator's session, which the rule above keeps at or above its workers |
 
-The heuristic is non-binding. Orchestrator authors override per-role with a one-line rationale in the command body when justified.
+When a worker could be either, it is `judgment`. A command may put a worker in `judgment` without a reason; putting a verdict-returning worker in `mechanical` is not allowed.
 
 ### Cost guard
 
 `commands/_shared/orchestrator-bootstrap.md` requires every orchestrator to:
-1. Declare `max_fanout` (HARD cap on concurrent workers; default 12; ceiling 20). The ceiling is the platform's, not a preference: Claude Code documents that the 21st concurrent sub-agent fails with `Concurrent subagent limit reached` and that the error instructs no retry, configurable via `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`. A prior "absolute ceiling 100" here was five times a limit that fails closed. Retries count toward effective fanout, so a run declaring exactly 20 has no headroom for one.
-2. Verify the tier constraint at bootstrap time; refuse to dispatch if violated.
+1. Declare `max_fanout` (HARD cap on concurrent workers; default 12; ceiling 20). The ceiling is the platform's, not a preference: Claude Code documents that the 21st concurrent sub-agent fails with `Concurrent subagent limit reached` and that the error instructs no retry, configurable via `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`. A prior "absolute ceiling 100" here was five times a limit that fails closed. Retries count toward effective fanout, so a run declaring exactly 20 has no headroom for one. Review and verification fan-out runs at most 9 at once (`WORKFLOW_OPERATING_SYSTEM.md` → `## Parallel workflow`, ADR-0236).
+2. Verify the orchestrator constraint at bootstrap time; refuse to dispatch if violated.
 3. Split the worker set into sequential sub-batches of at most `max_fanout` when enumeration produces N > `max_fanout`, and continue, stating in one line how many batches the overflow produced; never silently truncate (ADR-0201).
 
 Together these prevent the documented cost-runaway class (e.g., the $8-15K incident from a 49-subagent run reported in 2026).
 
 ### Model inheritance and API-load guard (site dogfood F-5)
 
-A Workflow-tool `agent()` call that omits `model` inherits the session model, not the role default. On the 2026-07-11 fhorja.dev site dogfood the user asked for a "Sonnet workflow" but the `agent()` calls omitted `model: 'sonnet'`, so six review workers inherited Opus 4.8; each fired several image-heavy Mobbin `search_sections` calls, the batch hit ~21 HTTP 429s, and because the Bash tool's own safety pre-check also calls the model, three Bash calls were blocked ("cannot determine the safety of Bash right now") and a macOS notification alarmed the user. The fleet recovered (16/16, 0 errors) but degraded and confused the operator. Discipline:
+A Workflow-tool `agent()` call that omits `model` inherits the session model, not the role's row. On the 2026-07-11 fhorja.dev site dogfood the user asked for a lighter workflow but the `agent()` calls omitted `model`, so six review workers inherited the heavier session model; each fired several image-heavy Mobbin `search_sections` calls, the batch hit ~21 HTTP 429s, and because the Bash tool's own safety pre-check also calls the model, three Bash calls were blocked ("cannot determine the safety of Bash right now") and a macOS notification alarmed the user. The fleet recovered (16/16, 0 errors) but degraded and confused the operator. Discipline:
 
-- **Pin the tier explicitly on review/analysis fleets.** When the role default is Sonnet (per the tier-mapping table) and the fleet is read-only analysis, set `model: 'sonnet'` on each `agent()` call rather than relying on inheritance; an omitted `model` silently promotes the whole fleet to the (heavier, capacity-contended) session model.
+- **Apply the role's row explicitly.** Pass the row's `model` (and `effort` where the call takes one) on each dispatch rather than relying on inheritance; an omitted `model` silently promotes a `mechanical` fleet to the session model. On a path that takes no effort, write `effort: inherited from session` in the transcript.
 - **Throttle concurrency when each worker makes several heavy MCP or image calls.** Lower the effective fan-out (or split into sub-batches) so N heavy workers do not each fire a burst of image-bearing tool calls at once; heavy-MCP fleets saturate the API faster than their agent count implies.
 - **Read a 429 as rate limiting, not a machine fault.** When a fleet degrades under load, surface it to the operator as API rate limiting (and, if applicable, that the Bash safety pre-check shares that capacity), not as a code or environment problem.
 
 ### Override-up vs override-down
 
-- **Override-up** (worker tier > role default): always valid. When in doubt, pick stronger. The orchestrator pays the cost; correctness wins.
-- **Override-down** (worker tier < role default): valid only with a one-line rationale in the orchestrator command body, ideally citing an eval scenario (per K.7 eval discipline) that proves the downgrade preserves quality.
+- **Override-up** (a `mechanical` dispatch run on the judgment row): always valid. When in doubt, pick stronger.
+- **Override-down** (a `judgment` dispatch run on the mechanical row): never. Change the table row instead, with the measurement that justifies it.
 
 ### Verification
 
-`lint-commands.sh` checks the orchestrator contract at FAIL tier today: a declared `max_fanout` above 20 fails, a stated ceiling above 20 fails (in `commands/` and in `wos/`), and an `orchestrator: true` command that names no agent type fails. The tier comparison, `suggested-model` >= every `workers[].tier`, is not checked yet; until it is, the orchestrator verifies it at bootstrap as the cost guard above says.
+`lint-commands.sh` checks the orchestrator contract at FAIL tier: a declared `max_fanout` above 20 fails, a stated ceiling above 20 fails (in `commands/` and in `wos/`), an `orchestrator: true` command that names no agent type fails, a `tier:` line inside a `workers:` block fails, a `dispatch-role:` value that `wos/model-routing.md ## Dispatch roles` does not define fails, a `claude-` model id anywhere in a command or shared block other than its `suggested-model:` line fails, and a model family name attached to workers or sub-agents in command prose fails (ADR-0236). The orchestrator constraint, `suggested-model` at or above the model the workers' role resolves to, is not checked by the lint; the orchestrator verifies it at bootstrap as the cost guard above says.
 
 ## Future evolution
 
@@ -243,7 +240,7 @@ For **parallel orchestration** (multiple workers running concurrently, fan-out/f
 
 - **One worker, bounded scope** → use this topic (sub-agent-orchestration).
 - **Two or more workers in the same wave, or fan-out/fan-in (research or audit)** → use workflow-patterns + ADR-0038.
-- **Executing an approved plan whose `## Execution waves` show a remaining wave of size 2 or more with `Scope` and `Depends-on` declared** → use `implement-fleet` (ADR-0041); it orchestrates `implement-approved-slice` workers under the file-scope disjointness gate. A pure chain falls back to sequential `implement-approved-slice`.
+- **Executing an approved plan whose `## Execution waves` show a remaining wave of size 2 or more with `Scope` and `Depends-on` declared**, on a harness with per-agent worktree isolation → use `implement-fleet` (ADR-0041, the default per ADR-0243); it orchestrates `implement-approved-slice` workers under the file-scope disjointness gate. A pure chain falls back to sequential `implement-approved-slice`.
 
 
 ### Related bug-classes

@@ -5,7 +5,7 @@
       "category": "audit-and-sweep",
       "description": "Senior accessibility auditor mapping a UI surface (screen, flow, or component set) to WCAG 2.2 at a named conformance level. Produces ACCESSIBILITY_AUDIT.md, a per-criterion conformance ledger that splits machine-checkable rows from a manual-review queue, with severity and concrete remediation per finding. Activates when a screen-spec or an implemented surface has no conformance ledger, or when a delivery surface needs a conformance pass before sign-off. Do not use for a contrast-only request (use color-contrast-architect for at least three documented pairs, component-spec when its inputs exist, or targeted-questions for missing pair-specific evidence), for a single component against its spec (use design-spec-review), or when the task has no user-facing UI.",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "a11y-audit",
       "next_commands": [
@@ -20,7 +20,7 @@
       "category": "planning-and-validation",
       "description": "Design an evaluation plan for a product AI feature (LLM- or model-backed output): measurable success criteria, a held-out labeled eval dataset shape, per-criterion grading (code-based first, then LLM-based for nuanced judgment), and a pass threshold, then persist as AI_EVAL_PLAN.md. Use when the task ships or changes a feature whose output is model-generated or non-deterministic (assistant reply, classification, extraction, summarization, ranking, agent action) and needs a repeatable dataset-backed eval rather than only example-based tests. Do not use when the feature has no model-backed output (use test-strategy for deterministic behavior), when judging Fhorja's own command outputs against a rubric (use verify-against-rubric), or when no active task folder exists. The code-graded tier composes with ADR-0048 (a passing deterministic gate is Layer-1 evidence); the LLM-graded tier is added signal, not a replacement.",
       "mode": "Plan",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "ai-feature-eval-harness",
       "next_commands": [
@@ -34,7 +34,7 @@
       "category": "contracts-and-decisions",
       "description": "Review an API contract (endpoints, request/response shapes, error codes, auth model) BEFORE implementation for naming consistency, versioning, pagination, idempotency, and alignment with existing endpoints. Distinct from review-hard (post-implementation risk) and repo-consistency-sweep (pattern matching on written code). Use when designing new endpoints or modifying existing API contracts. Do not use when the API is already implemented (use review-hard or repo-consistency-sweep instead).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "api-contract-review",
       "next_commands": [
@@ -47,7 +47,7 @@
       "category": "runtime-verification",
       "description": "Verify an implemented backend HTTP surface at runtime: per route, record the request actually made, the status, the content-type, and the observed body shape, assert each response against the slice's acceptance behavior, and decide a PASS/FAIL/BLOCKED gate. The probe's real output IS the evidence: a route whose output is not shown is unverified, never PASS. Capability-routed, and it routes fixes rather than applying them. Do not use to review a contract before implementation (use api-contract-review or graphql-contract-review), to write or fix code (use implement-approved-slice), to triage a failure into a fix size (use incident-triage), for a browser, app, or Godot surface, or with no running backend to probe.",
       "mode": "Agent",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "api-runtime-verify",
       "next_commands": [
@@ -61,7 +61,7 @@
       "category": "runtime-verification",
       "description": "Verify a built mobile or app runtime at runtime: run the app (device, emulator, or headless), read the captured output (native logcat, iOS device log, or the Metro/JS console), classify runtime errors against a per-stack taxonomy, and decide a PASS/FAIL gate for the slice's acceptance behavior. The run's real output IS the evidence; a claimed-but-not-shown run is unverified. React Native/Expo and Unity mobile are the documented adapters. Do not use to plan a screen (use implementation-plan), to write or fix code (use implement-approved-slice), to triage a failure into a fix size (use incident-triage), to verify a Godot scene (use godot-runtime-verify), or with no implemented app to run.",
       "mode": "Agent",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "app-runtime-verify",
       "next_commands": [
@@ -74,7 +74,7 @@
       "category": "audit-and-sweep",
       "description": "Persist the user's triage decisions (apply, decline, discuss) from a SWEEP snapshot into REVIEW_PREFERENCES.md so future sweeps suppress declined findings and track applied fixes. Use after the user has edited the triage values in a SWEEP snapshot file produced by repo-consistency-sweep. Do not use when no sweep snapshot exists or when the user has not yet set triage values.",
       "mode": "Agent",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "apply-sweep-triage",
       "next_commands": [
@@ -111,7 +111,7 @@
       "category": "audit-and-sweep",
       "description": "Produce ATOM_AUDIT.md table auditing every atom component against COMPONENT_GUIDELINES.md (memo, callbacks, inline styles, press anim, touch target, a11y, reduced motion). Output is the table; fixes flow through normal slice pipeline. Use when 2-4 weeks have passed since last audit, when 5+ new atoms shipped, or when COMPONENT_GUIDELINES has a new normative rule. Do not use when no atoms exist (run design-bootstrap first) or when only a single atom needs review (use design-spec-review instead). For 6 or more atoms, use atom-audit-fleet.",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "atom-audit",
       "next_commands": [
@@ -123,7 +123,7 @@
       "category": "audit-and-sweep",
       "description": "Audit every atom in the design system in parallel against the documented component guidelines, dispatching one worker per small group of atoms and merging their rows into a single ATOM_AUDIT.md table. The orchestrator-workers variant of atom-audit. Use when the atom count is 6 or more, the cost-effectiveness threshold, and COMPONENT_GUIDELINES.md exists. Do not use below 6 atoms (use atom-audit single-agent), when COMPONENT_GUIDELINES.md is missing, or when only 1 or 2 atoms changed (use design-spec-review per component).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-opus-5-5",
       "multi_repo_aware": "false",
       "name": "atom-audit-fleet",
       "next_commands": [
@@ -144,7 +144,7 @@
       "category": "autonomy",
       "description": "Decide whether an already-defined project is ready to boot an unattended overnight run, and refuse until it is. Reads the project's own definition artifacts through the shared definition-completeness reader, emits a per-criterion ledger with a BOOT or NOT-READY verdict naming every missing item, and returns NOT-READY when a declared runtime surface has no evidence adapter rather than booting blind. It reports and routes: it never answers a criterion on the operator's behalf, never records a decision as user input, and a BOOT verdict never substitutes for plan approval. Use before handing a night to autonomous-run. Do not use to approve a plan (use approve-plan), to drive the run itself (use autonomous-run), to view a run already in flight (use autonomous-board), or to shape a fuzzy objective before a task exists (use problem-framing).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "autonomous-readiness",
       "next_commands": [
@@ -156,7 +156,7 @@
       "category": "autonomy",
       "description": "Run one approved task through one supervised session with Fhorja's full-profile direct-use reference dispatcher. It delegates verifiable slices to existing commands, emits PROPOSED diffs only, and never creates commits or attestation refs. Use when a maintainer invokes Fhorja directly after approve-plan and a BOOT verdict from autonomous-readiness. Do not use from another execution loop, for an unapproved or NOT-READY plan, for a single slice (use implement-approved-slice), or when durable resume, sandboxing, credentials, remote control, commit, publication, merge, or deploy is required.",
       "mode": "Agent",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "autonomous-run",
       "next_commands": [
@@ -168,7 +168,7 @@
       "category": "discovery-and-scoping",
       "description": "Produce a staff-grade backend system-design RFC for the active task: a 12-section design document (problem, requirements, architecture, data model and storage, API contract, caching, scaling and bottlenecks, reliability and SLOs, security, observability, rollout and migration, trade-offs) for a new service, endpoint, or backend feature, persisted as BACKEND_SYSTEM_DESIGN.md. Capability-routed, not stack-specific; composes with slo-define, performance-budget, api-contract-review, and release-plan rather than duplicating them. Use when a backend service or feature needs an architecture-level design before planning and slicing. Do not use to slice an already-designed change (use implementation-plan), to analyze blast radius (use impact-analysis), to review an API contract in isolation (use api-contract-review), to design the frontend surface (use frontend-system-design), or with no active task folder (run task-init first).",
       "mode": "Agent",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "backend-system-design",
       "next_commands": [
@@ -203,7 +203,7 @@
       "category": "research-and-sourcing",
       "description": "Pull external references (URLs or topics provided by the user) from the web, summarize each with a defined freshness format, and append them to projects/<client>__<project>/REFERENCES.md so all current and future tasks under that project can consume them as grounded external context. Deduplicates by URL. Use when the user wants to research and persist project-level references (stack docs, API contracts, regulations, competitor pages), supplies URLs to summarize with freshness metadata, surfaces an external reference that should outlive the task, or wants to seed REFERENCES.md for a freshly bootstrapped project. Do not use when the project folder does not exist yet (run project-bootstrap first), the reference is internal to a single task, the input is a codebase observation (use capture-observation), or the input is a decision or policy choice (use decision-interview or direction-adjust).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "capture-references",
       "next_commands": [
@@ -215,7 +215,7 @@
       "category": "discovery-and-scoping",
       "description": "Generate and re-sync an AI-readable code context map (a ranked, token-budgeted, layered Markdown map of files, imports, signatures, invoke edges, and typed external boundary calls: db/http/queue) for a target project (or, from a seed file, its import chain), written to a gitignored folder inside that project and regenerated on invoke. Extraction is ripgrep-based by default, with optional parser augmentation when a parser is already present; no embeddings. The map is a seed for grep, not a replacement for reading code. Opt-in; not part of default task init. Use when an assistant needs fast structural orientation before editing a codebase, when onboarding to an unfamiliar repo, or when an existing map is stale. Do not use to locate one specific behavior (use code-locate), to analyze the blast radius of a planned change (use impact-analysis), to introspect a database schema (use db-context-supabase), or without a target codebase path.",
       "mode": "Agent",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "code-context-map",
       "next_commands": [
@@ -228,7 +228,7 @@
       "category": "discovery-and-scoping",
       "description": "Given a behavior description, locate candidate code paths and line ranges in the active codebase that probably implement it. Outputs up to 10 candidates with HIGH/MEDIUM/LOW confidence, a one-line rationale each, and an explicit search trail, then proposes a SOURCE_OF_TRUTH.md update so the next step runs with concrete files instead of a vague codebase pointer. Use when the first real question is where the code lives and file paths are not yet known. Do not use when paths are already explicit, when the codebase is tiny and the layout known, or when the need is general architectural understanding (use impact-analysis).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "true",
       "name": "code-locate",
       "next_commands": [
@@ -241,7 +241,7 @@
       "category": "design-and-ui",
       "description": "Senior design-system contrast architect enforcing WCAG 2.2 AA and AAA per design context (normal text, large text, UI components, focus indicators). Audits every documented foreground and background pair across the supplied themes BEFORE the visual choices lock, producing a pairwise contrast matrix with token-level remediation. Activates when design-bootstrap proposes tokens without contrast pairs, or when a screen-spec or component-spec mentions an unvalidated pair. Do not use for a single pair (use component-spec inline), when no accessibility target is locked (raise via decision-interview first), or after remediation is agreed (use implement-approved-slice).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "color-contrast-architect",
       "next_commands": [
@@ -267,7 +267,7 @@
       "description": "Generate a 15-section component specification from a Figma component using MCP tools (get_design_context, get_screenshot, get_variable_defs). Produces a spec doc matching the COMPONENT_SPEC.md template with anatomy, variants, sizes, states, accessibility, motion, haptics, platform, security, performance, and API sections pre-filled from Figma observations. Use when documenting a design system component. Do not use when the component has no Figma representation or when the spec already exists (edit manually instead).",
       "lifecycle": "frozen",
       "mode": "Agent",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "component-spec",
       "next_commands": [
@@ -288,7 +288,7 @@
       "category": "database-context",
       "description": "Validate that a generic Postgres database (Cloud SQL, GKE Autopilot, RDS, self-hosted) is reachable via psql or pg_dump, introspect a user-scoped subset of the schema (extensions, tables, columns, indexes, foreign keys, optionally RLS policies and functions), and persist it as DB_CONTEXT.md with one cross-link in SOURCE_OF_TRUTH.md. Read-only introspection, never destructive SQL. Opt-in. Use when the task touches a non-Supabase Postgres and planning needs verified rather than assumed schema, or when an existing DB_CONTEXT.md is stale. Do not use without an active task folder (run task-init first), when the task touches no database, when the target is Supabase (use db-context-supabase), or to record a schema decision (use decision-interview).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "db-context-postgres",
       "next_commands": [
@@ -301,7 +301,7 @@
       "category": "database-context",
       "description": "Validate that a Supabase MCP server is reachable, introspect a user-scoped subset of the database (tables, columns, types, RLS policies, optionally functions and recent migrations), and persist it as DB_CONTEXT.md with one cross-link in SOURCE_OF_TRUTH.md. Read-only introspection, never destructive SQL. Falls back to the local Supabase CLI when no MCP server is reachable, and never records supabase status output into an artifact because it prints the service_role key. Opt-in. Use when the task touches Supabase data, schema or RLS and planning needs verified rather than assumed schema. Do not use without an active task folder (run task-init first), when the database is not Supabase, or to record a schema decision (use decision-interview).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "db-context-supabase",
       "next_commands": [
@@ -326,7 +326,7 @@
       "category": "delivery-and-communication",
       "description": "Generate an outward-facing delivery artifact (executive summary, slack or email update, demo script, release note, blog post draft) from the current task's work, scoped per audience and per format. Grounds every claim in the task artifacts and never invents metrics, customer impact, or marketing claims. Use when delivery needs audience-specific framing beyond a PR description or a team status note. Do not use when the audience is a code reviewer (use pr-package), for a quick team status update (use team-update), or with no active task folder (run task-init first).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "delivery-asset",
       "next_commands": [
@@ -353,7 +353,7 @@
       "description": "Review a component or screen implementation against its spec doc for alignment on variants, states, accessibility, tokens, and visual fidelity. Distinct from review-hard (general risk) and repo-consistency-sweep (pattern matching). Activates when a slice's declared Scope touches a design-system button, icon, or component convention file (a shared atom/component under a design-system package) with no cited design-spec-review pass for that change. Use when a design system component or screen has been implemented and you want to verify it matches the documented spec. Do not use when no spec exists (write one first with component-spec or screen-spec).",
       "lifecycle": "frozen",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "design-spec-review",
       "next_commands": [
@@ -365,7 +365,7 @@
       "category": "contracts-and-decisions",
       "description": "Capture a small-to-medium course correction realized mid-task, not from external review: record it as a numbered D-N entry in DECISIONS.md, update TASK_STATE.md, and route back to the right command. Use when the realization came from your own work, is worth recording, does not invalidate the whole approach, and the current slice is recoverable with a small change of plan. Do not use when the trigger is external review or PR feedback (use pr-feedback-ingest or post-review-pivot), when it invalidates the entire task scope (use task-init for a new task), when it is too small to record (use capture-observation), when it is loop or confusion (use im-stuck), or when it requires reopening locked decisions (use decision-interview).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "direction-adjust",
       "next_commands": [
@@ -378,7 +378,7 @@
       "category": "research-and-sourcing",
       "description": "Synthesize multiple external sources into a task-scoped EXTERNAL_RESEARCH.md grounded in REFERENCES.md entries, with comparative analysis and a recommendation visually separated from the source-grounded findings. Never invents claims. Sources are captured first via capture-references. Use when the task depends on several external sources (vendor comparisons, regulatory evaluations, framework choices) and synthesis, not just capture, is what is missing. Do not use when a single source suffices or the research is project-level (use capture-references), when the question is internal (use code-locate or impact-analysis), or with no active task folder (run task-init first). For 3 or more distinct angles, use external-research-fleet.",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "external-research",
       "next_commands": [
@@ -390,9 +390,9 @@
     },
     {
       "category": "research-and-sourcing",
-      "description": "Orchestrator-workers variant of external-research for multi-modal sweep across distinct angles or source-groups of one research question. Promotes external-research's inline delegation to a first-class orchestrator with a worker contract and provenance. Sonnet orchestrator dispatches N Sonnet workers (one angle each) in parallel; each produces a structured per-angle synthesis grounded in REFERENCES.md; orchestrator merges into a single EXTERNAL_RESEARCH.md with cross-angle reconciliation (reinforcing vs contradicting vs different-framing). Use when the research question has N >= 3 distinct angles or source-groups AND the question would benefit from parallel deep reads. Do not use when 1-3 sources suffice (use external-research inline), when one source already dominates (no parallelism gain), or when sources have not yet been captured (run capture-references first).",
+      "description": "Orchestrator-workers variant of external-research for multi-modal sweep across distinct angles or source-groups of one research question. Promotes external-research's inline delegation to a first-class orchestrator with a worker contract and provenance. The orchestrator dispatches N mechanical-role workers (one angle each) in parallel; each produces a structured per-angle synthesis grounded in REFERENCES.md; orchestrator merges into a single EXTERNAL_RESEARCH.md with cross-angle reconciliation (reinforcing vs contradicting vs different-framing). Use when the research question has N >= 3 distinct angles or source-groups AND the question would benefit from parallel deep reads. Do not use when 1-3 sources suffice (use external-research inline), when one source already dominates (no parallelism gain), or when sources have not yet been captured (run capture-references first).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "external-research-fleet",
       "next_commands": [
@@ -405,7 +405,7 @@
       "category": "design-and-ui",
       "description": "Extract canonical foundations docs (`foundations/color.md`, `foundations/typography.md`, `foundations/spacing.md`, `foundations/radii.md`) from a batch of existing SCREEN_SPECs. Idempotent: re-runs only add new tokens, never overwrite existing role mappings, and route conflicts to a Review queue. Use when SCREEN_SPECs already document raw values and you need to converge them into role tokens. Do not use when foundations are already curated and screens already reference role tokens (run `foundation-audit` instead).",
       "mode": "Agent",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "extract-foundations-from-screens",
       "next_commands": [
@@ -417,7 +417,7 @@
       "category": "research-and-sourcing",
       "description": "Research and recommend community-vetted best-in-class libraries for each feature problem in the product (lists, camera, forms, keyboard, sheets), ranked by adoption signal (downloads, dependents, recency, stars-trend, maintenance, platform fit) relative to the project's ecosystem. Stack-agnostic across registries (npm, PyPI, crates.io, Go, Maven). Researches five angles (web, repo, registry, AAA practices, reference repos) and writes FEATURE_LIBRARIES.md, grounding every pick in a captured REFERENCES.md source; picks are optional guidance. Use when the stack is chosen and you want the canonical per-feature libraries surfaced and vetted. Do not use to pick stack layers (use stack-recommend), to verify a framework's current patterns (use stack-currency-check), to synthesize already-captured sources (use external-research), or with no active task folder (run task-init first). For a deep per-problem sweep, use feature-library-scout-fleet.",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "feature-library-scout",
       "next_commands": [
@@ -430,7 +430,7 @@
       "category": "research-and-sourcing",
       "description": "Orchestrator-workers variant of feature-library-scout for deep per-feature-problem library research. One worker per problem ranks candidate libraries by adoption signal (registry downloads, dependents, last release, stars and trend, maintenance, platform fit) relative to the project's ecosystem, grounded in captured sources; the orchestrator is the sole writer that merges into one FEATURE_LIBRARIES.md. Stack-agnostic (npm, PyPI, crates.io, Go, Maven). Use when the product has more than 3 distinct feature problems each warranting a deep read. Do not use for 1 to 3 problems (use feature-library-scout inline), to pick stack layers (use stack-recommend), to verify framework pattern currency (use stack-currency-check), or with no active task folder (run task-init first).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "feature-library-scout-fleet",
       "next_commands": [
@@ -443,7 +443,7 @@
       "description": "Compare design tokens in code against foundation docs and optionally Figma variables to detect drift (tokens added without documentation, documented tokens not in code, value mismatches). Use when the design system has been evolving and you want to verify foundations are in sync. Do not use when no foundation docs exist (run design-bootstrap first).",
       "lifecycle": "frozen",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "foundation-audit",
       "next_commands": [
@@ -455,7 +455,7 @@
       "category": "design-and-ui",
       "description": "Review a frontend architecture at scale and gate micro-frontend adoption BEFORE building. Starts with an adopt-or-don't-adopt decision (default: prefer a modular monolith until 3 or more independently deploying teams and real coordination pain exist), then a checklist covering team and domain boundaries, independent deployability, shared dependencies, runtime isolation, the composition tier, state at scale, and governance. Do not use to design one system (use frontend-system-design), to review a GraphQL or REST contract (use graphql-contract-review or api-contract-review), or with no active task folder (run task-init first).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "frontend-architecture-review",
       "next_commands": [
@@ -468,7 +468,7 @@
       "category": "design-and-ui",
       "description": "Produce a staff-grade frontend system-design RFC for the active task: a 12-section design document (problem, requirements, architecture, data model, API contract, rendering and delivery, state, performance, accessibility, security, rollout, trade-offs) covering web and mobile, persisted as FRONTEND_SYSTEM_DESIGN.md. An --interview mode reframes the same structure for an interview round. Do not use to frame whether the problem is right (use problem-framing), to slice an already-designed change (use implementation-plan), to analyze blast radius (use impact-analysis), to review an API contract in isolation (use api-contract-review), or with no active task folder (run task-init first).",
       "mode": "Agent",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "frontend-system-design",
       "next_commands": [
@@ -481,7 +481,7 @@
       "category": "game-and-engine",
       "description": "Verify a built Godot 2D or 3D scene at runtime: run the scene (press-play or headless), read the captured debugger output, classify any runtime errors against a Godot-specific taxonomy, and decide a PASS/FAIL runtime gate for the slice's acceptance behavior. The run's real output IS the Layer-1 runtime evidence (ADR-0048); a claimed-but-not-shown run is unverified. MCP-agnostic about how the scene is run; it verifies and routes fixes, it does not apply them. Use after a Godot slice is implemented to gate runtime behavior the static checks (lint, typecheck) cannot catch. Do not use to plan a scene (use godot-scene-plan), to write or fix the code (use implement-approved-slice or implement-slice-complement), to triage a failure into a fix size (use incident-triage), or with no implemented scene to run.",
       "mode": "Agent",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "godot-runtime-verify",
       "next_commands": [
@@ -494,7 +494,7 @@
       "category": "game-and-engine",
       "description": "Plan the Godot scene and node structure for a 2D or 3D game feature before any GDScript is written: the scene tree, node types and responsibilities, autoloads, signal wiring, the input map, and the resources and sub-scenes to create. Produces GODOT_SCENE_PLAN.md, a design-time plan an editor or a human builds against. Capability-routed and MCP-agnostic. A 3D plan SHALL declare its renderer tier or it is incomplete. Do not use to frame whether the game idea is right (use problem-framing in its game-design mode), to slice an already-planned build (use implementation-plan), to analyze blast radius of an existing project (use impact-analysis), to verify a running scene (use godot-runtime-verify), or with no active task folder (run task-init first).",
       "mode": "Agent",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "godot-scene-plan",
       "next_commands": [
@@ -507,7 +507,7 @@
       "category": "contracts-and-decisions",
       "description": "Review a GraphQL schema and a Backend-for-Frontend (BFF) contract BEFORE implementation, against a GraphQL-specific checklist: schema shape and nullability (null-bubbling), errors-as-data unions, N+1 and DataLoader, query cost and depth limits, cursor-connection pagination, federation entity ownership, breaking-change gate (schema checks), auth layering and BFF token posture, BFF thinness, and partial-failure degradation. Distinct from api-contract-review (REST and HTTP) and review-hard (post-implementation risk). Capability-routed, not stack-locked. Use when designing a new GraphQL schema, a federated subgraph, or a BFF contract, or modifying an existing one. Do not use for a REST contract (use api-contract-review), when the schema is already implemented (use review-hard or repo-consistency-sweep), or with no active task folder (run task-init first).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "graphql-contract-review",
       "next_commands": [
@@ -520,7 +520,7 @@
       "category": "execution-and-closure",
       "description": "Scan the current working session and the active task's artifacts for reusable, generalizable lessons (what was tried, what failed and why, what surprised us, what the next task should do differently) and propose anchored entries to append to the task's LEARNINGS.md, the produce-side counterpart to the ADR-0017 consume path that task-init already reads. Append-only and read-only on existing entries; de-duplicates against what is already captured; keeps durable lessons and drops one-off task trivia. Use on demand mid-task after a hard-won fix or a surprising failure, or at closure to sweep a long session before the context is lost. Do not use to rewrite or prune existing learnings (never edit prior entries), to capture a single in-flight observation (use capture-observation), to close a slice or the task (use slice-closure or task-close), or when nothing durable was learned (return a NO_OP rather than manufacturing a lesson).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "harvest-session-learnings",
       "next_commands": [
@@ -541,7 +541,7 @@
       "category": "design-and-ui",
       "description": "Generate a design-system spec from a raw image file (a screenshot, mockup, or captured app screen) when there is no Figma source. Reads the image with vision and emits a COMPONENT_SPEC.md-shaped doc (--component) or a SCREEN_SPEC.md-shaped doc (--screen), auto-detecting the mode when no flag is given. A gated --gameplay mode (ADR-0084, off by default) instead derives a MECHANICS_SPEC.md behavior contract for a 2D or 3D game from screenshots, extracted video frames, and playtest notes, with every rule in EARS form tagged observed, assumed, or open. Every observation is marked proposed because an image is an inference source, not a source of truth. Use when you have only an image and want a structured spec the design cluster can consume. Do not use when a Figma node exists (use component-spec or screen-spec), when you want code rather than a spec, or to push the image into Figma (that is generate_figma_design, a separate capability).",
       "mode": "Agent",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "image-to-spec",
       "next_commands": [
@@ -569,7 +569,7 @@
       "category": "execution-and-closure",
       "description": "Implement only the approved slice with minimal, explicit, review-friendly changes, then persist execution evidence in slice notes and TASK_STATE.md. The single official execution path of the workflow. Supports an opt-in test-first mode, per slice or via --tdd, that writes the failing test before the code. Use when the plan is valid, the current slice is defined and approved, correctness-critical ambiguity is resolved, and the files in scope are known well enough to edit safely. Do not use during discovery, contract refinement or planning, when unresolved ambiguity affects correctness, when the next step is only to sync memory or close the slice (use sync-task-state or slice-closure), or when the work is a narrow micro-delta inside an executed slice (use implement-slice-complement).",
       "mode": "Agent",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "true",
       "name": "implement-approved-slice",
       "next_commands": [
@@ -598,7 +598,7 @@
       "category": "execution-and-closure",
       "description": "Execute a bounded micro-delta (adjustments, fixes, polish, missed checklist items) that stays inside the same slice intent and the locked decisions, then record evidence in slice notes without churning unrelated artifacts. Use when a slice is implemented or ready-to-close-with-follow-ups, you found a narrow gap (bug, typo, test, log line, copy, small refactor under the same acceptance story), and you can state it as a numbered micro-delta list over a small named file set. Do not use when the work is net-new scope (use implementation-plan plus a new slice), when correctness-critical ambiguity is open (use targeted-questions or decision-interview), when it would materially alter signed-off decisions (use post-review-pivot), when only memory needs updating (use sync-task-state), or when only closure judgment is needed (use slice-closure).",
       "mode": "Agent",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "implement-slice-complement",
       "next_commands": [
@@ -612,7 +612,7 @@
       "category": "planning-and-validation",
       "description": "Define an incremental, reviewable, production-safe implementation plan for the active task and persist it as IMPLEMENTATION_PLAN.md plus a TASK_STATE.md update. Breaks work into the smallest safe slices with objective, exact scope, ordering rationale, key risks, validation approach, exit criteria, and work complexity per slice. No code is written. An annotate-only retrofit mode backfills per-slice Scope and Depends-on plus Execution waves onto an in-progress plan so it can adopt implement-fleet. A --spec mode derives slices from a spec or PRD. Do not use when the task is still too unclear, when key facts or decisions remain open, or when the need is to implement an already-approved slice (use implement-approved-slice).",
       "mode": "Plan",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "implementation-plan",
       "next_commands": [
@@ -624,7 +624,7 @@
       "category": "state-and-navigation",
       "description": "Triage a concrete observed technical failure (stack trace, error, failing test, runtime symptom, production alert), classify the failure type (REGRESSION/NEW_BUG/CONFIG/EXTERNAL_DEPENDENCY/REPRODUCIBILITY/DIAGNOSTIC_INSUFFICIENT), recommend fix size (HOTFIX/SLICE/INVESTIGATION/ESCALATE), and validate against locked decisions and invariants. Defends HOTFIX paths against unnecessary ceremony with explicit safety justification. Use when there is concrete failure evidence, an active task folder exists, urgency is real or unclear, or it is unclear whether to run the full flow or take a hotfix shortcut. Do not use when the issue is not concrete (use im-stuck or what-next), the failure is feature-shaped (use task-init for a new feature task), the fix is already implemented and only delivery remains (use pr-package), the failure surfaced from PR feedback (use pr-feedback-ingest or post-review-pivot), or no active task folder exists yet.",
       "mode": "Debug",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "incident-triage",
       "next_commands": [
@@ -639,7 +639,7 @@
       "category": "contracts-and-decisions",
       "description": "Identify the invariants, non-goals, and forbidden changes for the active task, then persist them as INVARIANTS_AND_NON_GOALS.md so implementation boundaries are locked before planning or coding. Use when impact analysis is done or mostly clear, the task may touch sensitive behavior or contracts or schema or runtime paths, and implementation boundaries need to be locked before planning or coding. Do not use when the task is still too unclear to define safe boundaries, the current need is to ask missing factual questions first (use targeted-questions), or the task is already deep in implementation and boundaries are already locked.",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "invariants-and-non-goals",
       "next_commands": [
@@ -652,7 +652,7 @@
       "category": "discovery-and-scoping",
       "description": "Snapshot the upstream Figma component library into docs/research/_inventory/figma_components.md. For each Figma component: name, inferred tier, node ID, and whether a spec/code/story exists in the WOS-UI surface. Produces delta vs previous snapshot. Use after design ships a Figma library update or to seed the inventory at project start. Do not use when no Figma source is available or when only auditing one component (use design-spec-review instead).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "inventory-snapshot",
       "next_commands": [
@@ -665,7 +665,7 @@
       "description": "Document a user journey from screen references and a user story input. Produces a journey spec doc matching the JOURNEY_SPEC.md template with outcome, screen flow, components consumed, critical states, accessibility, security, and performance sections. Use when mapping a user flow across multiple screens. Do not use when documenting a single screen (use screen-spec) or a reusable pattern (use pattern-doc).",
       "lifecycle": "frozen",
       "mode": "Agent",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "journey-map",
       "next_commands": [
@@ -677,7 +677,7 @@
       "category": "discovery-and-scoping",
       "description": "Senior product researcher running Jobs-to-be-Done switch interviews to surface the four forces of adoption (push, pull, anxiety, habit) and the trigger, struggle and switch timeline. Replaces internal motivation assumptions with verbatim user evidence. Activates when the charter or the source of truth mentions user research or PMF with no captured methodology, or when a draft decision rests on motivation assumptions with no interview behind it. Do not use for solo ideation with no reachable user pool, when interviews for this question already exist, when the blocker is technical (use decision-interview), when desk research suffices (use external-research), or for survey and quantitative analysis, since this persona is qualitative only.",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "jtbd-switch-interviewer",
       "next_commands": [
@@ -699,7 +699,7 @@
       "category": "planning-and-validation",
       "description": "Senior database migration safety steward auditing DDL for production-unsafe patterns BEFORE the migration is applied. Catches NOT NULL without backfill, a column drop without two-phase deploy, a rename without a double-write window, CREATE INDEX without CONCURRENTLY, ALTER TYPE rewriting a whole table, an FK add without the NOT VALID and VALIDATE split, and irreversible type narrowing. Activates when a plan slice includes schema changes, when the files in scope include migrations, or when a schema change lands with no rollback or two-phase strategy. Do not use for trivial migrations on empty or small tables, when the change is fully reversible in under a minute with a documented backout, for general code-risk review (use review-hard), or for RLS posture (use rls-auth-boundary-auditor).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "migration-safety-steward",
       "next_commands": [
@@ -713,7 +713,7 @@
       "description": "Document a reusable UX pattern (empty state, error handling, confirmation dialog, search-filter-sort, loading skeleton) that applies across multiple screens and projects. Produces a pattern spec doc matching the PATTERN_SPEC.md template. Use when formalizing a recurring UX solution. Do not use when documenting a single component (use component-spec) or a project-specific journey (use journey-map).",
       "lifecycle": "frozen",
       "mode": "Agent",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "pattern-doc",
       "next_commands": [
@@ -724,7 +724,7 @@
       "category": "audit-and-sweep",
       "description": "Senior performance-budget auditor that declares the numeric non-functional budgets a change must hold (Core Web Vitals, backend latency percentiles, payload and bundle size, key-operation cost) and the action when a metric regresses. Produces PERFORMANCE_BUDGET.md, a per-metric table of threshold, statistic, measurement source and regression action. Spec-only; it never runs load tests itself. Also covers React Native plus Godot 2D-mobile and 3D surfaces (frame budget, draw calls). Activates when a performance-sensitive surface changes without a numeric budget, or before delivery of a latency- or size-sensitive change. Do not use when the task has no performance surface, for functional test selection (use test-strategy), or for post-deploy live-signal verification (use post-deploy-verifier).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "performance-budget",
       "next_commands": [
@@ -748,7 +748,7 @@
       "category": "runtime-verification",
       "description": "Senior reliability engineer producing a per-slice post-deploy verification plan that maps each acceptance criterion to a concrete live signal (log query, dashboard panel, smoke test, flag check, DB invariant query), plus negative checks and a rollback trigger checklist. Activates after a deploy with no paired plan, when branch-commit produced a deploy without post-deploy checks, or when slice-closure is about to close a slice without one. Do not use BEFORE the slice ships (use verify-against-rubric for pre-deploy verdicts against a locked rubric), for documentation-only slices, or when verification is already authored and the deploy diff is unchanged.",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "true",
       "name": "post-deploy-verifier",
       "next_commands": [
@@ -779,7 +779,7 @@
       "category": "execution-and-closure",
       "description": "Senior reliability engineer authoring a blameless postmortem for a resolved incident: a timeline, contributing causes rather than blame, impact measured against the SLO and error budget, and concrete action items with owners. Produces POSTMORTEM.md. Activates when incident-triage resolved an escalation or a significant hotfix with an identified root cause, when task-close ends an incident-driven task, or when a notable outage needs a standalone learning record. Do not use for live triage (use incident-triage), for the inline reflexion incident-triage already emits, or when no significant incident occurred.",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "postmortem-author",
       "next_commands": [
@@ -793,7 +793,7 @@
       "category": "delivery-and-communication",
       "description": "Turn PR feedback (Greptile, CI, bots, humans) into a structured traceable backlog aligned with the task artifacts, so the next execution step can be a narrow implement-approved-slice or a small planning touch without losing alignment. Corrective scope only. Use when a PR is open with review feedback and you want each item mapped to files, slices, and memory updates before coding. Do not use when feedback requires a new product direction or contract (use post-review-pivot), when there is no feedback payload to ingest, or when only task-memory drift exists (use state-reconcile or sync-task-state).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "pr-feedback-ingest",
       "next_commands": [
@@ -818,7 +818,7 @@
       "category": "discovery-and-scoping",
       "description": "Run a short socratic intake that questions whether the stated problem is the right problem BEFORE a task exists, then write a task-level BRIEF.md (problem statement, success criteria, non-goals, recommended approach, named deliverables) that task-init consumes. Asks one question at a time and prefers multiple choice. Use when an objective is fuzzy, broad, or possibly mis-scoped and worth shaping before any task folder is created. Do not use when the objective is already specific enough to state in one sentence (run task-init directly), for a bug fix or hotfix (use task-init), when the gap is a decision inside an existing task (use decision-interview), or when the gap is missing facts (use targeted-questions).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "problem-framing",
       "next_commands": [
@@ -830,7 +830,7 @@
       "category": "project-initialization",
       "description": "Initialize a new project context inside the task repository before any task exists. Creates projects/<client>__<project>/, PROJECT_CHARTER.md, REFERENCES.md skeleton, and active/ plus archive/ subfolders so subsequent task-init runs have grounded project-level memory to consume. Use when starting a brand-new project, product, initiative, or client engagement, projects/<client>__<project>/ does not yet exist, or you need to capture project-level context (objective, stack, planned repositories, constraints, references) before opening the first task. Do not use when the project folder already exists (use task-init to start a new task on top of it), you only need a new task on an existing project, you only need to capture external references for an existing project (use capture-references), or the work is task-scoped and short enough that bootstrap ceremony adds no value.",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "project-bootstrap",
       "next_commands": [
@@ -851,7 +851,7 @@
       "category": "planning-and-validation",
       "description": "Design a pre-deploy release and rollout strategy: pick the rollout pattern (feature flag, canary, blue-green, or full progressive delivery) by risk and infra, then specify the exposure ramp, the promotion metric and threshold that advances each step, and the rollback trigger and mechanism. Produces RELEASE_PLAN.md. Stack- and infra-agnostic; it designs the rollout, it does not execute it. Gated --godot-mobile and --godot-desktop modes plan a store or desktop ship, both off by default. Use when a change is approaching deploy and needs a deliberate rollout. Do not use for post-deploy live-signal verification (use post-deploy-verifier, which consumes this plan's promotion metric and rollback mechanism), or for a trivial fully reversible change.",
       "mode": "Plan",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "release-plan",
       "next_commands": [
@@ -865,7 +865,7 @@
       "category": "audit-and-sweep",
       "description": "Proactive defect-class detection that handles the lower-value half of code review, so human reviewers stay on design, intent, and knowledge transfer. Catches convention drift, ordering bugs, type-safety gaps, security and multi-tenant invariants (CWE-grounded), and operability issues against a curated bug-class library before PR packaging. Runs after review-hard, before pr-package, and suppresses findings the user declined until the file changes. The library grows through pr-feedback-ingest, which proposes new templates from real review findings. Use when at least one slice is implemented and you want a consistency check before packaging. Do not use before any implementation, while the task is still in planning, or when the goal is design review (use review-hard).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "repo-consistency-sweep",
       "next_commands": [
@@ -916,7 +916,7 @@
       "category": "audit-and-sweep",
       "description": "Senior Supabase RLS and auth boundary auditor for tenant isolation gaps in migrations and policy DDL BEFORE deploy. Checks effective write predicates, including implicit USING fallback when WITH CHECK is omitted, RLS enabled without FORCE ROW LEVEL SECURITY, missing policies on join and audit tables, missing tenant predicates, SECURITY DEFINER functions without RLS-aware guards, and unjustified service_role bypass. Activates when a Supabase or multi-tenant decision lands with no RLS policy locked, when a new table arrives without a policy in its slice acceptance, or when the files in scope include Supabase migrations or SQL. Do not use when the project is single-tenant, when RLS is intentionally disabled with a documented rationale, for general non-database security review (use security-review), or when the audit already covered the current migration set.",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "true",
       "name": "rls-auth-boundary-auditor",
       "next_commands": [
@@ -929,7 +929,7 @@
       "category": "design-and-ui",
       "description": "Generate a screen specification from a Figma frame using MCP tools (get_design_context, get_screenshot). Produces a spec doc matching the SCREEN_SPEC.md template with layout sketch, components used, spacing observed, data dependencies, copy, accessibility notes, interactions, and error states. Use when documenting a specific screen. Do not use when the screen has no Figma frame or when the spec already exists. For 6 or more screens, use screen-spec-fleet. Once screens document raw values, use extract-foundations-from-screens to converge tokens.",
       "mode": "Agent",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "screen-spec",
       "next_commands": [
@@ -941,7 +941,7 @@
       "category": "design-and-ui",
       "description": "Generate one spec document per screen in parallel from Figma frames, dispatching one worker per screen and merging SCREEN_MAP.md and routes.md from their partials. The orchestrator-workers variant of screen-spec. Use when the screen count is 6 or more, a Figma MCP is reachable, and foundations plus SCREEN_MAP already exist. Do not use for a single screen (use screen-spec), when foundations are missing (use design-bootstrap first), or when the frames have not been enumerated yet, since the caller supplies a number, slug, persona and node id per screen.",
       "mode": "Agent",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "screen-spec-fleet",
       "next_commands": [
@@ -966,7 +966,7 @@
       "category": "planning-and-validation",
       "description": "Take a draft artifact (IMPLEMENTATION_PLAN.md, SLICES/*.md, or PR_PACKAGE.md), run a structured critique against a locked per-artifact-type rubric, and produce a revised draft. Evaluator-optimizer pattern; the revision is written APPLIED in every mode, the critique is shown in the response, and git is the undo. Distinct from review-hard (judges, no revision), direction-adjust (records a decision, no revision), and post-review-pivot (external feedback). Use when a draft was just written and one critique-and-revision pass is cheaper than re-running the authoring command. Do not use when the artifact is outside the locked set, when the issue is operational state rather than draft quality (use sync-task-state or state-reconcile), when external feedback drives the change (use pr-feedback-ingest or post-review-pivot), or before the artifact is drafted.",
       "mode": "Plan",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "self-critique-and-revise",
       "next_commands": [
@@ -1003,7 +1003,7 @@
       "category": "planning-and-validation",
       "description": "Senior reliability engineer defining a service's reliability contract: choose SLIs, set an SLO target and measurement window, compute the error budget, and write the error-budget policy for when that budget is exhausted. Produces SLO_SPEC.md. Spec-only; it defines the contract, it does not instrument it. Activates when a service or a critical user flow has no documented SLO, or when a reliability target is named with no SLIs or error budget behind it. Do not use when there is no observability stack to measure SLIs (use decision-interview first), for a single post-deploy verification (use post-deploy-verifier), or for triaging a live failure (use incident-triage).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "slo-define",
       "next_commands": [
@@ -1017,7 +1017,7 @@
       "category": "research-and-sourcing",
       "description": "Verify that the patterns the model is about to use for a given framework+version are current per official docs, and cache the result as CURRENT_PATTERNS.md at the project level. Prevents the \"gold-standard audit\" anti-pattern where training-data defaults ship outdated patterns (e.g. Supabase getSession when getUser is current, sequential await when Promise.all is recommended). Use when impact-analysis flags greenfield work in an established framework, when starting a new project with frameworks released or updated after the model's training cutoff, or when an existing CURRENT_PATTERNS.md is stale (>30 days). Do not use when working incrementally on an established codebase with clear internal precedent, when the question is about choosing the stack itself (use stack-recommend), or when fetching an arbitrary URL (use capture-references).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "stack-currency-check",
       "next_commands": [
@@ -1030,7 +1030,7 @@
       "category": "research-and-sourcing",
       "description": "Research and recommend a technology stack for the active project by consulting official documentation, quality articles, and AAA company practices for latest stable versions. Accepts optional user-provided reference links. Produces a STACK_RECOMMENDATION.md inside the active task folder with versioned recommendations, compatibility notes, and trade-offs grounded in sources. Use when the project stack is undecided or needs validation, when starting a new project from zero, or when evaluating a technology upgrade. Do not use when the stack is already locked in DECISIONS.md, when the question is about a single library (use external-research), or when no active task folder exists yet (run task-init first).",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "stack-recommend",
       "next_commands": [
@@ -1069,7 +1069,7 @@
       "category": "discovery-and-scoping",
       "description": "Ask the minimum set of high-value factual questions needed to proceed safely, then persist the result in the task repository. Distinct from decision-interview (factual gaps, not decision-driven gaps). Use when impact analysis or boundary definition revealed missing facts, correctness depends on information that is not yet confirmed, or the task cannot safely move into planning or implementation without clarification. Do not use when the main problem is missing policy or behavioral decisions rather than missing facts (use decision-interview), enough information already exists to move safely into planning, or the task is already in implementation and the missing information is not correctness-critical.",
       "mode": "Ask",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "targeted-questions",
       "next_commands": [
@@ -1106,7 +1106,7 @@
     },
     {
       "category": "state-and-navigation",
-      "description": "Orchestrator-workers variant of task-init for decomposing a complex brief into N parallel independent sub-tasks. Orchestrator validates the decomposition (no overlap, clear scope per sub-task, cross-links justified); N Sonnet workers each run a full task-init in parallel producing one task folder with 5 mandatory files. Use when the user's brief contains N >= 3 logically independent work streams (e.g., REST->GraphQL migration across api-server + mobile-app + web-app; or implement-X for 4 distinct features that share infra but not delivery). Do not use for one cohesive task (use task-init), for sequential dependencies that can't run in parallel, or when sub-task scopes are still unclear (run decision-interview on the parent first).",
+      "description": "Orchestrator-workers variant of task-init for decomposing a complex brief into N parallel independent sub-tasks. Orchestrator validates the decomposition (no overlap, clear scope per sub-task, cross-links justified); N mechanical-role workers each run a full task-init in parallel producing one task folder with 5 mandatory files. Use when the user's brief contains N >= 3 logically independent work streams (e.g., REST->GraphQL migration across api-server + mobile-app + web-app; or implement-X for 4 distinct features that share infra but not delivery). Do not use for one cohesive task (use task-init), for sequential dependencies that can't run in parallel, or when sub-task scopes are still unclear (run decision-interview on the parent first).",
       "mode": "Ask",
       "model": "claude-opus-5-5",
       "multi_repo_aware": "true",
@@ -1135,7 +1135,7 @@
       "category": "planning-and-validation",
       "description": "Define the smallest set of meaningful tests that protects behavior and reduces regression risk for the active task, then persist as TEST_STRATEGY.md plus a TASK_STATE.md update. Avoids forcing the artifact when it adds no material signal. Detects a Godot or Unity target and routes to the matching headless runner, treating the runtime gate as complementary to the headless suite. Use when the change affects important behavior, contracts, data flow, or regression risk, or when scope reads as auth, biometric, or runtime-risk with no strategy on file, even if small. Do not use when it is still unclear what behavior is changing, when the need is broad discovery or contract resolution, or when the task is too small to justify the artifact.",
       "mode": "Plan",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "test-strategy",
       "next_commands": [
@@ -1147,7 +1147,7 @@
       "category": "game-and-engine",
       "description": "Plan the Unity GameObject hierarchy and component architecture for a 3D feature before any C# is written: the scene and prefab structure, what each MonoBehaviour owns, the input model, and, for multiplayer, the networked-authority declarations. Produces UNITY_SCENE_PLAN.md. Capability-routed and MCP-agnostic. A 3D plan SHALL declare its render pipeline and a multiplayer plan SHALL declare its topology, or the plan is incomplete. Do not use to frame whether the game idea is right (use problem-framing in its game-design mode), to slice an already-planned build (use implementation-plan), to analyze blast radius of an existing project (use impact-analysis), to verify a running build (use app-runtime-verify with its Unity adapter), or with no active task folder (run task-init first).",
       "mode": "Agent",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "unity-scene-plan",
       "next_commands": [
@@ -1160,16 +1160,16 @@
       "category": "planning-and-validation",
       "description": "Spawn a stateless sub-agent (Claude Code `Agent` tool, Cursor agent mode, or equivalent) with ONLY the artifact path plus the locked rubric plus read-only tools. Sub-agent returns a structured verdict (satisfied, needs_revision, or failed) plus per-criterion feedback. Distinct from self-critique-and-revise (same-context; rewrites in place). Use after pr-package, contract-signoff, or implement-approved-slice on HIGH-complexity slices when independent verification matters more than throughput. Not as a routine pass on LOW or MEDIUM slices (self-critique-and-revise covers those at lower cost), but always when approve-plan (ADR-0208) or a zero-finding review-hard verdict (ADR-0145) dispatches it. Do not use when no locked rubric exists yet or the rubric is vague (run resolve-contract-gaps first), or when no active task folder exists yet (run task-init first). For 4 or more artifacts against one rubric, use verify-against-rubric-fleet.",
       "mode": "Plan",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "verify-against-rubric",
       "next_commands": []
     },
     {
       "category": "planning-and-validation",
-      "description": "Orchestrator-workers generalization of verify-against-rubric to N=many artifacts against ONE locked rubric. Dispatches N stateless Sonnet sub-agents in parallel; each receives ONE artifact + the SAME rubric with read-only input access and one assigned JSON return-file write (no TASK_STATE, no DECISIONS, no prior history); returns structured per-criterion verdict. Orchestrator merges into VERIFICATION_LOG.md with aggregate pass/fail counts + failure clustering (which criteria fail most often across the cohort -> likely system-level signal). Use when N >= 4 artifacts share one rubric (multi-slice retrospective, batch PR review, cohort spec audit). Do not use for single artifacts (use verify-against-rubric), when rubrics differ per artifact (run separately or refactor the rubric first), or on LOW/MEDIUM complexity slices (use self-critique-and-revise).",
+      "description": "Orchestrator-workers generalization of verify-against-rubric to N=many artifacts against ONE locked rubric. Dispatches N stateless judgment-role sub-agents in parallel; each receives ONE artifact + the SAME rubric with read-only input access and one assigned JSON return-file write (no TASK_STATE, no DECISIONS, no prior history); returns structured per-criterion verdict. Orchestrator merges into VERIFICATION_LOG.md with aggregate pass/fail counts + failure clustering (which criteria fail most often across the cohort -> likely system-level signal). Use when N >= 4 artifacts share one rubric (multi-slice retrospective, batch PR review, cohort spec audit). Do not use for single artifacts (use verify-against-rubric), when rubrics differ per artifact (run separately or refactor the rubric first), or on LOW/MEDIUM complexity slices (use self-critique-and-revise).",
       "mode": "Plan",
-      "model": "claude-sonnet-5",
+      "model": "claude-opus-5-5",
       "multi_repo_aware": "false",
       "name": "verify-against-rubric-fleet",
       "next_commands": []
@@ -1178,7 +1178,7 @@
       "category": "runtime-verification",
       "description": "Verify a built web or static frontend at runtime: serve the build, assert page identity first, run the web battery (overflow 320 to 2560, keyboard and focus, console errors, Lighthouse and axe when available), and decide a PASS/FAIL/BLOCKED gate. The run's real output IS the evidence; a claimed-but-not-shown run is unverified. It verifies and routes fixes, it does not apply them. Do not use to plan a page (implementation-plan), to write or fix code (implement-approved-slice), for numeric perf budgets (performance-budget), for Godot or mobile (the sibling verify commands), or with no built frontend to serve.",
       "mode": "Agent",
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "multi_repo_aware": "false",
       "name": "web-runtime-verify",
       "next_commands": []
@@ -1218,16 +1218,16 @@
     }
   ],
   "counts": {
-    "adrs": 234,
+    "adrs": 242,
     "bug_categories": 22,
     "bug_templates": 81,
     "command_categories": 15,
     "commands": 98,
-    "commands_core": 51,
-    "commands_minimal": 23,
+    "commands_core": 52,
+    "commands_minimal": 24,
     "fleet_commands": 7,
     "personas": 9,
-    "scenarios": 142,
+    "scenarios": 144,
     "wos_topics": 55
   },
   "generated_by": "scripts/build-command-catalog.py",

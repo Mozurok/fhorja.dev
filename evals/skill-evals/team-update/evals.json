@@ -1,0 +1,22 @@
+{
+  "skill_name": "team-update",
+  "version": "1.0",
+  "description": "Trigger evals for team-update: it fires when the user wants a few short lines for a team channel about where the work stands, while pr-package, delivery-asset, where-we-at, branch-commit and sync-task-state handle the PR description, an audience-specific outward asset, a progress checkpoint, quick branch and commit naming, and task memory.",
+  "evals": [],
+  "trigger_evals": {
+    "should_trigger": [
+      "write me a quick slack note for the team, slices 1 and 2 are done and I'm starting on the migration tomorrow",
+      "Standup is in ten minutes. Give me two or three plain lines: the retry logic is merged into the feature branch, tests are green, and I'm waiting on a review of the config change.",
+      "can you draft a short message for the channel saying the planning is finished and we're ready to start coding",
+      "I need to tell my reviewers on the PR that I pushed fixes for their comments and that the last two items are still open. Keep it short and friendly.",
+      "quick update for the team on the auth work please"
+    ],
+    "should_not_trigger": [
+      { "prompt": "The diff against main is final. Write the PR title, the description, the list of files reviewers should look at first, and the git commands to push it.", "routes_to": "pr-package" },
+      { "prompt": "Our director wants a one-page summary of what this project delivered, plus a five minute demo script for Thursday's all-hands.", "routes_to": "delivery-asset" },
+      { "prompt": "I've lost track. Three slices are closed, one is half done. What is actually finished against the plan and what is left before we can call this complete?", "routes_to": "where-we-at" },
+      { "prompt": "I staged the changes for the pagination fix. Give me a branch name and a commit message that matches the diff.", "routes_to": "branch-commit" },
+      { "prompt": "I finished the parser slice and locked the retry decision this afternoon. Bring TASK_STATE.md up to date so I can pick this up in a fresh chat tomorrow.", "routes_to": "sync-task-state" }
+    ]
+  }
+}
