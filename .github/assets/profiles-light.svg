@@ -12,26 +12,26 @@
 .s700{font-family:fhsans,ui-sans-serif,system-ui,sans-serif;font-weight:700}
 .s800{font-family:fhsans,ui-sans-serif,system-ui,sans-serif;font-weight:800}
 </style>
-<defs><linearGradient id="card" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f2038"/><stop offset="1" stop-color="#0b182b"/></linearGradient><radialGradient id="glow" cx="50%" cy="0%" r="70%"><stop offset="0" stop-color="#006dfe" stop-opacity="0.22"/><stop offset="1" stop-color="#006dfe" stop-opacity="0"/></radialGradient><radialGradient id="markglow"><stop offset="0" stop-color="#006dfe" stop-opacity="0.45"/><stop offset="1" stop-color="#006dfe" stop-opacity="0"/></radialGradient><filter id="markshadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="0" stdDeviation="9" flood-color="#006dfe" flood-opacity="0.6"/></filter><filter id="lift" x="-10%" y="-10%" width="120%" height="140%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000000" flood-opacity="0.45"/></filter></defs>
-<rect x="0.5" y="0.5" width="759" height="431" rx="20" fill="#061121" stroke="#24324a"/><rect x="1" y="1" width="758" height="260" rx="20" fill="url(#glow)"/>
-<rect x="40.5" y="32.5" width="172.4" height="27" rx="14" fill="none" stroke="#34425a" stroke-width="1"/>
-<circle cx="55.5" cy="46" r="3.5" fill="#4c9aff"/>
-<text x="67" y="50.9" class="m500" font-size="14" fill="#b4bfce">install profiles</text>
-<text x="227.4" y="51" class="s400" font-size="16" fill="#b4bfce">each profile contains the one inside it</text>
-<rect x="40.5" y="80.5" width="679" height="291" rx="18" fill="#061121" stroke="#34425a" stroke-width="1"/>
-<text x="64" y="118" class="s700" font-size="21" fill="#fefefe">full</text>
-<text x="64" y="142" class="s400" font-size="15" fill="#b4bfce">the whole catalog: fleets, personas, specialists</text>
-<text x="696" y="126" class="s800" font-size="40" fill="#4c9aff" text-anchor="end" letter-spacing="-1.2">98</text>
-<text x="696" y="146" class="m400" font-size="14" fill="#8795a9" text-anchor="end">commands</text>
-<rect x="64.5" y="172.5" width="631" height="183" rx="16" fill="#0c1a2e" stroke="#34425a" stroke-width="1"/>
-<text x="88" y="210" class="s700" font-size="21" fill="#fefefe">core</text>
-<text x="88" y="234" class="s400" font-size="15" fill="#b4bfce">everyday use plus implement-fleet, no other fleets or personas</text>
-<text x="672" y="218" class="s800" font-size="40" fill="#4c9aff" text-anchor="end" letter-spacing="-1.2">52</text>
-<text x="672" y="238" class="m400" font-size="14" fill="#8795a9" text-anchor="end">commands</text>
-<rect x="88.5" y="264.5" width="583" height="75" rx="14" fill="#051c3c" stroke="#4c9aff" stroke-width="1.5"/>
-<text x="112" y="302" class="s700" font-size="21" fill="#fefefe">minimal</text>
-<text x="112" y="326" class="s400" font-size="15" fill="#b4bfce">the default path, its escalations, closing and routing</text>
-<text x="648" y="310" class="s800" font-size="40" fill="#4c9aff" text-anchor="end" letter-spacing="-1.2">24</text>
-<text x="648" y="330" class="m400" font-size="14" fill="#8795a9" text-anchor="end">commands</text>
-<text x="40" y="404" class="s400" font-size="15" fill="#b4bfce">A scripted run with no --profile copies the minimal command files.</text>
+<defs><linearGradient id="card" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fefefe"/><stop offset="1" stop-color="#fefefe"/></linearGradient><radialGradient id="glow" cx="50%" cy="0%" r="70%"><stop offset="0" stop-color="#006dfe" stop-opacity="0.07"/><stop offset="1" stop-color="#006dfe" stop-opacity="0"/></radialGradient><radialGradient id="markglow"><stop offset="0" stop-color="#006dfe" stop-opacity="0.45"/><stop offset="1" stop-color="#006dfe" stop-opacity="0"/></radialGradient><filter id="markshadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="0" stdDeviation="9" flood-color="#006dfe" flood-opacity="0.6"/></filter><filter id="lift" x="-10%" y="-10%" width="120%" height="140%"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#061121" flood-opacity="0.08"/></filter></defs>
+<rect x="0.5" y="0.5" width="759" height="431" rx="20" fill="#f3f6fa" stroke="#dce3ec"/><rect x="1" y="1" width="758" height="260" rx="20" fill="url(#glow)"/>
+<rect x="40.5" y="32.5" width="172.4" height="27" rx="14" fill="none" stroke="#c5cfdb" stroke-width="1"/>
+<circle cx="55.5" cy="46" r="3.5" fill="#0057cc"/>
+<text x="67" y="50.9" class="m500" font-size="14" fill="#3b4a5e">install profiles</text>
+<text x="227.4" y="51" class="s400" font-size="16" fill="#3b4a5e">each profile contains the one inside it</text>
+<rect x="40.5" y="80.5" width="679" height="291" rx="18" fill="#f3f6fa" stroke="#c5cfdb" stroke-width="1"/>
+<text x="64" y="118" class="s700" font-size="21" fill="#061121">full</text>
+<text x="64" y="142" class="s400" font-size="15" fill="#3b4a5e">the whole catalog: fleets, personas, specialists</text>
+<text x="696" y="126" class="s800" font-size="40" fill="#0057cc" text-anchor="end" letter-spacing="-1.2">98</text>
+<text x="696" y="146" class="m400" font-size="14" fill="#5a6677" text-anchor="end">commands</text>
+<rect x="64.5" y="172.5" width="631" height="183" rx="16" fill="#fefefe" stroke="#c5cfdb" stroke-width="1"/>
+<text x="88" y="210" class="s700" font-size="21" fill="#061121">core</text>
+<text x="88" y="234" class="s400" font-size="15" fill="#3b4a5e">everyday use plus implement-fleet, no other fleets or personas</text>
+<text x="672" y="218" class="s800" font-size="40" fill="#0057cc" text-anchor="end" letter-spacing="-1.2">52</text>
+<text x="672" y="238" class="m400" font-size="14" fill="#5a6677" text-anchor="end">commands</text>
+<rect x="88.5" y="264.5" width="583" height="75" rx="14" fill="#eff5fe" stroke="#0057cc" stroke-width="1.5"/>
+<text x="112" y="302" class="s700" font-size="21" fill="#061121">minimal</text>
+<text x="112" y="326" class="s400" font-size="15" fill="#3b4a5e">the default path, its escalations, closing and routing</text>
+<text x="648" y="310" class="s800" font-size="40" fill="#0057cc" text-anchor="end" letter-spacing="-1.2">24</text>
+<text x="648" y="330" class="m400" font-size="14" fill="#5a6677" text-anchor="end">commands</text>
+<text x="40" y="404" class="s400" font-size="15" fill="#3b4a5e">A scripted run with no --profile copies the minimal command files.</text>
 </svg>

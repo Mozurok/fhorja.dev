@@ -8,40 +8,40 @@
 .s400{font-family:fhsans,ui-sans-serif,system-ui,sans-serif;font-weight:400}
 .s700{font-family:fhsans,ui-sans-serif,system-ui,sans-serif;font-weight:700}
 </style>
-<defs><linearGradient id="card" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f2038"/><stop offset="1" stop-color="#0b182b"/></linearGradient><radialGradient id="glow" cx="50%" cy="0%" r="70%"><stop offset="0" stop-color="#006dfe" stop-opacity="0.22"/><stop offset="1" stop-color="#006dfe" stop-opacity="0"/></radialGradient><radialGradient id="markglow"><stop offset="0" stop-color="#006dfe" stop-opacity="0.45"/><stop offset="1" stop-color="#006dfe" stop-opacity="0"/></radialGradient><filter id="markshadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="0" stdDeviation="9" flood-color="#006dfe" flood-opacity="0.6"/></filter><filter id="lift" x="-10%" y="-10%" width="120%" height="140%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000000" flood-opacity="0.45"/></filter></defs>
-<rect x="0.5" y="0.5" width="759" height="435" rx="20" fill="#061121" stroke="#24324a"/><rect x="1" y="1" width="758" height="260" rx="20" fill="url(#glow)"/>
-<rect x="40.5" y="32.5" width="96.8" height="27" rx="14" fill="none" stroke="#34425a" stroke-width="1"/>
-<circle cx="55.5" cy="46" r="3.5" fill="#4c9aff"/>
-<text x="67" y="50.9" class="m500" font-size="14" fill="#b4bfce">in chat</text>
-<rect x="40.5" y="96.5" width="290.3" height="44" rx="14" fill="none" stroke="#8795a9" stroke-width="1" stroke-dasharray="4 4" stroke-opacity="0.9"/>
-<text x="56" y="123" class="s400" font-size="15" fill="#8795a9">Which field owns the source of truth?</text>
-<rect x="54.5" y="164.5" width="268.5" height="44" rx="14" fill="none" stroke="#8795a9" stroke-width="1" stroke-dasharray="4 4" stroke-opacity="0.55"/>
-<text x="70" y="191" class="s400" font-size="15" fill="#8795a9">How do we handle the edge case?</text>
-<rect x="68.5" y="232.5" width="210.8" height="44" rx="14" fill="none" stroke="#8795a9" stroke-width="1" stroke-dasharray="4 4" stroke-opacity="0.3"/>
-<text x="84" y="259" class="s400" font-size="15" fill="#8795a9">What do we skip for now?</text>
-<text x="40" y="368" class="s700" font-size="20" fill="#e0a94a">Session ends: gone.</text>
-<text x="40" y="394" class="s400" font-size="16" fill="#b4bfce">The next chat starts from nothing.</text>
-<line x1="360" y1="196" x2="382" y2="196" stroke="#4c9aff" stroke-width="2"/>
-<path d="M382 190 L390 196 L382 202 Z" fill="#4c9aff"/>
-<rect x="404.5" y="32.5" width="315" height="301" rx="16" fill="url(#card)" stroke="#34425a" stroke-width="1" filter="url(#lift)"/>
-<circle cx="426" cy="57" r="3.5" fill="#4cc38a"/>
-<text x="438" y="62" class="m500" font-size="14" fill="#b4bfce">on disk: the task folder</text>
-<line x1="405" y1="80" x2="719" y2="80" stroke="#24324a" stroke-width="1.5"/>
+<defs><linearGradient id="card" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fefefe"/><stop offset="1" stop-color="#fefefe"/></linearGradient><radialGradient id="glow" cx="50%" cy="0%" r="70%"><stop offset="0" stop-color="#006dfe" stop-opacity="0.07"/><stop offset="1" stop-color="#006dfe" stop-opacity="0"/></radialGradient><radialGradient id="markglow"><stop offset="0" stop-color="#006dfe" stop-opacity="0.45"/><stop offset="1" stop-color="#006dfe" stop-opacity="0"/></radialGradient><filter id="markshadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="0" stdDeviation="9" flood-color="#006dfe" flood-opacity="0.6"/></filter><filter id="lift" x="-10%" y="-10%" width="120%" height="140%"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#061121" flood-opacity="0.08"/></filter></defs>
+<rect x="0.5" y="0.5" width="759" height="435" rx="20" fill="#f3f6fa" stroke="#dce3ec"/><rect x="1" y="1" width="758" height="260" rx="20" fill="url(#glow)"/>
+<rect x="40.5" y="32.5" width="96.8" height="27" rx="14" fill="none" stroke="#c5cfdb" stroke-width="1"/>
+<circle cx="55.5" cy="46" r="3.5" fill="#0057cc"/>
+<text x="67" y="50.9" class="m500" font-size="14" fill="#3b4a5e">in chat</text>
+<rect x="40.5" y="96.5" width="290.3" height="44" rx="14" fill="none" stroke="#5a6677" stroke-width="1" stroke-dasharray="4 4" stroke-opacity="0.9"/>
+<text x="56" y="123" class="s400" font-size="15" fill="#5a6677">Which field owns the source of truth?</text>
+<rect x="54.5" y="164.5" width="268.5" height="44" rx="14" fill="none" stroke="#5a6677" stroke-width="1" stroke-dasharray="4 4" stroke-opacity="0.55"/>
+<text x="70" y="191" class="s400" font-size="15" fill="#5a6677">How do we handle the edge case?</text>
+<rect x="68.5" y="232.5" width="210.8" height="44" rx="14" fill="none" stroke="#5a6677" stroke-width="1" stroke-dasharray="4 4" stroke-opacity="0.3"/>
+<text x="84" y="259" class="s400" font-size="15" fill="#5a6677">What do we skip for now?</text>
+<text x="40" y="368" class="s700" font-size="20" fill="#8a5a00">Session ends: gone.</text>
+<text x="40" y="394" class="s400" font-size="16" fill="#3b4a5e">The next chat starts from nothing.</text>
+<line x1="360" y1="196" x2="382" y2="196" stroke="#0057cc" stroke-width="2"/>
+<path d="M382 190 L390 196 L382 202 Z" fill="#0057cc"/>
+<rect x="404.5" y="32.5" width="315" height="301" rx="16" fill="url(#card)" stroke="#c5cfdb" stroke-width="1" filter="url(#lift)"/>
+<circle cx="426" cy="57" r="3.5" fill="#15744a"/>
+<text x="438" y="62" class="m500" font-size="14" fill="#3b4a5e">on disk: the task folder</text>
+<line x1="405" y1="80" x2="719" y2="80" stroke="#dce3ec" stroke-width="1.5"/>
 <rect x="420" y="92" width="3" height="34" rx="1.5" fill="#006dfe"/>
-<text x="436" y="108" class="m500" font-size="16" fill="#fefefe">TASK_STATE.md</text>
-<text x="436" y="128" class="s400" font-size="14" fill="#b4bfce">where the task is, and the next step</text>
+<text x="436" y="108" class="m500" font-size="16" fill="#061121">TASK_STATE.md</text>
+<text x="436" y="128" class="s400" font-size="14" fill="#3b4a5e">where the task is, and the next step</text>
 <rect x="420" y="138" width="3" height="34" rx="1.5" fill="#006dfe"/>
-<text x="436" y="154" class="m500" font-size="16" fill="#fefefe">DECISIONS.md</text>
-<text x="436" y="174" class="s400" font-size="14" fill="#b4bfce">each decision once, with its reason</text>
+<text x="436" y="154" class="m500" font-size="16" fill="#061121">DECISIONS.md</text>
+<text x="436" y="174" class="s400" font-size="14" fill="#3b4a5e">each decision once, with its reason</text>
 <rect x="420" y="184" width="3" height="34" rx="1.5" fill="#006dfe"/>
-<text x="436" y="200" class="m500" font-size="16" fill="#fefefe">IMPLEMENTATION_PLAN.md</text>
-<text x="436" y="220" class="s400" font-size="14" fill="#b4bfce">slices with scope and exit criteria</text>
+<text x="436" y="200" class="m500" font-size="16" fill="#061121">IMPLEMENTATION_PLAN.md</text>
+<text x="436" y="220" class="s400" font-size="14" fill="#3b4a5e">slices with scope and exit criteria</text>
 <rect x="420" y="230" width="3" height="34" rx="1.5" fill="#006dfe"/>
-<text x="436" y="246" class="m500" font-size="16" fill="#fefefe">SOURCE_OF_TRUTH.md</text>
-<text x="436" y="266" class="s400" font-size="14" fill="#b4bfce">the facts, and where your code lives</text>
+<text x="436" y="246" class="m500" font-size="16" fill="#061121">SOURCE_OF_TRUTH.md</text>
+<text x="436" y="266" class="s400" font-size="14" fill="#3b4a5e">the facts, and where your code lives</text>
 <rect x="420" y="276" width="3" height="34" rx="1.5" fill="#006dfe"/>
-<text x="436" y="292" class="m500" font-size="16" fill="#fefefe">README.md</text>
-<text x="436" y="312" class="s400" font-size="14" fill="#b4bfce">a short summary for people</text>
-<text x="404" y="368" class="s700" font-size="20" fill="#4cc38a">Still there tomorrow.</text>
-<text x="404" y="394" class="m500" font-size="14" fill="#b4bfce">resume-from-state reads TASK_STATE.md</text>
+<text x="436" y="292" class="m500" font-size="16" fill="#061121">README.md</text>
+<text x="436" y="312" class="s400" font-size="14" fill="#3b4a5e">a short summary for people</text>
+<text x="404" y="368" class="s700" font-size="20" fill="#15744a">Still there tomorrow.</text>
+<text x="404" y="394" class="m500" font-size="14" fill="#3b4a5e">resume-from-state reads TASK_STATE.md</text>
 </svg>

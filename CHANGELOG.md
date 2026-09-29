@@ -17,6 +17,25 @@ The alpha caveat that stood here ("while the project is in alpha (0.x.y), MINOR 
 
 ## [Unreleased]
 
+### README images in the fhorja.dev design (2026-09-29)
+
+- The five README images are redrawn in the site's look: the navy and blue palette from its tokens,
+  the three-layer mark in the hero, Schibsted Grotesk and IBM Plex Mono. Each ships in a dark and a
+  light variant, and the README switches them with `<picture>` and `prefers-color-scheme`, so an image
+  follows the reader's GitHub theme. The dark file keeps the old name and is the fallback.
+- The fonts are embedded in each SVG as a small base64 subset (the glyphs the image draws, plus the ten
+  digits), because GitHub shows a README SVG as an image and loads no web font. Both families are SIL
+  OFL 1.1; the embedded copies are renamed and keep their copyright and license records. Every file is
+  under 24 KB, and every text color meets 4.5:1 against its background.
+- The content now matches the repository: profiles read minimal 24, core 52, full 98 (the old image
+  said 14 and 50); the lifecycle shows the default path to a draft PR with `implement-fleet` for a
+  parallel wave; the clusters image shows the spec's 15 command categories with their counts instead
+  of eight invented families. The hero drops the "no telemetry" chip, which this repository cannot
+  show.
+- One new image, `run-ends`, sits under the paragraph in `## What it is` that describes where a run
+  stops: with a configured remote, with no remote, and in assisted mode.
+- The README status badge reads v2.1.0. The counts drawn in the images are not checked by the lint.
+
 ## [2.1.0] - 2026-09-29
 
 Everything shipped between 2.0.0 and 2026-09-29, tagged `v2.1.0`. It is a MINOR release under the

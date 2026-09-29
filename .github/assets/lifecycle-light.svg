@@ -10,51 +10,51 @@
 .s400{font-family:fhsans,ui-sans-serif,system-ui,sans-serif;font-weight:400}
 .s700{font-family:fhsans,ui-sans-serif,system-ui,sans-serif;font-weight:700}
 </style>
-<defs><linearGradient id="card" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f2038"/><stop offset="1" stop-color="#0b182b"/></linearGradient><radialGradient id="glow" cx="50%" cy="0%" r="70%"><stop offset="0" stop-color="#006dfe" stop-opacity="0.22"/><stop offset="1" stop-color="#006dfe" stop-opacity="0"/></radialGradient><radialGradient id="markglow"><stop offset="0" stop-color="#006dfe" stop-opacity="0.45"/><stop offset="1" stop-color="#006dfe" stop-opacity="0"/></radialGradient><filter id="markshadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="0" stdDeviation="9" flood-color="#006dfe" flood-opacity="0.6"/></filter><filter id="lift" x="-10%" y="-10%" width="120%" height="140%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000000" flood-opacity="0.45"/></filter></defs>
-<rect x="0.5" y="0.5" width="759" height="721" rx="20" fill="#061121" stroke="#24324a"/><rect x="1" y="1" width="758" height="260" rx="20" fill="url(#glow)"/>
-<rect x="40.5" y="32.5" width="172.4" height="27" rx="14" fill="none" stroke="#34425a" stroke-width="1"/>
-<circle cx="55.5" cy="46" r="3.5" fill="#4c9aff"/>
-<text x="67" y="50.9" class="m500" font-size="14" fill="#b4bfce">the default path</text>
-<text x="40" y="102" class="s700" font-size="26" fill="#fefefe" letter-spacing="-0.5">One task, from task-init to a draft PR</text>
-<text x="720" y="51" class="m400" font-size="14" fill="#8795a9" text-anchor="end">attended, with a configured remote</text>
-<line x1="56" y1="136" x2="56" y2="610" stroke="#34425a" stroke-width="2"/>
-<circle cx="56" cy="136" r="7" fill="#006dfe" stroke="#061121" stroke-width="3"/>
-<text x="82" y="141" class="m500" font-size="14" fill="#8795a9">01</text>
-<text x="110" y="142" class="s700" font-size="19" fill="#fefefe">Start</text>
-<text x="250" y="141" class="m500" font-size="16" fill="#4c9aff">task-init</text>
-<text x="250" y="163" class="s400" font-size="15" fill="#b4bfce">creates the task folder, names any added step</text>
-<circle cx="56" cy="200" r="6" fill="#061121" stroke="#8795a9" stroke-width="1.5" stroke-dasharray="3 3"/>
-<text x="82" y="205" class="m500" font-size="14" fill="#8795a9">if needed</text>
-<text x="250" y="205" class="m500" font-size="15" fill="#b4bfce">impact-analysis, decision-interview</text>
-<text x="250" y="227" class="s400" font-size="14" fill="#8795a9">only when a named condition fires</text>
-<circle cx="56" cy="264" r="7" fill="#006dfe" stroke="#061121" stroke-width="3"/>
-<text x="82" y="269" class="m500" font-size="14" fill="#8795a9">02</text>
-<text x="110" y="270" class="s700" font-size="19" fill="#fefefe">Plan</text>
-<text x="250" y="269" class="m500" font-size="16" fill="#4c9aff">implementation-plan</text>
-<text x="250" y="291" class="s400" font-size="15" fill="#b4bfce">cuts the work into slices with exit criteria</text>
-<circle cx="56" cy="328" r="7" fill="#006dfe" stroke="#061121" stroke-width="3"/>
-<text x="82" y="333" class="m500" font-size="14" fill="#8795a9">03</text>
-<text x="110" y="334" class="s700" font-size="19" fill="#fefefe">Review</text>
-<text x="250" y="333" class="m500" font-size="16" fill="#4c9aff">approve-plan</text>
-<text x="250" y="355" class="s400" font-size="15" fill="#b4bfce">a blinded review checks it against the decisions</text>
-<circle cx="56" cy="392" r="7" fill="#006dfe" stroke="#061121" stroke-width="3"/>
-<text x="82" y="397" class="m500" font-size="14" fill="#8795a9">04</text>
-<text x="110" y="398" class="s700" font-size="19" fill="#fefefe">Build</text>
-<text x="250" y="397" class="m500" font-size="16" fill="#4c9aff">implement-approved-slice</text>
-<text x="250" y="419" class="s400" font-size="15" fill="#b4bfce">one approved slice, a minimal diff</text>
-<text x="250" y="443" class="s400" font-size="15" fill="#b4bfce">or implement-fleet: a wave of two or more, in parallel</text>
-<circle cx="56" cy="480" r="7" fill="#006dfe" stroke="#061121" stroke-width="3"/>
-<text x="82" y="485" class="m500" font-size="14" fill="#8795a9">05</text>
-<text x="110" y="486" class="s700" font-size="19" fill="#fefefe">Commit</text>
-<text x="250" y="485" class="m500" font-size="16" fill="#4c9aff">branch-commit --apply</text>
-<text x="250" y="507" class="s400" font-size="15" fill="#b4bfce">shows the staged diff, then commits</text>
-<circle cx="56" cy="544" r="7" fill="#006dfe" stroke="#061121" stroke-width="3"/>
-<text x="82" y="549" class="m500" font-size="14" fill="#8795a9">06</text>
-<text x="110" y="550" class="s700" font-size="19" fill="#fefefe">Open PR</text>
-<text x="250" y="549" class="m500" font-size="16" fill="#4c9aff">pr-package --apply</text>
-<text x="250" y="571" class="s400" font-size="15" fill="#b4bfce">pushes the task branch, opens a draft PR</text>
-<rect x="40.5" y="620.5" width="679" height="87" rx="16" fill="url(#card)" stroke="#4c9aff" stroke-width="1" filter="url(#lift)"/>
-<text x="64" y="656" class="s700" font-size="19" fill="#fefefe">Your move</text>
-<text x="190" y="656" class="s400" font-size="16" fill="#fefefe">read the draft PR, mark it ready for review, merge.</text>
-<text x="190" y="682" class="s400" font-size="15" fill="#b4bfce">After the merge, task-close archives the task.</text>
+<defs><linearGradient id="card" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fefefe"/><stop offset="1" stop-color="#fefefe"/></linearGradient><radialGradient id="glow" cx="50%" cy="0%" r="70%"><stop offset="0" stop-color="#006dfe" stop-opacity="0.07"/><stop offset="1" stop-color="#006dfe" stop-opacity="0"/></radialGradient><radialGradient id="markglow"><stop offset="0" stop-color="#006dfe" stop-opacity="0.45"/><stop offset="1" stop-color="#006dfe" stop-opacity="0"/></radialGradient><filter id="markshadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="0" stdDeviation="9" flood-color="#006dfe" flood-opacity="0.6"/></filter><filter id="lift" x="-10%" y="-10%" width="120%" height="140%"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#061121" flood-opacity="0.08"/></filter></defs>
+<rect x="0.5" y="0.5" width="759" height="721" rx="20" fill="#f3f6fa" stroke="#dce3ec"/><rect x="1" y="1" width="758" height="260" rx="20" fill="url(#glow)"/>
+<rect x="40.5" y="32.5" width="172.4" height="27" rx="14" fill="none" stroke="#c5cfdb" stroke-width="1"/>
+<circle cx="55.5" cy="46" r="3.5" fill="#0057cc"/>
+<text x="67" y="50.9" class="m500" font-size="14" fill="#3b4a5e">the default path</text>
+<text x="40" y="102" class="s700" font-size="26" fill="#061121" letter-spacing="-0.5">One task, from task-init to a draft PR</text>
+<text x="720" y="51" class="m400" font-size="14" fill="#5a6677" text-anchor="end">attended, with a configured remote</text>
+<line x1="56" y1="136" x2="56" y2="610" stroke="#c5cfdb" stroke-width="2"/>
+<circle cx="56" cy="136" r="7" fill="#006dfe" stroke="#f3f6fa" stroke-width="3"/>
+<text x="82" y="141" class="m500" font-size="14" fill="#5a6677">01</text>
+<text x="110" y="142" class="s700" font-size="19" fill="#061121">Start</text>
+<text x="250" y="141" class="m500" font-size="16" fill="#0057cc">task-init</text>
+<text x="250" y="163" class="s400" font-size="15" fill="#3b4a5e">creates the task folder, names any added step</text>
+<circle cx="56" cy="200" r="6" fill="#f3f6fa" stroke="#5a6677" stroke-width="1.5" stroke-dasharray="3 3"/>
+<text x="82" y="205" class="m500" font-size="14" fill="#5a6677">if needed</text>
+<text x="250" y="205" class="m500" font-size="15" fill="#3b4a5e">impact-analysis, decision-interview</text>
+<text x="250" y="227" class="s400" font-size="14" fill="#5a6677">only when a named condition fires</text>
+<circle cx="56" cy="264" r="7" fill="#006dfe" stroke="#f3f6fa" stroke-width="3"/>
+<text x="82" y="269" class="m500" font-size="14" fill="#5a6677">02</text>
+<text x="110" y="270" class="s700" font-size="19" fill="#061121">Plan</text>
+<text x="250" y="269" class="m500" font-size="16" fill="#0057cc">implementation-plan</text>
+<text x="250" y="291" class="s400" font-size="15" fill="#3b4a5e">cuts the work into slices with exit criteria</text>
+<circle cx="56" cy="328" r="7" fill="#006dfe" stroke="#f3f6fa" stroke-width="3"/>
+<text x="82" y="333" class="m500" font-size="14" fill="#5a6677">03</text>
+<text x="110" y="334" class="s700" font-size="19" fill="#061121">Review</text>
+<text x="250" y="333" class="m500" font-size="16" fill="#0057cc">approve-plan</text>
+<text x="250" y="355" class="s400" font-size="15" fill="#3b4a5e">a blinded review checks it against the decisions</text>
+<circle cx="56" cy="392" r="7" fill="#006dfe" stroke="#f3f6fa" stroke-width="3"/>
+<text x="82" y="397" class="m500" font-size="14" fill="#5a6677">04</text>
+<text x="110" y="398" class="s700" font-size="19" fill="#061121">Build</text>
+<text x="250" y="397" class="m500" font-size="16" fill="#0057cc">implement-approved-slice</text>
+<text x="250" y="419" class="s400" font-size="15" fill="#3b4a5e">one approved slice, a minimal diff</text>
+<text x="250" y="443" class="s400" font-size="15" fill="#3b4a5e">or implement-fleet: a wave of two or more, in parallel</text>
+<circle cx="56" cy="480" r="7" fill="#006dfe" stroke="#f3f6fa" stroke-width="3"/>
+<text x="82" y="485" class="m500" font-size="14" fill="#5a6677">05</text>
+<text x="110" y="486" class="s700" font-size="19" fill="#061121">Commit</text>
+<text x="250" y="485" class="m500" font-size="16" fill="#0057cc">branch-commit --apply</text>
+<text x="250" y="507" class="s400" font-size="15" fill="#3b4a5e">shows the staged diff, then commits</text>
+<circle cx="56" cy="544" r="7" fill="#006dfe" stroke="#f3f6fa" stroke-width="3"/>
+<text x="82" y="549" class="m500" font-size="14" fill="#5a6677">06</text>
+<text x="110" y="550" class="s700" font-size="19" fill="#061121">Open PR</text>
+<text x="250" y="549" class="m500" font-size="16" fill="#0057cc">pr-package --apply</text>
+<text x="250" y="571" class="s400" font-size="15" fill="#3b4a5e">pushes the task branch, opens a draft PR</text>
+<rect x="40.5" y="620.5" width="679" height="87" rx="16" fill="url(#card)" stroke="#0057cc" stroke-width="1" filter="url(#lift)"/>
+<text x="64" y="656" class="s700" font-size="19" fill="#061121">Your move</text>
+<text x="190" y="656" class="s400" font-size="16" fill="#061121">read the draft PR, mark it ready for review, merge.</text>
+<text x="190" y="682" class="s400" font-size="15" fill="#3b4a5e">After the merge, task-close archives the task.</text>
 </svg>

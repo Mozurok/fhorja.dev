@@ -8,71 +8,71 @@
 .s400{font-family:fhsans,ui-sans-serif,system-ui,sans-serif;font-weight:400}
 .s700{font-family:fhsans,ui-sans-serif,system-ui,sans-serif;font-weight:700}
 </style>
-<defs><linearGradient id="card" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f2038"/><stop offset="1" stop-color="#0b182b"/></linearGradient><radialGradient id="glow" cx="50%" cy="0%" r="70%"><stop offset="0" stop-color="#006dfe" stop-opacity="0.22"/><stop offset="1" stop-color="#006dfe" stop-opacity="0"/></radialGradient><radialGradient id="markglow"><stop offset="0" stop-color="#006dfe" stop-opacity="0.45"/><stop offset="1" stop-color="#006dfe" stop-opacity="0"/></radialGradient><filter id="markshadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="0" stdDeviation="9" flood-color="#006dfe" flood-opacity="0.6"/></filter><filter id="lift" x="-10%" y="-10%" width="120%" height="140%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000000" flood-opacity="0.45"/></filter></defs>
-<rect x="0.5" y="0.5" width="759" height="441" rx="20" fill="#061121" stroke="#24324a"/><rect x="1" y="1" width="758" height="260" rx="20" fill="url(#glow)"/>
-<rect x="40.5" y="32.5" width="189.2" height="27" rx="14" fill="none" stroke="#34425a" stroke-width="1"/>
-<circle cx="55.5" cy="46" r="3.5" fill="#4c9aff"/>
-<text x="67" y="50.9" class="m500" font-size="14" fill="#b4bfce">command categories</text>
-<text x="40" y="102" class="s700" font-size="26" fill="#fefefe" letter-spacing="-0.5">98 commands in 15 categories</text>
-<text x="40" y="128" class="s400" font-size="16" fill="#b4bfce">Each command sits in exactly one, in lifecycle order.</text>
-<text x="40" y="170" class="s400" font-size="15" fill="#fefefe">Project initialization</text>
-<rect x="252" y="158" width="84" height="14" rx="7" fill="#0c1a2e"/>
+<defs><linearGradient id="card" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fefefe"/><stop offset="1" stop-color="#fefefe"/></linearGradient><radialGradient id="glow" cx="50%" cy="0%" r="70%"><stop offset="0" stop-color="#006dfe" stop-opacity="0.07"/><stop offset="1" stop-color="#006dfe" stop-opacity="0"/></radialGradient><radialGradient id="markglow"><stop offset="0" stop-color="#006dfe" stop-opacity="0.45"/><stop offset="1" stop-color="#006dfe" stop-opacity="0"/></radialGradient><filter id="markshadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="0" stdDeviation="9" flood-color="#006dfe" flood-opacity="0.6"/></filter><filter id="lift" x="-10%" y="-10%" width="120%" height="140%"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#061121" flood-opacity="0.08"/></filter></defs>
+<rect x="0.5" y="0.5" width="759" height="441" rx="20" fill="#f3f6fa" stroke="#dce3ec"/><rect x="1" y="1" width="758" height="260" rx="20" fill="url(#glow)"/>
+<rect x="40.5" y="32.5" width="189.2" height="27" rx="14" fill="none" stroke="#c5cfdb" stroke-width="1"/>
+<circle cx="55.5" cy="46" r="3.5" fill="#0057cc"/>
+<text x="67" y="50.9" class="m500" font-size="14" fill="#3b4a5e">command categories</text>
+<text x="40" y="102" class="s700" font-size="26" fill="#061121" letter-spacing="-0.5">98 commands in 15 categories</text>
+<text x="40" y="128" class="s400" font-size="16" fill="#3b4a5e">Each command sits in exactly one, in lifecycle order.</text>
+<text x="40" y="170" class="s400" font-size="15" fill="#061121">Project initialization</text>
+<rect x="252" y="158" width="84" height="14" rx="7" fill="#dce3ec"/>
 <rect x="252" y="158" width="14" height="14" rx="7" fill="#006dfe"/>
-<text x="346" y="170" class="m500" font-size="15" fill="#4c9aff">1</text>
-<text x="40" y="204" class="s400" font-size="15" fill="#fefefe">Research and sourcing</text>
-<rect x="252" y="192" width="84" height="14" rx="7" fill="#0c1a2e"/>
+<text x="346" y="170" class="m500" font-size="15" fill="#0057cc">1</text>
+<text x="40" y="204" class="s400" font-size="15" fill="#061121">Research and sourcing</text>
+<rect x="252" y="192" width="84" height="14" rx="7" fill="#dce3ec"/>
 <rect x="252" y="192" width="42" height="14" rx="7" fill="#006dfe"/>
-<text x="346" y="204" class="m500" font-size="15" fill="#4c9aff">7</text>
-<text x="40" y="238" class="s400" font-size="15" fill="#fefefe">Discovery and scoping</text>
-<rect x="252" y="226" width="84" height="14" rx="7" fill="#0c1a2e"/>
+<text x="346" y="204" class="m500" font-size="15" fill="#0057cc">7</text>
+<text x="40" y="238" class="s400" font-size="15" fill="#061121">Discovery and scoping</text>
+<rect x="252" y="226" width="84" height="14" rx="7" fill="#dce3ec"/>
 <rect x="252" y="226" width="54" height="14" rx="7" fill="#006dfe"/>
-<text x="346" y="238" class="m500" font-size="15" fill="#4c9aff">9</text>
-<text x="40" y="272" class="s400" font-size="15" fill="#fefefe">Design and UI</text>
-<rect x="252" y="260" width="84" height="14" rx="7" fill="#0c1a2e"/>
+<text x="346" y="238" class="m500" font-size="15" fill="#0057cc">9</text>
+<text x="40" y="272" class="s400" font-size="15" fill="#061121">Design and UI</text>
+<rect x="252" y="260" width="84" height="14" rx="7" fill="#dce3ec"/>
 <rect x="252" y="260" width="66" height="14" rx="7" fill="#006dfe"/>
-<text x="346" y="272" class="m500" font-size="15" fill="#4c9aff">11</text>
-<text x="40" y="306" class="s400" font-size="15" fill="#fefefe">Game and engine</text>
-<rect x="252" y="294" width="84" height="14" rx="7" fill="#0c1a2e"/>
+<text x="346" y="272" class="m500" font-size="15" fill="#0057cc">11</text>
+<text x="40" y="306" class="s400" font-size="15" fill="#061121">Game and engine</text>
+<rect x="252" y="294" width="84" height="14" rx="7" fill="#dce3ec"/>
 <rect x="252" y="294" width="18" height="14" rx="7" fill="#006dfe"/>
-<text x="346" y="306" class="m500" font-size="15" fill="#4c9aff">3</text>
-<text x="40" y="340" class="s400" font-size="15" fill="#fefefe">Database context</text>
-<rect x="252" y="328" width="84" height="14" rx="7" fill="#0c1a2e"/>
+<text x="346" y="306" class="m500" font-size="15" fill="#0057cc">3</text>
+<text x="40" y="340" class="s400" font-size="15" fill="#061121">Database context</text>
+<rect x="252" y="328" width="84" height="14" rx="7" fill="#dce3ec"/>
 <rect x="252" y="328" width="14" height="14" rx="7" fill="#006dfe"/>
-<text x="346" y="340" class="m500" font-size="15" fill="#4c9aff">2</text>
-<text x="40" y="374" class="s400" font-size="15" fill="#fefefe">Contracts and decisions</text>
-<rect x="252" y="362" width="84" height="14" rx="7" fill="#0c1a2e"/>
+<text x="346" y="340" class="m500" font-size="15" fill="#0057cc">2</text>
+<text x="40" y="374" class="s400" font-size="15" fill="#061121">Contracts and decisions</text>
+<rect x="252" y="362" width="84" height="14" rx="7" fill="#dce3ec"/>
 <rect x="252" y="362" width="42" height="14" rx="7" fill="#006dfe"/>
-<text x="346" y="374" class="m500" font-size="15" fill="#4c9aff">7</text>
-<text x="40" y="408" class="s400" font-size="15" fill="#fefefe">Planning and validation</text>
-<rect x="252" y="396" width="84" height="14" rx="7" fill="#0c1a2e"/>
+<text x="346" y="374" class="m500" font-size="15" fill="#0057cc">7</text>
+<text x="40" y="408" class="s400" font-size="15" fill="#061121">Planning and validation</text>
+<rect x="252" y="396" width="84" height="14" rx="7" fill="#dce3ec"/>
 <rect x="252" y="396" width="60" height="14" rx="7" fill="#006dfe"/>
-<text x="346" y="408" class="m500" font-size="15" fill="#4c9aff">10</text>
-<text x="390" y="170" class="s400" font-size="15" fill="#fefefe">Execution and closure</text>
-<rect x="602" y="158" width="84" height="14" rx="7" fill="#0c1a2e"/>
+<text x="346" y="408" class="m500" font-size="15" fill="#0057cc">10</text>
+<text x="390" y="170" class="s400" font-size="15" fill="#061121">Execution and closure</text>
+<rect x="602" y="158" width="84" height="14" rx="7" fill="#dce3ec"/>
 <rect x="602" y="158" width="54" height="14" rx="7" fill="#006dfe"/>
-<text x="696" y="170" class="m500" font-size="15" fill="#4c9aff">9</text>
-<text x="390" y="204" class="s400" font-size="15" fill="#fefefe">Runtime verification</text>
-<rect x="602" y="192" width="84" height="14" rx="7" fill="#0c1a2e"/>
+<text x="696" y="170" class="m500" font-size="15" fill="#0057cc">9</text>
+<text x="390" y="204" class="s400" font-size="15" fill="#061121">Runtime verification</text>
+<rect x="602" y="192" width="84" height="14" rx="7" fill="#dce3ec"/>
 <rect x="602" y="192" width="24" height="14" rx="7" fill="#006dfe"/>
-<text x="696" y="204" class="m500" font-size="15" fill="#4c9aff">4</text>
-<text x="390" y="238" class="s400" font-size="15" fill="#fefefe">Audit and sweep</text>
-<rect x="602" y="226" width="84" height="14" rx="7" fill="#0c1a2e"/>
+<text x="696" y="204" class="m500" font-size="15" fill="#0057cc">4</text>
+<text x="390" y="238" class="s400" font-size="15" fill="#061121">Audit and sweep</text>
+<rect x="602" y="226" width="84" height="14" rx="7" fill="#dce3ec"/>
 <rect x="602" y="226" width="66" height="14" rx="7" fill="#006dfe"/>
-<text x="696" y="238" class="m500" font-size="15" fill="#4c9aff">11</text>
-<text x="390" y="272" class="s400" font-size="15" fill="#fefefe">Autonomy</text>
-<rect x="602" y="260" width="84" height="14" rx="7" fill="#0c1a2e"/>
+<text x="696" y="238" class="m500" font-size="15" fill="#0057cc">11</text>
+<text x="390" y="272" class="s400" font-size="15" fill="#061121">Autonomy</text>
+<rect x="602" y="260" width="84" height="14" rx="7" fill="#dce3ec"/>
 <rect x="602" y="260" width="18" height="14" rx="7" fill="#006dfe"/>
-<text x="696" y="272" class="m500" font-size="15" fill="#4c9aff">3</text>
-<text x="390" y="306" class="s400" font-size="15" fill="#fefefe">Delivery and communication</text>
-<rect x="602" y="294" width="84" height="14" rx="7" fill="#0c1a2e"/>
+<text x="696" y="272" class="m500" font-size="15" fill="#0057cc">3</text>
+<text x="390" y="306" class="s400" font-size="15" fill="#061121">Delivery and communication</text>
+<rect x="602" y="294" width="84" height="14" rx="7" fill="#dce3ec"/>
 <rect x="602" y="294" width="36" height="14" rx="7" fill="#006dfe"/>
-<text x="696" y="306" class="m500" font-size="15" fill="#4c9aff">6</text>
-<text x="390" y="340" class="s400" font-size="15" fill="#fefefe">State and navigation</text>
-<rect x="602" y="328" width="84" height="14" rx="7" fill="#0c1a2e"/>
+<text x="696" y="306" class="m500" font-size="15" fill="#0057cc">6</text>
+<text x="390" y="340" class="s400" font-size="15" fill="#061121">State and navigation</text>
+<rect x="602" y="328" width="84" height="14" rx="7" fill="#dce3ec"/>
 <rect x="602" y="328" width="84" height="14" rx="7" fill="#006dfe"/>
-<text x="696" y="340" class="m500" font-size="15" fill="#4c9aff">14</text>
-<text x="390" y="374" class="s400" font-size="15" fill="#fefefe">Prompt tooling</text>
-<rect x="602" y="362" width="84" height="14" rx="7" fill="#0c1a2e"/>
+<text x="696" y="340" class="m500" font-size="15" fill="#0057cc">14</text>
+<text x="390" y="374" class="s400" font-size="15" fill="#061121">Prompt tooling</text>
+<rect x="602" y="362" width="84" height="14" rx="7" fill="#dce3ec"/>
 <rect x="602" y="362" width="14" height="14" rx="7" fill="#006dfe"/>
-<text x="696" y="374" class="m500" font-size="15" fill="#4c9aff">1</text>
+<text x="696" y="374" class="m500" font-size="15" fill="#0057cc">1</text>
 </svg>

@@ -1,11 +1,15 @@
 <p align="center">
-  <img src=".github/assets/hero.svg" alt="Fhorja, the workflow operating system for AI-assisted engineering" width="100%">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/hero.svg">
+    <source media="(prefers-color-scheme: light)" srcset=".github/assets/hero-light.svg">
+    <img src=".github/assets/hero.svg" alt="Fhorja, the workflow operating system for AI-assisted engineering: decisions on disk, not in chat" width="100%">
+  </picture>
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   &nbsp;
-  <a href="#status-license-and-contributing"><img src="https://img.shields.io/badge/Status-v1.1.0-brightgreen.svg" alt="Status: v1.1.0"></a>
+  <a href="#status-license-and-contributing"><img src="https://img.shields.io/badge/Status-v2.1.0-brightgreen.svg" alt="Status: v2.1.0"></a>
 </p>
 
 > A workflow operating system for AI-assisted engineering. Task state, decisions, and plans live on disk as files, not in chat history, so context survives across sessions, tools, and restarts.
@@ -15,7 +19,11 @@ You start an AI coding session on a real feature. Twenty minutes in, you've made
 Fhorja's answer: task state, decisions, and plans live in markdown files on disk, not in chat history. Open a new session, and `resume-from-state` reads `TASK_STATE.md` and tells you where you left off. A decision gets recorded once, in `DECISIONS.md`, with its reasoning, and every later step reads from it instead of guessing again. Before any code gets written, `implementation-plan` breaks the work into small slices (the smallest reviewable unit of change, each with its own scope and exit criteria). `approve-plan` then checks the plan against the recorded decisions with a blinded review, on every plan and without waiting for you (ADR-0208); a product decision the request left open becomes a provisional entry, chosen from the code and labeled as the agent's, not yours. On an attended run with a configured remote, the chain runs on its own from `task-init` through the local commit to a pushed task branch and a draft PR (ADR-0233). The draft PR is where you read the work: it lists every decision made without you, anything left unverified, and any named deliverable it could not finish. Merge, and marking the PR ready for review, stay yours.
 
 <p align="center">
-  <img src=".github/assets/persistence.svg" alt="Decisions made in chat are lost at session end; the same decisions written to disk survive" width="100%">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/persistence.svg">
+    <source media="(prefers-color-scheme: light)" srcset=".github/assets/persistence-light.svg">
+    <img src=".github/assets/persistence.svg" alt="Decisions made in chat are lost at session end; the same decisions written to disk survive" width="100%">
+  </picture>
 </p>
 
 > **See a guided reconstruction of a real session.** [`docs/EXAMPLE_TRANSCRIPT.md`](./docs/EXAMPLE_TRANSCRIPT.md) walks the actual Fhorja task that built [fhorja.dev](https://fhorja.dev), from `task-init` to `task-close`, quoting its real decisions, slice outputs, and the tamper-evident verification log. The quoted excerpts are unedited except for cropping. The page is not a raw chat log. It exists to answer one question: is this real work, or a scripted illusion of it?
@@ -29,6 +37,14 @@ The everyday product is a short default path of six commands: `task-init`, `impl
 Behind that loop sits an optional catalog of <!-- count:commands -->98<!-- /count --> commands in total (parallel fleets, design-system personas, reliability and security specialists) that you install only when a task needs them. The `minimal` profile is <!-- count:commands-minimal -->24<!-- /count --> commands: the default path, `impact-analysis`, `decision-interview`, `test-strategy` and `review-hard` from the escalations, the five closing and routing commands above, `where-we-at`, `implement-slice-complement`, `capture-references`, `capture-observation`, and `incident-triage`. It also carries `implement-fleet`, the default for a parallel wave, and `verify-against-rubric`, the reviewer `approve-plan` and `review-hard` dispatch, with the three commands that reviewer routes to: `direction-adjust`, `resolve-contract-gaps`, and `contract-signoff`. `invariants-and-non-goals` ships in `core`. Pass `--profile minimal` when you want that set on both command files and skills.
 
 It targets engineers who already use an AI coding tool (Cursor, Claude Code, and 35+ others that read the open Agent Skills standard, per [`CONTRIBUTING.md`](./CONTRIBUTING.md)) and want plan-before-code discipline without being asked to approve every step. On an attended run with a configured remote, the chain stops for one reason: an act whose audience is not bounded, meaning marking the PR ready for review, merging, publishing, or sending content outward. A decision the request left open or a check the agent cannot run on itself no longer stop the chain; both are recorded and carried into the draft PR for you to read (ADR-0233). Without a remote, those two still stop and wait. A declared assisted mode brings back every stop ADR-0233 removed: no task branch is created, open decisions and checks the agent cannot run on itself stop and wait, and the run ends at the local commit, where you start the push and the draft PR. Merge stays yours.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/run-ends.svg">
+    <source media="(prefers-color-scheme: light)" srcset=".github/assets/run-ends-light.svg">
+    <img src=".github/assets/run-ends.svg" alt="Where a run stops: with a configured remote it runs to a draft PR; with no remote, or in assisted mode, it ends at the local commit; marking the PR ready and merging stay yours" width="100%">
+  </picture>
+</p>
 
 New here? [`WORKFLOW_DEMO.md`](./WORKFLOW_DEMO.md) is a full walkthrough with example prompts and outputs. [`docs/FAQ.md`](./docs/FAQ.md) answers what it is, which tools work, and how licensing works. You do not need to read [`WORKFLOW_OPERATING_SYSTEM.md`](./WORKFLOW_OPERATING_SYSTEM.md) first: it is the normative spec commands load sections from on demand, not a manual you read cover to cover. Run `task-init` (or `workflow-guide` if you want the explanation as you go) and let the handoffs carry you.
 
@@ -64,7 +80,11 @@ Run it with no flags on a terminal and it opens a setup wizard: a state panel sh
 ```
 
 <p align="center">
-  <img src=".github/assets/profiles.svg" alt="The three install profiles nest: minimal inside core inside full" width="100%">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/profiles.svg">
+    <source media="(prefers-color-scheme: light)" srcset=".github/assets/profiles-light.svg">
+    <img src=".github/assets/profiles.svg" alt="The three install profiles nest: minimal inside core inside full" width="100%">
+  </picture>
 </p>
 
 The three profiles nest: `minimal` (<!-- count:commands-minimal -->24<!-- /count --> commands) inside `core` (<!-- count:commands-core -->52<!-- /count --> commands) inside `full` (<!-- count:commands -->98<!-- /count --> commands). Of that total, <!-- count:personas -->9<!-- /count --> are folder-shaped personas that ship only as skills, so the number of flat command files the installer reports copying is the remainder, not the full-profile count above. The `minimal` profile is the commands listed under [What it is](#what-it-is): the default path, which ends in `branch-commit` (with `--apply` it creates the local commit after showing the staged diff), the escalation commands a task adds on a named condition, the closing and routing commands, `implement-slice-complement` for a bounded micro-delta inside an already-implemented slice, and `verify-against-rubric` with the commands it routes to, so the review `approve-plan` runs on every plan is installed wherever `approve-plan` is. Profiles are declared in each command's `x-wos-profiles` frontmatter and enforced by lint.
@@ -76,12 +96,17 @@ Skills sync by default: they mirror to your user-level directories so they follo
 Every task starts on the short path and gains a command only when a named condition fires. Each command persists its result to task memory and hands off to the next:
 
 <p align="center">
-  <img src=".github/assets/lifecycle.svg" alt="A task from task-init to task-close, one approved slice at a time" width="100%">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/lifecycle.svg">
+    <source media="(prefers-color-scheme: light)" srcset=".github/assets/lifecycle-light.svg">
+    <img src=".github/assets/lifecycle.svg" alt="The default path from task-init to a draft PR, with implement-fleet for a parallel wave and task-close after the merge" width="100%">
+  </picture>
 </p>
 
 ```
 [problem-framing] -> task-init -> implementation-plan -> approve-plan
-                  -> implement-approved-slice -> branch-commit --apply
+                  -> implement-approved-slice (or implement-fleet for a parallel wave)
+                  -> branch-commit --apply -> pr-package --apply
 ```
 
 Escalations, each added only when its condition fires (ADR-0184):
@@ -107,7 +132,11 @@ Escalations, each added only when its condition fires (ADR-0184):
 <!-- count:commands -->98<!-- /count --> commands. The table below groups them editorially, by family, and a command can appear in more than one row: `app-runtime-verify` is both an execution gate and the Unity surface. The spec's `## Command categories` is the other axis, where every command sits in exactly one of <!-- count:command-categories -->15<!-- /count --> categories. Same commands, two questions: what family does this belong to, and where does it sit in the lifecycle.
 
 <p align="center">
-  <img src=".github/assets/clusters.svg" alt="The command families, one color per group, the same color key the fhorja.dev page uses" width="100%">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/clusters.svg">
+    <source media="(prefers-color-scheme: light)" srcset=".github/assets/clusters-light.svg">
+    <img src=".github/assets/clusters.svg" alt="The spec's command categories, in lifecycle order, with how many commands sit in each" width="100%">
+  </picture>
 </p>
 
 | Cluster | A few commands | What it does |
@@ -249,7 +278,7 @@ Fhorja is built and maintained by Bruno Mazurok, a fullstack engineer with about
 
 ## Status, license, and contributing
 
-**Status.** v1.1.0, the cross-model dogfood release (see CHANGELOG for the 1.1.0 section). The contract for command outputs and `TASK_STATE.md` is the defined public API: breaking changes to either mean a major version bump per [SemVer](https://semver.org/). See [`CHANGELOG.md`](./CHANGELOG.md) for what changed and [`ROADMAP.md`](./ROADMAP.md) for what's next.
+**Status.** v2.1.0, horizontal work measured on real tasks (see the `[2.1.0]` section of CHANGELOG). The contract for command outputs and `TASK_STATE.md` is the defined public API: breaking changes to either mean a major version bump per [SemVer](https://semver.org/). See [`CHANGELOG.md`](./CHANGELOG.md) for what changed and [`ROADMAP.md`](./ROADMAP.md) for what's next.
 
 **Governance.** A personal open-source project under single-maintainer (BDFL) governance while it matures toward a community model; the contribution flow is documented in [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
