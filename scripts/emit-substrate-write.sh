@@ -43,6 +43,18 @@
 #         value refuses (the measured value is authoritative). Event defaults
 #         to write when the section body was empty, overwrite otherwise.
 #         sha/emit/batch behavior is unchanged; apply is additive.
+#   status --owner O --file F --slice ID --value V [--reason R] [--task-root DIR]
+#         [--run-id ID] [--invoked-by P]
+#         A slice Status write in ONE call (P-9): replace the one `Status:` line
+#         under `### <ID>` in `## Slices` in place, refresh the section's
+#         transaction header, append one `## Slices` JSONL line (event
+#         overwrite, sha_before measured). No body file, no section rewrite.
+#         Die rules: exactly one `## Slices` line, exactly one `### <ID>`
+#         heading in it (ids match as scripts/check-slice-order.sh reads them),
+#         exactly one `Status:` line under it; the owner may not be
+#         implementation-plan or self-critique-and-revise, so a status write is
+#         never a plan revision for the approval lock. A value already in place
+#         writes nothing and logs nothing.
 #
 # Reason strings are capped at 80 chars (validator rule). Requires jq.
 # emit, batch and apply refuse a --task-root (default ".") that holds no TASK_STATE.md.
@@ -138,6 +150,7 @@ SUB="${1:-}"; shift || true
 OWNER="" FILE="" SECTION="" EVENT="write" MODE="applied" REASON="" SHA_BEFORE="null"
 TASK_ROOT="." RUN_ID="" INVOKED_BY="" PRINT_HEADER=0
 BODY_FILE="" EVENT_EXPLICIT=0  # apply (ADR-0110)
+SLICE_ID="" STATUS_VALUE=""     # status (P-9)
 DERIVE_SB=1 ALLOW_SB_MISMATCH=0 SB_EXPLICIT=0  # S2: derive-by-default since v3 wave3 (opt out: --no-derive-sha-before / WOS_DERIVE_SHA_BEFORE=0)
 DERIVE_EXPLICIT=0 FIRST_LOGGED=0               # v3 wave3: flag tracking + legacy-promote entry path
 WOS_TIMEOUT="${WOS_TIMEOUT:-}"  # P5 (opt-in): wall-time cap (timeout(1) duration); empty=off
@@ -160,6 +173,8 @@ while [[ $# -gt 0 ]]; do
     --allow-sha-before-mismatch) ALLOW_SB_MISMATCH=1; shift;; # S2 (opt-in)
     --timeout) WOS_TIMEOUT="$2"; shift 2;;                    # P5 (opt-in)
     --body-file) BODY_FILE="$2"; shift 2;;                    # apply (ADR-0110)
+    --slice) SLICE_ID="$2"; shift 2;;                         # status (P-9)
+    --value) STATUS_VALUE="$2"; shift 2;;                     # status (P-9)
     *) die "unknown flag: $1";;
   esac
 done
@@ -180,14 +195,14 @@ if [[ -n "$FILE" && "$FILE" != /* && ! -f "$FILE" && -f "$TASK_ROOT/$FILE" ]]; t
   FILE="$TASK_ROOT/$FILE"
 fi
 
-[[ -n "$SUB" ]] || die "subcommand required: sha | emit | batch"
+[[ -n "$SUB" ]] || die "subcommand required: sha | emit | batch | apply | status"
 # A subcommand that appends to the log needs a real task folder as its root. Before this,
 # append_line ran `mkdir -p "$task_root/.wos"` on whatever it was given, so a wrong
 # --task-root (or the default ".", run from the wrong directory) created a stray log that
 # no validator reads, and the write it recorded looked logged (ADR-0224). Checked before
 # any file is touched, so `apply` refuses without splicing.
 case "$SUB" in
-  emit|batch|apply)
+  emit|batch|apply|status)
     [[ -f "$TASK_ROOT/TASK_STATE.md" ]] || die "not a task folder: no TASK_STATE.md found in --task-root '$TASK_ROOT' (pass the task folder that owns $FILE; nothing was written)" ;;
 esac
 [[ ${#REASON} -le 80 ]] || die "reason exceeds 80 chars (${#REASON})"
@@ -225,6 +240,11 @@ Subcommands:
         emit the header plus the log line yourself, which
         substrate-write-protocol.md sanctions for the case where the helper
         does not fit.
+  status --owner O --file F --slice ID --value V [--reason R] [--task-root DIR]
+        One slice Status write (P-9): replace the single `Status:` line under
+        `### <ID>` in `## Slices`, refresh the section header, append one
+        `## Slices` log line. Refuses a missing or doubled heading or Status
+        line, and the owners implementation-plan and self-critique-and-revise.
 
 Combined flow example:
   SHA_BEFORE=$(scripts/emit-substrate-write.sh sha --file F --section '## X')
@@ -393,5 +413,86 @@ USAGE
     append_line "$TASK_ROOT" "$OWNER" "$(basename "$FILE")" "$SECTION" "$EVENT" "$MODE" "$REASON" "$SB" "$SA" "$RUN_ID" "$TS" "$INVOKED_BY"
     if [[ "$CREATED" -eq 1 ]]; then VERB="created"; else VERB="applied"; fi
     echo "$VERB '$SECTION' in $FILE (event=$EVENT sha_before=$SB sha_after=$SA run_id=$RUN_ID)" ;;
+  status)
+    # P-9: one call edits the one Status line and logs it at the owning ## Slices H2.
+    [[ -n "$OWNER" && -n "$FILE" && -n "$SLICE_ID" && -n "$STATUS_VALUE" ]] || die "status needs --owner --file --slice --value"
+    [[ -f "$FILE" ]] || die "file not found (cwd and task-root checked): $FILE"
+    case "$OWNER" in
+      implementation-plan|self-critique-and-revise)
+        die "status refuses owner '$OWNER': its ## Slices line is a plan revision for the approval lock; a Status write belongs to a closing command" ;;
+    esac
+    [[ "$STATUS_VALUE" != *$'\n'* && "$STATUS_VALUE" != '#'* ]] || die "status --value must be one line and not a heading"
+    SECTION="## Slices"
+    MATCHES=$(grep -cxF "$SECTION" "$FILE" || true)
+    [[ "$MATCHES" -eq 1 ]] || die "status needs exactly one '$SECTION' line in $FILE (found $MATCHES); nothing was written"
+    if [[ -z "$REASON" ]]; then
+      REASON=$(printf 'slice-%s-status-%s' "$SLICE_ID" "$STATUS_VALUE" | tr -c 'A-Za-z0-9._-' '-' | cut -c1-80)
+    fi
+    HDR_LINE=$(printf '<!-- wos:write owner=%s section='\''%s'\'' run_id=%s ts=%s reason=%s mode=%s -->' \
+      "$OWNER" "$SECTION" "$RUN_ID" "$TS" "$REASON" "$MODE")
+    TMP_OUT=$(mktemp "${TMPDIR:-/tmp}/wos-status.XXXXXX")
+    rc=0
+    OLD_VALUE=$(awk -v sec="$SECTION" -v want="$SLICE_ID" -v val="$STATUS_VALUE" -v hdr="$HDR_LINE" -v out="$TMP_OUT" '
+      function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+      # leadid and norm are the id rules of scripts/check-slice-order.sh, so the
+      # slice this writes is the slice that gate reads.
+      function leadid(s) {
+        s = trim(s); gsub(/[`*]/, "", s)
+        if (match(s, /^([Ss][Ll][Ii][Cc][Ee][ \t_-]*)?[A-Za-z]*[0-9]+(\.[0-9]+)*[A-Za-z]?/)) return substr(s, RSTART, RLENGTH)
+        return s
+      }
+      function norm(s,   pre, rest) {
+        s = tolower(s); gsub(/[ \t`*"'"'"']/, "", s); sub(/[.,;:]+$/, "", s)
+        if (s ~ /^slice/) { s = substr(s, 6); sub(/^[_-]+/, "", s) }
+        if (s ~ /^s[0-9]/) s = substr(s, 2)
+        match(s, /^[a-z]*/); pre = substr(s, 1, RLENGTH); rest = substr(s, RLENGTH + 1)
+        if (rest ~ /^[0-9]/) { sub(/^0+/, "", rest); if (rest !~ /^[0-9]/) rest = "0" rest }
+        return pre rest
+      }
+      { lines[NR] = $0 }
+      END {
+        for (i = 1; i <= NR; i++) if (lines[i] == sec) { s = i; break }
+        e = NR + 1
+        for (i = s + 1; i <= NR; i++) if (lines[i] ~ /^## /) { e = i; break }
+        w = norm(leadid(want)); nh = 0
+        for (i = s + 1; i < e; i++) if (lines[i] ~ /^### /) {
+          if (norm(leadid(substr(lines[i], 5))) == w) { nh++; h = i }
+        }
+        if (nh != 1) { print nh; exit 3 }
+        he = e
+        for (i = h + 1; i < e; i++) if (lines[i] ~ /^### /) { he = i; break }
+        ns = 0
+        for (i = h + 1; i < he; i++) if (tolower(lines[i]) ~ /^[ \t]*([-*][ \t]*)?[*]*status[*]*[ \t]*:/) { ns++; t = i }
+        if (ns != 1) { print ns; exit 4 }
+        p = index(lines[t], ":"); pre = substr(lines[t], 1, p); rest = substr(lines[t], p + 1)
+        if (match(rest, /^[*]+/)) { pre = pre substr(rest, 1, RLENGTH); rest = substr(rest, RLENGTH + 1) }
+        old = trim(rest)
+        print old
+        if (old == val) exit 5
+        lines[t] = pre " " val
+        for (i = 1; i <= NR; i++) {
+          if (i == s - 1 && lines[i] ~ /^<!-- wos:write /) continue
+          if (i == s) print hdr > out
+          print lines[i] > out
+        }
+      }
+    ' "$FILE") || rc=$?
+    case "$rc" in
+      0) ;;
+      3) rm -f "$TMP_OUT"; die "status needs exactly one '### $SLICE_ID' heading under '$SECTION' in $FILE (found $OLD_VALUE); nothing was written" ;;
+      4) rm -f "$TMP_OUT"; die "status needs exactly one 'Status:' line under '### $SLICE_ID' in $FILE (found $OLD_VALUE); nothing was written" ;;
+      5) rm -f "$TMP_OUT"; echo "unchanged '### $SLICE_ID' Status: $STATUS_VALUE in $FILE (already in place; nothing written or logged)"; exit 0 ;;
+      *) rm -f "$TMP_OUT"; die "status: awk failed (rc=$rc); nothing was written" ;;
+    esac
+    # Self-check: only the Status line and the header line may differ.
+    NDIFF=$(diff "$FILE" "$TMP_OUT" | grep -c '^[<>]' || true)
+    if [[ "$NDIFF" -lt 3 || "$NDIFF" -gt 4 ]]; then
+      rm -f "$TMP_OUT"; die "status self-check failed: $NDIFF changed lines (expected the Status line and the header only); original file untouched"
+    fi
+    SB=$(sha_of_section "$FILE" "$SECTION")
+    SA=$(sha_of_section "$TMP_OUT" "$SECTION")
+    mv "$TMP_OUT" "$FILE"
+    append_line "$TASK_ROOT" "$OWNER" "$(basename "$FILE")" "$SECTION" "overwrite" "$MODE" "$REASON" "$SB" "$SA" "$RUN_ID" "$TS" "$INVOKED_BY"
+    echo "status '### $SLICE_ID' $OLD_VALUE -> $STATUS_VALUE in $FILE (logged at '$SECTION' sha_before=$SB sha_after=$SA run_id=$RUN_ID)" ;;
   *) die "unknown subcommand: $SUB" ;;
 esac

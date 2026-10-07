@@ -1,7 +1,7 @@
 # Eval scenario 52: implement-fleet wave computation and integration gate
 
 - **Tags**: ADR-0041, ADR-0040, ADR-0038, fleet-dispatch, slice-parallelism, scope-disjointness, integration-gate, worktree-isolation
-- **Last reviewed**: 2026-09-29
+- **Last reviewed**: 2026-10-02
 - **Status**: active
 
 ## Goal
@@ -13,6 +13,31 @@ This exercises:
 - The Step 2 wave computation and Step 3 disjointness gate in `commands/implement-fleet.md`.
 - The per-slice `Scope` and `Depends-on` fields emitted by `commands/implementation-plan.md`.
 - The ADR-0041 generalization of ADR-0040 from folder scope to product-code file-set scope, plus the integration gate that distinguishes product-code fleets from substrate fleets.
+
+## Native readiness controls
+
+Before any commit from a wave is merged, run validate-implement-fleet-result.sh with
+each selected carrier and independent orchestrator expectations. A valid satisfied
+control has an actual scoped commit sequence, matching worker and slice, a harness
+worktree in the product repository, and its assigned nonempty note in `.fleet-out/`.
+
+The following controls must be rejected before merge: missing or empty consumed
+handles, mismatched identity or carrier, nonexistent commit, wrong HEAD or base,
+unrelated repository, escaping or symlinked note, wrong assigned note, dirty tracked
+edits, committed return files and any out-of-scope path in the commit sequence.
+Renames check both endpoints. Reverting an out-of-scope intermediate commit does not
+erase the violation. Multiple linear commits are valid only when the whole validated
+commit_sequence is integrated; cherry-picking only the last commit loses earlier work.
+
+Every non-satisfied status remains schema-representable without success handles and
+holds the whole wave, including max_iterations_reached. Failed uses nested
+error.error_class with strict Boolean recoverable. Missing helper, malformed JSON or
+invalid evidence also holds the wave. Monitor output is informational. Schema checks
+do not prove hosted enforcement or semantic correctness; Step 10 still runs.
+
+The executable local controls live in scripts/tests/test-implement-fleet-result.py.
+Use actual temporary Git worktrees for disjoint integration and verify `.fleet-out/`
+never enters the integration tree.
 
 ## Setup
 

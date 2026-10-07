@@ -167,6 +167,85 @@ OUT=$(bash "$EMIT" emit --owner tester --file DOC.md --section '## Alpha' --mode
 rc=$?
 check "emit with the same root refuses too, with no stray log" $([[ $rc -ne 0 && ! -e "$STRAY/.wos" ]]; echo $?)
 
+# ---------- 10. status: one call edits one slice Status line and logs it (P-9) ----------
+# A fresh task folder: implementation-plan writes ## Slices through apply, the approval
+# is appended, then closing commands write Status lines through `status`. The checks are
+# the ones a closure batch runs, the slice-order gate, and the approval lock's query.
+TF="$WORK/status-task"; mkdir -p "$TF"; printf '# TASK_STATE\n' > "$TF/TASK_STATE.md"
+printf '# Implementation plan\n\n## Slices\n\n## Approval log\n' > "$TF/IMPLEMENTATION_PLAN.md"
+cat > "$WORK/slices.txt" <<'SLICES_EOF'
+
+### S1: first slice
+- Depends-on: none
+- Status: planned
+
+### S2: second slice
+- Depends-on: S1
+- **Status:** planned
+SLICES_EOF
+plan_hash() { shasum -a 256 "$TF/IMPLEMENTATION_PLAN.md" | awk '{print $1}'; }
+tf_log_lines() { wc -l < "$TF/.wos/VERIFICATION_LOG.jsonl" | tr -d ' '; }
+bash "$EMIT" apply --owner implementation-plan --file IMPLEMENTATION_PLAN.md --section '## Slices' --reason plan --body-file "$WORK/slices.txt" --task-root "$TF" >/dev/null 2>&1
+check "status fixture: implementation-plan wrote ## Slices" $?
+sleep 1
+APPROVAL_TS=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+printf -- '- %s: APPROVED -- baseline locked for execution.\n' "$APPROVAL_TS" >> "$TF/IMPLEMENTATION_PLAN.md"
+# The lock in commands/implement-approved-slice.md: the plan revision is the newest
+# `## Slices` log line whose owner is implementation-plan or self-critique-and-revise.
+lock_rev() { jq -r 'select(.section=="## Slices" and (.owner=="implementation-plan" or .owner=="self-critique-and-revise")) | .ts' "$TF/.wos/VERIFICATION_LOG.jsonl" | tail -1; }
+REV_BEFORE=$(lock_rev)
+sleep 1
+
+BEFORE_LOG=$(tf_log_lines)
+bash "$EMIT" status --owner slice-closure --file IMPLEMENTATION_PLAN.md --slice S1 --value closed --task-root "$TF" >/dev/null 2>&1
+check "status: good write exits 0" $?
+check "status: S1 Status line now reads closed" $(awk '/^### S1/{f=1;next} /^### /{f=0} f' "$TF/IMPLEMENTATION_PLAN.md" | grep -qxF -- '- Status: closed'; echo $?)
+check "status: S2 Status line untouched" $(grep -qxF -- '- **Status:** planned' "$TF/IMPLEMENTATION_PLAN.md"; echo $?)
+check "status: exactly one JSONL line appended" $([[ "$(tf_log_lines)" -eq $((BEFORE_LOG+1)) ]]; echo $?)
+check "status: logged at ## Slices by the closing owner as an applied overwrite" $(tail -1 "$TF/.wos/VERIFICATION_LOG.jsonl" | jq -e '.section=="## Slices" and .owner=="slice-closure" and .event=="overwrite" and .mode=="applied"' >/dev/null; echo $?)
+check "status: one ## Slices header, naming the closing owner" $([[ "$(grep -c "section='## Slices'" "$TF/IMPLEMENTATION_PLAN.md")" -eq 1 ]] && grep -B1 -xF '## Slices' "$TF/IMPLEMENTATION_PLAN.md" | grep -q 'owner=slice-closure'; echo $?)
+check "status: slice-order gate reads S1 as closed before S2 starts" $(bash "$SCRIPT_DIR/../check-slice-order.sh" "$TF" S2 >/dev/null 2>&1; echo $?)
+
+# A value already in place writes nothing and logs nothing.
+H=$(plan_hash); L=$(tf_log_lines)
+bash "$EMIT" status --owner slice-closure --file IMPLEMENTATION_PLAN.md --slice S1 --value closed --task-root "$TF" >/dev/null 2>&1
+rc=$?
+check "status: an unchanged value exits 0 and leaves file and log as they were" $([[ $rc -eq 0 && "$(plan_hash)" == "$H" && "$(tf_log_lines)" -eq $L ]]; echo $?)
+
+# Refusals leave the plan and the log untouched.
+refuses() { # refuses <description> <task-folder> <args...>
+  local d="$1" tf="$2"; shift 2
+  local h l
+  h=$(shasum -a 256 "$tf/IMPLEMENTATION_PLAN.md" | awk '{print $1}'); l=$(wc -l < "$tf/.wos/VERIFICATION_LOG.jsonl" | tr -d ' ')
+  bash "$EMIT" status --file IMPLEMENTATION_PLAN.md --task-root "$tf" "$@" >/dev/null 2>&1
+  local rc=$?
+  check "$d" $([[ $rc -ne 0 && "$(shasum -a 256 "$tf/IMPLEMENTATION_PLAN.md" | awk '{print $1}')" == "$h" && "$(wc -l < "$tf/.wos/VERIFICATION_LOG.jsonl" | tr -d ' ')" -eq $l ]]; echo $?)
+}
+refuses "status: a missing slice id refuses, nothing written" "$TF" --owner slice-closure --slice S9 --value closed
+refuses "status: owner implementation-plan refuses (its line would be a plan revision)" "$TF" --owner implementation-plan --slice S2 --value closed
+refuses "status: owner self-critique-and-revise refuses" "$TF" --owner self-critique-and-revise --slice S2 --value closed
+
+# `Slice 2` names `### S2` the way scripts/check-slice-order.sh reads ids; bold field kept.
+bash "$EMIT" status --owner implement-approved-slice --file IMPLEMENTATION_PLAN.md --slice 'Slice 2' --value closed --task-root "$TF" >/dev/null 2>&1
+check "status: a 'Slice 2' id writes '### S2', keeping the bold field label" $(grep -qxF -- '- **Status:** closed' "$TF/IMPLEMENTATION_PLAN.md"; echo $?)
+
+VAL=$(python3 "$SCRIPT_DIR/../verify-log-validator.py" "$TF/.wos/VERIFICATION_LOG.jsonl" --check-deletes --cutover-ts 2026-07-18T00:00:00.000Z 2>&1)
+vrc=$?
+check "status: the validator with --check-deletes exits 0 after two status writes" $([[ $vrc -eq 0 ]]; echo $?)
+check "status: no content-vs-log drift" $(grep -q 'content-vs-log drift' <<<"$VAL"; [[ $? -ne 0 ]]; echo $?)
+check "status: no sha-chain break or advisory" $(grep -qi 'sha-chain' <<<"$VAL"; [[ $? -ne 0 ]]; echo $?)
+REV_AFTER=$(lock_rev)
+check "status: two status writes are not a ## Slices revision for the approval lock" $([[ -n "$REV_BEFORE" && "$REV_AFTER" == "$REV_BEFORE" && ! "$REV_AFTER" > "$APPROVAL_TS" ]]; echo $?)
+# Control: the same query does see an authoring write, so the assertion above is not vacuous.
+printf '\n### S1: first slice\n- Depends-on: none\n- Status: closed\n' > "$WORK/slices2.txt"
+bash "$EMIT" apply --owner self-critique-and-revise --file IMPLEMENTATION_PLAN.md --section '## Slices' --reason revise --body-file "$WORK/slices2.txt" --task-root "$TF" >/dev/null 2>&1
+check "status control: an authoring write does move the lock past the approval" $([[ "$(lock_rev)" > "$APPROVAL_TS" ]]; echo $?)
+
+# Two Status lines under one slice refuse (a copy, so the folder above stays logged).
+TF2="$WORK/status-task-2"; cp -R "$TF" "$TF2"
+awk '{print} /^### S1: /{print "- Status: in progress"}' "$TF2/IMPLEMENTATION_PLAN.md" > "$WORK/p2" && cp "$WORK/p2" "$TF2/IMPLEMENTATION_PLAN.md"
+refuses "status: two Status lines under the slice refuse, nothing written" "$TF2" --owner slice-closure --slice S1 --value not-ready
+
 echo
 echo "pass=$PASS fail=$FAIL"
 [[ "$FAIL" -eq 0 ]] || exit 1

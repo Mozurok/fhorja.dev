@@ -601,7 +601,14 @@ sync_one_dest() {
 # missing task folder, a missing inbox with no return folder named, or a timeout with no worker
 # seen; it reads the flat <worker_id>.json returns, and it has no self-location and no
 # macOS-only stat call.
-SHIPPED_SCRIPTS=(rank-learnings.sh compute-task-outcome.py ingest-scan.py scan-substrate-orphans.py rank-references.sh emit-substrate-write.sh scan-substrate-headers.sh verify-log-validator.py verify-substrate-batch.sh check-live-markers.sh check-plan-coverage.sh plan-adherence.py memory-lint.sh secret-scan-gate.sh portfolio-review.sh monitor-fleet-progress.sh)
+# check-slice-order.sh, measured 2026-09-30 (ADR-0244): implement-approved-slice runs it before
+# every slice. It reads only its two arguments, has no self-location, and on a folder with no
+# plan it exits 2 with "not measured".
+# build-plan-review-input.sh assembles cited decisions and the brief from the task
+# argument, including outside a clone; missing inputs produce no rubric, exit 2.
+# validate-implement-fleet-result.sh reads explicit carrier/context arguments;
+# absent inputs exit 2. Valid non-satisfied returns exit 3 and never permit merge.
+SHIPPED_SCRIPTS=(rank-learnings.sh compute-task-outcome.py ingest-scan.py scan-substrate-orphans.py rank-references.sh emit-substrate-write.sh scan-substrate-headers.sh verify-log-validator.py verify-substrate-batch.sh check-live-markers.sh check-plan-coverage.sh plan-adherence.py memory-lint.sh secret-scan-gate.sh portfolio-review.sh monitor-fleet-progress.sh check-slice-order.sh build-plan-review-input.sh validate-implement-fleet-result.sh)
 
 # The commands/_shared/ blocks an installed file cites, shipped to <dest>/commands/_shared/.
 # Most blocks are inlined into the commands by sync-shared-blocks.sh and need no copy, but
@@ -1167,10 +1174,14 @@ run_sync() {
   fi
 
   if [[ "$WITH_DOCS" -eq 1 ]]; then
-    sync_workflow_docs "Workflow docs (Cursor)" "$WORKFLOW_DOCS_DEST"
-    sync_workflow_docs "Workflow docs (Claude)" "$CLAUDE_WORKFLOW_DOCS_DEST"
-    if [[ -n "$PROJECT" ]]; then
-      sync_workflow_docs "Workflow docs (project / Cursor)" "${PROJECT}/.cursor/workflow-docs"
+    if [[ "$DO_CURSOR" -eq 1 ]]; then
+      sync_workflow_docs "Workflow docs (Cursor)" "$WORKFLOW_DOCS_DEST"
+      if [[ -n "$PROJECT" ]]; then
+        sync_workflow_docs "Workflow docs (project / Cursor)" "${PROJECT}/.cursor/workflow-docs"
+      fi
+    fi
+    if [[ "$DO_CLAUDE" -eq 1 ]]; then
+      sync_workflow_docs "Workflow docs (Claude)" "$CLAUDE_WORKFLOW_DOCS_DEST"
     fi
   fi
 

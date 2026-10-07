@@ -17,6 +17,145 @@ The alpha caveat that stood here ("while the project is in alpha (0.x.y), MINOR 
 
 ## [Unreleased]
 
+### Bind review inputs and evaluation evidence (2026-10-03)
+
+- Isolated plan reviews receive exact cited decisions and brief. Satisfied native
+  worker returns require independently verified integration handles before merge.
+- Scorer version 3 rejects typed and contradictory evidence, binds domain cases
+  to independently selected fixtures and declared evaluated code, and verifies
+  immutable prospective attempt policy and evidence receipts. Historical reports
+  remain unchanged; local controls do not demonstrate workflow ROI.
+- CI now invokes the installed diagnostic, review-input and native worker Python
+  suites. Its list guard exercises actual interpreter dispatch and aggregate
+  failure handling with disposable controls and deliberate faults.
+
+### Resolve installed readers and verify installed contents (2026-10-02)
+
+- Command bootstraps resolve documentation at all four adapter destinations,
+  preserve clone priority and nonempty overrides, and recognize both registered
+  source layouts and installed command inventories.
+- The advisory installed diagnostic honors adapter overrides, checks shared
+  skills separately from each documentation root, and compares recursive topic
+  paths and file bytes. Missing, unreadable and partial coverage cannot report
+  clean. Temporary installation controls and deliberate faults cover the repair.
+- Description token deltas are estimates, not measurements of session usage.
+
+### Calibrate continuity acceptance and evaluation graders (2026-10-02)
+
+- The opt-in lab executes inventory and continuity acceptance cases, checks
+  preserved work and an honest verification handoff, and calibrates those checks
+  with two valid algorithms and deliberate faults. These are evaluator checks,
+  not agent outcomes or evidence of workflow ROI.
+- Evaluation plans now include calibration for new or changed graders, or cite
+  reusable calibration for unchanged graders. Valid alternatives and independent
+  expected outcomes protect model comparisons from a faulty reference oracle;
+  versioned corrections preserve historical evidence.
+
+### Honor tool selection when installing optional docs (2026-10-02)
+
+- Optional docs now follow tool selection, including project Cursor docs.
+  Installing for one tool preserves unselected documentation trees.
+
+### Attest compaction usage and execute independent acceptance cases (2026-10-01)
+
+- The opt-in lab ledger retains compaction calls and explains a cumulative gap
+  only when full thread totals and ordinary-call totals independently agree.
+  Ledger version 2 exposes the compaction usage and reconciliation evidence;
+  arbitrary discrepancies still make the total unknown.
+- A local behavior runner executes candidate adapters with inputs only and checks
+  independent CSV and budget expectations. Seeded duplicate-loss, refund and
+  currency-unit faults lose domain credit, as do protocol failures and timeouts.
+  The reference adapter calibrates the grader and does not establish agent ROI.
+
+### Add an opt-in measurement and context experiment (2026-10-01)
+
+- `evals/lab/` separates completed browser evidence from empty findings and accounts
+  for explicitly linked root and child sessions without adding duplicate usage views.
+  Missing usage or pricing remains unknown; versioned outputs preserve old results.
+- File and disposable SQLite backends share mandatory dependency closure, source
+  validation, supersession handling and an explicit context budget. Ranking adapters
+  compare fixed candidates with deterministic scoring, Laya and a cross-encoder.
+- The offline fixture suite runs in CI. Learned runtimes and weights are optional,
+  installed separately for a requested experiment; no default command loading changes.
+
+### Read backup timestamps with the host stat syntax (2026-10-01)
+
+The substrate retention check selects BSD or GNU stat before reading backup
+timestamps, suppressing the probe's filesystem output. Empty or invalid timestamps
+report a stale backup. Regression checks cover GNU output, paths with spaces and
+an empty backup directory.
+
+### A measured rerun removes the brief-silent blind reading, and two closing steps take one call (2026-10-01)
+
+From the rerun that measured ADR-0244 and ADR-0245 on the same brief, and a second rerun of the
+changes that followed it (ADR-0246).
+
+- Tried and removed. The branch added plan checker rules 6b to 6d, a blind second reading in
+  `approve-plan` with a `contested` mark, keep-every-record for a brief-silent drop, and a
+  domain-terms reading in `review-hard`, `pr-package` and `task-close`. The rerun (three runs on the
+  benchmark brief, one on a brief from another domain) did not support them: identical rows were
+  still dropped in 2 of 3 runs, refunds still counted as income in 3 of 3, and the mean cost was
+  $4.60 at 73 minutes against $4.19 at 72. The gain criterion was not met and the revert condition
+  was met, so none of it ships. `review-hard` and `approve-plan` keep the brief-silent path of
+  ADR-0245. ADR-0246 records the measurement, and why the rows passed the checks without facing the
+  ambiguity.
+- `scripts/emit-substrate-write.sh status` replaces one slice `Status:` line and logs it in one call;
+  `slice-closure` and `implement-approved-slice` use it, since a plain edit would show a
+  content-vs-log drift on every close. `branch-commit --apply` runs the display, `git write-tree`,
+  the commit and the post-commit proof in one shell call with every check it had.
+- `implementation-plan` gives a slice that formats and parses one kind of value a test condition that
+  `parse(format(x))` returns `x` for a boundary value, and for a negative one where the type has a
+  sign. It fired on the second-domain run.
+- The row contract in `wos/task-file-contracts.md` uses counter-case examples from other domains.
+- Follow-ups from the previous entry: `code-locate` hands back to the slice whose gate sent it;
+  `self-critique-and-revise` keeps a closed slice as a stub when it rewrites `## Slices`; the spec
+  and the `TASK_STATE.md` template say standing authorization applies only with no configured
+  remote; `implement-fleet` workers reach `base_ref` with `git reset --keep`, which needs no
+  ancestry and never discards a local edit, instead of `git reset --hard` (ADR-0242's Status line
+  names the change). ADR-0244's Status line names the Status write, and ADR-0245's records the
+  decision that confirmed its domain terms table.
+- Tests: the `status` subcommand in `scripts/tests/test-emit-substrate-apply.sh`, and the structural
+  check `chain-rule-text`, which pins the command text the reruns measured.
+  `test-guard-mutation.sh` passes again: three mutations still looked for the end of
+  `SHIPPED_SCRIPTS` before `check-slice-order.sh` was appended to it. Fixture builders for scenarios
+  148, 150 and 151.
+
+### The chain holds in a long run, and review checks data rules against the brief (2026-09-30)
+
+From a benchmark of one brief through four models with and without Fhorja (ADR-0244, ADR-0245).
+
+- `implement-approved-slice` runs `scripts/check-slice-order.sh` before a slice and refuses one whose
+  `Depends-on:` slices are not closed. Every command that closes a slice now writes `Status: closed`
+  to the plan, which is the record the check reads. `capture-references`, entered from the
+  reference-grounding gate, hands back to the slice.
+- `review-hard` treats an agent-written rule that drops, merges or reclassifies stored user data or
+  money as must-fix unless it quotes the brief; a silent brief becomes a provisional decision with
+  `Impact: high`. `approve-plan` gives its blinded review the brief. `review-hard` sweeps sibling
+  sites before closing a fix.
+- `task-init` writes `DECISIONS.md ## Domain terms`, `implementation-plan` turns each row into a
+  tagged test condition, and `check-plan-coverage.sh` rule 6 fails an untagged row.
+- A session a person launched, whose brief says nobody will answer and allows local commits, runs
+  the chain to a local commit and `task-close` when the repository has no configured remote. With a
+  remote it stays on the ADR-0237 draft-PR path. Outward acts stay refused.
+- Each review floor keeps the reviews it accepted before (`review-hard` for Layer-2,
+  `repo-consistency-sweep` for internal reuse). That review counts whether it ran inline or in a
+  dispatched sub-agent, and a host gate counts only through an artifact it produced.
+- The attended approval lock in `implement-approved-slice` reads the last plan revision from
+  `.wos/VERIFICATION_LOG.jsonl`, so a closing command's `Status:` write is not a plan revision.
+- The inline web and backend runtime rule in `implement-approved-slice` routes to
+  `web-runtime-verify` or `api-runtime-verify` before an inline close whenever a build can be served
+  or a backend probed.
+- `verify-log-validator.py` reads a fleet event (a merge or a worker classification) logged with a
+  null sha as leaving the section's chain position unknown, so the plan `Status:` write after an
+  `implement-fleet` merge or a failed worker no longer fails the integrity floor. A real chain break is still reported.
+- The slice-order check also reads a bare `done`, or `done` followed by a space or `(`, as closed. An in-flight task whose
+  closed slices carry another value routes its first gated slice once to `slice-closure` for that
+  dependency (see `docs/MIGRATION.md`).
+- Per-slice context bounding (a fresh sub-agent per slice) is deferred until the benchmark rerun.
+- Tests: `scripts/tests/test-check-slice-order.sh`, rule 6 cases in
+  `scripts/tests/test-check-plan-coverage.sh`, and merge cases in
+  `scripts/tests/test-verify-log-chain.sh`. Eval scenarios 148 to 151.
+
 ### README images in the fhorja.dev design (2026-09-29)
 
 - The five README images are redrawn in the site's look: the navy and blue palette from its tokens,
@@ -1760,12 +1899,12 @@ First public release: Fhorja goes open source under AGPL-3.0, published with a f
 
 ### Notes
 - `## [0.1.0]` was cut on 2026-04-30; the "Initial public release under AGPL-3.0" entries below it remain as the pre-launch baseline.
-- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->242<!-- /count --> (0001-0209, with 0037 as the reserved gap).
-- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->242<!-- /count --> (0001-0209, with 0037 as the reserved gap).
-- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->242<!-- /count --> (0001-0209, with 0037 as the reserved gap).
-- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->242<!-- /count --> (0001-0209, with 0037 as the reserved gap).
-- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->242<!-- /count --> (0001-0209, with 0037 as the reserved gap).
-- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->242<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->246<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->246<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->246<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->246<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->246<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->246<!-- /count --> (0001-0209, with 0037 as the reserved gap).
 
 ---
 

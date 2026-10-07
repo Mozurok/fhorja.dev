@@ -50,7 +50,11 @@ out one branch in two working trees; `task-workspace` creates the branch in its 
 Fires WHEN the run is attended, no `Operating mode: assisted` is declared, worktree isolation is not
 requested, and the product codebase is a git repository with a configured remote. Otherwise create no
 branch and write no `Task branch:` line; an assisted run keeps the pre-ADR-0233 behavior, where the
-person names the branch.
+person names the branch. Under standing authorization (ADR-0244,
+`wos/cross-cutting-workflow-guardrails.md ### Unattended sessions`) it SHALL also fire with no configured
+remote: the steps run unchanged, the default branch is `main` or `master`, the remote checks print
+nothing, and step 4 records that local default branch as the base. That session never commits on the
+default branch, whatever its brief names.
 
 1. Read the current branch (`git -C <path> branch --show-current`) and cite it.
 2. A branch other people may already pull is never the task branch. WHEN the current branch is the

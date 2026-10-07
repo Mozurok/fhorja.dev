@@ -1,0 +1,337 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "case_id": "first-seen-order",
+      "input": {
+        "rows": [
+          {
+            "sku": "Z",
+            "delta": 2
+          },
+          {
+            "sku": " A ",
+            "delta": 3
+          },
+          {
+            "sku": "z",
+            "delta": -1
+          }
+        ]
+      },
+      "expected": [
+        {
+          "sku": "z",
+          "units": 1
+        },
+        {
+          "sku": "a",
+          "units": 3
+        }
+      ]
+    },
+    {
+      "case_id": "duplicate-retention",
+      "input": {
+        "rows": [
+          {
+            "sku": "a",
+            "delta": 3
+          },
+          {
+            "sku": "a",
+            "delta": 3
+          }
+        ]
+      },
+      "expected": [
+        {
+          "sku": "a",
+          "units": 6
+        }
+      ]
+    },
+    {
+      "case_id": "signed-delta",
+      "input": {
+        "rows": [
+          {
+            "sku": "a",
+            "delta": -9
+          },
+          {
+            "sku": "a",
+            "delta": 2
+          }
+        ]
+      },
+      "expected": [
+        {
+          "sku": "a",
+          "units": -7
+        }
+      ]
+    },
+    {
+      "case_id": "zero-total",
+      "input": {
+        "rows": [
+          {
+            "sku": "z",
+            "delta": 7
+          },
+          {
+            "sku": "a",
+            "delta": 4
+          },
+          {
+            "sku": "z",
+            "delta": -7
+          }
+        ]
+      },
+      "expected": [
+        {
+          "sku": "z",
+          "units": 0
+        },
+        {
+          "sku": "a",
+          "units": 4
+        }
+      ]
+    },
+    {
+      "case_id": "large-exact",
+      "input": {
+        "rows": [
+          {
+            "sku": "a",
+            "delta": 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000123
+          },
+          {
+            "sku": "a",
+            "delta": -17
+          },
+          {
+            "sku": "b",
+            "delta": -10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000123
+          }
+        ]
+      },
+      "expected": [
+        {
+          "sku": "a",
+          "units": 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000106
+        },
+        {
+          "sku": "b",
+          "units": -10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000123
+        }
+      ]
+    },
+    {
+      "case_id": "normalized-blocked",
+      "input": {
+        "rows": [
+          {
+            "sku": " A ",
+            "delta": 7
+          },
+          {
+            "sku": "b",
+            "delta": 2
+          }
+        ],
+        "blocked": [
+          "a "
+        ]
+      },
+      "expected": [
+        {
+          "sku": "b",
+          "units": 2
+        }
+      ]
+    },
+    {
+      "case_id": "unicode-casefold",
+      "input": {
+        "rows": [
+          {
+            "sku": "Straße",
+            "delta": 1
+          },
+          {
+            "sku": "STRASSE",
+            "delta": 3
+          }
+        ]
+      },
+      "expected": [
+        {
+          "sku": "strasse",
+          "units": 4
+        }
+      ]
+    },
+    {
+      "case_id": "empty-valid",
+      "input": {
+        "rows": []
+      },
+      "expected": []
+    },
+    {
+      "case_id": "extra-keys",
+      "input": {
+        "rows": [
+          {
+            "sku": "x",
+            "delta": 3,
+            "unused": 9
+          }
+        ],
+        "unused": true
+      },
+      "expected": [
+        {
+          "sku": "x",
+          "units": 3
+        }
+      ]
+    },
+    {
+      "case_id": "invalid-rows",
+      "input": {},
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "boolean-delta",
+      "input": {
+        "rows": [
+          {
+            "sku": "a",
+            "delta": true
+          }
+        ]
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "non-object",
+      "input": [],
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "rows-object",
+      "input": {
+        "rows": {}
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "row-null",
+      "input": {
+        "rows": [
+          null
+        ]
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "empty-sku",
+      "input": {
+        "rows": [
+          {
+            "sku": " ",
+            "delta": 2
+          }
+        ]
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "non-string-sku",
+      "input": {
+        "rows": [
+          {
+            "sku": 7,
+            "delta": 2
+          }
+        ]
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "float-delta",
+      "input": {
+        "rows": [
+          {
+            "sku": "a",
+            "delta": 2.0
+          }
+        ]
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "missing-delta",
+      "input": {
+        "rows": [
+          {
+            "sku": "a"
+          }
+        ]
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "invalid-blocked",
+      "input": {
+        "rows": [],
+        "blocked": [
+          null
+        ]
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "blocked-invalid-row",
+      "input": {
+        "rows": [
+          {
+            "sku": "a",
+            "delta": true
+          }
+        ],
+        "blocked": [
+          "a"
+        ]
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    }
+  ]
+}

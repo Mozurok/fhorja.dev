@@ -196,6 +196,14 @@ def validate_line(idx: int, raw: str) -> list[str]:
 #: Not an error: comparing against it is skipped rather than reported.
 INDETERMINATE = object()
 
+#: A fleet event (a merge or a worker classification, FLEET_EVENTS) logged with a null
+#: sha_after by design (commands/implement-fleet.md Step 11) is not a section write.
+#: After one the position is INDETERMINATE, as after event=propose: the next applied
+#: write there (the plan `Status: closed` of P-11, after a merge or after a failed
+#: worker's slice closes through implement-approved-slice) is not a chain break. A
+#: fleet event that records a sha_after keeps chaining through it. A write with no
+#: fleet event before it is still held to the previous sha_after.
+
 
 def _is_owning_write(obj: dict) -> bool:
     """True for an APPLIED write/overwrite, the only event class that asserts
@@ -254,6 +262,10 @@ def _advance_chain(last_sec: dict, last_file: dict, key: tuple, obj: dict) -> No
         else:
             last_file[file_] = INDETERMINATE
         last_sec[key] = INDETERMINATE
+        return
+    if obj.get("event") in FLEET_EVENTS and obj.get("sha_after") is None:
+        last_sec[key] = INDETERMINATE
+        last_file[file_] = INDETERMINATE
         return
     last_sec[key] = obj.get("sha_after")
     last_file[file_] = INDETERMINATE

@@ -37,7 +37,7 @@ Role:
 - when `PROJECT_CHARTER.md` exists, seeds `SOURCE_OF_TRUTH.md` automatically from project-level memory; when it does not, warns and proceeds with placeholders (does not block)
 - writes the five files `APPLIED` in every mode (ADR-0199), so the Handoff is `Run now: implementation-plan`, `Mode: Agent`, in every mode
 - sets the default pipeline `task-init` -> `implementation-plan` -> `approve-plan` -> `implement-approved-slice` -> `branch-commit --apply` -> `pr-package --apply` (ADR-0184, ADR-0208, ADR-0233) and records the fired disqualifiers, or none, on the `Escalations:` line (ADR-0207)
-- in an attended git repository with a configured remote, on the default branch and without requested isolation, creates `task/<task-dir>` in place and records it on a `Task branch:` line (ADR-0233)
+- in an attended git repository with a configured remote, on the default branch and without requested isolation, creates `task/<task-dir>` in place and records it on a `Task branch:` line (ADR-0233); under standing authorization it does the same with no remote (ADR-0244)
 - lists the decisions it expects to assume and continues without waiting; an answer that arrives while the chain runs replaces the matching provisional `P-N`
 - on the one-slice route (attended, no escalation, one sentence, at most two named files, no locked decision beyond the brief, and no provisional `P-N` but `Impact: normal` ones on a task branch) writes the single approved slice, each such `P-N`, both lock signals and a `Route: one-slice` line itself (ADR-0225, ADR-0239)
 
@@ -323,7 +323,7 @@ Typical next commands (waves-aware and terminal-safe per ADR-0042):
 - `sync-task-state` for the LOW/MEDIUM inline-close path (keeps `TASK_STATE.md` fresh without a separate prompt)
 - `slice-closure` (HIGH complexity or exit criteria not fully verifiable inline)
 - `review-hard`
-- on the last slice, when the run is attended and no `commit-ref` exists yet, whatever `Escalations:` records: `branch-commit --apply` (ADR-0159, ADR-0184, ADR-0233), before `where-we-at` or `task-close`
+- on the last slice, when the run is attended or under standing authorization (ADR-0244) and no `commit-ref` exists yet, whatever `Escalations:` records: `branch-commit --apply` (ADR-0159, ADR-0184, ADR-0233), before `where-we-at` or `task-close`
 - `where-we-at` (multi-slice) or `task-close` when this was the last slice in the plan otherwise
 
 ### implement-fleet
@@ -334,7 +334,7 @@ Role:
 
 Typical next commands:
 - `slice-closure` per completed slice
-- `branch-commit --apply` when all waves pass and the run is attended, which hands to `pr-package --apply` where a remote is configured (ADR-0233)
+- `branch-commit --apply` when all waves pass and the run is attended or under standing authorization (ADR-0244), which hands to `pr-package --apply` where a remote is configured (ADR-0233), and to `task-close` under standing authorization, which applies only with no configured remote
 - `implement-approved-slice` for a slice held or failed by a wave (dependency, scope overlap, worker failure, or integration-gate failure)
 
 ### implement-slice-complement

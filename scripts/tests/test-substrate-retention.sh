@@ -55,7 +55,8 @@ MAX_BACKUP_AGE_DAYS=7
 ARCHIVE_MAX_AGE_DAYS=365
 EOF
 out="$(SUBSTRATE_RETENTION_FILE="$TMP/sidecar-stale" "$GATE" --root "$r" 2>&1)"; rc=$?
-[ "$rc" = "1" ] && pass "backup older than the limit exits 1" \
+[ "$rc" = "1" ] && printf '%s' "$out" | grep -q '^Substrate-retention: STALE' \
+  && pass "backup older than the limit reports STALE and exits 1" \
   || fail "expected exit 1 on a 400-day-old backup, got rc=$rc: $out"
 
 # 5. a declared destination that does not exist is a missing backup, not a pass.
@@ -84,6 +85,67 @@ printf '%s' "$out" | grep -q 'acme__thing' \
 "$GATE" --root >/dev/null 2>&1; rc=$?
 [ "$rc" = "2" ] && pass "--root without a value exits 2" \
   || fail "expected exit 2 on a missing --root value, got rc=$rc"
+
+# 8. GNU stat rejects the BSD flag but emits filesystem metadata on stdout.
+# Exercise that contract on either host, including spaces and multiple backups.
+r="$(make_root gnustat)"; b="$TMP/backup with spaces"; mkdir -p "$b" "$TMP/stat-bin"
+echo x > "$b/old dump.tar"; touch -t 200001010000 "$b/old dump.tar"
+echo x > "$b/fresh dump.tar"
+RETENTION_TEST_STAT="$(command -v stat)"
+if "$RETENTION_TEST_STAT" -f '%m' "$GATE" >/dev/null 2>&1; then
+  RETENTION_TEST_FORMAT=-f; RETENTION_TEST_PATTERN='%m'
+else
+  RETENTION_TEST_FORMAT=-c; RETENTION_TEST_PATTERN='%Y'
+fi
+cat > "$TMP/stat-bin/stat" <<'SH'
+#!/usr/bin/env bash
+if [[ "$1" == -f ]]; then
+  printf 'Inodes: Total: 123 Free: 100\n'
+  exit 1
+fi
+if [[ "$1" == -c && "$2" == '%Y' ]]; then
+  if [[ -n "${RETENTION_TEST_OUTPUT:-}" ]]; then
+    printf '%s\n' "$RETENTION_TEST_OUTPUT"
+    exit 0
+  fi
+  shift 2
+  exec "$RETENTION_TEST_STAT" "$RETENTION_TEST_FORMAT" "$RETENTION_TEST_PATTERN" "$@"
+fi
+exit 2
+SH
+chmod +x "$TMP/stat-bin/stat"
+cat > "$TMP/sidecar-gnustat" <<EOF
+BACKUP_DEST='$b'
+MAX_BACKUP_AGE_DAYS=7
+EOF
+out="$(PATH="$TMP/stat-bin:$PATH" RETENTION_TEST_STAT="$RETENTION_TEST_STAT" \
+  RETENTION_TEST_FORMAT="$RETENTION_TEST_FORMAT" RETENTION_TEST_PATTERN="$RETENTION_TEST_PATTERN" \
+  SUBSTRATE_RETENTION_FILE="$TMP/sidecar-gnustat" "$GATE" --root "$r" 2>&1)"; rc=$?
+[ "$rc" = "0" ] && printf '%s' "$out" | grep -q '^Substrate-retention: clean' \
+  && pass "GNU stat metadata is suppressed and newest backup with spaces is clean" \
+  || fail "expected clean from GNU stat fixture, got rc=$rc: $out"
+
+# Malformed decimal or metadata must never enter shell arithmetic or earn clean.
+for bad_timestamp in 08 'Inodes: Total: 123' 999999999999999999999; do
+  out="$(PATH="$TMP/stat-bin:$PATH" RETENTION_TEST_STAT="$RETENTION_TEST_STAT" \
+    RETENTION_TEST_FORMAT="$RETENTION_TEST_FORMAT" RETENTION_TEST_PATTERN="$RETENTION_TEST_PATTERN" \
+    RETENTION_TEST_OUTPUT="$bad_timestamp" SUBSTRATE_RETENTION_FILE="$TMP/sidecar-gnustat" \
+    "$GATE" --root "$r" 2>&1)"; rc=$?
+  [ "$rc" = "1" ] && printf '%s' "$out" | grep -q '^Substrate-retention: STALE' \
+    && pass "malformed timestamp $bad_timestamp reports STALE (exit 1)" \
+    || fail "expected STALE for malformed timestamp, got rc=$rc: $out"
+done
+
+# 9. An empty destination has no timestamp to measure and is stale.
+r="$(make_root emptydest)"; b="$TMP/backup-empty"; mkdir -p "$b"
+cat > "$TMP/sidecar-emptydest" <<EOF
+BACKUP_DEST=$b
+MAX_BACKUP_AGE_DAYS=7
+EOF
+out="$(SUBSTRATE_RETENTION_FILE="$TMP/sidecar-emptydest" "$GATE" --root "$r" 2>&1)"; rc=$?
+[ "$rc" = "1" ] && printf '%s' "$out" | grep -q '^Substrate-retention: STALE' \
+  && pass "empty backup destination reports STALE (exit 1)" \
+  || fail "expected STALE for empty destination, got rc=$rc: $out"
 
 echo
 if [ "$fails" -eq 0 ]; then echo "test-substrate-retention: all $checks checks passed"; exit 0

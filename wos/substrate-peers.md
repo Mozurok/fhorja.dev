@@ -75,6 +75,7 @@ Legend: O = conventional owner (writes via Edit/Write); P = conventionally stage
 | `## Locked decisions` (D-N) | decision-interview | contract-signoff, direction-adjust, post-review-pivot | all |
 | `## Provisional decisions` (P-N, P-1) | decision-interview | resolve-contract-gaps, direction-adjust, targeted-questions, task-init (the one-slice route, ADR-0239: it writes each `Impact: normal` P-N the route admits), implementation-plan (in an attended chain on a task branch, the P-N a new behavioral commitment in its plan needs, ADR-0233) | all |
 | `## Decision history` | decision-interview | contract-signoff, direction-adjust, post-review-pivot | all |
+| `## Domain terms` (ADR-0245) | task-init | (sole owner; a row's outcome is locked by a `### D-N` naming the term, not by editing the row) | implementation-plan (one tagged exit criterion or `Test condition:` per row), `scripts/check-plan-coverage.sh` rule 6, all |
 | `## Open questions` | targeted-questions | resolve-contract-gaps | all |
 | `## Discarded alternatives` | NONE (forbidden per `wos/task-file-contracts.md`) | n/a | n/a |
 
@@ -92,9 +93,9 @@ Legend: O = conventional owner (writes via Edit/Write); P = conventionally stage
 | `## Current gaps` | implementation-plan | impact-analysis (P) | all |
 | `## Constraints` | invariants-and-non-goals | implementation-plan (direct write while no `INVARIANTS_AND_NON_GOALS.md` exists for the task; propose-only after the owner runs, ADR-0101) | all |
 | `## Infrastructure prerequisites` | implementation-plan | NONE | all |
-| `## Slices` | implementation-plan | task-init (the one-slice route, ADR-0225: it writes the single approved slice itself), implement-slice-complement (micro-delta only), slice-closure and sync-task-state (opt-in slice-status propagation, Regime 1, logged H3-scoped) | all |
+| `## Slices` | implementation-plan | task-init (the one-slice route, ADR-0225: it writes the single approved slice itself), implement-slice-complement (micro-delta only), slice-closure (the slice `Status:` on every run, ADR-0244 P-11, plus opt-in propagation), sync-task-state (opt-in slice-status propagation); Regime 1, logged H3-scoped | all |
 | `## Execution waves` | implementation-plan | implement-fleet (its `fleet-merge` log lines only, one per wave; it writes no bytes here, ADR-0243) | all (implement-fleet reads to compute waves, per ADR-0041/0042) |
-| `### Slice N` (per-slice body) | implementation-plan | implement-approved-slice (status only), implement-fleet (status only, via its workers), slice-closure (status only), sync-task-state (status only, Slice-08 P2 slice-status field); these H3-scoped co-writes are LOGGED at the owning `## Slices` H2 per `commands/_shared/substrate-write-protocol.md` (ADR-0101) | all |
+| `### Slice N` (per-slice body) | implementation-plan | implement-approved-slice (status only), implement-fleet (status only, written by the orchestrator for each merged slice, ADR-0244 P-11), slice-closure (status only), sync-task-state (status only, Slice-08 P2 slice-status field); these H3-scoped co-writes are LOGGED at the owning `## Slices` H2 per `commands/_shared/substrate-write-protocol.md` (ADR-0101) | all |
 | `## Validation expectations` | test-strategy | implementation-plan (direct write while no `TEST_STRATEGY.md` exists for the task; propose-only after the owner runs, ADR-0101) | all |
 | `## Rollout and rollback notes` | implementation-plan | release-plan (P) | all |
 | `## Risks and mitigations` | implementation-plan | review-hard (P) | all |
@@ -262,8 +263,8 @@ Read-only peers: the `--lost-session` mode of `resume-from-state` (ADR-0113) is 
 
 1. Add/remove/reorder slices: `implementation-plan` only.
 2. Inside `### Slice N`, co-writers may mutate ONLY `Status:` and `Evidence:` lines:
-   - `implement-approved-slice`: `Status: in-progress` -> `Status: implemented (pending closure)`
-   - `slice-closure`: `Status: implemented (pending closure)` -> `Status: closed` + Evidence link
+   - The closing commands set `Status:` to the closure verdict (ADR-0244 P-11): `implement-approved-slice` writes `closed` on an inline close; `slice-closure` writes `closed`, `closed-with-followups` (micro-delta follow-ups only) or `not-ready` (a not-ready verdict or a material follow-up) from any prior value, plus an Evidence link; the `implement-fleet` orchestrator writes `closed` for each merged LOW or MEDIUM slice, and its workers never write it. `implement-approved-slice` and `slice-closure` make that write with one `scripts/emit-substrate-write.sh status` call, which edits the one line in place and appends one `## Slices` log line, and refuses an authoring owner so the write never counts as a plan revision (P-9); the orchestrator's write is unchanged. `scripts/check-slice-order.sh` reads as closed a value starting with `closed`, a bare `done`, or `done` followed by a space or `(`; `done` is the hand-written value of plans written before ADR-0244.
+   - `sync-task-state`: the same field, only under its opt-in propagation scope.
 3. `implement-slice-complement` APPENDS a `Micro-deltas:` sub-bullet (never mutates acceptance criteria).
 4. Cross-slice churn (renumber, reorder) requires `implementation-plan` re-run with `reason=replan`.
 
@@ -362,6 +363,7 @@ Reuses Epic J J.5 fleet-run provenance log; does not create a parallel log.
 **Emission convention:**
 - Commands writing substrate emit one line per section write.
 - Orchestrators emit one line per merged section (`event=fleet-merge`) PLUS one line per per-worker classification event (`event=merge_include`, `event=worker_failed`, etc.).
+- A fleet line (a merge such as `fleet-merge` or `merge_include`, or a worker classification such as `worker_failed`) with a null `sha_after` records a merge or a classification, not a section write. `scripts/verify-log-validator.py` treats the section's chain position after it as unknown, as after `event=propose`, so the orchestrator's next applied write there (the plan `Status: closed`, ADR-0244) is not a sha-chain break. The write after that is held to the chain again.
 - Personas writing PROPOSED blocks emit `event=propose` with `mode=proposed`.
 - `approve-proposed` emits `event=approve` per applied file.
 - `event=refuse` marks a fleet merge its orchestrator refused because the orphan scan failed (`orphan_scan=failed`, `screen-spec-fleet` and `atom-audit-fleet`). It no longer marks an ownership conflict (ADR-0232): a write outside the matrix is an ordinary `write` whose `reason` names the conventional owner.

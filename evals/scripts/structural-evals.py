@@ -5944,12 +5944,15 @@ FLEET_DISPATCH_RETIRED = (
     ("the resolved return path belongs to the orchestrator's task inbox",
      "the old Step 7 sends the worker's return file outside its own worktree, where an "
      "isolated worker cannot write (ADR-0242 D-3)"),
+    ("git merge --ff-only <base_ref>",
+     "a fast-forward fails whenever the default branch moved past the task branch, so every "
+     "worker in the wave returns failed (2026-10-01 branch review, SF-1)"),
 )
 FLEET_DISPATCH_ANCHORS = (
     ("harness isolation", "isolation` on the `Agent` tool"),
     ("no hand-made worktree", "create slice worktrees by hand"),
     ("the sequential fallback", "no per-agent isolation option"),
-    ("the move to base_ref", "git reset --hard <base_ref>"),
+    ("the move to base_ref (needs no ancestry, never discards a local edit)", "git reset --keep <base_ref>"),
     ("the HEAD check", "git rev-parse HEAD"),
     ("the return folder", "`.fleet-out/`"),
     ("the return folder is never committed", "never staged or committed"),
@@ -5958,6 +5961,66 @@ FLEET_DISPATCH_ANCHORS = (
     ("the merge_include line's section (ADR-0243)", "`section='## Slices'`"),
     ("the fleet-merge line's section (ADR-0243)", "`section='## Execution waves'`"),
 )
+
+
+def check_fleet_result_contract(root=None):
+    """Pin conditional handle requirements and the independent native admission gate.
+
+    Static contract check only. Real Git integration runs in test-implement-fleet-result.py;
+    this check makes no claim about any host's schema dialect or model obedience.
+    """
+    base = root or _repo()
+    fails = []
+    path = os.path.join(base, "commands", "implement-fleet.md")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+        raw = text.split("  worker_output_schema: |\n", 1)[1].split("\n---", 1)[0]
+        schema = json.loads(raw)
+        if "worker_id" not in schema["required"]:
+            fails.append("implement-fleet: worker_id is not required")
+        if set(schema["required"]) & {"slice_note_path", "worktree_path", "commit_sha"}:
+            fails.append("implement-fleet: success handles required on failure states")
+        statuses = {"satisfied", "needs_revision", "max_iterations_reached", "scope_violation", "failed", "interrupted", "timed_out"}
+        if set(schema["properties"]["status"].get("enum", [])) != statuses:
+            fails.append("implement-fleet: status taxonomy is incomplete")
+        props = schema["properties"]
+        for key in ("worker_id", "slice_id", "worktree_path", "slice_note_path"):
+            if props[key].get("type") != "string" or props[key].get("minLength") != 1 or props[key].get("pattern") != r"\S":
+                fails.append("implement-fleet: missing nonempty handle contract: " + key)
+        clauses = schema.get("allOf", [])
+        by_status = {}
+        for clause in clauses:
+            condition = clause.get("if", {})
+            status = condition.get("properties", {}).get("status", {}).get("const")
+            if condition.get("required") == ["status"]:
+                by_status[status] = clause.get("then", {})
+        success = by_status.get("satisfied", {})
+        if set(success.get("required", [])) != {"slice_note_path", "worktree_path", "commit_sha"}:
+            fails.append("implement-fleet: satisfied consumed handles are not conditionally required")
+        if success.get("not") != {"required": ["error"]}:
+            fails.append("implement-fleet: satisfied can carry an error")
+        for key in ("build_status", "test_status"):
+            if success.get("properties", {}).get(key, {}).get("enum") != ["pass", "not_run"]:
+                fails.append("implement-fleet: satisfied can carry failed or partial checks")
+        if success.get("properties", {}).get("out_of_scope_writes", {}).get("maxItems") != 0:
+            fails.append("implement-fleet: satisfied can carry out-of-scope writes")
+        if by_status.get("failed", {}).get("required") != ["error"]:
+            fails.append("implement-fleet: failed does not require nested error")
+        if set(props["error"].get("required", [])) != {"error_class", "error_message", "error_evidence", "recoverable"} or props["error"]["properties"]["recoverable"].get("type") != "boolean":
+            fails.append("implement-fleet: error object differs from shared worker contract")
+        for anchor in ("scripts/validate-implement-fleet-result.sh <payload.json> <expected.json>",
+                       "for EVERY expected worker", "exit 3", "max_iterations_reached",
+                       "commit_sequence", "never cherry-pick only the tip", "monitor is informational"):
+            if anchor.lower() not in text.lower():
+                fails.append("implement-fleet: native integration contract missing: " + anchor)
+        barrier = next((ln for ln in text.splitlines() if ln.startswith("- **Step 8:")), "")
+        for status in statuses - {"satisfied"}:
+            if "`" + status + "`" not in barrier:
+                fails.append("implement-fleet: barrier fails to hold " + status)
+    except (OSError, ValueError, KeyError, IndexError, TypeError) as exc:
+        fails.append("implement-fleet: malformed or missing worker output contract: " + str(exc))
+    return (not fails, fails)
 
 
 def check_fleet_dispatch_isolation(root=None):
@@ -5995,6 +6058,56 @@ def check_fleet_dispatch_isolation(root=None):
             if anchor not in text:
                 fails.append(f"commands/_shared/worker-contract.md: does not name {anchor}, so "
                              f"the contract every fleet cites has one carrier location, not two")
+    return (not fails, fails)
+
+
+# The command text that carries ADR-0244, ADR-0245 and the kept half of ADR-0246 (FU-3 of the
+# 2026-09-30 benchmark-rerun-followups task). Those decisions were measured by reruns of one
+# benchmark brief, and the next rerun compares against this exact text: an edit that drops a
+# sentence here changes what is measured without anyone deciding it. Each anchor is a phrase the
+# rule cannot lose and still be the rule. The brief-silent additions this branch tried are not
+# pinned: the rerun did not support them and ADR-0246 records their removal.
+CHAIN_RULE_ANCHORS = (
+    ("implement-approved-slice", "ADR-0244", "the slice-order gate", "**Slice-order gate (ADR-0244).**"),
+    ("implement-approved-slice", "ADR-0244", "the gate's script call", "scripts/check-slice-order.sh <task-folder> <slice-id>"),
+    ("capture-references", "ADR-0244", "the detour hands back to the same slice",
+     "`Run now:` SHALL be `implement-approved-slice` for the same slice (ADR-0244)"),
+    ("slice-closure", "ADR-0244", "the closing command writes the plan Status", "SHALL write `Status: closed` on the closing slice"),
+    ("task-close", "ADR-0244", "the standing-authorization ending", "**Standing authorization (ADR-0244;"),
+    ("review-hard", "ADR-0245", "the sibling sweep", "**Sibling sweep before a fix closes (ADR-0245).**"),
+    ("approve-plan", "ADR-0245", "the brief pasted into the blinded rubric",
+     "SHALL paste the task `README.md ## Brief` verbatim into the rubric it dispatches"),
+    ("task-init", "ADR-0245", "the domain terms table on every task", "Every task also gets `## Domain terms` (ADR-0245)"),
+    ("implementation-plan", "ADR-0245", "the tagged counter-case", "tagged `[term: <Term>]`"),
+    ("slice-closure", "ADR-0246", "the one-call Status write", "scripts/emit-substrate-write.sh status"),
+    ("implement-approved-slice", "ADR-0246", "the one-call Status write", "`scripts/emit-substrate-write.sh status`"),
+    ("implementation-plan", "ADR-0246", "the round-trip test condition", "`parse(format(x))`"),
+)
+
+
+def check_chain_rule_text(root=None):
+    """[ADR-0244, ADR-0245, ADR-0246] the measured command text keeps its anchors.
+
+    Every anchor in CHAIN_RULE_ANCHORS is in its command file. Path-parameterized so a mutation
+    can be run on a copy of commands/ and never on the live tree.
+    """
+    base = root or _repo()
+    fails = []
+    bodies = {}
+    for cmd, _adr, _label, _anchor in CHAIN_RULE_ANCHORS:
+        if cmd in bodies:
+            continue
+        path = os.path.join(base, "commands", f"{cmd}.md")
+        if not os.path.isfile(path):
+            fails.append(f"commands/{cmd}.md: missing; this check lost its subject")
+            bodies[cmd] = None
+            continue
+        with open(path, "r", encoding="utf-8") as fh:
+            bodies[cmd] = fh.read()
+    for cmd, adr, label, anchor in CHAIN_RULE_ANCHORS:
+        body = bodies.get(cmd)
+        if body is not None and anchor not in body:
+            fails.append(f"commands/{cmd}.md: {label} ({adr}) is gone (anchor: {anchor!r})")
     return (not fails, fails)
 
 
@@ -6271,9 +6384,11 @@ CHECKS = [
     ("criteria-content-floor", "scenario 138", "every scenario's criteria section holds at least three enumerable checks, so a rubric cannot decay into a paragraph the grader cannot score", check_criteria_content_floor),
     ("unity-topics-indexed", "scenario 129", "every wos/unity-*.md is in the read map, the map cites nothing absent from disk, and no Unity topic copies a sentence from a Godot or RN topic", check_unity_topics_indexed),
     ("handoff-continues-across-mode", "scenario 147", "a new Mode:, a model or a fresh session never stops the chain and an offered choice is a stop: the spec and the shared Handoff block say so, the validator refuses a Handoff naming a model, the four corrected surfaces keep their sentence, and no command, template or topic sends the chain to --model or one session per slice (ADR-0241)", check_handoff_continues_across_mode),
-    ("fleet-dispatch-isolation", "ADR-0242", "implement-fleet dispatches every worker with the harness's per-agent isolation and has it return through `.fleet-out/` in its own worktree: the old Step 6 hand-made worktree and the old Step 7 inbox write stay out, the reset-and-verify, return-folder and merge anchors stay in, and the worker contract names the second carrier location", check_fleet_dispatch_isolation),
+    ("fleet-result-contract", "scenarios 40, 52", "satisfied consumed handles and failed nested error are conditional; the independent native gate holds non-satisfied waves and integrates the whole validated commit sequence", check_fleet_result_contract),
+    ("fleet-dispatch-isolation", "ADR-0242", "implement-fleet dispatches every worker with the harness's per-agent isolation and has it return through `.fleet-out/` in its own worktree: the old Step 6 hand-made worktree and the old Step 7 inbox write stay out, the move-and-verify, return-folder and merge anchors stay in, and the worker contract names the second carrier location", check_fleet_dispatch_isolation),
     ("command-scripts-shipped", "ADR-0242, ADR-0243", "every scripts/<name> a command or shared block names is in the installer's SHIPPED_SCRIPTS or on the named not-shipped list with its reason, every shipped script exists, and monitor-fleet-progress.sh ships (ADR-0214 decides whether a script can); every commands/_shared block a command, the spec, a wos topic or a shipped block cites is in SHIPPED_SHARED_BLOCKS and exists, worker-contract.md and the closure pattern among them", check_command_scripts_shipped),
     ("fleet-default-route", "ADR-0243", "implement-fleet is the default route for a wave of two or more slices on a harness with per-agent worktree isolation: the four routing commands and the spec name that condition beside the fleet, implement-fleet is in the minimal profile and no longer a pilot, and ADR-0041's Status line names ADR-0243", check_fleet_default_route),
+    ("chain-rule-text", "ADR-0244, ADR-0245, ADR-0246", "the command text the 2026-09-30 benchmark measured keeps its anchors: the slice-order gate, the detour return, the closing Status write and the standing-authorization ending (ADR-0244); the brief pasted into the blinded rubric, the sibling sweep, the domain terms table and its tag (ADR-0245); the one-call Status write and the round-trip condition (ADR-0246)", check_chain_rule_text),
     ("background-session-test", "scenario 146", "a background session is attended only under the ADR-0237 five-condition test: the old unattended, background or fleet list is gone from every live surface, the guardrails rule keeps all five conditions and its fail-closed sentence, and the four commands that decide the stall and the --apply refusals cite it", check_background_session_test),
 ]
 

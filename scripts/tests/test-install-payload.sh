@@ -269,7 +269,7 @@ for s in $ALLOWED; do
     ingest-scan.py) out="$(cd "$TMP" && printf '' | python3 "$inst" 2>&1)" ;;
     scan-substrate-orphans.py) out="$(cd "$TMP" && python3 "$inst" "$EMPTY/active/2026-01-01_absent/TASK_STATE.md" 2>&1)" ;;
     emit-substrate-write.sh) out="$(cd "$TMP" && bash "$inst" emit --owner probe --file "$EMPTY/doc.md" --section '## S' --reason probe --task-root "$EMPTY/active" 2>&1)" ;;
-    scan-substrate-headers.sh|verify-substrate-batch.sh|check-live-markers.sh|check-plan-coverage.sh)
+    scan-substrate-headers.sh|verify-substrate-batch.sh|check-live-markers.sh|check-plan-coverage.sh|build-plan-review-input.sh|validate-implement-fleet-result.sh)
       out="$(cd "$TMP" && bash "$inst" "$EMPTY/active" 2>&1)" ;;
     verify-log-validator.py) out="$(cd "$TMP" && python3 "$inst" "$EMPTY/.wos/VERIFICATION_LOG.jsonl" 2>&1)" ;;
     plan-adherence.py) out="$(cd "$TMP" && python3 "$inst" "$EMPTY/active" 2>&1)" ;;
@@ -292,6 +292,57 @@ for s in $ALLOWED; do
   else
     fail "D-3 test 2: $s gave no named absence on an empty target: $(printf '%s' "$out" | head -1 | cut -c1-100)"
   fi
+done
+
+# 3c-review. Explicit consumer control, independent of the installer's allowlist.
+# Removing the helper from that list must not silently remove its test as well.
+REVIEW_TASK="$TMP/review-task"; mkdir -p "$REVIEW_TASK"
+printf '## Slices\n### 01: installed review\n- Decision-ref: D-1\n' > "$REVIEW_TASK/IMPLEMENTATION_PLAN.md"
+printf '## Locked decisions\n### D-1 installed boundary\nPreserve the stated limit.\n' > "$REVIEW_TASK/DECISIONS.md"
+printf '## Brief\nKeep the limit.\n## History\nHISTORY_SENTINEL\n' > "$REVIEW_TASK/README.md"
+review_assembler_control() {  # selected runtime root, including Kimi and project
+  local d="$1" helper out rc_review absent rc_absent
+  helper="$d/scripts/build-plan-review-input.sh"
+  if [ ! -x "$helper" ] || ! cmp -s "$REPO_ROOT/scripts/build-plan-review-input.sh" "$helper"; then
+    fail "installed review assembler absent or changed at ${d#$TMP/}"
+    return
+  fi
+  out="$(cd "$TMP" && bash "$helper" "$REVIEW_TASK" 2>&1)"; rc_review=$?
+  absent="$(cd "$TMP" && bash "$helper" "$TMP/absent-review-task" 2>"$TMP/review-absence.txt")"; rc_absent=$?
+  if [ "$rc_review" = "0" ] && [ "$rc_absent" = "2" ] && [ -z "$absent" ] \
+    && grep -q 'not found: task folder' "$TMP/review-absence.txt" \
+    && printf '%s' "$out" | python3 -c 'import json,sys; r=json.load(sys.stdin); assert "### D-1 installed boundary\nPreserve the stated limit.\n" in r["rubric"]; assert "Keep the limit.\n" in r["rubric"]; assert "HISTORY_SENTINEL" not in r["rubric"]'; then
+    pass "installed review assembler reads isolated inputs and refuses an absent task at ${d#$TMP/}"
+  else
+    fail "installed review assembler valid/absent controls failed at ${d#$TMP/} (exits $rc_review/$rc_absent)"
+  fi
+}
+for d in "$TMP/claude/workflow-docs" "$TMP/cursor/workflow-docs" "$TMP/codex/workflow-docs"; do
+  review_assembler_control "$d"
+done
+
+# Independent consumer control: installed helpers must actually validate a return.
+# The unittest module is not installed; execute it against each installed helper.
+fleet_validator_control() {
+  local d="$1" helper rc_fleet
+  helper="$d/scripts/validate-implement-fleet-result.sh"
+  if [ ! -x "$helper" ] || ! cmp -s "$REPO_ROOT/scripts/validate-implement-fleet-result.sh" "$helper"; then
+    fail "installed fleet validator absent or changed at ${d#$TMP/}"
+    return
+  fi
+  TEST_FLEET_RESULT_HELPER="$helper" python3 "$REPO_ROOT/scripts/tests/test-implement-fleet-result.py" \
+    FleetResultTests.test_valid_actual_commit_note_and_independent_hashes \
+    FleetResultTests.test_absent_inputs_never_report_ready \
+    FleetResultTests.test_non_satisfied_states_representable_but_hold_wave >"$TMP/fleet-control.txt" 2>&1
+  rc_fleet=$?
+  if [ "$rc_fleet" = "0" ]; then
+    pass "installed fleet validator accepts real Git control, holds failures and refuses absence at ${d#$TMP/}"
+  else
+    fail "installed fleet validator control failed at ${d#$TMP/}: $(head -1 "$TMP/fleet-control.txt")"
+  fi
+}
+for d in "$TMP/claude/workflow-docs" "$TMP/cursor/workflow-docs" "$TMP/codex/workflow-docs"; do
+  fleet_validator_control "$d"
 done
 
 # 3c. A bad --project path refuses BEFORE anything is written. The previous version accepted
@@ -399,6 +450,73 @@ elif ! printf '%s' "$help_out" | grep -q 'minimal (the everyday'; then
   fail "installer help does not describe the minimal profile"
 else
   pass "installer help describes the minimal profile and does not refuse minimal skills"
+fi
+
+# Optional docs obey the same selectors as commands and mandatory runtime. Preserve a
+# pre-existing unselected tree, so a test cannot pass merely because README is absent.
+for selection in cursor claude codex kimi combined; do
+  rm -rf "$TMP/cursor" "$TMP/claude" "$TMP/codex" "$TMP/kimi" "$TMP/project" "$TMP/before"
+  for tool in cursor claude codex kimi; do
+    mkdir -p "$TMP/$tool/workflow-docs/nested"
+    printf 'keep %s\n' "$tool" > "$TMP/$tool/workflow-docs/nested/sentinel.txt"
+  done
+  mkdir -p "$TMP/project/.cursor/workflow-docs/nested" "$TMP/before"
+  printf 'keep project\n' > "$TMP/project/.cursor/workflow-docs/nested/sentinel.txt"
+  for tool in cursor claude codex kimi; do
+    cp -R "$TMP/$tool/workflow-docs" "$TMP/before/$tool"
+  done
+  cp -R "$TMP/project/.cursor/workflow-docs" "$TMP/before/project"
+  case "$selection" in
+    combined) flags=(--cursor-only --claude-only); selected="cursor claude" ;;
+    *) flags=("--$selection-only"); selected="$selection" ;;
+  esac
+  rc=$(run_install "${flags[@]}" --with-docs --project "$TMP/project")
+  bad=""
+  for tool in cursor claude codex kimi; do
+    case " $selected " in
+      *" $tool "*)
+        [ -d "$TMP/$tool/workflow-docs/wos" ] || bad="$bad missing-$tool-runtime"
+        cmp -s "$REPO_ROOT/scripts/build-plan-review-input.sh" "$TMP/$tool/workflow-docs/scripts/build-plan-review-input.sh" || bad="$bad missing-$tool-review-helper"
+        review_assembler_control "$TMP/$tool/workflow-docs"
+        fleet_validator_control "$TMP/$tool/workflow-docs"
+        case "$tool" in cursor|claude)
+          cmp -s "$REPO_ROOT/README.md" "$TMP/$tool/workflow-docs/README.md" || bad="$bad missing-$tool-docs" ;;
+        esac ;;
+      *) diff -r "$TMP/before/$tool" "$TMP/$tool/workflow-docs" >/dev/null 2>&1 || bad="$bad changed-$tool" ;;
+    esac
+  done
+  case " $selected " in
+    *" cursor "*)
+      cmp -s "$REPO_ROOT/README.md" "$TMP/project/.cursor/workflow-docs/README.md" || bad="$bad missing-project-docs"
+      review_assembler_control "$TMP/project/.cursor/workflow-docs"
+      fleet_validator_control "$TMP/project/.cursor/workflow-docs" ;;
+    *) diff -r "$TMP/before/project" "$TMP/project/.cursor/workflow-docs" >/dev/null 2>&1 || bad="$bad changed-project" ;;
+  esac
+  if [ "$rc" = 0 ] && [ -z "$bad" ]; then
+    pass "optional docs respect $selection selection and preserve unselected trees"
+  else
+    fail "optional docs $selection selection: exit $rc;$bad"
+  fi
+done
+
+# Dry-run reports only the selected optional-doc destinations and changes no bytes.
+cp -R "$TMP/claude" "$TMP/before/dry-claude"
+cp -R "$TMP/cursor" "$TMP/before/dry-cursor"
+cp -R "$TMP/codex" "$TMP/before/dry-codex"
+cp -R "$TMP/kimi" "$TMP/before/dry-kimi"
+cp -R "$TMP/project" "$TMP/before/dry-project"
+rc=$(run_install --claude-only --with-docs --project "$TMP/project" --dry-run)
+if [ "$rc" != 0 ] || ! diff -r "$TMP/before/dry-claude" "$TMP/claude" >/dev/null 2>&1 \
+  || ! diff -r "$TMP/before/dry-cursor" "$TMP/cursor" >/dev/null 2>&1 \
+  || ! diff -r "$TMP/before/dry-codex" "$TMP/codex" >/dev/null 2>&1 \
+  || ! diff -r "$TMP/before/dry-kimi" "$TMP/kimi" >/dev/null 2>&1 \
+  || ! diff -r "$TMP/before/dry-project" "$TMP/project" >/dev/null 2>&1; then
+  fail "selected optional-doc dry-run changed destinations or failed"
+elif ! grep -q 'Workflow docs (Claude)' "$TMP/out.txt" \
+  || grep -q 'Workflow docs (Cursor)\|Workflow docs (project / Cursor)' "$TMP/out.txt"; then
+  fail "optional-doc dry-run reported unselected destinations or omitted Claude"
+else
+  pass "optional-doc dry-run preserves trees and reports only selected destinations"
 fi
 
 # LAST. The sandbox itself. Every installer destination defaults to ${HOME}/..., so anything

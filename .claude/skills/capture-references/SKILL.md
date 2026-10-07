@@ -32,6 +32,7 @@ Pull external references from the web (or from URLs/topics provided by the user)
 This command is the canonical way to grow project-level external memory without polluting individual task artifacts.
 
 Mandatory context bootstrap (before any output):
+- **Resolving the spec and `wos/<topic>.md`:** canonical repository FIRST. Otherwise use active-adapter docs: `~/.claude/workflow-docs` (`CLAUDE_WORKFLOW_DOCS_DIR`), `~/.cursor/workflow-docs` (`WORKFLOW_DOCS_DIR`; project `.cursor/workflow-docs` on project installs), `~/.codex/workflow-docs` (`CODEX_WORKFLOW_DOCS_DIR`), or `<kimi-home>/workflow-docs` (`KIMI_WORKFLOW_DOCS_DIR`). Nonempty overrides win. Kimi home: `KIMI_CODE_HOME`, else existing `~/.kimi-code`, else existing `~/.kimi`, default `~/.kimi-code`. Use one root for both paths; try other adapters if absent or unknown. Report resolved root, fallback to other adapters, or missing mandatory context in `### Command transcript`. Installed snapshots refresh and prune retired topics only on sync.
 - Read these sections in `WORKFLOW_OPERATING_SYSTEM.md` first:
   - `## LLM execution contract`
   - `## Editor mode policy`
@@ -42,7 +43,7 @@ Mandatory context bootstrap (before any output):
 - Read additional sections only when needed:
   - naming/path setup: `## Naming conventions`, `## Repository structure`
   - multi-repo schema: `## Multi-repo support (v1)`
-- Read the `commands/` directory command inventory to ensure routing recommendations are current.
+- Read canonical command inventory when a clone is available; otherwise use installed Fhorja commands and skills.
 
 Required inputs:
 - target project identifier (`<client>__<project>`) or enough context to derive it from an active task folder under `projects/<client>__<project>/active/`
@@ -78,8 +79,8 @@ Operating rules:
 - The `Implementation contract` block exists so a downstream implementer can build against the source without guessing (it is what the execution gate in `commands/_shared/reference-grounding.md` reads). Populate it only from the source: `Signature`, a minimal `Example`, and the `Version` the contract applies to. Mark any field `[unclear in source]` rather than inventing it, and omit the whole block for non-technical sources (regulations, competitor pages, testimonials).
 - Do not summarize beyond what the source actually says. Where the source is ambiguous, mark the field as `[unclear in source]` rather than guessing.
 - Group new entries under an existing `## <Topic / Tag>` heading when one already exists in `REFERENCES.md`; otherwise create a new heading using the most relevant tag the user provided (or the dominant tag of the entry if no tag was provided).
-- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares that the chain has ended and no following command would be honest, defined under `### Official command names (routing integrity)` (ADR-0126); use it only when nothing honest remains, never to end a chain that has a real next step.
-- **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full). Default `Run now`: read TASK_STATE.md `Last completed step` to infer; if no active task, default to `task-init` or `what-next`.
+- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST use a registered canonical command name or available installed Fhorja command or skill. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares that the chain has ended and no following command would be honest, defined under `### Official command names (routing integrity)` (ADR-0126); use it only when nothing honest remains, never to end a chain that has a real next step.
+- **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full). Default `Run now`: read TASK_STATE.md `Last completed step` to infer; if no active task, default to `task-init` or `what-next`. WHEN this run was entered because the reference-grounding gate of `implement-approved-slice` routed here, `Run now:` SHALL be `implement-approved-slice` for the same slice (ADR-0244).
 - Treat task-memory write policy per `WORKFLOW_OPERATING_SYSTEM.md`: write the file and mark it `APPLIED`.
 - Output is intentionally bounded. Do not produce analysis, framing, or recommendations beyond the captured entries themselves.
 
@@ -112,7 +113,7 @@ Required output:
 2. Number of new entries proposed, number of duplicates skipped, and the depth used (`summary` or `detailed`).
 3. Exact patch to apply to `REFERENCES.md` (append-only; show the new section heading if applicable plus the new entries).
 4. Reminder that no task-scoped artifact was modified.
-5. Recommended next command (typically the command the user was running before this capture, or `task-init` after a fresh bootstrap, or `what-next` when uncertain).
+5. Recommended next command (`implement-approved-slice` for the same slice when its reference-grounding gate routed here; otherwise typically the command the user was running before this capture, or `task-init` after a fresh bootstrap, or `what-next` when uncertain).
 6. Recommended editor mode for that next command.
 7. Why that is the correct next step.
 

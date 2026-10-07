@@ -1,0 +1,866 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "case_id": "recursive-delete",
+      "feature": "multimodule",
+      "input": {
+        "schema_version": 1,
+        "layers": [
+          {
+            "name": "base",
+            "values": {
+              "db": {
+                "host": "local",
+                "port": 7
+              },
+              "keep": true
+            }
+          },
+          {
+            "name": "override",
+            "values": {
+              "db": {
+                "host": null,
+                "user": "a"
+              }
+            }
+          }
+        ]
+      },
+      "expected": {
+        "config": {
+          "db": {
+            "port": 7,
+            "user": "a"
+          },
+          "keep": true
+        },
+        "provenance": {
+          "/db/port": "base",
+          "/db/user": "override",
+          "/keep": "base"
+        }
+      }
+    },
+    {
+      "case_id": "arrays",
+      "feature": "multimodule",
+      "input": {
+        "schema_version": 1,
+        "layers": [
+          {
+            "name": "a",
+            "values": {
+              "list": [
+                1,
+                2
+              ]
+            }
+          },
+          {
+            "name": "b",
+            "values": {
+              "list": []
+            }
+          }
+        ]
+      },
+      "expected": {
+        "config": {
+          "list": []
+        },
+        "provenance": {
+          "/list": "b"
+        }
+      }
+    },
+    {
+      "case_id": "owner",
+      "feature": "multimodule",
+      "input": {
+        "schema_version": 1,
+        "layers": [
+          {
+            "name": "a",
+            "values": {
+              "x": 1
+            }
+          },
+          {
+            "name": " b ",
+            "values": {
+              "x": 2
+            }
+          }
+        ]
+      },
+      "expected": {
+        "config": {
+          "x": 2
+        },
+        "provenance": {
+          "/x": " b "
+        }
+      }
+    },
+    {
+      "case_id": "empty-object",
+      "feature": "multimodule",
+      "input": {
+        "schema_version": 1,
+        "layers": [
+          {
+            "name": "a",
+            "values": {
+              "a": {
+                "x": 3
+              },
+              "b": 5
+            }
+          },
+          {
+            "name": "b",
+            "values": {
+              "a": {},
+              "b": {}
+            }
+          }
+        ]
+      },
+      "expected": {
+        "config": {
+          "a": {
+            "x": 3
+          },
+          "b": {}
+        },
+        "provenance": {
+          "/a/x": "a"
+        }
+      }
+    },
+    {
+      "case_id": "escaped-pointer",
+      "feature": "multimodule",
+      "input": {
+        "schema_version": 1,
+        "layers": [
+          {
+            "name": "a",
+            "values": {
+              "a/b": {
+                "~key": true
+              },
+              "": []
+            }
+          }
+        ]
+      },
+      "expected": {
+        "config": {
+          "a/b": {
+            "~key": true
+          },
+          "": []
+        },
+        "provenance": {
+          "/a~1b/~0key": "a",
+          "/": "a"
+        }
+      }
+    },
+    {
+      "case_id": "delete-subtree",
+      "feature": "multimodule",
+      "input": {
+        "schema_version": 1,
+        "layers": [
+          {
+            "name": "a",
+            "values": {
+              "tree": {
+                "a": 1,
+                "b": 2
+              },
+              "sibling": 9
+            }
+          },
+          {
+            "name": "b",
+            "values": {
+              "tree": null,
+              "absent": null
+            }
+          }
+        ]
+      },
+      "expected": {
+        "config": {
+          "sibling": 9
+        },
+        "provenance": {
+          "/sibling": "a"
+        }
+      }
+    },
+    {
+      "case_id": "replace-types",
+      "feature": "multimodule",
+      "input": {
+        "schema_version": 1,
+        "layers": [
+          {
+            "name": "a",
+            "values": {
+              "x": {
+                "a": 1
+              },
+              "y": false
+            }
+          },
+          {
+            "name": "b",
+            "values": {
+              "x": 3,
+              "y": {
+                "a": 4
+              }
+            }
+          }
+        ]
+      },
+      "expected": {
+        "config": {
+          "x": 3,
+          "y": {
+            "a": 4
+          }
+        },
+        "provenance": {
+          "/x": "b",
+          "/y/a": "b"
+        }
+      }
+    },
+    {
+      "case_id": "empty-layers",
+      "feature": "multimodule",
+      "input": {
+        "schema_version": 1,
+        "layers": []
+      },
+      "expected": {
+        "config": {},
+        "provenance": {}
+      }
+    },
+    {
+      "case_id": "bool-version",
+      "feature": "multimodule",
+      "input": {
+        "schema_version": true,
+        "layers": []
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "float-version",
+      "feature": "multimodule",
+      "input": {
+        "schema_version": 1.0,
+        "layers": []
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "duplicate-name",
+      "feature": "multimodule",
+      "input": {
+        "schema_version": 1,
+        "layers": [
+          {
+            "name": "a",
+            "values": {}
+          },
+          {
+            "name": "a",
+            "values": {}
+          }
+        ]
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "invalid-layer",
+      "feature": "multimodule",
+      "input": {
+        "schema_version": 1,
+        "layers": [
+          {
+            "name": " ",
+            "values": []
+          }
+        ]
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "v1-order",
+      "feature": "inventory-v1",
+      "input": {
+        "rows": [
+          {
+            "sku": " b ",
+            "delta": 2
+          },
+          {
+            "sku": "a",
+            "delta": 3
+          },
+          {
+            "sku": "B",
+            "delta": -1
+          }
+        ],
+        "blocked": []
+      },
+      "expected": [
+        {
+          "sku": "A",
+          "total": 3
+        },
+        {
+          "sku": "B",
+          "total": 1
+        }
+      ]
+    },
+    {
+      "case_id": "v1-invalid",
+      "feature": "inventory-v1",
+      "input": {
+        "rows": [
+          {
+            "sku": "x",
+            "delta": true
+          }
+        ],
+        "blocked": []
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "v1-blocked",
+      "feature": "inventory-v1",
+      "input": {
+        "rows": [
+          {
+            "sku": "x",
+            "delta": -2
+          },
+          {
+            "sku": "a",
+            "delta": 0
+          }
+        ],
+        "blocked": [
+          " X "
+        ]
+      },
+      "expected": [
+        {
+          "sku": "A",
+          "total": 0
+        }
+      ]
+    },
+    {
+      "case_id": "encounter-order",
+      "feature": "inventory-v2",
+      "input": {
+        "rows": [
+          {
+            "sku": "b",
+            "delta": 1
+          },
+          {
+            "sku": "a",
+            "delta": 2
+          },
+          {
+            "sku": " B ",
+            "delta": 3
+          }
+        ],
+        "blocked": []
+      },
+      "expected": [
+        {
+          "sku": "B",
+          "total": 4
+        },
+        {
+          "sku": "A",
+          "total": 2
+        }
+      ]
+    },
+    {
+      "case_id": "aggregate-filter",
+      "feature": "inventory-v2",
+      "input": {
+        "rows": [
+          {
+            "sku": "a",
+            "delta": 3
+          },
+          {
+            "sku": "b",
+            "delta": 10
+          },
+          {
+            "sku": "a",
+            "delta": 3
+          },
+          {
+            "sku": "b",
+            "delta": -8
+          }
+        ],
+        "blocked": [],
+        "minimum_total": 5
+      },
+      "expected": [
+        {
+          "sku": "A",
+          "total": 6
+        }
+      ]
+    },
+    {
+      "case_id": "blocked-invalid",
+      "feature": "inventory-v2",
+      "input": {
+        "rows": [
+          {
+            "sku": "a",
+            "delta": "bad"
+          }
+        ],
+        "blocked": [
+          "a"
+        ],
+        "minimum_total": 100
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "boolean-delta",
+      "feature": "inventory-v2",
+      "input": {
+        "rows": [
+          {
+            "sku": "a",
+            "delta": true
+          }
+        ],
+        "blocked": []
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "boolean-threshold",
+      "feature": "inventory-v2",
+      "input": {
+        "rows": [
+          {
+            "sku": "a",
+            "delta": 2
+          }
+        ],
+        "blocked": [],
+        "minimum_total": true
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "exact-total",
+      "feature": "inventory-v2",
+      "input": {
+        "rows": [
+          {
+            "sku": "a",
+            "delta": 9007199254740993
+          },
+          {
+            "sku": "a",
+            "delta": -1
+          }
+        ],
+        "blocked": []
+      },
+      "expected": [
+        {
+          "sku": "A",
+          "total": 9007199254740992
+        }
+      ]
+    },
+    {
+      "case_id": "zero-total",
+      "feature": "inventory-v2",
+      "input": {
+        "rows": [
+          {
+            "sku": "b",
+            "delta": 1
+          },
+          {
+            "sku": "a",
+            "delta": -2
+          },
+          {
+            "sku": "b",
+            "delta": -1
+          }
+        ],
+        "blocked": []
+      },
+      "expected": [
+        {
+          "sku": "B",
+          "total": 0
+        },
+        {
+          "sku": "A",
+          "total": -2
+        }
+      ]
+    },
+    {
+      "case_id": "invalid-blocked",
+      "feature": "inventory-v2",
+      "input": {
+        "rows": [],
+        "blocked": [
+          4
+        ]
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "normal",
+      "feature": "batch",
+      "input": {
+        "operation_id": "first",
+        "outputs": {
+          "a.txt": "new-a\n",
+          "dir/b.txt": "new-b\n"
+        }
+      },
+      "expected": {
+        "status": "applied",
+        "completed": [
+          "first"
+        ],
+        "files": {
+          "a.txt": "new-a\n",
+          "dir/b.txt": "new-b\n"
+        }
+      }
+    },
+    {
+      "case_id": "completed-replay",
+      "feature": "batch",
+      "input": {
+        "operation_id": "first",
+        "outputs": {
+          "a.txt": "new-a\n",
+          "dir/b.txt": "new-b\n"
+        }
+      },
+      "expected": {
+        "status": "replayed",
+        "completed": [
+          "first"
+        ],
+        "files": {
+          "a.txt": "new-a\n",
+          "dir/b.txt": "new-b\n"
+        }
+      }
+    },
+    {
+      "case_id": "payload-conflict",
+      "feature": "batch",
+      "input": {
+        "operation_id": "first",
+        "outputs": {
+          "a.txt": "new-a\n",
+          "dir/b.txt": "new-b\n"
+        }
+      },
+      "expected": {
+        "status": "conflict",
+        "completed": [
+          "first"
+        ],
+        "files": {
+          "a.txt": "new-a\n",
+          "dir/b.txt": "new-b\n"
+        }
+      }
+    },
+    {
+      "case_id": "partial-recovery",
+      "feature": "batch",
+      "input": {
+        "operation_id": "first",
+        "outputs": {
+          "a.txt": "new-a\n",
+          "dir/b.txt": "new-b\n"
+        }
+      },
+      "expected": {
+        "status": "applied",
+        "completed": [
+          "first"
+        ],
+        "files": {
+          "a.txt": "new-a\n",
+          "dir/b.txt": "new-b\n"
+        }
+      }
+    },
+    {
+      "case_id": "external-edit",
+      "feature": "batch",
+      "input": {
+        "operation_id": "first",
+        "outputs": {
+          "a.txt": "new-a\n",
+          "dir/b.txt": "new-b\n"
+        }
+      },
+      "expected": {
+        "status": "conflict",
+        "completed": [],
+        "files": {
+          "a.txt": "USER EDIT\n",
+          "dir/b.txt": null
+        }
+      }
+    },
+    {
+      "case_id": "io-failure",
+      "feature": "batch",
+      "input": {
+        "operation_id": "first",
+        "outputs": {
+          "a.txt": "new-a\n",
+          "dir/b.txt": "new-b\n"
+        }
+      },
+      "expected": {
+        "status": "completed",
+        "completed": [
+          "first"
+        ],
+        "files": {
+          "a.txt": "new-a\n",
+          "dir/b.txt": "new-b\n"
+        }
+      }
+    },
+    {
+      "case_id": "two-operations",
+      "feature": "batch",
+      "input": {
+        "operation_id": "first",
+        "outputs": {
+          "a.txt": "new-a\n",
+          "dir/b.txt": "new-b\n"
+        }
+      },
+      "expected": {
+        "status": "applied",
+        "completed": [
+          "first",
+          "second"
+        ],
+        "files": {
+          "a.txt": "new-a\n",
+          "dir/b.txt": "new-b\n",
+          "c.txt": "third\n"
+        }
+      }
+    },
+    {
+      "case_id": "invalid-path",
+      "feature": "batch",
+      "input": {
+        "operation_id": "first",
+        "outputs": {
+          "../escaped.txt": "bad"
+        }
+      },
+      "expected": {
+        "status": "invalid",
+        "completed": [],
+        "files": {}
+      }
+    },
+    {
+      "case_id": "blank-name",
+      "feature": "multimodule",
+      "input": {
+        "schema_version": 1,
+        "layers": [
+          {
+            "name": "\t",
+            "values": {}
+          }
+        ]
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "invalid-values",
+      "feature": "multimodule",
+      "input": {
+        "schema_version": 1,
+        "layers": [
+          {
+            "name": "valid",
+            "values": []
+          }
+        ]
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "invalid-request",
+      "feature": "multimodule",
+      "input": [],
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "invalid-layers",
+      "feature": "multimodule",
+      "input": {
+        "schema_version": 1,
+        "layers": null
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "case_id": "crlf-replay",
+      "feature": "batch",
+      "input": {
+        "operation_id": "first",
+        "outputs": {
+          "a.txt": "line\r\n",
+          "dir/b.txt": "Unicode: \u03bb\n"
+        }
+      },
+      "expected": {
+        "status": "replayed",
+        "completed": [
+          "first"
+        ],
+        "files": {
+          "a.txt": "line\r\n",
+          "dir/b.txt": "Unicode: \u03bb\n"
+        }
+      }
+    },
+    {
+      "case_id": "invalid-id",
+      "feature": "batch",
+      "input": {
+        "operation_id": "\t",
+        "outputs": {
+          "a": "x"
+        }
+      },
+      "expected": {
+        "status": "invalid",
+        "completed": [],
+        "files": {}
+      }
+    },
+    {
+      "case_id": "invalid-body",
+      "feature": "batch",
+      "input": {
+        "operation_id": "first",
+        "outputs": {
+          "a": true
+        }
+      },
+      "expected": {
+        "status": "invalid",
+        "completed": [],
+        "files": {}
+      }
+    },
+    {
+      "case_id": "reserved-path",
+      "feature": "batch",
+      "input": {
+        "operation_id": "first",
+        "outputs": {
+          ".batch/state": "x"
+        }
+      },
+      "expected": {
+        "status": "invalid",
+        "completed": [],
+        "files": {}
+      }
+    },
+    {
+      "case_id": "ancestor-path",
+      "feature": "batch",
+      "input": {
+        "operation_id": "first",
+        "outputs": {
+          "a": "x",
+          "a/b": "y"
+        }
+      },
+      "expected": {
+        "status": "invalid",
+        "completed": [],
+        "files": {}
+      }
+    }
+  ]
+}

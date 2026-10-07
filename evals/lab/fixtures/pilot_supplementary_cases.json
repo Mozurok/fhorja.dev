@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "selection": "post-freeze-supplementary",
+  "cases": [
+    {
+      "case_id": "receipt-boundary",
+      "feature": "batch",
+      "input": {"operation_id": "supplement-completion", "outputs": {"first.txt": "first\r\n", "nested/second.txt": "second\n"}},
+      "expected": {"status": "replayed"}
+    },
+    {
+      "case_id": "binary-preimage",
+      "feature": "batch",
+      "preimage_hex": "ff00fe0d0a",
+      "input": {"operation_id": "supplement-binary", "outputs": {"first.txt": "replacement\r\n", "nested/second.txt": "other"}},
+      "expected": {"status": "applied"}
+    },
+    {
+      "case_id": "binary-external-edit",
+      "feature": "batch",
+      "preimage_hex": "ff00fe0d0a",
+      "edit_hex": "f0ff00555345522045444954",
+      "input": {"operation_id": "supplement-edit", "outputs": {"first.txt": "replacement\r\n", "nested/second.txt": "other"}},
+      "expected": {"status": "conflict"}
+    }
+  ]
+}

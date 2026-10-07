@@ -49,8 +49,16 @@ This scenario is the canonical lint contract for new fleet commands. It MUST be 
   run destination cannot replace the expected result; existing failure classifications apply.
 - Screen replay: validate the selected result before the orchestrator creates the
   .partial.json copy; merge only that expected worker's copy, once.
-- Worktree boundary: the assigned return path is the orchestrator task inbox, not an
-  unannounced file in the implementation worktree. Other out-of-scope writes remain violations.
+- Worktree boundary: implement-fleet workers use their assigned `.fleet-out/` carrier inside
+  the harness worktree; the orchestrator copies it into the task inbox after validation.
+  Other fleet paths retain their declared inbox. Unassigned writes remain violations.
+- Integration-ready implement-fleet: satisfied requires nonempty worker identity, note,
+  worktree and full commit ID. Failed requires nested error.error_class and Boolean recoverable.
+  The native helper checks independent expectations and real Git facts before merge; a schema
+  object alone cannot establish readiness. Missing helper or invalid return holds the wave.
+- Non-satisfied implement-fleet: all six statuses remain representable without success
+  handles. max_iterations_reached also holds the entire wave; the shared partial-merge rule
+  cannot override partial_ok=false. Monitor success never authorizes integration.
 - Rubric isolation: artifact ID, schema and delivery metadata are permitted; author reasoning,
   task memory and sibling artifacts are absent.
 

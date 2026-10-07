@@ -558,6 +558,73 @@ run_cov "$d"
   && pass "35. mutation: a normal P-N on a run with no task branch is refused" \
   || fail "35. a route plan with a P-N and no task branch passed: $(printf '%s' "$COV_OUT" | tail -3)"
 
+# --- rule 6 (ADR-0245): domain terms ------------------------------------------------
+# Every `DECISIONS.md ## Domain terms` row needs a slice exit criterion or `Test condition:`
+# tagged `[term: <term>]`. A task with no such section predates the rule and passes; check 1
+# above is that case. Each clean fixture here has a paired mutation that must exit 1.
+add_domain() { printf '\n## Domain terms\n\n%s\n' "$2" >> "$1/DECISIONS.md"; }
+DOM_TABLE='| Term | Brief quote | Counter-case | Chosen outcome | Shown on |
+|---|---|---|---|---|
+| **Refund** | "refunds lower the month total" | a 10 refund on a 50 purchase | the month shows 40 | dashboard |'
+R6_BASE='- Deliverable-tag: user-facing-content
+- Decision-ref: D-1
+'
+r6() {  # r6 <slug> <domain section> <extra slice lines>; echoes the folder
+  local d
+  d="$(make_task "$1" "$LEDGER_TAGGED" "$DEC_ONE" "$(slice 1 "$R6_BASE$3")")"
+  add_domain "$d" "$2"
+  echo "$d"
+}
+
+d="$(r6 r6-exit "$DOM_TABLE" '- Exit criterion: WHEN a refund posts the month total SHALL drop by it [term: refund]
+')"
+expect_code "$d" 0 "45. a domain term tagged in an exit criterion passes (case and bold ignored)"
+
+d="$(r6 r6-tc "$DOM_TABLE" '- Test condition: [term: `Refund`] a 10 refund on a 50 purchase shows 40
+')"
+expect_code "$d" 0 "46. a domain term tagged in a Test condition: line passes"
+
+d="$(r6 r6-untagged "$DOM_TABLE" '')"
+run_cov "$d"
+[ "$COV_CODE" = "1" ] && printf '%s' "$COV_OUT" | grep -q 'domain-terms.*"\*\*Refund\*\*" has no slice exit criterion' \
+  && pass "47. mutation: a domain term no slice tags is refused and named" \
+  || fail "47. an untagged domain term passed or was not named: $(printf '%s' "$COV_OUT" | tail -3)"
+
+d="$(r6 r6-othertag "$DOM_TABLE" '- Test condition: [term: chargeback] a disputed charge
+')"
+expect_code "$d" 1 "48. mutation: a tag naming a different term does not cover the row"
+
+d="$(r6 r6-none 'none: the brief names no stored or displayed value' '')"
+expect_code "$d" 0 "49. a none: <reason> line passes"
+
+d="$(r6 r6-boldnone '**none**: the brief names no stored or displayed value' '')"
+expect_code "$d" 0 "50. a bold **none**: <reason> line passes (review nit N1)"
+
+d="$(r6 r6-noreason 'none:' '')"
+run_cov "$d"
+[ "$COV_CODE" = "1" ] && printf '%s' "$COV_OUT" | grep -q "says none: with no reason" \
+  && pass "51. mutation: none: with no reason is refused" \
+  || fail "51. a reasonless none: passed: $(printf '%s' "$COV_OUT" | tail -3)"
+
+d="$(r6 r6-empty 'Rows are added at task-init.' '')"
+run_cov "$d"
+[ "$COV_CODE" = "1" ] && printf '%s' "$COV_OUT" | grep -q "carries no term row and no none:" \
+  && pass "52. mutation: a section with no row and no none: line is refused" \
+  || fail "52. an empty Domain terms section passed: $(printf '%s' "$COV_OUT" | tail -3)"
+
+d="$(r6 r6-both "$DOM_TABLE
+none: nothing here" '- Test condition: [term: refund] shows 40
+')"
+run_cov "$d"
+[ "$COV_CODE" = "1" ] && printf '%s' "$COV_OUT" | grep -q "carries term rows and a none: line" \
+  && pass "53. mutation: term rows plus a none: line are refused" \
+  || fail "53. rows plus none: passed: $(printf '%s' "$COV_OUT" | tail -3)"
+
+run_cov "$CLEAN"
+printf '%s' "$COV_OUT" | tail -1 | grep -q "domain terms not applicable" \
+  && pass "54. a task with no ## Domain terms section says not applicable" \
+  || fail "54. no not-applicable note on a task without the section: $(printf '%s' "$COV_OUT" | tail -1)"
+
 # Control: the same two slices with NO route line are an ordinary plan, and rule 5 is silent.
 d="$(make_task route-none "- none named" "None locked in this task." "$ROUTE_SLICE
 

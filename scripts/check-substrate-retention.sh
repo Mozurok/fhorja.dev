@@ -59,8 +59,15 @@ stale="$(find "$SUB" -mindepth 3 -maxdepth 3 -type d -path '*/archive/*' -mtime 
 backup_age="none"
 rc=0
 if [ -n "$BACKUP_DEST" ] && [ -d "$BACKUP_DEST" ]; then
-  newest="$(find "$BACKUP_DEST" -type f -print0 2>/dev/null | xargs -0 stat -f '%m' 2>/dev/null | sort -rn | head -1)"
-  if [ -n "$newest" ]; then
+  # Probe with both streams suppressed: GNU stat -f prints filesystem metadata.
+  if stat -f '%m' "$0" >/dev/null 2>&1; then
+    STAT_MTIME=(stat -f '%m')
+  else
+    STAT_MTIME=(stat -c '%Y')
+  fi
+  newest="$(find "$BACKUP_DEST" -type f -print0 2>/dev/null | xargs -0 "${STAT_MTIME[@]}" 2>/dev/null | sort -rn | head -1)"
+  # Canonical decimal, bounded so subtraction cannot overflow signed arithmetic.
+  if [[ "$newest" =~ ^-?(0|[1-9][0-9]{0,17})$ ]]; then
     backup_age="$(( ( $(date +%s) - newest ) / 86400 ))d"
     [ "$(( ( $(date +%s) - newest ) / 86400 ))" -gt "$MAX_BACKUP_AGE_DAYS" ] && rc=1
   else

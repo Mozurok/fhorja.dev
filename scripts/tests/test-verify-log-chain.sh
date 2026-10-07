@@ -124,6 +124,46 @@ EOF
 python3 "$VALIDATOR" "$WORK/E3/.wos/VERIFICATION_LOG.jsonl" --check-deletes --cutover-ts "$CUT" >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then ok "unproposed section still breaks: nonzero exit"; else fail "unproposed section still breaks: nonzero exit"; fi
 
+# ---------- 6d. a fleet merge event with a null sha masks the chain (P-11) ----------
+# implement-fleet Step 11 logs merge_include at '## Slices' with null sha_before and
+# sha_after, then writes the plan `Status: closed` there. The merge moved the bytes by
+# an amount the log does not state, so the Status write is not a chain break.
+# mline TS EVENT: a merge line in the shape Step 11 writes.
+mline() {
+  printf '{"ts":"%s","run_id":"01Jtest","owner":"implement-fleet","owner_type":"command","invoked_by":null,"file":"GHOST.md","section":"## S","event":"%s","mode":"applied","sha_before":null,"sha_after":null,"reason":"t","partials":["S1"],"strategy":"union"}\n' "$1" "$2"
+}
+mklog E4 <<EOF
+$(jline 2026-07-20T10:00:00.000Z write applied null "$SA")
+$(mline 2026-07-20T10:01:00.000Z merge_include)
+$(jline 2026-07-20T10:02:00.000Z overwrite applied "$SC" "$SB")
+EOF
+python3 "$VALIDATOR" "$WORK/E4/.wos/VERIFICATION_LOG.jsonl" --check-deletes --cutover-ts "$CUT" >/dev/null 2>&1
+check "null-sha merge_include then Status write: no break, exit 0" $?
+
+# ---------- 6e. a real break after the merge is still reported ----------
+# The merge masks only the write right after it. The next write must continue from
+# the Status write's sha_after; one that does not is a break.
+mklog E5 <<EOF
+$(jline 2026-07-20T10:00:00.000Z write applied null "$SA")
+$(mline 2026-07-20T10:01:00.000Z merge_include)
+$(jline 2026-07-20T10:02:00.000Z overwrite applied "$SC" "$SB")
+$(jline 2026-07-20T10:03:00.000Z overwrite applied "$SD" "$SA")
+EOF
+RC=0; OUT=$(python3 "$VALIDATOR" "$WORK/E5/.wos/VERIFICATION_LOG.jsonl" --check-deletes --cutover-ts "$CUT" 2>&1) || RC=$?
+check "edited section with a wrong sha_before after a merge: nonzero exit" $([[ "$RC" -ne 0 ]]; echo $?)
+check "edited section with a wrong sha_before after a merge: break on line 4" $(grep -q "line 4: .*post-cutover sha-chain break" <<<"$OUT"; echo $?)
+
+# ---------- 6f. a failed-worker event with a null sha masks the chain too ----------
+# A worker that returns failed is logged with worker_failed at '## Slices'; its slice
+# then closes through implement-approved-slice, which writes the plan Status there.
+mklog E6 <<EOF
+$(jline 2026-07-20T10:00:00.000Z write applied null "$SA")
+$(mline 2026-07-20T10:01:00.000Z worker_failed)
+$(jline 2026-07-20T10:02:00.000Z overwrite applied "$SC" "$SB")
+EOF
+python3 "$VALIDATOR" "$WORK/E6/.wos/VERIFICATION_LOG.jsonl" --check-deletes --cutover-ts "$CUT" >/dev/null 2>&1
+check "null-sha worker_failed then Status write: no break, exit 0" $?
+
 # ---------- 7. pre-cutover breaks are grandfathered ----------
 mklog F <<EOF
 $(jline 2026-07-01T10:00:00.000Z write applied null "$SA")

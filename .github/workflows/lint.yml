@@ -124,6 +124,10 @@ jobs:
           set -euo pipefail
           fail=0
           for t in \
+            ./scripts/tests/test-installed-skills-drift.py \
+            ./scripts/tests/test-plan-review-input.py \
+            ./scripts/tests/test-implement-fleet-result.py \
+            ./scripts/tests/test-context-lab.sh \
             ./scripts/tests/test-verify-log-chain.sh \
             ./scripts/tests/test-emit-substrate-apply.sh \
             ./scripts/tests/test-emit-substrate-derive.sh \
@@ -147,6 +151,7 @@ jobs:
             ./scripts/tests/test-guard-mutation.sh \
             ./scripts/tests/test-citation-integrity.sh \
             ./scripts/tests/test-check-plan-coverage.sh \
+            ./scripts/tests/test-check-slice-order.sh \
             ./scripts/tests/test-ci-test-list-coverage.sh \
             ./scripts/tests/test-closure-floor-ledger.sh \
             ./scripts/tests/test-grounded-residue-exits.sh \
@@ -170,7 +175,12 @@ jobs:
             ./scripts/tests/test-build-agent-skills-markers.sh
           do
             echo "=== $t ==="
-            if bash "$t"; then
+            case "$t" in
+              *.sh) interpreter=bash ;;
+              *.py) interpreter=python3 ;;
+              *) echo "FAIL: unsupported suite $t"; fail=$((fail + 1)); continue ;;
+            esac
+            if "$interpreter" "$t"; then
               echo "PASS: $t"
             else
               echo "FAIL: $t"

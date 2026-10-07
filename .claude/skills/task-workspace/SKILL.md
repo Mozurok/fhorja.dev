@@ -27,6 +27,7 @@ This command is distinct from:
 See ADR-0074 for the contract this command implements.
 
 Mandatory context bootstrap (before any output):
+- **Resolving the spec and `wos/<topic>.md`:** canonical repository FIRST. Otherwise use active-adapter docs: `~/.claude/workflow-docs` (`CLAUDE_WORKFLOW_DOCS_DIR`), `~/.cursor/workflow-docs` (`WORKFLOW_DOCS_DIR`; project `.cursor/workflow-docs` on project installs), `~/.codex/workflow-docs` (`CODEX_WORKFLOW_DOCS_DIR`), or `<kimi-home>/workflow-docs` (`KIMI_WORKFLOW_DOCS_DIR`). Nonempty overrides win. Kimi home: `KIMI_CODE_HOME`, else existing `~/.kimi-code`, else existing `~/.kimi`, default `~/.kimi-code`. Use one root for both paths; try other adapters if absent or unknown. Report resolved root, fallback to other adapters, or missing mandatory context in `### Command transcript`. Installed snapshots refresh and prune retired topics only on sync.
 - Read these sections in `WORKFLOW_OPERATING_SYSTEM.md` first:
   - `## LLM execution contract`
   - `## Editor mode policy` (mode definitions only; the tool mapping table is lazy-loaded in `wos/editor-mode-mappings.md` and needed only for non-Claude-Code tools)
@@ -37,9 +38,9 @@ Mandatory context bootstrap (before any output):
 - Read the active task's memory:
   - `SOURCE_OF_TRUTH.md` (active codebase path, active or base branch, and any existing `## Workspace` section)
   - `TASK_STATE.md` (task slug, current phase, whether isolation was requested)
-- Read the `commands/` directory command inventory to ensure command names and availability are current.
+- Read canonical command inventory when a clone is available; otherwise use installed Fhorja commands and skills.
 - Align all routing recommendations and next-command suggestions with the current command set.
-- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names (invalid: `worktree-add`, `task-worktree`, `provision`). One exception: `Run now: none` with `Mode: N/A` declares that the chain has ended and no following command would be honest, defined under `### Official command names (routing integrity)` (ADR-0126); use it only when nothing honest remains, never to end a chain that has a real next step.
+- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST use a registered canonical command name or available installed Fhorja command or skill. Never invent names (invalid: `worktree-add`, `task-worktree`, `provision`). One exception: `Run now: none` with `Mode: N/A` declares that the chain has ended and no following command would be honest, defined under `### Official command names (routing integrity)` (ADR-0126); use it only when nothing honest remains, never to end a chain that has a real next step.
 
 Required inputs:
 - active task folder path (`projects/<client>__<project>/active/YYYY-MM-DD_<task-slug>/`)

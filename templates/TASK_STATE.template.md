@@ -87,7 +87,7 @@ LOW | MEDIUM | HIGH | N/A
 
 ## Resume notes
 [Short practical note explaining how to continue from here in a new chat]
-<!-- ADR-0233: task-init, task-workspace or branch-commit adds the task-branch and base-branch lines here only when a task branch exists (an attended run on a git repository with a configured remote and no declared assisted mode). Write neither otherwise; a placeholder would read as a real task branch. -->
+<!-- ADR-0233: task-init, task-workspace or branch-commit adds the task-branch and base-branch lines here only when a task branch exists (an attended run on a git repository with a configured remote and no declared assisted mode, or a session under standing authorization, ADR-0244, with no configured remote). Write neither otherwise; a placeholder would read as a real task branch. -->
 
 ## Task scope level
 [full task | current phase | current slice | hotfix]

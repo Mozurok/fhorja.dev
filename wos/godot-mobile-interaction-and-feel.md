@@ -73,7 +73,7 @@ Recorded verdict format (what the closure gates read), written as a `## Feel ver
 
 A FAIL verdict routes its per-line observations to `pr-feedback-ingest --playtest` as the playtest payload; the corrective backlog and the D-5 juice budget own the fixes. A PASS verdict is cited by the closing slice as its feel evidence.
 
-**Bounded-vs-permanent skip (ADR-0098):** the closure floors' one-line skip-reason escape exists for a genuine bounded deferral (a real human will review shortly) or a throwaway/no-runtime-surface slice, not for a session where no human is available, ever. A skip reason of that second kind does not satisfy the floor; the slice stays not-ready-to-close pending an actual human session. The 2026-07-11 genre dogfood wave found this loophole in an unattended run before it shipped a false-clean closure.
+**Bounded-vs-permanent skip (ADR-0098):** the closure floors' one-line skip-reason escape exists for a genuine bounded deferral (a real human will review shortly) or a throwaway/no-runtime-surface slice, not for a session where no human is available, ever. A skip reason of that second kind does not satisfy the floor; the slice stays not-ready-to-close pending an actual human session. The 2026-07-11 genre dogfood wave found this loophole in an unattended run before it shipped a false-clean closure. The slice-level carve-out in `wos/platform-runtime-floors.md ## Godot feel-verdict floor` still applies: in an attended chain on a task branch (ADR-0233) or a session under standing authorization (ADR-0244), a slice with no feel verdict SHALL record `unverified: no human feel verdict` and close, and the task still SHALL NOT close without a recorded `Overall: PASS` verdict or a recorded skip reason.
 
 ## How this cross-references
 

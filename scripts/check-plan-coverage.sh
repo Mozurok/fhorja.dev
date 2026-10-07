@@ -64,6 +64,14 @@
 #      `check-doc-sync.sh --against HEAD` in its exit criterion. task-init writes that
 #      plan itself and nothing reviews it, so these are the conditions a person would
 #      otherwise have checked by reading.
+#   6. domain-terms (ADR-0245): every row of `DECISIONS.md ## Domain terms` has a
+#      slice exit criterion or `Test condition:` line carrying the tag
+#      `[term: <term>]`, where <term> is the row's first cell, compared without
+#      case, backticks, bold or quotes. A section holding the single line
+#      `none: <reason>` passes. A task whose DECISIONS.md has no `## Domain terms`
+#      section passes too, reported as "domain terms not applicable": tasks opened
+#      before 2026-09-30 carry none, and this rule must not fail them. A section
+#      with no row and no `none:` line, or a `none:` with no reason, is reported.
 #
 # It reports the specific unmatched PAIR, never a bare count. "2 uncovered" is not
 # actionable; "D-5 (Block B, API probes) is cited by no slice" is.
@@ -131,7 +139,7 @@ while [ $# -gt 0 ]; do
     # Point the --all scan at another checkout, so this check is itself testable
     # (the same reason check-substrate-ownership.py takes --matrix).
     --root) shift; REPO_ROOT="${1:-}" ;;
-    -h|--help) sed -n '2,72p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,80p' "$0"; exit 0 ;;
     -*) echo "Plan-coverage: not measured (unknown option: $1)"; exit 2 ;;
     *) FOLDER="$1" ;;
   esac
@@ -220,6 +228,56 @@ function add(cat, msg) {
   fmsg[nfind] = msg
 }
 
+# Rule 6 (ADR-0245): a domain term compares without case, backticks, bold or
+# quotes, so `Device`, **device** and "device" are one term.
+function termnorm(s) {
+  s = tolower(s)
+  gsub(/[`*"]/, "", s)
+  gsub(/[ \t]+/, " ", s)
+  return trim(s)
+}
+
+# Record every `[term: <term>]` tag in s into tagged. index() rather than a
+# regex, so a `]` inside a bracket expression never depends on the awk build.
+function termtags(s,   t, p, q, v) {
+  t = s
+  while ((p = index(tolower(t), "[term:")) > 0) {
+    t = substr(t, p + 6)
+    q = index(t, "]")
+    if (q == 0) break
+    v = termnorm(substr(t, 1, q - 1))
+    if (v != "") tagged[v] = 1
+    t = substr(t, q + 1)
+  }
+}
+
+# One line of `DECISIONS.md ## Domain terms` (ADR-0245, format in
+# wos/task-file-contracts.md). A table row's first cell is the term; the header
+# row (first cell `Term`) and the separator row are skipped; `none: <reason>`,
+# bare, bulleted or inside a table cell, is the no-term form. Prose lines and
+# the substrate write header are ignored.
+function dom_line(   l, c, cells, term) {
+  l = trim($0)
+  if (l == "" || l ~ /^<!--/) return
+  c = l
+  sub(/^[|*-][ \t]*/, "", c)
+  gsub(/[`*]/, "", c)
+  if (tolower(c) ~ /^none[ \t]*:/) {
+    domnone++
+    sub(/^[^:]*:/, "", c)
+    gsub(/\|/, "", c)
+    if (trim(c) == "") domnoreason = 1
+    return
+  }
+  if (l !~ /^\|/) return
+  if (l ~ /^\|[ \t:|-]+$/) return
+  split(l, cells, "|")
+  term = trim(cells[2])
+  if (termnorm(term) == "" || termnorm(term) == "term") return
+  ndom++
+  domterm[ndom] = term
+}
+
 # --- TASK_STATE.md ---------------------------------------------------------
 function ts_line(   row) {
   if ($0 ~ /^## /) { tssec = $0; return }
@@ -248,7 +306,14 @@ function dec_line(   h, id, m) {
     m = substr($0, RSTART, RLENGTH)
     dtokens(m, sup)
   }
-  if ($0 ~ /^## /) { decsec = $0; curdec = ""; curprov = ""; return }
+  if ($0 ~ /^## /) {
+    decsec = $0; curdec = ""; curprov = ""
+    if ($0 ~ /^## Domain terms/) domsec = 1
+    return
+  }
+
+  # `## Domain terms` (ADR-0245): read by rule 6.
+  if (decsec ~ /^## Domain terms/) { dom_line(); return }
 
   # `## Provisional decisions` (P-1): agent-chosen, evidence-backed, never locked.
   # Read separately from `## Locked decisions` below; a P-N never becomes a `decid`
@@ -376,7 +441,11 @@ function flush_slice(   b, n, lines, i, l, ll, v,
       if (l ~ /SHALL/) hasEars = 1
       dtokens(valueof(l), namedinexit)
       pcover(valueof(l))
+      termtags(l)
     }
+    # Rule 6 (ADR-0245): a domain-term row is covered by a tagged exit criterion
+    # (above) or a tagged `Test condition:` line.
+    else if (isfield(ll, "test condition") || isfield(ll, "test conditions")) termtags(l)
     # A "rests on provisional P-N" label outside `Decision-ref:` still names the
     # P-N the slice rests on, which is enough to cover a D-N confirming it.
     if (ll ~ /rests on provisional/) pcover(l)
@@ -390,7 +459,7 @@ function flush_slice(   b, n, lines, i, l, ll, v,
   else if (!hasEars) add("slice-fields", sid " has an exit criterion with no SHALL (EARS form required)")
 }
 
-BEGIN { nfind = 0; nled = 0; ndec = 0; nslice = 0; route = 0; taskbranch = 0 }
+BEGIN { nfind = 0; nled = 0; ndec = 0; nslice = 0; route = 0; taskbranch = 0; domsec = 0; ndom = 0; domnone = 0; domnoreason = 0 }
 
 # Crossing into a new file ends the previous one, and a plan whose `## Slices`
 # is its LAST H2 leaves a slice open at that boundary. Resetting insl without
@@ -534,12 +603,27 @@ END {
     }
   }
 
+  # Rule 6 (ADR-0245): a domain-term row no slice exit criterion or test condition
+  # tags. A task with no `## Domain terms` section predates the rule and is not
+  # applicable, never a failure.
+  domstate = "domain terms not applicable"
+  if (domsec) {
+    domstate = (ndom > 0) ? ndom " domain term row(s)" : ((domnone > 0) ? "domain terms: none" : "domain terms: empty")
+    if (ndom == 0 && domnone == 0) add("domain-terms", "DECISIONS.md ## Domain terms carries no term row and no none: <reason> line")
+    if (domnoreason) add("domain-terms", "DECISIONS.md ## Domain terms says none: with no reason")
+    if (ndom > 0 && domnone > 0) add("domain-terms", "DECISIONS.md ## Domain terms carries term rows and a none: line; it holds one or the other")
+    for (i = 1; i <= ndom; i++) {
+      if (!(termnorm(domterm[i]) in tagged))
+        add("domain-terms", "domain term \"" shorten(domterm[i], 48) "\" has no slice exit criterion or Test condition: tagged [term: " shorten(domterm[i], 48) "]")
+    }
+  }
+
   ncov = 0; nfield = 0
   for (i = 1; i <= nfind; i++) {
     print "FINDING\t" fcat[i] "\t" fmsg[i]
     if (fcat[i] == "slice-fields") nfield++; else ncov++
   }
-  print "STAT\t" nfind "\t" nslice "\t" ndec "\t" nled "\t" ncov "\t" nfield
+  print "STAT\t" nfind "\t" nslice "\t" ndec "\t" nled "\t" ncov "\t" nfield "\t" domstate
 }
 AWK_END
 
@@ -578,7 +662,7 @@ check_folder() {
   CF_FINDINGS="$(printf '%s' "$stat" | cut -f2)"
   CF_COV="$(printf '%s' "$stat" | cut -f6)"
   CF_FIELD="$(printf '%s' "$stat" | cut -f7)"
-  CF_DETAIL="$(printf '%s' "$stat" | awk -F'\t' '{printf "%s slice(s), %s locked decision(s), %s tagged ledger row(s)", $3, $4, $5}')"
+  CF_DETAIL="$(printf '%s' "$stat" | awk -F'\t' '{printf "%s slice(s), %s locked decision(s), %s tagged ledger row(s), %s", $3, $4, $5, $8}')"
   CF_STATE="measured"
 
   if [ "$show" -eq 1 ] && [ "${CF_FINDINGS:-0}" -gt 0 ]; then

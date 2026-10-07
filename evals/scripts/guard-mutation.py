@@ -2582,7 +2582,7 @@ def _edit_shipped(d, before, after):
 
 def mutate_monitor_not_shipped(d):
     """The installer list loses the monitor again, the E4 defect."""
-    _edit_shipped(d, " monitor-fleet-progress.sh)", ")")
+    _edit_shipped(d, " monitor-fleet-progress.sh ", " ")
     return "monitor-fleet-progress.sh dropped from SHIPPED_SCRIPTS"
 
 
@@ -2596,13 +2596,13 @@ def mutate_command_names_unshipped_script(d):
 
 def mutate_shipped_script_missing(d):
     """The list names a script that is not on disk."""
-    _edit_shipped(d, " monitor-fleet-progress.sh)", " monitor-fleet-progress.sh ghost-helper.sh)")
+    _edit_shipped(d, " check-slice-order.sh ", " check-slice-order.sh ghost-helper.sh ")
     return "SHIPPED_SCRIPTS naming a script absent from scripts/"
 
 
 def mutate_not_shipped_entry_shipped(d):
     """A script on the not-shipped list starts shipping, so the list lies about it."""
-    _edit_shipped(d, " monitor-fleet-progress.sh)", " monitor-fleet-progress.sh check-doc-sync.sh)")
+    _edit_shipped(d, " check-slice-order.sh ", " check-slice-order.sh check-doc-sync.sh ")
     return "check-doc-sync.sh both shipped and on the not-shipped list"
 
 

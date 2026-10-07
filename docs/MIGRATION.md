@@ -12,6 +12,7 @@ How to adopt this workflow when you do not start from a clean slate. Each scenar
 | Upgrading between Fhorja versions | [Upgrading between Fhorja versions](#upgrading-between-fhorja-versions) |
 | On an install from before 2026-09-23 | [Re-sync your install, and what `--apply` stages](#2026-09-22-re-sync-your-install-and-what---apply-stages) |
 | Already mid-task when ADR-0233 to ADR-0235 landed | [task-close writes LEARNINGS.md, and a provisional decision can be replaced](#2026-09-24-task-close-writes-learningsmd-and-a-provisional-decision-can-be-replaced) |
+| Mid-task when ADR-0244 landed | [the slice-order check reads the plan's Status](#2026-09-30-the-slice-order-check-reads-the-plans-status) |
 | Moving from one-at-a-time commands to parallel fan-out | [Migrating to parallel workflow dispatch](#migrating-to-parallel-workflow-dispatch) |
 
 ---
@@ -95,6 +96,18 @@ appending a new `### P-N` carrying `Replaces: P-M` and the reason, rather than e
 (ADR-0235). Reading `DECISIONS.md` on a task from before this change, you will only see single P-N
 entries; from now on, follow `Replaces:` to the newest entry of a chain before you confirm or
 replace one, since a plan cites only the newest entry and the draft PR lists only the current one.
+
+## 2026-09-30: the slice-order check reads the plan's Status
+
+`implement-approved-slice` now runs `scripts/check-slice-order.sh` before a slice and refuses one
+whose `Depends-on:` slices are not closed in `IMPLEMENTATION_PLAN.md ## Slices` (ADR-0244). Every
+command that closes a slice now writes `Status: closed` there, but before this change none of them
+did, so a task already in flight may carry `planned` or `implemented (pending closure)` on a slice
+that is really closed. The check reads as closed a value starting with `closed`, a bare `done`, or `done` followed by a
+space or `(`, so a plan where you wrote `done` by hand passes as it is. For any other value, the task's
+first gated slice routes once to `slice-closure` for that dependency, which writes the Status and
+hands back; after that the chain runs as before. A plan whose slices carry no `Status:` line at all
+is not measured and is not refused.
 
 ## Adopting Fhorja on an in-progress task
 

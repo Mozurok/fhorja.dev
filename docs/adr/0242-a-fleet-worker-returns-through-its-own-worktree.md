@@ -1,6 +1,6 @@
 # ADR-0242: A fleet worker is dispatched with harness isolation and returns through its own worktree
 
-- **Status**: Accepted. The mechanism rests on provisional decisions of the 2026-09-29 fleet-dispatch-fixes task (P-1 to P-5), listed under `## Notes`, which await the maintainer's confirmation.
+- **Status**: Accepted. The mechanism rests on provisional decisions of the 2026-09-29 fleet-dispatch-fixes task (P-1 to P-5), listed under `## Notes`, which await the maintainer's confirmation. D-2's move to `base_ref` is amended by [ADR-0246](./0246-the-brief-silent-blind-reading-was-measured-and-removed.md): the worker runs `git reset --keep <base_ref>`, which needs no ancestry and aborts rather than discard a local edit, because the permission system denies `git reset --hard` and a fast-forward fails once the default branch moves past the task branch. The HEAD proof stands.
 - **Date**: 2026-09-29
 - **Supersedes**: in part, [ADR-0158](./0158-the-fleet-return-transport-is-the-file.md) D-2: a worker dispatched with worktree isolation writes its return file inside its own worktree, not into `fleet-inbox/<run_id>/`. ADR-0158's D-1 carrier (a typed `.json` file on the `Agent` path) and its D-3 to D-5 stand.
 - **Tags**: fleet, implement-fleet, worker-contract, worktree, isolation, transport, adr-0041, adr-0158, measured

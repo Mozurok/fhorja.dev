@@ -1,7 +1,7 @@
 # Eval scenario 61: approve-plan cross-artifact consistency gate (W-09)
 
 - **Tags**: approve-plan, consistency-gate, decisions-traceability, invariants, EARS, no-op-trace, plan-time-gate, ADR-0103, ADR-0105, ADR-0208, ADR-0225, ADR-0233, deliverable-tag, decision-ref
-- **Last reviewed**: 2026-09-24
+- **Last reviewed**: 2026-10-02
 - **Status**: active
 
 ## Goal
@@ -20,6 +20,7 @@ A task with an approved-ready `IMPLEMENTATION_PLAN.md`. Two variants:
 - Variant F (Express attended, ADR-0208): `TASK_STATE.md ## Recommended pipeline` records `Escalations: none` (the default path; ADR-0207 retired the `Express` label and kept the rule), the run is Agent and attended. The command under test is `implementation-plan`. Until 2026-09-16 this variant tested the ADR-0159 mechanism, in which `implementation-plan` ran the consistency gate itself, wrote the Approval log inline and handed straight to `implement-approved-slice`. ADR-0208 removed that: approval no longer takes a human turn, so the inline log had no remaining purpose, and every plan now hands to `approve-plan`. The variant now guards against that mechanism returning. It is not the one-slice route (ADR-0225): there `task-init` writes the only plan and its approval line, and `implementation-plan` never runs. Whenever `implementation-plan` does run, including on a plan written after the route ended, what this variant asserts holds. The consistency fail cases (dropped tag, PROPOSED-only ref) are `approve-plan`'s and stay with Variants C and E.
 - Variant G (rests on provisional, ADR-0233): one slice's `Decision-ref:` reads `rests on provisional P-1`, and `DECISIONS.md ## Provisional decisions` carries a matching `### P-1` with `Evidence:`, `Impact: normal`, and `Status: provisional`. Everything else is clean and the run is an attended chain on a task branch. This is NOT Variant E: the ref traces to a real provisional entry, not to nothing, so the consistency check passes it, but only labeled.
 - Variant H (ESCALATED, attended chain, ADR-0233): the blinded review returns `failed` on one slice for a product commitment the locked decisions do not authorize (the same shape that hand-back to the maintainer in an unattended or non-task-branch run), and the run is attended on a task branch. The commitment is a normal-impact product choice, not one touching data, security, payments, or cost.
+- Variant I (isolated cited inputs): slices cite D-1 and labeled P-1. Their exact entries and the brief exist; unrelated decisions and author-history sections carry sentinels. D-1 says retry only once, while the plan claims three retries. A second control uses a task-local BRIEF.md pointer. Fault variants remove D-1, duplicate it, move it into a PROPOSED block or cite a replaced P-1.
 
 ## Input prompt (both variants)
 
@@ -80,6 +81,13 @@ Mode: Agent
 - Variant F: `implementation-plan` writes an `## Approval log` entry, stamps `plan APPROVED`, or hands off to `implement-approved-slice` without `approve-plan`. That is the ADR-0159 inline-approval mechanism ADR-0208 removed, reintroduced. The same writes by `task-init` on the one-slice route are that route's contract (ADR-0225) and are not graded here.
 - Variant G: the P-1-backed slice is approved as fully authorized, with no label distinguishing it from a slice citing a locked D-N; or the Approval log entry omits `Rests on provisional: P-1`; or an unresolved `Evidence:` line is accepted anyway, or is answered with `NO_OP_TRACE` instead of `needs_revision` and a route back to `implementation-plan`.
 - Variant H: the ESCALATED exit hands back to the maintainer with `Run now: none`, treating the attended-chain-on-a-task-branch exception as absent; or the commitment is silently written under `## Locked decisions` instead of routed through `decision-interview`'s provisional mode.
+- Variant I: only decision identifiers reach the reviewer, author-history sentinels leak through the rubric or evidence investigation carriers, or missing/ambiguous/stale cited entries yield a satisfied assembly. A semantic pass on the three-retry plan exceeds the quoted one-retry authorization. Local assembly tests do not establish that model judgment.
+
+## Expected response shape (Variant I: isolated cited inputs)
+
+- Runs build-plan-review-input.sh from the workflow root, rechecks source hashes, and dispatches only artifact and rubric. Rubric includes the exact cited D-1/P-1 and inline brief or pointed task-local BRIEF.md. No unrelated decision or author-history sentinel reaches the reviewer.
+- Missing or ambiguous references prevent assembly; content fallback quotes a named live D-N, while unnamed semantic tracing routes to implementation-plan for an explicit reference. Missing installed helper is recorded; manual assembly retains the same quote and isolation requirements.
+- Narrow canonical code and brief quotes may ground Evidence; investigation carriers remain unopened. The reviewer records unsupported evidence as unverified and judges whether three retries exceed the supplied one-retry D-1. Assembly success alone is not semantic approval.
 
 ## Input prompt (Variant F)
 

@@ -1,0 +1,360 @@
+{
+  "schema_version": 1,
+  "kind": "diagnostic-development",
+  "label_basis": "Explicit experimental contracts; developer-authored labels, not independent product adjudication.",
+  "cases": [
+    {
+      "id": "child-cost",
+      "language": "pt",
+      "query": "Como calcular o custo total incluindo os agentes filhos?",
+      "required_ids": [
+        "mandatory-bootstrap"
+      ],
+      "candidates": [
+        {
+          "id": "a",
+          "text": "Custo total includes root calls and every linked child session, including retries."
+        },
+        {
+          "id": "b",
+          "text": "A tabela de custo mostra apenas a sessão principal; os filhos são excluídos."
+        },
+        {
+          "id": "c",
+          "text": "Keep user interface labels short and readable."
+        },
+        {
+          "id": "d",
+          "text": "Child traces missing from the ledger make the whole-session cost unknown."
+        }
+      ],
+      "relevant_ids": [
+        "a",
+        "d"
+      ]
+    },
+    {
+      "id": "unknown-price",
+      "language": "en",
+      "query": "What should the report do when the model price is unavailable?",
+      "required_ids": [
+        "mandatory-bootstrap"
+      ],
+      "candidates": [
+        {
+          "id": "a",
+          "text": "Report cost as null and name the missing rate; do not invent a zero price."
+        },
+        {
+          "id": "b",
+          "text": "Price is a number printed in the report. Format unavailable values as zero."
+        },
+        {
+          "id": "c",
+          "text": "Use a short paragraph for the pull request description."
+        },
+        {
+          "id": "d",
+          "text": "The default branch should receive only reviewed changes."
+        }
+      ],
+      "relevant_ids": [
+        "a"
+      ]
+    },
+    {
+      "id": "browser",
+      "language": "pt",
+      "query": "Uma rota falhou e o axe não executou. Posso registrar uma verificação limpa?",
+      "required_ids": [
+        "mandatory-bootstrap"
+      ],
+      "candidates": [
+        {
+          "id": "a",
+          "text": "A failed navigation or skipped accessibility probe is incomplete evidence and earns no clean-browser credit."
+        },
+        {
+          "id": "b",
+          "text": "A rota, axe e verificação limpa são palavras presentes no teste; isso basta para passar."
+        },
+        {
+          "id": "c",
+          "text": "A successful response is required before the route can be recorded as complete."
+        },
+        {
+          "id": "d",
+          "text": "Install the optional model in an isolated environment."
+        }
+      ],
+      "relevant_ids": [
+        "a",
+        "c"
+      ]
+    },
+    {
+      "id": "comment-coverage",
+      "language": "en",
+      "query": "Can comment-only tests count as CSV and budget behavior coverage?",
+      "required_ids": [
+        "mandatory-bootstrap"
+      ],
+      "candidates": [
+        {
+          "id": "a",
+          "text": "CSV and budget are words that can appear in comments or skipped test names."
+        },
+        {
+          "id": "b",
+          "text": "Behavior coverage requires executed assertions with observed results matching declared expectations."
+        },
+        {
+          "id": "c",
+          "text": "Browser screenshots use stable filenames."
+        },
+        {
+          "id": "d",
+          "text": "SQL queries return rows, not invisible model memory."
+        }
+      ],
+      "relevant_ids": [
+        "b"
+      ]
+    },
+    {
+      "id": "dependency",
+      "language": "en",
+      "query": "How do we retain an essential prerequisite that does not match the search keywords?",
+      "required_ids": [
+        "mandatory-bootstrap"
+      ],
+      "candidates": [
+        {
+          "id": "a",
+          "text": "The keyword search returns only the highest scoring passages."
+        },
+        {
+          "id": "b",
+          "text": "Retrieve explicit required dependency closure before selecting optional search matches."
+        },
+        {
+          "id": "c",
+          "text": "A SQLite index can contain more bytes than the original Markdown files."
+        },
+        {
+          "id": "d",
+          "text": "If required content exceeds the budget, report the overflow and retain the obligation."
+        }
+      ],
+      "relevant_ids": [
+        "b",
+        "d"
+      ]
+    },
+    {
+      "id": "stale",
+      "language": "pt",
+      "query": "Editei uma fonte depois de criar o índice. Como evitar usar a versão antiga?",
+      "required_ids": [
+        "mandatory-bootstrap"
+      ],
+      "candidates": [
+        {
+          "id": "a",
+          "text": "Validate source hashes and use canonical files or rebuild the index on mismatch."
+        },
+        {
+          "id": "b",
+          "text": "O índice antigo é rápido: use sempre a versão antiga mesmo quando a fonte foi editada."
+        },
+        {
+          "id": "c",
+          "text": "Rankers receive the same pool for each comparison."
+        },
+        {
+          "id": "d",
+          "text": "Comment-only tests have no behavior assertions."
+        }
+      ],
+      "relevant_ids": [
+        "a"
+      ]
+    },
+    {
+      "id": "superseded",
+      "language": "en",
+      "query": "Which decision applies after a later decision replaces the earlier one?",
+      "required_ids": [
+        "mandatory-bootstrap"
+      ],
+      "candidates": [
+        {
+          "id": "a",
+          "text": "A supersedes relation selects the current replacement; the old decision remains historical evidence."
+        },
+        {
+          "id": "b",
+          "text": "Earlier decision: always load all files. This instruction is superseded."
+        },
+        {
+          "id": "c",
+          "text": "A confidence probability does not establish authorization."
+        },
+        {
+          "id": "d",
+          "text": "Measure package construction time with a monotonic clock."
+        }
+      ],
+      "relevant_ids": [
+        "a"
+      ]
+    },
+    {
+      "id": "negation",
+      "language": "pt",
+      "query": "O usuário não cancelou a tarefa. Uma hipótese de cancelamento basta para encerrá-la?",
+      "required_ids": [
+        "mandatory-bootstrap"
+      ],
+      "candidates": [
+        {
+          "id": "a",
+          "text": "A tarefa foi cancelada em uma hipótese de teste, sem pedido real do usuário."
+        },
+        {
+          "id": "b",
+          "text": "A negated cancellation is not a cancellation request; continue the active task."
+        },
+        {
+          "id": "c",
+          "text": "Do not change the outcome endpoint after observing the benchmark results."
+        },
+        {
+          "id": "d",
+          "text": "Open a task branch before changing files."
+        }
+      ],
+      "relevant_ids": [
+        "b"
+      ]
+    },
+    {
+      "id": "code-fence",
+      "language": "en",
+      "query": "Should a heading inside a fenced Markdown example split the real document?",
+      "required_ids": [
+        "mandatory-bootstrap"
+      ],
+      "candidates": [
+        {
+          "id": "a",
+          "text": "Ignore heading boundaries inside fenced code and preserve the complete surrounding section."
+        },
+        {
+          "id": "b",
+          "text": "A heading is any line starting with ##, including fenced examples."
+        },
+        {
+          "id": "c",
+          "text": "The selected context package names its source hash and line."
+        },
+        {
+          "id": "d",
+          "text": "A reranker cannot recover an absent first-stage candidate."
+        }
+      ],
+      "relevant_ids": [
+        "a"
+      ]
+    },
+    {
+      "id": "reranker",
+      "language": "pt",
+      "query": "Um reranker consegue recuperar um requisito que não entrou nos candidatos?",
+      "required_ids": [
+        "mandatory-bootstrap"
+      ],
+      "candidates": [
+        {
+          "id": "a",
+          "text": "A second-stage reranker only orders retrieved candidates; it cannot restore an absent passage."
+        },
+        {
+          "id": "b",
+          "text": "O reranker recebe candidatos e pode ordenar os candidatos por uma pontuação."
+        },
+        {
+          "id": "c",
+          "text": "Candidate recall can be ignored because the reranker reads the entire project."
+        },
+        {
+          "id": "d",
+          "text": "Use the default remote branch as the base of a task branch."
+        }
+      ],
+      "relevant_ids": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "id": "canonical-skill",
+      "language": "en",
+      "query": "Where should we edit a skill generated from a command document?",
+      "required_ids": [
+        "mandatory-bootstrap"
+      ],
+      "candidates": [
+        {
+          "id": "a",
+          "text": "Edit commands/<name>.md and regenerate the derived SKILL.md with the build script."
+        },
+        {
+          "id": "b",
+          "text": "Edit the generated SKILL.md directly to avoid updating the command document."
+        },
+        {
+          "id": "c",
+          "text": "A missing model price appears as null in the ledger."
+        },
+        {
+          "id": "d",
+          "text": "SQLite is a local database that needs no hosted server."
+        }
+      ],
+      "relevant_ids": [
+        "a"
+      ]
+    },
+    {
+      "id": "latency",
+      "language": "pt",
+      "query": "Uma consulta local rápida prova que a entrega do agente ficou mais rápida?",
+      "required_ids": [
+        "mandatory-bootstrap"
+      ],
+      "candidates": [
+        {
+          "id": "a",
+          "text": "Measure end-to-end time to accepted delivery, including model, tools, retries and correction."
+        },
+        {
+          "id": "b",
+          "text": "Tempo da consulta local e tempo da entrega são a mesma métrica; basta medir a query."
+        },
+        {
+          "id": "c",
+          "text": "Local query time alone does not establish model prefill or accepted-delivery latency."
+        },
+        {
+          "id": "d",
+          "text": "Keep optional ranking separate from mandatory dependencies."
+        }
+      ],
+      "relevant_ids": [
+        "a",
+        "c"
+      ]
+    }
+  ]
+}

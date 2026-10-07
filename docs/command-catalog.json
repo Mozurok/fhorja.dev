@@ -1218,7 +1218,7 @@
     }
   ],
   "counts": {
-    "adrs": 242,
+    "adrs": 246,
     "bug_categories": 22,
     "bug_templates": 81,
     "command_categories": 15,
@@ -1227,7 +1227,7 @@
     "commands_minimal": 24,
     "fleet_commands": 7,
     "personas": 9,
-    "scenarios": 144,
+    "scenarios": 148,
     "wos_topics": 55
   },
   "generated_by": "scripts/build-command-catalog.py",

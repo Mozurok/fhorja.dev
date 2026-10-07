@@ -1,0 +1,14 @@
+{
+  "nodes": [
+    {"id": "execution", "path": "WORKFLOW_OPERATING_SYSTEM.md", "section": "## LLM execution contract"},
+    {"id": "mode", "path": "WORKFLOW_OPERATING_SYSTEM.md", "section": "## Editor mode policy"},
+    {"id": "output", "path": "WORKFLOW_OPERATING_SYSTEM.md", "section": "## Global output contract"},
+    {"id": "guardrails", "path": "WORKFLOW_OPERATING_SYSTEM.md", "section": "## Cross-cutting workflow guardrails"},
+    {"id": "context", "path": "WORKFLOW_OPERATING_SYSTEM.md", "section": "## Context budget"},
+    {"id": "memory", "path": "WORKFLOW_OPERATING_SYSTEM.md", "section": "## Project-level memory"},
+    {"id": "task-files", "path": "WORKFLOW_OPERATING_SYSTEM.md", "section": "## Task files"},
+    {"id": "states", "path": "WORKFLOW_OPERATING_SYSTEM.md", "section": "## TASK_STATE policy"}
+  ],
+  "requires": [["execution", "mode"], ["execution", "output"], ["execution", "guardrails"]],
+  "supersedes": []
+}

@@ -24,6 +24,7 @@ When no MCP server is reachable, the command falls back to the local Supabase CL
 This command is opt-in. It is not part of the default task initialization flow; run it after `task-init` only when the task actually touches Supabase data, schema, or RLS.
 
 Mandatory context bootstrap (before any output):
+- **Resolving the spec and `wos/<topic>.md`:** canonical repository FIRST. Otherwise use active-adapter docs: `~/.claude/workflow-docs` (`CLAUDE_WORKFLOW_DOCS_DIR`), `~/.cursor/workflow-docs` (`WORKFLOW_DOCS_DIR`; project `.cursor/workflow-docs` on project installs), `~/.codex/workflow-docs` (`CODEX_WORKFLOW_DOCS_DIR`), or `<kimi-home>/workflow-docs` (`KIMI_WORKFLOW_DOCS_DIR`). Nonempty overrides win. Kimi home: `KIMI_CODE_HOME`, else existing `~/.kimi-code`, else existing `~/.kimi`, default `~/.kimi-code`. Use one root for both paths; try other adapters if absent or unknown. Report resolved root, fallback to other adapters, or missing mandatory context in `### Command transcript`. Installed snapshots refresh and prune retired topics only on sync.
 - Read these sections in `WORKFLOW_OPERATING_SYSTEM.md` first:
   - `## LLM execution contract`
   - `## Editor mode policy`
@@ -35,7 +36,7 @@ Mandatory context bootstrap (before any output):
   - artifact requirements: `## Task files`, `## TASK_STATE policy`
 - Read the active task's `TASK_STATE.md` to confirm there is an active task to attach the DB context to and to align the requested table/schema scope with the task objective.
 - Read the active task's `SOURCE_OF_TRUTH.md` to detect any prior `## DB context` link before proposing a new one.
-- Read the `commands/` directory command inventory to ensure routing recommendations are current.
+- Read canonical command inventory when a clone is available; otherwise use installed Fhorja commands and skills.
 
 Required inputs:
 - active task path (or enough context to resolve `projects/<client>__<project>/active/YYYY-MM-DD_<task-slug>/`)
@@ -95,7 +96,7 @@ Operating rules:
 - Treat task-memory write policy per `WORKFLOW_OPERATING_SYSTEM.md`: write the file and mark it `APPLIED`.
 - Mark fields as `[unclear from MCP response]` on the MCP path, or `[unclear from CLI output]` on the local CLI path, when the introspection returned ambiguous or partial data; never fill gaps with guesses.
 - Output is intentionally bounded. Do not produce schema analysis, ER diagrams, or design recommendations beyond the snapshot itself; routing those follow-ups belongs in subsequent commands (`impact-analysis`, `decision-interview`, `implementation-plan`).
-- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST be the basename of an existing `commands/<name>.md` file in this workflow repository. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares that the chain has ended and no following command would be honest, defined under `### Official command names (routing integrity)` (ADR-0126); use it only when nothing honest remains, never to end a chain that has a real next step.
+- **Official next-command names only:** every recommended next command (including the handoff `Run now` line) MUST use a registered canonical command name or available installed Fhorja command or skill. Never invent names. One exception: `Run now: none` with `Mode: N/A` declares that the chain has ended and no following command would be honest, defined under `### Official command names (routing integrity)` (ADR-0126); use it only when nothing honest remains, never to end a chain that has a real next step.
 - **Handoff:** end with the adaptive `### Handoff` block per `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract` (Mode A compact or Mode B full). Default `Run now`: read TASK_STATE.md `Last completed step`; if it was `task-init`, default to `impact-analysis`; if uncertain, default to `what-next`.
 
 Snapshot format (canonical):
@@ -152,7 +153,7 @@ Required output:
 5. Whether this is a `create` or a `refresh` of `DB_CONTEXT.md`, and (on refresh) a one-line drift summary versus the prior snapshot (e.g., "3 new columns, 1 dropped table, RLS toggled on `public.orders`").
 6. Exact content for `DB_CONTEXT.md` using the canonical snapshot format.
 7. Exact patch to `SOURCE_OF_TRUTH.md` adding the `## DB context` cross-link, or `SKIP` if the link is already present.
-8. Recommended next command (must exist as `commands/<name>.md` or `commands/<name>/SKILL.md`; verify against directory listing before output).
+8. Recommended next command (must exist as `commands/<name>.md` or `commands/<name>/SKILL.md`; verify against directory listing before output). In installed mode use the available Fhorja inventory.
 9. Recommended editor mode for that next command.
 10. Why that is the correct next step.
 
@@ -197,7 +198,7 @@ Use the adaptive ending format of `WORKFLOW_OPERATING_SYSTEM.md` `## Global outp
 - No task-scoped artifact other than `DB_CONTEXT.md` and (at most) a single `## DB context` cross-link in `SOURCE_OF_TRUTH.md` is modified.
 - On refresh, the prior `DB_CONTEXT.md` is fully replaced (no partial merge), and the drift summary in the required output makes the change auditable.
 - `### Artifact changes` marks the patches as `APPLIED`.
-- The basename in the `Run now:` line corresponds to a real file in `commands/<name>.md`.
+- The basename in the `Run now:` line corresponds to a real file in `commands/<name>.md` or `commands/<name>/SKILL.md`. In installed mode use the available Fhorja inventory.
 - Output ends with a complete `### Handoff` block per the adaptive format in `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract`.
 - Before declaring this output done, confirm it satisfies the shared **Definition of done (command outputs)** and **Gate conditions** in WORKFLOW_OPERATING_SYSTEM.md.
 

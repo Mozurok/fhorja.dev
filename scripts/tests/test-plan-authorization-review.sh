@@ -53,6 +53,12 @@ audit() {
     || out="${out}\n      does not restrict the dispatch to the artifact path and the rubric"
   printf '%s' "$blk" | grep -qiE '[Nn]ever the conversation that produced the plan' \
     || out="${out}\n      does not forbid passing the authoring conversation"
+  printf '%s' "$blk" | grep -qF 'paste each cited `### D-N` entry verbatim' \
+    || out="${out}\n      does not quote cited locked decisions"
+  printf '%s' "$blk" | grep -qF 'bash scripts/build-plan-review-input.sh <task-folder>' \
+    || out="${out}\n      does not invoke isolated input assembly"
+  printf '%s' "$blk" | grep -qF 'Evidence paths do not authorize reading investigation carriers' \
+    || out="${out}\n      does not exclude author evidence carriers"
 
   while IFS= read -r e; do
     [ -n "$e" ] || continue
@@ -239,6 +245,15 @@ mutate "20. mutation: the per-P-N evidence question dropped is detected" \
 mutate "21. mutation: unattended runs losing the hand-back is detected" \
        's/Unattended and fleet-dispatched runs (ADR-0237) keep the hand-back/Every run drops the hand-back/' \
        'unattended hand-back unchanged'
+mutate "22. mutation: missing quoted locked decisions is detected" \
+       's/paste each cited `### D-N` entry verbatim/mention decision identifiers/' \
+       'quote cited locked decisions'
+mutate "23. mutation: assembly invocation downgraded to citation is detected" \
+       's|bash scripts/build-plan-review-input.sh <task-folder>|the input helper|' \
+       'invoke isolated input assembly'
+mutate "24. mutation: author evidence carriers admitted is detected" \
+       's/Evidence paths do not authorize reading investigation carriers/Evidence paths authorize all context/' \
+       'exclude author evidence carriers'
 
 echo
 echo "plan-authorization-review: $((checks - fails))/$checks checks passed"

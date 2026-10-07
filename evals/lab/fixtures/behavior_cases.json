@@ -1,0 +1,272 @@
+{
+  "schema_version": 1,
+  "briefs": {
+    "csv": "Parse semicolon CSV with dd/mm/yyyy dates and signed decimal-comma amounts with at most two decimals into integer cents. Preserve identical rows within one file; skip only keys already present from an earlier import. Preserve quoted descriptions and report invalid row numbers including header as row 1. Keys are ISO date|description|integer cents.",
+    "budget": "Income is positive income only. Expenses are negative signed expense transactions; positive refunds reduce expenses, even below zero. Net equals income minus expenses. All values are integer cents; refund is not income."
+  },
+  "cases": [
+    {
+      "case_id": "decimal-cent",
+      "feature": "csv",
+      "input": {
+        "operation": "csv_import",
+        "csv": "date;description;amount\n01/10/2026;Coffee;-0,10\n"
+      },
+      "expected": {
+        "transactions": [
+          {
+            "date": "2026-10-01",
+            "description": "Coffee",
+            "amount_cents": -10
+          }
+        ],
+        "invalid_rows": []
+      }
+    },
+    {
+      "case_id": "same-file-identical",
+      "feature": "csv",
+      "input": {
+        "operation": "csv_import",
+        "csv": "date;description;amount\n01/10/2026;Fare;-2,50\n01/10/2026;Fare;-2,50\n"
+      },
+      "expected": {
+        "transactions": [
+          {
+            "date": "2026-10-01",
+            "description": "Fare",
+            "amount_cents": -250
+          },
+          {
+            "date": "2026-10-01",
+            "description": "Fare",
+            "amount_cents": -250
+          }
+        ],
+        "invalid_rows": []
+      }
+    },
+    {
+      "case_id": "reimport",
+      "feature": "csv",
+      "input": {
+        "operation": "csv_import",
+        "csv": "date;description;amount\n01/10/2026;Fare;-2,50\n",
+        "existing_keys": [
+          "2026-10-01|Fare|-250"
+        ]
+      },
+      "expected": {
+        "transactions": [],
+        "invalid_rows": []
+      }
+    },
+    {
+      "case_id": "quoted-delimiter",
+      "feature": "csv",
+      "input": {
+        "operation": "csv_import",
+        "csv": "date;description;amount\n01/10/2026;\"Book; guide\";12,34\n"
+      },
+      "expected": {
+        "transactions": [
+          {
+            "date": "2026-10-01",
+            "description": "Book; guide",
+            "amount_cents": 1234
+          }
+        ],
+        "invalid_rows": []
+      }
+    },
+    {
+      "case_id": "invalid-date",
+      "feature": "csv",
+      "input": {
+        "operation": "csv_import",
+        "csv": "date;description;amount\n31/02/2026;Bad;1,00\n"
+      },
+      "expected": {
+        "transactions": [],
+        "invalid_rows": [
+          2
+        ]
+      }
+    },
+    {
+      "case_id": "too-many-decimals",
+      "feature": "csv",
+      "input": {
+        "operation": "csv_import",
+        "csv": "date;description;amount\n01/10/2026;Bad;0,005\n"
+      },
+      "expected": {
+        "transactions": [],
+        "invalid_rows": [
+          2
+        ]
+      }
+    },
+    {
+      "case_id": "signed-whole",
+      "feature": "csv",
+      "input": {
+        "operation": "csv_import",
+        "csv": "date;description;amount\n01/10/2026;Plus;+5\n"
+      },
+      "expected": {
+        "transactions": [
+          {
+            "date": "2026-10-01",
+            "description": "Plus",
+            "amount_cents": 500
+          }
+        ],
+        "invalid_rows": []
+      }
+    },
+    {
+      "case_id": "empty",
+      "feature": "csv",
+      "input": {
+        "operation": "csv_import",
+        "csv": "date;description;amount\n"
+      },
+      "expected": {
+        "transactions": [],
+        "invalid_rows": []
+      }
+    },
+    {
+      "case_id": "empty-budget",
+      "feature": "budget",
+      "input": {
+        "operation": "budget_summary",
+        "transactions": []
+      },
+      "expected": {
+        "income_cents": 0,
+        "expenses_cents": 0,
+        "net_cents": 0
+      }
+    },
+    {
+      "case_id": "income-expense",
+      "feature": "budget",
+      "input": {
+        "operation": "budget_summary",
+        "transactions": [
+          {
+            "kind": "income",
+            "amount_cents": 10000
+          },
+          {
+            "kind": "expense",
+            "amount_cents": -1000
+          }
+        ]
+      },
+      "expected": {
+        "income_cents": 10000,
+        "expenses_cents": 1000,
+        "net_cents": 9000
+      }
+    },
+    {
+      "case_id": "refund-reduces-expense",
+      "feature": "budget",
+      "input": {
+        "operation": "budget_summary",
+        "transactions": [
+          {
+            "kind": "income",
+            "amount_cents": 10000
+          },
+          {
+            "kind": "expense",
+            "amount_cents": -1000
+          },
+          {
+            "kind": "refund",
+            "amount_cents": 200
+          }
+        ]
+      },
+      "expected": {
+        "income_cents": 10000,
+        "expenses_cents": 800,
+        "net_cents": 9200
+      }
+    },
+    {
+      "case_id": "refund-exceeds-expense",
+      "feature": "budget",
+      "input": {
+        "operation": "budget_summary",
+        "transactions": [
+          {
+            "kind": "expense",
+            "amount_cents": -100
+          },
+          {
+            "kind": "refund",
+            "amount_cents": 150
+          }
+        ]
+      },
+      "expected": {
+        "income_cents": 0,
+        "expenses_cents": -50,
+        "net_cents": 50
+      }
+    },
+    {
+      "case_id": "cent-precision",
+      "feature": "budget",
+      "input": {
+        "operation": "budget_summary",
+        "transactions": [
+          {
+            "kind": "income",
+            "amount_cents": 10
+          },
+          {
+            "kind": "income",
+            "amount_cents": 20
+          },
+          {
+            "kind": "expense",
+            "amount_cents": -1
+          }
+        ]
+      },
+      "expected": {
+        "income_cents": 30,
+        "expenses_cents": 1,
+        "net_cents": 29
+      }
+    },
+    {
+      "case_id": "positive-income-only",
+      "feature": "budget",
+      "input": {
+        "operation": "budget_summary",
+        "transactions": [
+          {
+            "kind": "income",
+            "amount_cents": -100
+          },
+          {
+            "kind": "income",
+            "amount_cents": 200
+          }
+        ]
+      },
+      "expected": {
+        "income_cents": 200,
+        "expenses_cents": 0,
+        "net_cents": 200
+      }
+    }
+  ]
+}

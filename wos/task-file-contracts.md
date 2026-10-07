@@ -71,6 +71,17 @@ Do not use it for:
 Structure:
 - `## Locked decisions`: `### D-N` entries, the maintainer's own input. This is the only section a review reads as authorization.
 - `## Provisional decisions` (P-1): `### P-N: <title>` entries the agent chose from evidence when the request left a needed decision open, never recorded as the maintainer's input. Each entry carries an `Evidence:` line (a file and line on the task branch, or a quote from the request), an `Impact:` line (`high` when it touches data, security, payments or cost, else `normal`), and `Status: provisional`. A P-N is never edited or moved. The maintainer confirms it with a new `### D-N` under `## Locked decisions` carrying `Confirms: P-N`, or replaces it with a new `### D-N` there carrying `Supersedes: P-N`. WHILE a P-N is not yet confirmed or superseded by the maintainer, the agent SHALL correct it only by appending a new `### P-N` that carries a `Replaces: P-M` line and the reason, and SHALL leave P-M exactly as written (ADR-0235). Plans SHALL cite only the newest entry of a replacement chain. `Replaces:` links two P-Ns only, and the maintainer's `Confirms:` and `Supersedes:` paths are unchanged. Merging the draft PR that lists a P-N does not confirm it; the P-N stays provisional until the maintainer confirms it that way.
+- `## Domain terms` (ADR-0245): `task-init` SHALL write it on every task, and `implementation-plan` and rule 6 of `scripts/check-plan-coverage.sh` read it. It holds either the single line `none: <reason>` (for example `none: the change stores and shows no value`) or a table with one row per brief term whose reading changes a stored or displayed value, under this header row:
+
+  `| Term | Brief quote | Counter-case | Chosen outcome | Shown in |`
+
+  - Term: the word or phrase as the brief uses it. It is the tag key, compared without case, backticks, bold or quotes.
+  - Brief quote: the brief line that uses the term, verbatim, in double quotes.
+  - Counter-case: one concrete input that two plausible readings handle differently (two identical sensor readings in one upload with no reconnect, a support ticket reopened a week after it was closed).
+  - Chosen outcome: what that input produces under the reading taken. It is provisional until a `### D-N` under `## Locked decisions` names the term and locks it.
+  - Shown in: the screens or outputs that display the resulting value.
+
+  WHEN a plan is written for a task whose `## Domain terms` carries rows, each row SHALL have a slice exit criterion or a slice `Test condition:` line carrying the tag `[term: <Term>]` and stating the counter-case with its expected outcome; `check-plan-coverage.sh` exits 1 naming each untagged term. A section with no row and no `none:` line, or a `none:` with no reason, also fails. A task opened before 2026-09-30 has no `## Domain terms` section and the checker reports it as not applicable.
 
 ### IMPLEMENTATION_PLAN.md
 Purpose:
