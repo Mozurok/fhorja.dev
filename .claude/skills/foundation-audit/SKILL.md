@@ -1,7 +1,7 @@
 ---
 name: foundation-audit
 description: |-
-  Compare design tokens in code against foundation docs and optionally Figma variables to detect drift (tokens added without documentation, documented tokens not in code, value mismatches). Use when the design system has been evolving and you want to verify foundations are in sync. Do not use when no foundation docs exist (run design-bootstrap first).
+  Compare design tokens in code against foundation docs and optionally Figma variables to detect drift (undocumented tokens, tokens missing in code, value mismatches). Use when the design system has evolved and foundations need a sync check. Do not use when no foundation docs exist (run design-bootstrap first).
 metadata:
   category: "audit-and-sweep"
   primary-cursor-mode: "Ask"

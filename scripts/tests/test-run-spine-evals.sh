@@ -361,6 +361,9 @@ else
   fail "18. the escape starts anyway and says so on stdout ($(printf '%s' "$RES" | head -1))"
 fi
 
+# Scenario 01 is a fixture scenario since 2026-10-08, so its own run never touches this tree.
+# The stubbed state below is what keeps the write check exercised: the runner compares the
+# tree before and after, whatever the scenario does, and the model here is `cat`.
 RES="$(tree_case "[set(), {' M evals/scenarios/01-bootstrap-and-init.md'}]" "['--scenario','01','--model-cmd','cat']" 0)"
 if printf '%s' "$RES" | grep -q '^rc=4' && printf '%s' "$RES" | grep -q 'wrote into the working tree'; then
   pass "19. a scenario that writes into the tree is an ERROR, not a verdict"
@@ -574,7 +577,8 @@ for e in json.load(open('${REPO_ROOT}/evals/spine-evals.json'))['scenarios']:
 done
 
 # 29. A scenario with no fixture but a declared probe gets a repository probe after each turn,
-# and the grader receives it. Scenario 01 writes into the repository itself.
+# and the grader receives it. No shipped scenario uses this path now (01 moved to a fixture),
+# so the case uses a synthetic scenario and probe.
 cat > "$TMP/fx/probe.sh" <<'FIX'
 #!/usr/bin/env bash
 [ "$1" = "probe" ] && echo "  REPO-PROBE-OK $(basename "$2")"
@@ -618,6 +622,41 @@ else
   fail "29. a declared probe reports the repository after the turn (dir '$dir')"
 fi
 [ -n "$dir" ] && rm -rf "${REPO_ROOT:?}/${dir}"
+
+# 30. Scenario 01's fixture: the task repository it builds already holds an empty projects/, and
+# its probe reports projects/acme__widget-pricing as absent before any model turn, then reports
+# the project layer once a turn has written it. Without the folder a correct stop for a missing
+# projects/ failed the rubric, and without the fixture the run wrote into the maintainer's tree.
+FX01="evals/fixtures/spine/01-bootstrap.sh"
+d="$(mktemp -d)"
+(cd "$REPO_ROOT" && bash "$FX01" build "$d" >/dev/null 2>&1); brc=$?
+before="$(cd "$REPO_ROOT" && bash "$FX01" probe "$d" 2>&1)"
+mkdir -p "$d/projects/acme__widget-pricing"
+printf '# CHARTER\n\n## Project name\n\n## Status\n' > "$d/projects/acme__widget-pricing/PROJECT_CHARTER.md"
+after="$(cd "$REPO_ROOT" && bash "$FX01" probe "$d" 2>&1)"
+if [ "$brc" = "0" ] && [ -d "$d/projects" ] && [ -z "$(ls -A "$d/projects" | grep -v '^acme__widget-pricing$')" ] \
+   && printf '%s\n' "$before" | grep -q 'projects/acme__widget-pricing: absent' \
+   && printf '%s\n' "$after" | grep -q 'PROJECT_CHARTER.md H2 sections: ## Project name|## Status|'; then
+  pass "30. the 01 fixture builds a task repository holding projects/, and the probe reads projects/acme__widget-pricing"
+else
+  fail "30. the 01 fixture builds a task repository holding projects/ (build exit $brc; before '$(printf '%s' "$before" | head -1)'; after '$(printf '%s' "$after" | head -1)')"
+fi
+rm -rf "$d"
+# The manifest names the fixture and the prompts carry the placeholder.
+if python3 - "$REPO_ROOT" <<'PYEOF'
+import json, sys
+root = sys.argv[1]
+e = [x for x in json.load(open(root + "/evals/spine-evals.json"))["scenarios"] if "/01-" in x["file"]][0]
+text = open(root + "/" + e["file"]).read()
+ok = (e.get("setup") == "fixture" and e.get("fixture") == "evals/fixtures/spine/01-bootstrap.sh"
+      and "probe" not in e and text.count("Task repository: {fixture}") == 2)
+sys.exit(0 if ok else 1)
+PYEOF
+then
+  pass "31. the 01 manifest entry is a fixture entry and both prompts name the task repository"
+else
+  fail "31. the 01 manifest entry is a fixture entry and both prompts name the task repository"
+fi
 
 echo ""
 echo "test-run-spine-evals: ${checks} check(s), ${fails} failure(s)"

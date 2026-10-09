@@ -100,16 +100,16 @@ n="$(advertise_chars "$ADV" nosuch)"
 
 # The real corpus, as a tolerance and never an equality: descriptions get edited,
 # and a build that fails on an ordinary wording change teaches people to ignore it.
-# 72596 chars measured 2026-09-03 across 98 skills; 20 per cent either way still
-# catches a parser that silently drops the continuation lines, which is the failure
-# this guards.
+# 44314 chars measured 2026-10-09 across 98 skills, after the description trim
+# (ADR-0249; 72596 on 2026-09-03 before it); 20 per cent either way still catches a
+# parser that silently drops the continuation lines, which is the failure this guards.
 REAL_SRC="${SCRIPT_DIR}/../../.claude/skills"
 if [ -d "$REAL_SRC" ]; then
   n="$(advertise_chars "$REAL_SRC" "")"
-  if [ "$n" -ge 58000 ] && [ "$n" -le 87000 ]; then
+  if [ "$n" -ge 35000 ] && [ "$n" -le 53000 ]; then
     pass "the real corpus lands in the measured band ($n chars)"
   else
-    fail "the real corpus is outside the band: $n chars, expected 58000 to 87000"
+    fail "the real corpus is outside the band: $n chars, expected 35000 to 53000"
   fi
 else
   pass "real corpus not present, skipped (installed tree without .claude/skills)"

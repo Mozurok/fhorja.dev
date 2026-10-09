@@ -1,6 +1,6 @@
 ---
 name: slo-define
-description: Senior reliability engineer defining a service's reliability contract: choose SLIs, set an SLO target and measurement window, compute the error budget, and write the error-budget policy for when that budget is exhausted. Produces SLO_SPEC.md. Spec-only; it defines the contract, it does not instrument it. Activates when a service or a critical user flow has no documented SLO, or when a reliability target is named with no SLIs or error budget behind it. Do not use when there is no observability stack to measure SLIs (use decision-interview first), for a single post-deploy verification (use post-deploy-verifier), or for triaging a live failure (use incident-triage).
+description: Define a service's reliability contract: SLIs, SLO target and window, error budget and exhaustion policy (spec-only). Activates when a service or critical flow has no SLO, or a target has no SLIs or error budget. Do not use without an observability stack to measure SLIs (use decision-interview), for one post-deploy check (use post-deploy-verifier), or for a live failure (use incident-triage).
 metadata:
   category: planning-and-validation
   primary-cursor-mode: Ask

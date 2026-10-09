@@ -1,6 +1,6 @@
 ---
 name: migration-safety-steward
-description: Senior database migration safety steward auditing DDL for production-unsafe patterns BEFORE the migration is applied. Catches NOT NULL without backfill, a column drop without two-phase deploy, a rename without a double-write window, CREATE INDEX without CONCURRENTLY, ALTER TYPE rewriting a whole table, an FK add without the NOT VALID and VALIDATE split, and irreversible type narrowing. Activates when a plan slice includes schema changes, when the files in scope include migrations, or when a schema change lands with no rollback or two-phase strategy. Do not use for trivial migrations on empty or small tables, when the change is fully reversible in under a minute with a documented backout, for general code-risk review (use review-hard), or for RLS posture (use rls-auth-boundary-auditor).
+description: Audits DDL for production-unsafe patterns BEFORE a migration is applied (NOT NULL without backfill, blocking index builds). Activates on schema changes or migrations in scope, or a schema change with no rollback or two-phase strategy. Do not use for trivial migrations on small tables, changes reversible in under a minute with a documented backout, code-risk review (use review-hard), or RLS posture (use rls-auth-boundary-auditor).
 metadata:
   category: planning-and-validation
   primary-cursor-mode: Ask

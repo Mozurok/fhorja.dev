@@ -1,6 +1,6 @@
 ---
 name: code-locate
-description: Given a behavior description, locate candidate code paths and line ranges in the active codebase that probably implement it. Outputs up to 10 candidates with HIGH/MEDIUM/LOW confidence, a one-line rationale each, and an explicit search trail, then proposes a SOURCE_OF_TRUTH.md update so the next step runs with concrete files instead of a vague codebase pointer. Use when the first real question is where the code lives and file paths are not yet known. Do not use when paths are already explicit, when the codebase is tiny and the layout known, or when the need is general architectural understanding (use impact-analysis).
+description: Locate code paths and line ranges for a described behavior: up to 10 candidates with HIGH/MEDIUM/LOW confidence and a search trail, plus a proposed SOURCE_OF_TRUTH.md update. Use when the first question is where one specific behavior lives and paths are unknown. Do not use when paths are explicit, the codebase is tiny and known, for a whole-repo overview or skeleton, or for architectural understanding (use impact-analysis).
 metadata:
   category: discovery-and-scoping
   primary-cursor-mode: Ask

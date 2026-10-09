@@ -1,6 +1,6 @@
 ---
 name: compact-task-memory
-description: Produce a lossy compaction summary of TASK_STATE.md when task memory has grown beyond a useful working size, preserving canonical decisions and recommended next step while dropping stale facts. Distinct from sync-task-state (incremental, append-only, never lossy) and state-reconcile (drift repair, no shrinking). Use when task memory has accumulated across multiple slices (5+ completed) and feels heavy, the resume cost is growing as the file scales, the current known facts list is full of resolved or routine entries, or before a session pause where a slim TASK_STATE will speed restart. Do not use when the task is still in early discovery (memory is small), the artifacts disagree across files (use state-reconcile first), an incremental sync would be sufficient (use sync-task-state), or no active task folder exists yet (run task-init first).
+description: Produce a lossy compaction of TASK_STATE.md when task memory outgrows a useful size, keeping canonical decisions and the next step, dropping stale facts. Use when memory spans 5+ completed slices and feels heavy, resume cost grows, known facts are mostly resolved, or before a session pause. Do not use in early discovery, when artifacts disagree (use state-reconcile first), when a sync suffices (use sync-task-state), or with no task folder (run task-init first).
 metadata:
   category: state-and-navigation
   primary-cursor-mode: Plan

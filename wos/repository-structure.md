@@ -123,7 +123,7 @@ The workflow operates on a separate task-memory repository. The tree is a sample
   docs/
     FAQ.md                            # user-facing entry point for common questions
     MIGRATION.md                      # adoption + forking + tool migration guide
-    adr/                              # Architecture Decision Records (<!-- count:adrs -->246<!-- /count --> ADR files; 0037 is an intentional gap; highest is 0247)
+    adr/                              # Architecture Decision Records (<!-- count:adrs -->248<!-- /count --> ADR files; 0037 is an intentional gap; highest is 0249)
       README.md                       # index + format + when to write
       template.md                     # ADR template
       0001-proposed-by-default.md     # example; the full list, highest number included, is docs/adr/README.md

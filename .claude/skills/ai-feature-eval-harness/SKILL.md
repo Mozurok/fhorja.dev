@@ -1,7 +1,7 @@
 ---
 name: ai-feature-eval-harness
 description: |-
-  Design an evaluation plan for a product AI feature (LLM- or model-backed output): measurable success criteria, a held-out labeled eval dataset shape, per-criterion grading (code-based first, then LLM-based for nuanced judgment), and a pass threshold, then persist as AI_EVAL_PLAN.md. Use when the task ships or changes a feature whose output is model-generated or non-deterministic (assistant reply, classification, extraction, summarization, ranking, agent action) and needs a repeatable dataset-backed eval rather than only example-based tests. Do not use when the feature has no model-backed output (use test-strategy for deterministic behavior), when judging Fhorja's own command outputs against a rubric (use verify-against-rubric), or when no active task folder exists. The code-graded tier composes with ADR-0048 (a passing deterministic gate is Layer-1 evidence); the LLM-graded tier is added signal, not a replacement.
+  Design an eval plan for a product AI feature: success criteria, a held-out labeled dataset, per-criterion grading (code-based, then LLM-based), and a pass threshold. Use when a task ships or changes a feature with non-deterministic model output (classification, extraction, summarization, ranking, agent action) needing a repeatable dataset eval, not only example tests. Do not use for non-model features (use test-strategy), Fhorja's own command outputs (use verify-against-rubric), or with no task folder.
 metadata:
   category: "planning-and-validation"
   primary-cursor-mode: "Plan"
@@ -75,22 +75,21 @@ Required output:
 4. Recommended next command (must exist as `commands/<name>.md` or `commands/<name>/SKILL.md`; verify against directory listing before output). Typical choices: `test-strategy` (deterministic behavior for the same change), `implementation-plan` (slice the harness build), `decision-interview` (lock the quality target), `implement-approved-slice`, and for a user-facing or risky feature `release-plan` (to gate the staged rollout on the live proxy metric this eval's offline pass precedes). In installed mode use the available Fhorja inventory.
 
 ### Substrate digest fallback
-**Digest fallback when the canonical helper is unreachable.** `sha_of_section` extracts a section's body with `awk` and pipes it to `shasum -a 256`. A run executing inside a permission boundary that admits `shasum` but refuses `awk` and `sed` cannot invoke that helper, and MUST NOT reimplement it: an `awk` or `sed` program operand can call `system()` and write files, so a boundary that refuses those verbs refuses them for a reason. Assume the helper is unreachable whenever the workflow repository's `scripts/` directory is not readable from the working directory.
+**Digest fallback when the canonical helper is unreachable.** `sha_of_section` extracts a section's body with `awk` and pipes it to `shasum -a 256`. A run inside a permission boundary that admits `shasum` but refuses `awk` and `sed` cannot invoke that helper, and MUST NOT reimplement it. Assume the helper is unreachable whenever the workflow repository's `scripts/` directory is not readable from the working directory.
 
 WHERE the canonical per-section digest helper is unreachable, the write SHALL use a whole-file SHA-256 and SHALL declare the reduced scope:
 
 ```bash
-# One call per file. `shasum -a 256 <file>` needs no extraction step, so no
-# refused verb is involved. Read the hash (the first field) out of the output;
+# One call per file. Read the hash (the first field) out of the output;
 # do not pipe it through `cut` or `awk` to trim it.
 shasum -a 256 TASK_STATE.md
 ```
 
-Then add `"sha_scope":"file"` to that JSONL line, so a validator distinguishes a file digest from a section digest instead of inferring it. Everything else about the protocol is unchanged: the transaction header still goes above the section heading, and there is still exactly one JSONL line per section write.
+Then add `"sha_scope":"file"` to that JSONL line, so a validator distinguishes a file digest from a section digest. The rest of the protocol is unchanged: the transaction header still goes above the section heading, and there is exactly one JSONL line per section write.
 
-Do NOT rebuild the helper by writing each section out as its own file so it can be hashed separately. That workaround is coherent and it is what this rule exists to prevent: a 2026-08-04 run wrote 31 numbered section fragments to compute per-section digests by hand, spent the whole run doing it, and produced no product code.
+Do NOT rebuild the helper by writing each section out as its own file to hash it separately.
 
-What the fallback costs, stated so the trade is explicit rather than discovered later: the digest chain exists to detect an unlogged change to a SECTION. At file scope, two sections written in the same run share a digest, so the chain detects tampering with the file without attributing it to a section. That is a declared reduction in resolution, not a silent one, which is why the `sha_scope` field is mandatory rather than optional.
+At file scope two sections written in the same run share a digest, so the `sha_scope` field is mandatory, not optional.
 ### Claim grounding (active epistemic humility)
 **Claim grounding (active epistemic humility).** This block governs what you may assert and how you record it. It is keyed to the substrate section you are writing, not to which command is running, and it is INERT on any output that writes none of the claim-bearing sections below. Full contract and rationale: `wos/active-epistemic-humility.md`.
 

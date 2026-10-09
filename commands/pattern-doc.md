@@ -1,6 +1,6 @@
 ---
 name: pattern-doc
-description: Document a reusable UX pattern (empty state, error handling, confirmation dialog, search-filter-sort, loading skeleton) that applies across multiple screens and projects. Produces a pattern spec doc matching the PATTERN_SPEC.md template. Use when formalizing a recurring UX solution. Do not use when documenting a single component (use component-spec) or a project-specific journey (use journey-map).
+description: Document a reusable UX pattern (empty state, error handling, confirmation dialog, search-filter-sort, loading skeleton) used across multiple screens and projects. Use when formalizing a recurring UX solution. Do not use for one component (use component-spec) or a project journey (use journey-map).
 metadata:
   category: discovery-and-scoping
   primary-cursor-mode: Agent

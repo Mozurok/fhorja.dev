@@ -1,6 +1,6 @@
 ---
 name: approve-plan
-description: Atomically lock IMPLEMENTATION_PLAN.md as the approved execution baseline and stamp TASK_STATE.md with the approval signal. Symmetric counterpart to approve-proposed but for the plan itself, not for arbitrary PROPOSED artifacts. Use on every plan implementation-plan produces or self-critique-and-revise revises; it self-runs a blinded review, and only an ESCALATED exit reaches the user. Do not use when the plan is still draft, when implementation-plan returned NO_OP, when the plan contains [NEEDS CLARIFICATION:] markers, or when revisions are still pending review.
+description: Atomically lock IMPLEMENTATION_PLAN.md as the approved execution baseline and stamp TASK_STATE.md with the approval signal; the plan-level counterpart to approve-proposed. Use on every plan implementation-plan produces or self-critique-and-revise revises; it self-runs a blinded review, and only an ESCALATED exit reaches the user. Do not use when the plan is still draft, implementation-plan returned NO_OP, the plan contains [NEEDS CLARIFICATION:] markers, or revisions are pending review.
 metadata:
   category: planning-and-validation
   primary-cursor-mode: Agent

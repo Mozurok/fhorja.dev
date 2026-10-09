@@ -1,7 +1,7 @@
 ---
 name: godot-runtime-verify
 description: |-
-  Verify a built Godot 2D or 3D scene at runtime: run the scene (press-play or headless), read the captured debugger output, classify any runtime errors against a Godot-specific taxonomy, and decide a PASS/FAIL runtime gate for the slice's acceptance behavior. The run's real output IS the Layer-1 runtime evidence (ADR-0048); a claimed-but-not-shown run is unverified. MCP-agnostic about how the scene is run; it verifies and routes fixes, it does not apply them. Use after a Godot slice is implemented to gate runtime behavior the static checks (lint, typecheck) cannot catch. Do not use to plan a scene (use godot-scene-plan), to write or fix the code (use implement-approved-slice or implement-slice-complement), to triage a failure into a fix size (use incident-triage), or with no implemented scene to run.
+  Verify a built Godot 2D or 3D scene at runtime: run it, read the debugger output, classify errors against a Godot taxonomy, decide a PASS/FAIL gate. Real output is the evidence. Use after a Godot slice is implemented, to gate runtime behavior. Do not use to plan a scene (use godot-scene-plan), write or fix code (use implement-approved-slice or implement-slice-complement), triage a failure (use incident-triage), or with no scene to run.
 metadata:
   category: "game-and-engine"
   primary-cursor-mode: "Agent"

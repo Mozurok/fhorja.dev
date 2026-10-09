@@ -1,7 +1,7 @@
 ---
 name: state-reconcile
 description: |-
-  Detect drift between TASK_STATE.md, other task-memory artifacts, and observable reality (code, tests, diff when provided), then propose the minimum set of updates so operational memory is trustworthy again. Use when TASK_STATE.md is stale or internally inconsistent after many edits, IMPLEMENTATION_PLAN.md or SLICES/*.md or slice status disagree with each other or with what was actually done, you need a full cross-check before trusting routing or before delivery prep, or the user explicitly wants a one-shot "repair state" pass. Also runs an opt-in read-only memory-lint mode that reports memory-hygiene issues (dead cross-links, orphaned slice files, stale facts) without writing. Do not use with no active task folder (run task-init first), when a small incremental update fits (use sync-task-state), when the need is fast routing on trusted artifacts (use what-next or resume-from-state), or for broad product discovery.
+  Detect drift between TASK_STATE.md, task artifacts, and reality (code, tests, diff), then propose the minimum updates. Also has an opt-in read-only memory-lint mode. Use when TASK_STATE.md is stale or inconsistent, plan or slice files disagree, you need a full cross-check before routing or delivery, or you want a one-shot repair pass. Do not use with no task folder (run task-init), for a small update (use sync-task-state), for fast routing (use what-next or resume-from-state), or for broad discovery.
 metadata:
   category: "state-and-navigation"
   primary-cursor-mode: "Ask"

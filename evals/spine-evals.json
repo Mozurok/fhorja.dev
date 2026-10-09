@@ -20,10 +20,10 @@
     {
       "file": "evals/scenarios/01-bootstrap-and-init.md",
       "reason": "The front door: task memory written APPLIED in every mode (ADR-0199, ADR-0215) and the shape of the ### Handoff block, which is the interface an external consumer parses fail-closed (ADR-0169). A shape regression here has the widest blast radius.",
-      "setup": "none",
+      "setup": "fixture",
       "verdict_required": false,
       "timeout_seconds": 900,
-      "probe": "evals/fixtures/spine/01-bootstrap-probe.sh"
+      "fixture": "evals/fixtures/spine/01-bootstrap.sh"
     },
     {
       "file": "evals/scenarios/125-branch-commit-apply-authorization.md",

@@ -1,6 +1,6 @@
 ---
 name: self-critique-and-revise
-description: Take a draft artifact (IMPLEMENTATION_PLAN.md, SLICES/*.md, or PR_PACKAGE.md), run a structured critique against a locked per-artifact-type rubric, and produce a revised draft. Evaluator-optimizer pattern; the revision is written APPLIED in every mode, the critique is shown in the response, and git is the undo. Distinct from review-hard (judges, no revision), direction-adjust (records a decision, no revision), and post-review-pivot (external feedback). Use when a draft was just written and one critique-and-revision pass is cheaper than re-running the authoring command. Do not use when the artifact is outside the locked set, when the issue is operational state rather than draft quality (use sync-task-state or state-reconcile), when external feedback drives the change (use pr-feedback-ingest or post-review-pivot), or before the artifact is drafted.
+description: Critique a draft artifact (IMPLEMENTATION_PLAN.md, SLICES/*.md, or PR_PACKAGE.md) against a locked rubric and revise it. Distinct from review-hard (judges, no revision) and direction-adjust (records a decision, no revision). Use when a draft was just written and a critique pass is cheaper than re-authoring. Do not use when the artifact is outside the locked set, for operational state (use sync-task-state or state-reconcile), for external feedback (use pr-feedback-ingest or post-review-pivot), or before drafting.
 metadata:
   category: planning-and-validation
   primary-cursor-mode: Plan

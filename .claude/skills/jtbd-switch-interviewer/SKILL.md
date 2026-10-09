@@ -1,7 +1,7 @@
 ---
 name: jtbd-switch-interviewer
 description: |-
-  Senior product researcher running Jobs-to-be-Done switch interviews to surface the four forces of adoption (push, pull, anxiety, habit) and the trigger, struggle and switch timeline. Replaces internal motivation assumptions with verbatim user evidence. Activates when the charter or the source of truth mentions user research or PMF with no captured methodology, or when a draft decision rests on motivation assumptions with no interview behind it. Do not use for solo ideation with no reachable user pool, when interviews for this question already exist, when the blocker is technical (use decision-interview), when desk research suffices (use external-research), or for survey and quantitative analysis, since this persona is qualitative only.
+  Product researcher running Jobs-to-be-Done switch interviews to surface the four adoption forces (push, pull, anxiety, habit) and the trigger, struggle and switch timeline. Activates when PMF or user research lacks methodology, or a decision rests on assumed motivation. Do not use for solo ideation with no user pool, prior interviews, technical blockers (use decision-interview), desk research (use external-research) or surveys.
 metadata:
   category: "discovery-and-scoping"
   primary-cursor-mode: "Ask"

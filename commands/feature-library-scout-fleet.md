@@ -1,6 +1,6 @@
 ---
 name: feature-library-scout-fleet
-description: Orchestrator-workers variant of feature-library-scout for deep per-feature-problem library research. One worker per problem ranks candidate libraries by adoption signal (registry downloads, dependents, last release, stars and trend, maintenance, platform fit) relative to the project's ecosystem, grounded in captured sources; the orchestrator is the sole writer that merges into one FEATURE_LIBRARIES.md. Stack-agnostic (npm, PyPI, crates.io, Go, Maven). Use when the product has more than 3 distinct feature problems each warranting a deep read. Do not use for 1 to 3 problems (use feature-library-scout inline), to pick stack layers (use stack-recommend), to verify framework pattern currency (use stack-currency-check), or with no active task folder (run task-init first).
+description: Orchestrator-workers variant of feature-library-scout for deep per-feature-problem library research. One worker per problem ranks libraries by adoption signal. Use when over 3 distinct feature problems each need a deep read. Do not use for 1 to 3 problems (use feature-library-scout), stack layers (use stack-recommend), framework pattern currency (use stack-currency-check), or with no task folder (run task-init).
 metadata:
   category: research-and-sourcing
   primary-cursor-mode: Ask

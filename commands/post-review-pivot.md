@@ -1,6 +1,6 @@
 ---
 name: post-review-pivot
-description: Capture what a PR or team review changed about the intended behavior or approach, separate keep from revert or replace, and produce the smallest safe set of updates to task memory and follow-on work. Does not implement product code. Use when review requests a meaningful direction change (wrong fields, wrong migrations, wrong integration shape), or when you need a structured pivot digest before rewriting the plan or slices. Do not use when feedback is primarily corrective under the existing contract (use pr-feedback-ingest), when there is no concrete review signal yet, when it is a trivial fix inside the approved contract (use implement-approved-slice), when only task-memory drift exists (use state-reconcile or sync-task-state), or when the pivot is really new unrelated work.
+description: Capture what a PR or team review changed about the intended approach, separate keep from revert, and update task memory. Does not implement product code. Use when review changes direction (wrong fields or migrations) or a pivot digest is needed. Do not use for corrective feedback (use pr-feedback-ingest), when there is no concrete review signal yet, trivial fixes (use implement-approved-slice), memory drift (use state-reconcile or sync-task-state) or new work.
 metadata:
   category: delivery-and-communication
   primary-cursor-mode: Ask

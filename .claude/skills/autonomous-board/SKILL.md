@@ -1,7 +1,7 @@
 ---
 name: autonomous-board
 description: |-
-  Read-only board-of-record view for an autonomous-run task (ADR-0044 D7, wos/autonomous-track.md). Renders the run as the spec, the IMPLEMENTATION_PLAN waves and slices, and the TASK_STATE phases mapped to to-do / in-progress / escalated / proposed / done columns, sourced only from the Fhorja task artifacts. No external work tracker; no writes. Use when the maintainer wants a single-glance status of an autonomous run without opening every artifact. Do not use to change state (use sync-task-state), to assess a normal multi-slice task (use where-we-at), or to route the next command (use what-next).
+  Read-only board of an autonomous-run task: IMPLEMENTATION_PLAN waves and slices and TASK_STATE phases as to-do, in-progress, escalated, proposed, done columns. Use when you want a single-glance status of an autonomous run. Do not use to change state (use sync-task-state), to assess a multi-slice task (use where-we-at), or to route next (use what-next).
 metadata:
   category: "autonomy"
   primary-cursor-mode: "Ask"

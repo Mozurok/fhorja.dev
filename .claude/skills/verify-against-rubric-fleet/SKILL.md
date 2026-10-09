@@ -1,7 +1,7 @@
 ---
 name: verify-against-rubric-fleet
 description: |-
-  Orchestrator-workers generalization of verify-against-rubric to N=many artifacts against ONE locked rubric. Dispatches N stateless judgment-role sub-agents in parallel; each receives ONE artifact + the SAME rubric with read-only input access and one assigned JSON return-file write (no TASK_STATE, no DECISIONS, no prior history); returns structured per-criterion verdict. Orchestrator merges into VERIFICATION_LOG.md with aggregate pass/fail counts + failure clustering (which criteria fail most often across the cohort -> likely system-level signal). Use when N >= 4 artifacts share one rubric (multi-slice retrospective, batch PR review, cohort spec audit). Do not use for single artifacts (use verify-against-rubric), when rubrics differ per artifact (run separately or refactor the rubric first), or on LOW/MEDIUM complexity slices (use self-critique-and-revise).
+  Orchestrator-workers generalization of verify-against-rubric: parallel stateless sub-agents judge one artifact each against ONE locked rubric, merged into VERIFICATION_LOG.md. Use when N >= 4 artifacts share one rubric (multi-slice retrospective, batch PR review). Do not use for single artifacts (use verify-against-rubric), when rubrics differ per artifact (run separately or refactor the rubric first), or on LOW/MEDIUM complexity slices (use self-critique-and-revise).
 metadata:
   category: "planning-and-validation"
   primary-cursor-mode: "Plan"

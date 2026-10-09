@@ -1,7 +1,7 @@
 ---
 name: atom-audit
 description: |-
-  Produce ATOM_AUDIT.md table auditing every atom component against COMPONENT_GUIDELINES.md (memo, callbacks, inline styles, press anim, touch target, a11y, reduced motion). Output is the table; fixes flow through normal slice pipeline. Use when 2-4 weeks have passed since last audit, when 5+ new atoms shipped, or when COMPONENT_GUIDELINES has a new normative rule. Do not use when no atoms exist (run design-bootstrap first) or when only a single atom needs review (use design-spec-review instead). For 6 or more atoms, use atom-audit-fleet.
+  Produce ATOM_AUDIT.md table auditing every atom component against COMPONENT_GUIDELINES.md (memo, callbacks, inline styles, touch target, a11y, reduced motion). Use when 2-4 weeks have passed since last audit, 5+ new atoms shipped, or COMPONENT_GUIDELINES has a new normative rule. Do not use when no atoms exist (run design-bootstrap first), for a single atom (use design-spec-review instead), or for 6 or more atoms (use atom-audit-fleet).
 metadata:
   category: "audit-and-sweep"
   primary-cursor-mode: "Ask"

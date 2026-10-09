@@ -1,6 +1,6 @@
 ---
 name: screen-spec-fleet
-description: Generate one spec document per screen in parallel from Figma frames, dispatching one worker per screen and merging SCREEN_MAP.md and routes.md from their partials. The orchestrator-workers variant of screen-spec. Use when the screen count is 6 or more, a Figma MCP is reachable, and foundations plus SCREEN_MAP already exist. Do not use for a single screen (use screen-spec), when foundations are missing (use design-bootstrap first), or when the frames have not been enumerated yet, since the caller supplies a number, slug, persona and node id per screen.
+description: Generate one spec document per screen in parallel from Figma frames, one worker per screen, merging SCREEN_MAP.md and routes.md from their partials; the orchestrator-workers variant of screen-spec. Use when the screen count is 6 or more, a Figma MCP is reachable, and foundations plus SCREEN_MAP exist. Do not use for a single screen (use screen-spec), when foundations are missing (use design-bootstrap first), or when frames are not yet enumerated (caller supplies number, slug, persona and node id per screen).
 metadata:
   category: design-and-ui
   primary-cursor-mode: Agent

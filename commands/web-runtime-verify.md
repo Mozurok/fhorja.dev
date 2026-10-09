@@ -1,6 +1,6 @@
 ---
 name: web-runtime-verify
-description: Verify a built web or static frontend at runtime: serve the build, assert page identity first, run the web battery (overflow 320 to 2560, keyboard and focus, console errors, Lighthouse and axe when available), and decide a PASS/FAIL/BLOCKED gate. The run's real output IS the evidence; a claimed-but-not-shown run is unverified. It verifies and routes fixes, it does not apply them. Do not use to plan a page (implementation-plan), to write or fix code (implement-approved-slice), for numeric perf budgets (performance-budget), for Godot or mobile (the sibling verify commands), or with no built frontend to serve.
+description: Verify a built web frontend at runtime: serve the build, assert page identity, run the web battery (overflow 320 to 2560, keyboard, console, Lighthouse, axe), and decide a PASS/FAIL/BLOCKED gate. Fixes are routed, not applied. Do not use to plan (implementation-plan), write code (implement-approved-slice), for perf budgets (performance-budget), Godot or mobile, or without a build.
 metadata:
   category: runtime-verification
   primary-cursor-mode: Agent

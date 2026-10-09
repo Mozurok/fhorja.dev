@@ -1,7 +1,7 @@
 ---
 name: performance-budget
 description: |-
-  Senior performance-budget auditor that declares the numeric non-functional budgets a change must hold (Core Web Vitals, backend latency percentiles, payload and bundle size, key-operation cost) and the action when a metric regresses. Produces PERFORMANCE_BUDGET.md, a per-metric table of threshold, statistic, measurement source and regression action. Spec-only; it never runs load tests itself. Also covers React Native plus Godot 2D-mobile and 3D surfaces (frame budget, draw calls). Activates when a performance-sensitive surface changes without a numeric budget, or before delivery of a latency- or size-sensitive change. Do not use when the task has no performance surface, for functional test selection (use test-strategy), or for post-deploy live-signal verification (use post-deploy-verifier).
+  Declares the numeric budgets a change must hold (Core Web Vitals, latency percentiles, bundle size, frame budget) and the action on regression. Spec-only. Activates when a performance-sensitive surface changes with no numeric budget, or before delivering a latency- or size-sensitive change. Do not use without a performance surface, for functional test selection (use test-strategy), or post-deploy verification (use post-deploy-verifier).
 metadata:
   category: "audit-and-sweep"
   primary-cursor-mode: "Ask"

@@ -1,6 +1,6 @@
 ---
 name: targeted-questions
-description: Ask the minimum set of high-value factual questions needed to proceed safely, then persist the result in the task repository. Distinct from decision-interview (factual gaps, not decision-driven gaps). Use when impact analysis or boundary definition revealed missing facts, correctness depends on information that is not yet confirmed, or the task cannot safely move into planning or implementation without clarification. Do not use when the main problem is missing policy or behavioral decisions rather than missing facts (use decision-interview), enough information already exists to move safely into planning, or the task is already in implementation and the missing information is not correctness-critical.
+description: Ask the minimum set of high-value factual questions needed to proceed safely, then persist the result in the task repository. Covers factual gaps only. Use when impact analysis or boundary definition found missing facts, correctness depends on unconfirmed information, or planning is blocked. Do not use for missing decisions (use decision-interview), when enough is known to plan, or, mid-implementation, when the gap is not correctness-critical.
 metadata:
   category: discovery-and-scoping
   primary-cursor-mode: Ask

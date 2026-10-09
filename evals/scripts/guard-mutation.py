@@ -206,6 +206,18 @@ def mutate_description_emptied(d):
     return "one skill's description removed, which makes the aggregate budget greener"
 
 
+def mutate_descriptions_over_advertise_ceiling(d):
+    """One description grown past the aggregate ceiling: the over-budget branch, which the
+    emptied-description entry does not reach (it returns before the ceiling is compared)."""
+    # build_skills_root leaves two other 20-char descriptions in place, so alpha is sized to make
+    # the AGGREGATE exactly one char past the ceiling. A longer overshoot would let a quiet
+    # tolerance in the check (`total > budget_chars + 40`) pass unnoticed.
+    others = 2 * len("A short description.")
+    over = se.ADVERTISE_BUDGET_TOKENS * 4 + 1 - others
+    _skill(d, "alpha", description="x" * over)
+    return f"aggregate of {over + others} chars, one past the {se.ADVERTISE_BUDGET_TOKENS * 4}-char aggregate ceiling"
+
+
 def mutate_spec_over_ceiling(d):
     with open(os.path.join(d, se.SPEC_PATH), "w", encoding="utf-8") as f:
         f.write("x" * (se.SPEC_CEILING_CHARS + 1))
@@ -1993,6 +2005,31 @@ def mutate_installer_stops_shipping_ranker(d):
     return "the installer no longer shipping the learnings ranker"
 
 
+def build_trimmed_behavior_root(d):
+    """The two command files the trimmed-behavior check reads, copied: each assertion is a
+    clause in the real file, and a stand-in would prove the fixture matches itself."""
+    return _copy_into(d, "commands/task-init.md", "commands/implement-approved-slice.md")
+
+
+def mutate_task_init_loses_self_check_bullet(d):
+    """The optional self-check bullet leaves task-init. A trim reads it as a harmless
+    reminder, and the substrate-write check habit goes with it."""
+    f = os.path.join(d, "commands/task-init.md")
+    lines = open(f).read().split("\n")
+    kept = [ln for ln in lines if "verify-substrate-batch.sh" not in ln]
+    assert len(kept) < len(lines), "fixture lost its mutation target: verify-substrate-batch.sh"
+    open(f, "w").write("\n".join(kept))
+    return "task-init without the verify-substrate-batch.sh self-check bullet"
+
+
+def mutate_implement_loses_route_handler_trigger(d):
+    """The route handler trigger leaves the backend HTTP signature. A slice that touches a
+    handler, controller or router is then no longer read as a backend runtime surface."""
+    _drop(d, "commands/implement-approved-slice.md",
+          "an HTTP route handler, controller, or router definition", "an HTTP endpoint")
+    return "implement-approved-slice without the route handler trigger"
+
+
 def build_mode_gate_root(d):
     """task-init and self-critique-and-revise (fixed, ADR-0220), the pending command (still
     gated), the spec and the FAQ, copied: the check reads the real Artifact changes lines, and a
@@ -2727,6 +2764,8 @@ MUTATIONS = [
      'lower it to'),
     ("check_advertise_stage_budget", build_skills_root, mutate_description_emptied,
      'a skill with no description shrinks this surface'),
+    ("check_advertise_stage_budget", build_skills_root, mutate_descriptions_over_advertise_ceiling,
+     '-token) aggregate budget'),
     ("check_spec_size_budget", build_spec_root, mutate_spec_over_ceiling,
      'non-regression ceiling'),
     ("check_supersession_marked", build_adr_root, mutate_supersession_unrecorded,
@@ -2943,6 +2982,10 @@ MUTATIONS = [
      "treats Tags as required again"),
     ("check_memory_consume_path", build_memory_consume_root, mutate_installer_stops_shipping_ranker,
      "no longer ships rank-learnings.sh"),
+    ("check_trimmed_behavior_kept", build_trimmed_behavior_root, mutate_task_init_loses_self_check_bullet,
+     "lost the optional self-check bullet"),
+    ("check_trimmed_behavior_kept", build_trimmed_behavior_root, mutate_implement_loses_route_handler_trigger,
+     "lost the backend runtime trigger"),
     ("check_task_memory_written_in_every_mode", build_mode_gate_root, mutate_task_init_gates_on_mode_again,
      "conditions APPLIED on the mode"),
     ("check_task_memory_written_in_every_mode", build_mode_gate_root, mutate_pending_command_loses_its_gate,

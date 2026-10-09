@@ -1,7 +1,7 @@
 ---
 name: frontend-system-design
 description: |-
-  Produce a staff-grade frontend system-design RFC for the active task: a 12-section design document (problem, requirements, architecture, data model, API contract, rendering and delivery, state, performance, accessibility, security, rollout, trade-offs) covering web and mobile, persisted as FRONTEND_SYSTEM_DESIGN.md. An --interview mode reframes the same structure for an interview round. Do not use to frame whether the problem is right (use problem-framing), to slice an already-designed change (use implementation-plan), to analyze blast radius (use impact-analysis), to review an API contract in isolation (use api-contract-review), or with no active task folder (run task-init first).
+  Produce a frontend system-design RFC for the active task (12 sections, web and mobile) as FRONTEND_SYSTEM_DESIGN.md, with an --interview mode for interview rounds. Do not use to frame the problem (use problem-framing), to slice a designed change (use implementation-plan), for blast radius (use impact-analysis), for an API contract alone (use api-contract-review), or without a task (run task-init first).
 metadata:
   category: "design-and-ui"
   primary-cursor-mode: "Agent"
@@ -13,16 +13,6 @@ metadata:
   provenance: "first-party"
   suggested-model: "claude-sonnet-5-5"
 ---
-> **Output contract, in brief.** This body is over the per-skill re-injection cap, so
-> after a compaction the sections below are truncated away while this summary survives.
-> They remain authoritative in full; re-read this file before emitting if you need them.
->
-> - `Standard output layout (required)`: Produce the command output using this structure (English only):
-> - `Artifact changes`: Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules. Every listed file...
-> - `Command transcript`: Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
-> - `Handoff`: Use the adaptive ending format of `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract`. Every Handoff is one fenced `text` b...
-> - `Definition of done (command output)`: All 12 sections are present (default mode) or the RADIO-framed answer...
-
 
 Act as a staff frontend engineer writing the system-design document for a frontend feature or surface, so the architecture is decided and reviewable before any slicing or code.
 

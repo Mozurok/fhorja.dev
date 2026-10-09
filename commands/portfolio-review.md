@@ -1,6 +1,6 @@
 ---
 name: portfolio-review
-description: Read-only cross-task board across every active task in all projects. Runs scripts/portfolio-review.sh to classify each active task as done-unclosed, blocked, my-move, stale, or in-flight, then renders one ranked board with a single recommended next action per row, so picking the next thread and catching finished-but-unarchived tasks stop depending on memory. An --outcomes mode reports closed-task outcome telemetry (merge status, cycle time) instead of the live board. Use when you have many concurrent active tasks and want a portfolio-level view of whose move it is and what has gone quiet, when deciding which task to pick up next, or when sweeping for tasks that should be closed. Do not use for routing inside a single active task (use what-next), for a deep checkpoint of one task (use where-we-at), or to change any task's state (this command never writes).
+description: Read-only cross-task board across every active task in all projects: classifies each task and renders one ranked board with a recommended next action per row. An --outcomes mode reports closed-task outcomes instead. Use when you have many concurrent active tasks and want to see whose move it is and what has gone quiet, which task to pick up next, or which should be closed. Do not use for routing inside one active task (use what-next), a deep checkpoint of one task (use where-we-at), or changing task state (it never writes).
 metadata:
   category: state-and-navigation
   primary-cursor-mode: Ask

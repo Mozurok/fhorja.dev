@@ -1,7 +1,7 @@
 ---
 name: branch-commit
 description: |-
-  Return a branch name and a concise commit message (at most 3 lines: a subject and an optional 2-line body) for the current task, grounded in the real `git diff` rather than a paraphrase of the task summary, and with `--apply` optionally create that commit after showing the staged diff in the same turn. Use when the user only needs quick branch and commit naming right before committing, full PR packaging is unnecessary, and there is a real inspectable diff (staged or unstaged changes, or a branch diff vs an integration base); use `--apply` when the commit-evidence closure floor needs a commit to exist. Do not use when the task needs a complete PR package (use pr-package), there is no diff yet (naming a branch from a task summary alone is the failure mode this command exists to avoid; ask the user to stage at least one change first), or the diff is still too unclear to summarize safely.
+  Return a branch name and concise commit message (max 3 lines) for the current task, grounded in the real `git diff`; with `--apply`, create the commit after showing the staged diff. Use when the user only needs quick branch and commit naming before committing, PR packaging is unnecessary, and a real diff exists; use `--apply` when the closure floor needs a commit. Do not use when a full PR package is needed (use pr-package), there is no diff yet, or the diff is too unclear.
 metadata:
   category: "delivery-and-communication"
   primary-cursor-mode: "Ask"

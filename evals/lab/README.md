@@ -61,6 +61,13 @@ Root origin, usage, budgets, process success, sandbox enforcement and comparativ
 code quality require separate evidence. The portable synthetic regressions run
 through the offline gate above; new host schemas require their own qualification.
 
+## Spec-read arm
+
+`spec-read-named-sections.md` is a design note, not code. It defines three
+prefixes for the spine scenarios (`skip`, `force`, and `named`, one list of
+`WORKFLOW_OPERATING_SYSTEM.md` sections per command) and the recipe to measure
+them. The bootstrap block keeps its current read instruction.
+
 ## Quality evidence
 
 `quality.py` reads a quality directory containing command return codes and

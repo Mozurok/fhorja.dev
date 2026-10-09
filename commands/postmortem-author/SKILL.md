@@ -1,6 +1,6 @@
 ---
 name: postmortem-author
-description: Senior reliability engineer authoring a blameless postmortem for a resolved incident: a timeline, contributing causes rather than blame, impact measured against the SLO and error budget, and concrete action items with owners. Produces POSTMORTEM.md. Activates when incident-triage resolved an escalation or a significant hotfix with an identified root cause, when task-close ends an incident-driven task, or when a notable outage needs a standalone learning record. Do not use for live triage (use incident-triage), for the inline reflexion incident-triage already emits, or when no significant incident occurred.
+description: Blameless postmortem for a resolved incident: timeline, contributing causes, SLO impact, action items. Activates when incident-triage resolved an escalation or significant hotfix with root cause, when task-close ends an incident task, or for a notable outage. Do not use for live triage (use incident-triage), its inline reflexion, or no significant incident.
 metadata:
   category: execution-and-closure
   primary-cursor-mode: Ask

@@ -1,6 +1,6 @@
 ---
 name: extract-foundations-from-screens
-description: Extract canonical foundations docs (`foundations/color.md`, `foundations/typography.md`, `foundations/spacing.md`, `foundations/radii.md`) from a batch of existing SCREEN_SPECs. Idempotent: re-runs only add new tokens, never overwrite existing role mappings, and route conflicts to a Review queue. Use when SCREEN_SPECs already document raw values and you need to converge them into role tokens. Do not use when foundations are already curated and screens already reference role tokens (run `foundation-audit` instead).
+description: Extract canonical foundations docs (color, typography, spacing, radii) from a batch of existing SCREEN_SPECs. Re-runs only add new tokens and route conflicts to a Review queue. Use when SCREEN_SPECs already document raw values and need converging into role tokens. Do not use when foundations are already curated and screens already reference role tokens (run foundation-audit instead).
 metadata:
   category: design-and-ui
   primary-cursor-mode: Agent

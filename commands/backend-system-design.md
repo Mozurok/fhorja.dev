@@ -1,6 +1,6 @@
 ---
 name: backend-system-design
-description: Produce a staff-grade backend system-design RFC for the active task: a 12-section design document (problem, requirements, architecture, data model and storage, API contract, caching, scaling and bottlenecks, reliability and SLOs, security, observability, rollout and migration, trade-offs) for a new service, endpoint, or backend feature, persisted as BACKEND_SYSTEM_DESIGN.md. Capability-routed, not stack-specific; composes with slo-define, performance-budget, api-contract-review, and release-plan rather than duplicating them. Use when a backend service or feature needs an architecture-level design before planning and slicing. Do not use to slice an already-designed change (use implementation-plan), to analyze blast radius (use impact-analysis), to review an API contract in isolation (use api-contract-review), to design the frontend surface (use frontend-system-design), or with no active task folder (run task-init first).
+description: Produce a staff-grade backend system-design RFC: a 12-section document for a new service, endpoint, or feature. Composes with slo-define, performance-budget, api-contract-review, release-plan. Use when a backend feature needs architecture-level design before planning. Do not use to slice a designed change (use implementation-plan), for blast radius (use impact-analysis), a lone API contract (use api-contract-review), the frontend (use frontend-system-design), or with no task folder (run task-init).
 metadata:
   category: discovery-and-scoping
   primary-cursor-mode: Agent

@@ -1,7 +1,7 @@
 ---
 name: atom-audit-fleet
 description: |-
-  Audit every atom in the design system in parallel against the documented component guidelines, dispatching one worker per small group of atoms and merging their rows into a single ATOM_AUDIT.md table. The orchestrator-workers variant of atom-audit. Use when the atom count is 6 or more, the cost-effectiveness threshold, and COMPONENT_GUIDELINES.md exists. Do not use below 6 atoms (use atom-audit single-agent), when COMPONENT_GUIDELINES.md is missing, or when only 1 or 2 atoms changed (use design-spec-review per component).
+  Audit every atom in parallel against the component guidelines, one worker per small group, merging rows into one ATOM_AUDIT.md table (orchestrator-workers variant of atom-audit). Use when the atom count is 6 or more and COMPONENT_GUIDELINES.md exists. Do not use below 6 atoms (use atom-audit single-agent), without COMPONENT_GUIDELINES.md, or when only 1 or 2 atoms changed (use design-spec-review per component).
 metadata:
   category: "audit-and-sweep"
   primary-cursor-mode: "Ask"

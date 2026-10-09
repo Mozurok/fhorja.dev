@@ -1,6 +1,6 @@
 ---
 name: rls-auth-boundary-auditor
-description: Senior Supabase RLS and auth boundary auditor for tenant isolation gaps in migrations and policy DDL BEFORE deploy. Checks effective write predicates, including implicit USING fallback when WITH CHECK is omitted, RLS enabled without FORCE ROW LEVEL SECURITY, missing policies on join and audit tables, missing tenant predicates, SECURITY DEFINER functions without RLS-aware guards, and unjustified service_role bypass. Activates when a Supabase or multi-tenant decision lands with no RLS policy locked, when a new table arrives without a policy in its slice acceptance, or when the files in scope include Supabase migrations or SQL. Do not use when the project is single-tenant, when RLS is intentionally disabled with a documented rationale, for general non-database security review (use security-review), or when the audit already covered the current migration set.
+description: Supabase RLS and auth boundary auditor for tenant isolation gaps in migrations and policy DDL BEFORE deploy (write predicates, service_role). Activates when a Supabase or multi-tenant decision has no RLS policy locked, a new table has no policy in slice acceptance, or scope includes Supabase migrations or SQL. Do not use when single-tenant, RLS intentionally disabled with a rationale, for general non-database security review (use security-review), or the current migration set is already audited.
 metadata:
   category: audit-and-sweep
   primary-cursor-mode: Ask

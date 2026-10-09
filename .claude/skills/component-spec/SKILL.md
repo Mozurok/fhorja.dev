@@ -1,7 +1,7 @@
 ---
 name: component-spec
 description: |-
-  Generate a 15-section component specification from a Figma component using MCP tools (get_design_context, get_screenshot, get_variable_defs). Produces a spec doc matching the COMPONENT_SPEC.md template with anatomy, variants, sizes, states, accessibility, motion, haptics, platform, security, performance, and API sections pre-filled from Figma observations. Use when documenting a design system component. Do not use when the component has no Figma representation or when the spec already exists (edit manually instead).
+  Generate a 15-section component specification from a Figma component using MCP tools, matching the COMPONENT_SPEC.md template and pre-filled from Figma. Use when documenting a design system component. Do not use when the component has no Figma representation or the spec already exists (edit manually instead).
 metadata:
   category: "design-and-ui"
   primary-cursor-mode: "Agent"

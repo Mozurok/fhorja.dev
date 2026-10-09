@@ -1,7 +1,7 @@
 ---
 name: task-init-fleet
 description: |-
-  Orchestrator-workers variant of task-init for decomposing a complex brief into N parallel independent sub-tasks. Orchestrator validates the decomposition (no overlap, clear scope per sub-task, cross-links justified); N mechanical-role workers each run a full task-init in parallel producing one task folder with 5 mandatory files. Use when the user's brief contains N >= 3 logically independent work streams (e.g., REST->GraphQL migration across api-server + mobile-app + web-app; or implement-X for 4 distinct features that share infra but not delivery). Do not use for one cohesive task (use task-init), for sequential dependencies that can't run in parallel, or when sub-task scopes are still unclear (run decision-interview on the parent first).
+  Orchestrator-workers variant of task-init that decomposes a complex brief into N parallel independent sub-tasks, each worker running a full task-init. Use when the brief contains N >= 3 logically independent work streams (e.g., REST->GraphQL migration across api-server + mobile-app + web-app; or implement-X for 4 distinct features that share infra but not delivery). Do not use for one cohesive task (use task-init), for sequential dependencies that cannot run in parallel, or when sub-task scopes are unclear (run decision-interview first).
 metadata:
   category: "state-and-navigation"
   primary-cursor-mode: "Ask"

@@ -1,7 +1,7 @@
 ---
 name: security-review
 description: |-
-  Dedicated security review of the current task changes covering threat modeling, OWASP ASVS L1 checklist pass, auth/authz flow tracing, and dependency/secret scanning reminders. Distinct from review-hard (general risk) and repo-consistency-sweep (pattern matching). Activates when DECISIONS.md, IMPLEMENTATION_PLAN.md, or TASK_STATE.md's Active files in scope names an auth or biometric-scoped change without a completed security-review for that scope. Use when the task touches authentication, authorization, public endpoints, PII handling, crypto, or external integrations. Do not use when no implementation has happened yet or the task has no security surface (pure documentation, internal tooling with no user data). Supports an opt-in `--consistency N` consensus mode (off by default) that runs N independent review passes over the same diff and merges them by consensus, per ADR-0073.
+  Security review of task changes: threat modeling, OWASP ASVS L1 checklist, auth/authz flow tracing, dependency/secret scan reminders. Distinct from review-hard (general risk) and repo-consistency-sweep (pattern matching). Use when the task touches authentication, authorization, public endpoints, PII, crypto, or external integrations, or names an auth or biometric change with no security-review. Do not use when nothing is implemented yet or there is no security surface (pure docs, internal tooling with no user data). Opt-in --consistency N consensus mode.
 metadata:
   category: "audit-and-sweep"
   primary-cursor-mode: "Ask"

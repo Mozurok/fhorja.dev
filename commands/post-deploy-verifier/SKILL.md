@@ -1,6 +1,6 @@
 ---
 name: post-deploy-verifier
-description: Senior reliability engineer producing a per-slice post-deploy verification plan that maps each acceptance criterion to a concrete live signal (log query, dashboard panel, smoke test, flag check, DB invariant query), plus negative checks and a rollback trigger checklist. Activates after a deploy with no paired plan, when branch-commit produced a deploy without post-deploy checks, or when slice-closure is about to close a slice without one. Do not use BEFORE the slice ships (use verify-against-rubric for pre-deploy verdicts against a locked rubric), for documentation-only slices, or when verification is already authored and the deploy diff is unchanged.
+description: Per-slice post-deploy verification plan: acceptance criteria mapped to live signals, plus rollback triggers. Activates after a deploy with no plan, when branch-commit made a deploy without checks, or when slice-closure would close a slice without one. Do not use before the slice ships (use verify-against-rubric), for docs-only slices, or when verification exists and the deploy is unchanged.
 metadata:
   category: runtime-verification
   primary-cursor-mode: Ask

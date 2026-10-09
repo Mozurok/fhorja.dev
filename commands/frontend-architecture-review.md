@@ -1,6 +1,6 @@
 ---
 name: frontend-architecture-review
-description: Review a frontend architecture at scale and gate micro-frontend adoption BEFORE building. Starts with an adopt-or-don't-adopt decision (default: prefer a modular monolith until 3 or more independently deploying teams and real coordination pain exist), then a checklist covering team and domain boundaries, independent deployability, shared dependencies, runtime isolation, the composition tier, state at scale, and governance. Do not use to design one system (use frontend-system-design), to review a GraphQL or REST contract (use graphql-contract-review or api-contract-review), or with no active task folder (run task-init first).
+description: Review a frontend architecture at scale, gating micro-frontend adoption BEFORE building (default: modular monolith until 3 or more independently deploying teams and real coordination pain exist). Do not use to design one system (use frontend-system-design), to review a GraphQL or REST contract (use graphql-contract-review or api-contract-review), or with no active task folder (run task-init first).
 metadata:
   category: design-and-ui
   primary-cursor-mode: Ask

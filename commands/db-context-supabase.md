@@ -1,6 +1,6 @@
 ---
 name: db-context-supabase
-description: Validate that a Supabase MCP server is reachable, introspect a user-scoped subset of the database (tables, columns, types, RLS policies, optionally functions and recent migrations), and persist it as DB_CONTEXT.md with one cross-link in SOURCE_OF_TRUTH.md. Read-only introspection, never destructive SQL. Falls back to the local Supabase CLI when no MCP server is reachable, and never records supabase status output into an artifact because it prints the service_role key. Opt-in. Use when the task touches Supabase data, schema or RLS and planning needs verified rather than assumed schema. Do not use without an active task folder (run task-init first), when the database is not Supabase, or to record a schema decision (use decision-interview).
+description: Validate that a Supabase MCP server is reachable, introspect a subset of the database (tables, columns, RLS policies), and persist it as DB_CONTEXT.md. Read-only, never destructive SQL. Falls back to the local Supabase CLI when no MCP server is reachable. Use when the task touches Supabase data, schema or RLS and planning needs verified schema. Do not use without a task folder (run task-init first), when not Supabase, or to record a schema decision (use decision-interview).
 metadata:
   category: database-context
   primary-cursor-mode: Ask

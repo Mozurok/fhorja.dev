@@ -1,7 +1,7 @@
 ---
 name: incident-triage
 description: |-
-  Triage a concrete observed technical failure (stack trace, error, failing test, runtime symptom, production alert), classify the failure type (REGRESSION/NEW_BUG/CONFIG/EXTERNAL_DEPENDENCY/REPRODUCIBILITY/DIAGNOSTIC_INSUFFICIENT), recommend fix size (HOTFIX/SLICE/INVESTIGATION/ESCALATE), and validate against locked decisions and invariants. Defends HOTFIX paths against unnecessary ceremony with explicit safety justification. Use when there is concrete failure evidence, an active task folder exists, urgency is real or unclear, or it is unclear whether to run the full flow or take a hotfix shortcut. Do not use when the issue is not concrete (use im-stuck or what-next), the failure is feature-shaped (use task-init for a new feature task), the fix is already implemented and only delivery remains (use pr-package), the failure surfaced from PR feedback (use pr-feedback-ingest or post-review-pivot), or no active task folder exists yet.
+  Triage a concrete technical failure (stack trace, failing test, runtime symptom, production alert), classify it and pick a fix size (HOTFIX/SLICE/INVESTIGATION/ESCALATE). Use when there is concrete failure evidence, an active task folder exists, and urgency is real or unclear, or hotfix versus full flow is unclear. Do not use when it is not concrete (use im-stuck or what-next), feature-shaped (use task-init), already fixed (use pr-package), from PR feedback (use pr-feedback-ingest or post-review-pivot), or no task folder exists.
 metadata:
   category: "state-and-navigation"
   primary-cursor-mode: "Debug"

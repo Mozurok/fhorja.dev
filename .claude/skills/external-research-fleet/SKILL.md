@@ -1,7 +1,7 @@
 ---
 name: external-research-fleet
 description: |-
-  Orchestrator-workers variant of external-research for multi-modal sweep across distinct angles or source-groups of one research question. Promotes external-research's inline delegation to a first-class orchestrator with a worker contract and provenance. The orchestrator dispatches N mechanical-role workers (one angle each) in parallel; each produces a structured per-angle synthesis grounded in REFERENCES.md; orchestrator merges into a single EXTERNAL_RESEARCH.md with cross-angle reconciliation (reinforcing vs contradicting vs different-framing). Use when the research question has N >= 3 distinct angles or source-groups AND the question would benefit from parallel deep reads. Do not use when 1-3 sources suffice (use external-research inline), when one source already dominates (no parallelism gain), or when sources have not yet been captured (run capture-references first).
+  Orchestrator-workers variant of external-research: parallel workers each synthesize one angle of a research question, merged into one EXTERNAL_RESEARCH.md. Use when the research question has N >= 3 distinct angles or source-groups AND would benefit from parallel deep reads. Do not use when 1-3 sources suffice (use external-research inline), when one source already dominates (no parallelism gain), or when sources have not yet been captured (run capture-references first).
 metadata:
   category: "research-and-sourcing"
   primary-cursor-mode: "Ask"

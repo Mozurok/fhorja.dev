@@ -1,7 +1,7 @@
 ---
 name: resolve-contract-gaps
 description: |-
-  Turn unresolved or contradictory behavior, contract, or policy gaps into one canonical implementation-safe decision set, then persist the result in DECISIONS.md and TASK_STATE.md as explicit reviewable proposals (not silent intent changes). Use when key ambiguities have already been identified, the task has enough facts to compare options safely, contradictory rules or assumptions or interpretations still exist, and planning cannot proceed safely until one canonical rule set is established. Do not use when the task is still missing basic factual context, the current need is broad discovery or impact analysis, or there are still unanswered decision questions that must be resolved first (use decision-interview).
+  Turn contradictory or unresolved behavior, contract, or policy gaps into one canonical decision set, written to DECISIONS.md and TASK_STATE.md as proposals. Use when ambiguities are known, facts suffice to compare options, and contradictions block planning. Do not use when facts are missing, the need is discovery or impact analysis, or decision questions are open (use decision-interview).
 metadata:
   category: "contracts-and-decisions"
   primary-cursor-mode: "Plan"

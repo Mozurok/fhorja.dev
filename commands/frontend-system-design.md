@@ -1,6 +1,6 @@
 ---
 name: frontend-system-design
-description: Produce a staff-grade frontend system-design RFC for the active task: a 12-section design document (problem, requirements, architecture, data model, API contract, rendering and delivery, state, performance, accessibility, security, rollout, trade-offs) covering web and mobile, persisted as FRONTEND_SYSTEM_DESIGN.md. An --interview mode reframes the same structure for an interview round. Do not use to frame whether the problem is right (use problem-framing), to slice an already-designed change (use implementation-plan), to analyze blast radius (use impact-analysis), to review an API contract in isolation (use api-contract-review), or with no active task folder (run task-init first).
+description: Produce a frontend system-design RFC for the active task (12 sections, web and mobile) as FRONTEND_SYSTEM_DESIGN.md, with an --interview mode for interview rounds. Do not use to frame the problem (use problem-framing), to slice a designed change (use implementation-plan), for blast radius (use impact-analysis), for an API contract alone (use api-contract-review), or without a task (run task-init first).
 metadata:
   category: design-and-ui
   primary-cursor-mode: Agent

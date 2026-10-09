@@ -17,6 +17,37 @@ The alpha caveat that stood here ("while the project is in alpha (0.x.y), MINOR 
 
 ## [Unreleased]
 
+### Trim all 98 command descriptions, lower the Advertise ceiling (2026-10-09)
+
+- The `description` of every command is rewritten, longest first: 72,808 to 44,020
+  characters (39.5 percent). Every cross-reference (290), `Use when` and `Do not use`
+  marker and the 150-character capability floor stays; `evals/skill-description-baseline.json`
+  is unchanged. Half was not reached because those floors bind on the short descriptions.
+- The routing probe finds no flipped case on Sonnet, Opus or Codex after two fixes
+  (`task-init` gets its fleet pointer back, `code-locate` is narrowed). Haiku answers in
+  two regimes about 20 points apart, so it cannot confirm that. A review of the whole
+  branch then found lost conditions, flags and modes that no guard or probe saw, and 998
+  characters were restored. The probe cannot show equivalence (ADR-0249).
+- The Advertise ceiling in `check_advertise_stage_budget` drops from 21,000 to 11,505
+  tokens, with a mutation entry that proves it fires. Two skills fall under the
+  re-injection cap and lose their summary block.
+
+### Trim the spine commands, guard what the trim must keep (2026-10-09)
+
+- `task-init`, `implement-approved-slice` and `slice-closure` lose dated narrative and
+  repeated rules (-11.3, -4.4 and -7.6 percent), and four shared blocks are trimmed;
+  every SHALL, MUST, NEVER, FORBIDDEN and WHEN trigger stays. `task-init` now has
+  about 4,000 characters of headroom under the Load ceiling, and the `what-next`
+  skill falls under the re-injection cap. No effect on pass rate or
+  cost was detected on the shipped text at 3 to 5 repetitions, and the intervals do not
+  exclude a loss of about 10 points (ADR-0248).
+- New structural check `trimmed-behavior-kept` with two mutation entries guards the
+  `verify-substrate-batch.sh` self-check in `task-init` and the route-handler trigger
+  in `implement-approved-slice`.
+- Eval scenario 01 runs against a throwaway task repository that holds `projects/`.
+- `evals/lab/spec-read-named-sections.md` defines an eval arm for a per-command
+  spec read list; the bootstrap read instruction is unchanged.
+
 ### Bind review inputs and evaluation evidence (2026-10-03)
 
 - Isolated plan reviews receive exact cited decisions and brief. Satisfied native
@@ -1899,12 +1930,12 @@ First public release: Fhorja goes open source under AGPL-3.0, published with a f
 
 ### Notes
 - `## [0.1.0]` was cut on 2026-04-30; the "Initial public release under AGPL-3.0" entries below it remain as the pre-launch baseline.
-- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->246<!-- /count --> (0001-0209, with 0037 as the reserved gap).
-- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->246<!-- /count --> (0001-0209, with 0037 as the reserved gap).
-- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->246<!-- /count --> (0001-0209, with 0037 as the reserved gap).
-- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->246<!-- /count --> (0001-0209, with 0037 as the reserved gap).
-- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->246<!-- /count --> (0001-0209, with 0037 as the reserved gap).
-- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->246<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->248<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->248<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->248<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->248<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->248<!-- /count --> (0001-0209, with 0037 as the reserved gap).
+- ADR-0037 is an intentional numbering gap (reserved); the ADR sequence skips from 0036 to 0038. Total ADR count is <!-- count:adrs -->248<!-- /count --> (0001-0209, with 0037 as the reserved gap).
 
 ---
 

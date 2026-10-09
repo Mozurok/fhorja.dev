@@ -1024,15 +1024,21 @@ def check_description_capability_floor(root=None):
     return (not fails, fails)
 
 
+ADVERTISE_BUDGET_TOKENS = 11505  # 46020 chars at 4 chars/token. See check_advertise_stage_budget.
+
+
 def check_advertise_stage_budget(root=None):
     """[scenario 132] The Advertise stage (every generated skill's frontmatter
     `description`, injected into every run before any skill is loaded) stays under an
-    AGGREGATE budget of 21000 tokens, approximated as 84000 chars at the repo's standing
-    4 chars/token rule.
+    AGGREGATE budget of ADVERTISE_BUDGET_TOKENS (11505), approximated as 46020 chars at
+    the repo's standing 4 chars/token rule.
 
-    Budget: a NO-REGRESSION ceiling stated just above the measured 20233 tokens
-    (2026-08-09), per ADR-0135. It stops growth; it reduces nothing. The 206-vs-100
-    tokens-per-skill gap the 2026-08-08 audit named stays OPEN.
+    Budget: a NO-REGRESSION ceiling, per ADR-0135. It was 21000 tokens (84000 chars),
+    stated just above the 20233 tokens measured on 2026-08-09, and it stopped growth
+    without reducing anything. The description trim of 2026-10-09 (ADR-0249) cut the
+    measured total from 72808 to 44020 chars (11005 tokens), and the ceiling was
+    lowered with it to exactly the new total plus 2000 chars of headroom. It comes DOWN, never
+    up, the same rule the spec-size ceiling follows (ADR-0116).
 
     Why aggregate and not per-skill: lint already caps each description at 1024 chars,
     and a per-skill cap alone has a worst case of 98 * 1024 = 100352 chars with nothing
@@ -1055,7 +1061,7 @@ def check_advertise_stage_budget(root=None):
     the coverage assert below and this ceiling from underneath. Guarding the parser is
     check_description_reference_preservation's job, not this one's.
     """
-    budget_tokens = 21000
+    budget_tokens = ADVERTISE_BUDGET_TOKENS
     budget_chars = budget_tokens * 4
     descriptions, files = skill_descriptions(root)
     total = sum(len(d) for d in descriptions.values() if d)
@@ -4002,6 +4008,42 @@ def check_memory_consume_path():
     return (not fails, fails)
 
 
+def check_trimmed_behavior_kept():
+    """[ADR-0248] Two behaviors a context trim must not take out with the words around them.
+
+    The lean-context trim shortens always-loaded command text. A shorter file can lose a
+    behavior along with the sentence that carried it, and nothing else would say so. This
+    asserts, by substring, the two clauses the trim was told to keep:
+
+    1. `task-init` keeps the optional self-check bullet that runs
+       `scripts/verify-substrate-batch.sh`, the substrate-write habit before finishing.
+    2. `implement-approved-slice` keeps the backend HTTP runtime trigger: a slice touching
+       an HTTP route handler, controller, or router definition loads the backend floor.
+
+    Substring assertions on the load-bearing clause, the same shape as
+    check_memory_consume_path. They bound how the behavior comes undone in the obvious
+    wording; they do not prove the agent obeys the instruction.
+    """
+    fails = []
+    checks = [
+        (("commands", "task-init.md"), "bash scripts/verify-substrate-batch.sh <task-folder>",
+         "lost the optional self-check bullet, so task-init no longer reminds the agent to "
+         "check its substrate writes with verify-substrate-batch.sh before finishing"),
+        (("commands", "implement-approved-slice.md"), "HTTP route handler, controller, or router definition",
+         "lost the backend runtime trigger, so a slice touching a route handler, controller "
+         "or router definition is no longer treated as a backend HTTP runtime signature"),
+    ]
+    for parts, needle, why in checks:
+        path = p(*parts)
+        rel = "/".join(parts)
+        if not os.path.isfile(path):
+            fails.append(f"{rel}: missing, so this behavior cannot be checked")
+            continue
+        if needle not in read(path):
+            fails.append(f"{rel}: {why} (missing {needle!r})")
+    return (not fails, fails)
+
+
 def check_cwe_mapping_allowed():
     """[ADR-0213] No bug-class template maps to a CWE MITRE forbids mapping to.
 
@@ -6308,7 +6350,7 @@ CHECKS = [
     ("tier-routing-closure", "ADR-0084", "no command routes UNCONDITIONALLY to a target missing one of the router's own tiers; a gated route into an opt-in cluster is compliant", check_tier_routing_closure),
     ("skill-load-budget", "scenario 116", f"no generated skill exceeds the {LOAD_CEILING_CHARS}-char Load-stage ceiling (ADR-0116, hard fail), and one within {LOAD_WARN_BAND_CHARS} chars of it is named", check_skill_load_budget),
     ("skill-load-ceiling-slack", "scenario 116", f"the Load-stage ceiling sits no more than {LOAD_SLACK_CHARS} chars above the largest skill, so a finished trim lowers it (ADR-0227, hard fail)", check_skill_load_ceiling_slack),
-    ("advertise-stage-budget", "scenario 132", "the Advertise stage (98 skill descriptions, injected every run) stays under the 21000-token aggregate budget (ADR-0135, hard fail)", check_advertise_stage_budget),
+    ("advertise-stage-budget", "scenario 132", "the Advertise stage (98 skill descriptions, injected every run) stays under the 11505-token aggregate budget (ADR-0135, lowered by ADR-0249, hard fail)", check_advertise_stage_budget),
     ("substrate-emit-full-schema", "ADR-0034", "the shared block's hand-rolled emit teaches every field verify-log-validator.py requires; 29 commands cite that block, so a dropped field teaches 29 commands to emit invalid lines", check_substrate_emit_teaches_full_schema),
     ("declared-event-in-taxonomy", "ADR-0034", "every `event=` a command declares emitting is in the canonical taxonomy; a negative mention that teaches the pattern stays legal", check_declared_event_in_taxonomy),
     ("canonical-not-loaded-with-views", "ADR-0138", "nothing orders the canonical file loaded once per-consumer views exist; the spec governs 98 commands and nothing else reads it", check_canonical_not_loaded_when_views_exist),
@@ -6336,6 +6378,7 @@ CHECKS = [
     ("workflow-root-scripts-ship", "ADR-0218", "every script a command resolves against the workflow root is in SHIPPED_SCRIPTS, so an install has it; the outcome helper and the ASI06 ingest scan were both promised and shipped by nothing", check_workflow_root_scripts_ship),
     ("outcome-ledger-written", "ADR-0217", "every command that runs compute-task-outcome.py appends its printed line to OUTCOMES.jsonl on the same line, and the helper ships in the install payload; its exit 0 alone is not a write", check_outcome_ledger_is_written),
     ("memory-consume-path", "ADR-0214", "the memory consume path the August research concluded on is wired: task-init links REFERENCES without reading it, resolves the learnings ranker against the workflow root, impact-analysis reads prior analyses, memory-lint keeps Tags optional, and the ranker ships", check_memory_consume_path),
+    ("trimmed-behavior-kept", "ADR-0248", "two behaviors the lean-context trim must keep: task-init keeps the optional verify-substrate-batch.sh self-check bullet, and implement-approved-slice keeps the route handler, controller, or router definition trigger for the backend HTTP signature", check_trimmed_behavior_kept),
     ("cwe-mapping-allowed", "ADR-0213", "no bug-class template maps to a CWE MITRE marks Prohibited; Discouraged ones are reported and do not fail the build", check_cwe_mapping_allowed),
     ("scan-stamp-covers-claims", "ADR-0212", "no file's `Last scanned:` stamp is newer than a section heading that dates itself; check-doc-currency.sh reads the stamp's age and cannot see what it covers", check_scan_stamp_covers_its_claims),
     ("attended-chain-self-runs", "ADR-0208", "the attended chain runs without a human turn: the spec keeps the continuation rule and the plan-approval exclusion, approve-plan names no wait, and the task record carries the disqualifier rather than the retired tier label", check_attended_chain_self_runs),

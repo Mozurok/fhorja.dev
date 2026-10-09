@@ -1,7 +1,7 @@
 ---
 name: repo-consistency-sweep
 description: |-
-  Proactive defect-class detection that handles the lower-value half of code review, so human reviewers stay on design, intent, and knowledge transfer. Catches convention drift, ordering bugs, type-safety gaps, security and multi-tenant invariants (CWE-grounded), and operability issues against a curated bug-class library before PR packaging. Runs after review-hard, before pr-package, and suppresses findings the user declined until the file changes. The library grows through pr-feedback-ingest, which proposes new templates from real review findings. Use when at least one slice is implemented and you want a consistency check before packaging. Do not use before any implementation, while the task is still in planning, or when the goal is design review (use review-hard).
+  Defect-class detection for the lower-value half of code review: convention drift, type-safety gaps, security and multi-tenant invariants, operability issues. Runs after review-hard. Checks against a curated bug-class library that grows via pr-feedback-ingest. Use when at least one slice is implemented and you want a consistency check before pr-package. Do not use before any implementation, in planning, or for design review (use review-hard).
 metadata:
   category: "audit-and-sweep"
   primary-cursor-mode: "Ask"

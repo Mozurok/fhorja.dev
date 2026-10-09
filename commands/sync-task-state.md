@@ -1,6 +1,6 @@
 ---
 name: sync-task-state
-description: Update TASK_STATE.md so it reflects the latest operational truth of the task and can be resumed safely in this or another session. Lighter-weight than state-reconcile (no cross-artifact drift detection); preferred when the update is incremental and trusted. Use when a meaningful planning, decision, implementation, or closure step just happened, a slice was completed or closed, canonical decisions changed, the task is about to be paused or handed off, or TASK_STATE.md is stale relative to current progress. Do not use when no meaningful progress or decision change occurred, the task should first be initialized with task-init, or the current need is broad discovery rather than state synchronization.
+description: Update TASK_STATE.md to reflect the latest operational truth so the task can resume in another session. Lighter than state-reconcile, for incremental updates. Use when a meaningful step just happened (planning, decision, implementation, closure), a slice closed, decisions changed, the task is paused or handed off, or TASK_STATE.md is stale. Do not use when nothing meaningful changed, the task still needs task-init, or the need is broad discovery.
 metadata:
   category: state-and-navigation
   primary-cursor-mode: Ask
@@ -103,22 +103,21 @@ Required output:
 
 ### Substrate digest fallback
 <!-- shared:substrate-digest-fallback -->
-**Digest fallback when the canonical helper is unreachable.** `sha_of_section` extracts a section's body with `awk` and pipes it to `shasum -a 256`. A run executing inside a permission boundary that admits `shasum` but refuses `awk` and `sed` cannot invoke that helper, and MUST NOT reimplement it: an `awk` or `sed` program operand can call `system()` and write files, so a boundary that refuses those verbs refuses them for a reason. Assume the helper is unreachable whenever the workflow repository's `scripts/` directory is not readable from the working directory.
+**Digest fallback when the canonical helper is unreachable.** `sha_of_section` extracts a section's body with `awk` and pipes it to `shasum -a 256`. A run inside a permission boundary that admits `shasum` but refuses `awk` and `sed` cannot invoke that helper, and MUST NOT reimplement it. Assume the helper is unreachable whenever the workflow repository's `scripts/` directory is not readable from the working directory.
 
 WHERE the canonical per-section digest helper is unreachable, the write SHALL use a whole-file SHA-256 and SHALL declare the reduced scope:
 
 ```bash
-# One call per file. `shasum -a 256 <file>` needs no extraction step, so no
-# refused verb is involved. Read the hash (the first field) out of the output;
+# One call per file. Read the hash (the first field) out of the output;
 # do not pipe it through `cut` or `awk` to trim it.
 shasum -a 256 TASK_STATE.md
 ```
 
-Then add `"sha_scope":"file"` to that JSONL line, so a validator distinguishes a file digest from a section digest instead of inferring it. Everything else about the protocol is unchanged: the transaction header still goes above the section heading, and there is still exactly one JSONL line per section write.
+Then add `"sha_scope":"file"` to that JSONL line, so a validator distinguishes a file digest from a section digest. The rest of the protocol is unchanged: the transaction header still goes above the section heading, and there is exactly one JSONL line per section write.
 
-Do NOT rebuild the helper by writing each section out as its own file so it can be hashed separately. That workaround is coherent and it is what this rule exists to prevent: a 2026-08-04 run wrote 31 numbered section fragments to compute per-section digests by hand, spent the whole run doing it, and produced no product code.
+Do NOT rebuild the helper by writing each section out as its own file to hash it separately.
 
-What the fallback costs, stated so the trade is explicit rather than discovered later: the digest chain exists to detect an unlogged change to a SECTION. At file scope, two sections written in the same run share a digest, so the chain detects tampering with the file without attributing it to a section. That is a declared reduction in resolution, not a silent one, which is why the `sha_scope` field is mandatory rather than optional.
+At file scope two sections written in the same run share a digest, so the `sha_scope` field is mandatory, not optional.
 ### Claim grounding (active epistemic humility)
 <!-- shared:claim-grounding -->
 **Claim grounding (active epistemic humility).** This block governs what you may assert and how you record it. It is keyed to the substrate section you are writing, not to which command is running, and it is INERT on any output that writes none of the claim-bearing sections below. Full contract and rationale: `wos/active-epistemic-humility.md`.

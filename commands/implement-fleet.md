@@ -1,6 +1,6 @@
 ---
 name: implement-fleet
-description: Orchestrator-workers variant of implement-approved-slice that executes independent approved slices in parallel. Reads per-slice Scope and Depends-on from IMPLEMENTATION_PLAN.md, builds the slice DAG, computes parallelizable waves (ready slices whose file scopes are pairwise disjoint with no shared migration, lockfile, codegen, or barrel export), validates disjointness before dispatch, runs one worktree-isolated worker per slice per wave (each executing the implement-approved-slice contract), merges the worktrees, and runs a mandatory build + typecheck + test integration gate after each wave. Use when the active task has an approved multi-slice plan whose Execution waves show at least one wave of size 2 or more. Do not use when the slice DAG is a pure chain (use implement-approved-slice), when slices are unapproved, when Scope/Depends-on are not declared in the plan, or for single-slice tasks.
+description: Orchestrator-workers variant of implement-approved-slice that runs independent approved slices in parallel, one worktree-isolated worker per slice per wave, merged after each wave. Use when the active task has an approved multi-slice plan whose Execution waves show at least one wave of size 2 or more. Do not use when the slice DAG is a pure chain (use implement-approved-slice), when slices are unapproved, when Scope/Depends-on are not declared in the plan, or for single-slice tasks.
 metadata:
   category: execution-and-closure
   primary-cursor-mode: Agent

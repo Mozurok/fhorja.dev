@@ -1,7 +1,7 @@
 ---
 name: screen-spec
 description: |-
-  Generate a screen specification from a Figma frame using MCP tools (get_design_context, get_screenshot). Produces a spec doc matching the SCREEN_SPEC.md template with layout sketch, components used, spacing observed, data dependencies, copy, accessibility notes, interactions, and error states. Use when documenting a specific screen. Do not use when the screen has no Figma frame or when the spec already exists. For 6 or more screens, use screen-spec-fleet. Once screens document raw values, use extract-foundations-from-screens to converge tokens.
+  Generate a screen specification from a Figma frame using MCP tools (get_design_context, get_screenshot), matching the SCREEN_SPEC.md template (layout, states). Use when documenting a specific screen. Do not use when the screen has no Figma frame or the spec already exists, for 6 or more screens (use screen-spec-fleet), or to converge raw values into tokens (use extract-foundations-from-screens).
 metadata:
   category: "design-and-ui"
   primary-cursor-mode: "Agent"

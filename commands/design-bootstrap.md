@@ -1,6 +1,6 @@
 ---
 name: design-bootstrap
-description: Bootstrap a design system from a Figma file using MCP tools. Extracts token variables, identifies components, creates the directory structure, and generates scaffolded foundation docs and a component inventory. Use when starting a new project with a Figma design file. Do not use when the design system docs already exist or when there is no Figma file.
+description: Bootstrap a design system from a Figma file via MCP: extract token variables, identify components, scaffold foundation docs and a component inventory. Use when starting a new project with a Figma file. Do not use when docs exist or there is no Figma file.
 metadata:
   category: design-and-ui
   primary-cursor-mode: Agent

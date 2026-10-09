@@ -1,6 +1,6 @@
 ---
 name: test-strategy
-description: Define the smallest set of meaningful tests that protects behavior and reduces regression risk for the active task, then persist as TEST_STRATEGY.md plus a TASK_STATE.md update. Avoids forcing the artifact when it adds no material signal. Detects a Godot or Unity target and routes to the matching headless runner, treating the runtime gate as complementary to the headless suite. Use when the change affects important behavior, contracts, data flow, or regression risk, or when scope reads as auth, biometric, or runtime-risk with no strategy on file, even if small. Do not use when it is still unclear what behavior is changing, when the need is broad discovery or contract resolution, or when the task is too small to justify the artifact.
+description: Define the smallest set of meaningful tests that protects behavior and reduces the regression risk for the active task, persisted as TEST_STRATEGY.md. Use when a change affects behavior, contracts, data flow or regression risk, or auth, biometric or runtime-risk scope lacks one, even if small. Do not use when the change is unclear, for broad discovery or contract resolution, or when too small to justify.
 metadata:
   category: planning-and-validation
   primary-cursor-mode: Plan

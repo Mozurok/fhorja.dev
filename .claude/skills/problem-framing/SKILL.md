@@ -1,7 +1,7 @@
 ---
 name: problem-framing
 description: |-
-  Run a short socratic intake that questions whether the stated problem is the right problem BEFORE a task exists, then write a task-level BRIEF.md (problem statement, success criteria, non-goals, recommended approach, named deliverables) that task-init consumes. Asks one question at a time and prefers multiple choice. Use when an objective is fuzzy, broad, or possibly mis-scoped and worth shaping before any task folder is created. Do not use when the objective is already specific enough to state in one sentence (run task-init directly), for a bug fix or hotfix (use task-init), when the gap is a decision inside an existing task (use decision-interview), or when the gap is missing facts (use targeted-questions).
+  Run a short socratic intake questioning whether the stated problem is the right one BEFORE a task exists, then write a BRIEF.md that task-init consumes. Use when an objective is fuzzy, broad, or possibly mis-scoped. Do not use for a one-sentence objective (run task-init), a bug fix or hotfix (use task-init), a decision gap (use decision-interview), or missing facts (use targeted-questions).
 metadata:
   category: "discovery-and-scoping"
   primary-cursor-mode: "Ask"

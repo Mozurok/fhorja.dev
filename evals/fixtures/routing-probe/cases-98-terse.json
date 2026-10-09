@@ -1,0 +1,394 @@
+[
+ {
+  "expect": "a11y-audit",
+  "prompt": "Client legal requires an accessibility report for all 6 onboarding screens before the 28th go-live; we only fixed scattered issues and don't know the scope."
+ },
+ {
+  "expect": "ai-feature-eval-harness",
+  "prompt": "Our new automatic conversation summary is sometimes wrong and prompt tweaks change output unpredictably, so I need a way to measure quality before rolling out."
+ },
+ {
+  "expect": "api-contract-review",
+  "prompt": "Plan lists six new billing routes, no code yet; I want a critical review of the API contract first, since our error formats are inconsistent."
+ },
+ {
+  "expect": "api-runtime-verify",
+  "prompt": "Slice 2's four order endpoints compile and pass lint but were never called; the service runs on localhost:8080 and I want to see real responses."
+ },
+ {
+  "expect": "app-runtime-verify",
+  "prompt": "Expo onboarding build runs fine on the iPhone 15 simulator; before calling it done I want to read the device's runtime logs while using it."
+ },
+ {
+  "expect": "apply-sweep-triage",
+  "prompt": "I triaged each finding from the last automated review (fix, reject, discuss later), but the same five logger complaints came back next round; I want my rejections to stick."
+ },
+ {
+  "expect": "approve-plan",
+  "prompt": "I reviewed the four-slice plan and agree with the order; lock it as the agreed baseline before any code is touched so I know where discussion ended."
+ },
+ {
+  "expect": "approve-proposed",
+  "prompt": "I read all four files you drafted in your last reply, including the decisions one, and approve them; write them all to disk at once."
+ },
+ {
+  "expect": "atom-audit",
+  "prompt": "Component rules were written about three weeks ago and about nine new buttons and fields were added since; list which ones deviate and how, without fixing anything yet."
+ },
+ {
+  "expect": "atom-audit-fleet",
+  "prompt": "Nobody has checked our 23 base design-system components against the written rules (memo, touch target, press animation, reduced motion) in four weeks; audit all of them at once."
+ },
+ {
+  "expect": "autonomous-board",
+  "prompt": "I left the plan's slices running unattended overnight and woke up to nine in different states; I want one view of which await my decision and which have diffs ready."
+ },
+ {
+  "expect": "autonomous-readiness",
+  "prompt": "I want to run the slice queue unattended overnight, but the project still has open questions and I fear it will stall all night waiting for my answer."
+ },
+ {
+  "expect": "autonomous-run",
+  "prompt": "The nine-slice plan is approved with dependencies mapped and I have to leave; run the slices one by one on their own, leaving diffs uncommitted and unpushed."
+ },
+ {
+  "expect": "backend-system-design",
+  "prompt": "I'm building a recurring billing service from scratch with nothing decided (storage, gateway retry, sync versus queue) and need a written backend design before breaking it into tasks."
+ },
+ {
+  "expect": "branch-commit",
+  "prompt": "I changed 3 files and nothing is committed; look at the actual diff and give me just a branch name and a commit message, no PR description."
+ },
+ {
+  "expect": "capture-observation",
+  "prompt": "While editing the payment webhook I noticed a timeout probably produces duplicate events; not fixing it now, just recording it so it is not lost before I reach testing."
+ },
+ {
+  "expect": "capture-references",
+  "prompt": "The client sent three links (payment gateway webhook docs, its API rate limit page, an engineering blog post on idempotency); summarize them and save them in project context so I don't re-research later."
+ },
+ {
+  "expect": "code-context-map",
+  "prompt": "I just inherited a payments backend repo with about 800 files and folders and don't know where to start reading; I want a structural overview of what is worth opening."
+ },
+ {
+  "expect": "code-locate",
+  "prompt": "The app sends a push notification when an order becomes 'on the way', but I have never touched that code; in an 800-file repo, grepping 'push' gave 200 useless hits, so I need to find where it lives."
+ },
+ {
+  "expect": "color-contrast-architect",
+  "prompt": "The designer's new color palette has gray #8A8A8A secondary text and a light blue primary button, unreadable in dark theme; before coding atoms, find which pairs fail contrast and which tokens to change."
+ },
+ {
+  "expect": "compact-task-memory",
+  "prompt": "The task's memory file passed 400 lines after six slices and is mostly resolved clutter; shrink it without losing recorded decisions so resuming stops wasting time."
+ },
+ {
+  "expect": "component-spec",
+  "prompt": "Document the new four-variant, three-size Chip from Figma (states, tokens, touch target, screen reader) so the mobile team can build it without measuring padding by eye."
+ },
+ {
+  "expect": "contract-signoff",
+  "prompt": "All decisions are made but the wording is hedged with \"probably\" and \"for now\"; rewrite them unambiguously so item 4 reads one way before planning starts."
+ },
+ {
+  "expect": "db-context-postgres",
+  "prompt": "Connect to our Cloud SQL Postgres via psql, confirm which billing table columns exist and which are nullable, and save that with the task before planning."
+ },
+ {
+  "expect": "db-context-supabase",
+  "prompt": "Inspect the actual subscription tables and policies in Supabase to verify my guessed column names before continuing, since I already got two wrong."
+ },
+ {
+  "expect": "decision-interview",
+  "prompt": "Before planning the subscription cancellation flow, nobody has decided whether cancellation is immediate or end-of-cycle, or what happens to leftover credits; I want those policy decisions settled, not guessed."
+ },
+ {
+  "expect": "delivery-asset",
+  "prompt": "The boleto integration is finished and leadership wants a half-page, jargon-free summary for Thursday's meeting; the PR description is too technical to reuse."
+ },
+ {
+  "expect": "design-bootstrap",
+  "prompt": "I just got the Figma link for a new product and the codebase has nothing yet; I need the basic design-system structure set up from it so the team can start tomorrow."
+ },
+ {
+  "expect": "design-spec-review",
+  "prompt": "I implemented the Button component yesterday with five variants; compare it against its written spec (variants, states, tokens, props) and show where it deviates, especially leftover hardcoded hex colors."
+ },
+ {
+  "expect": "direction-adjust",
+  "prompt": "Midway through slice 3 I realized on my own that history should go in its own table instead of versioning the same row; it doesn't invalidate the task, but I want the change and its reason recorded."
+ },
+ {
+  "expect": "external-research",
+  "prompt": "I have about six saved links comparing SQS, RabbitMQ and Redis Streams for our ingestion pipeline; turn them into a sourced comparison with a clear recommendation so I can close the decision."
+ },
+ {
+  "expect": "external-research-fleet",
+  "prompt": "I need to evaluate switching payment providers across five separate angles (cost, Brazil compliance, migration effort, support quality, production complaints) using about 20 links grouped by angle, without reading them all sequentially."
+ },
+ {
+  "expect": "extract-foundations-from-screens",
+  "prompt": "I have 14 documented screens that each list hand-written raw hex and px values; consolidate them into one place with roles like background gray versus text gray, preserving earlier definitions."
+ },
+ {
+  "expect": "feature-library-scout",
+  "prompt": "The stack is already locked to React Native with Expo; I need to pick libraries for long lists, camera and charts, vetted properly, avoiding abandoned packages like last time."
+ },
+ {
+  "expect": "feature-library-scout-fleet",
+  "prompt": "Stack is locked to Expo; for five feature areas (long list, camera, forms, bottom sheet, offline cache) I want the libraries people actually use now, judged by downloads, last release and maintenance."
+ },
+ {
+  "expect": "foundation-audit",
+  "prompt": "Our design foundation docs are three months old and people edited color and spacing tokens in code since, so I suspect undocumented or silently changed values."
+ },
+ {
+  "expect": "frontend-architecture-review",
+  "prompt": "Four teams share one web app and one wants independently deployable pieces; before Thursday's meeting I want a blunt opinion on whether that is justified or just copying Spotify."
+ },
+ {
+  "expect": "frontend-system-design",
+  "prompt": "For a new live order tracking dashboard on web, nobody has decided data source, state, server rendering or load-time limit; I want it written as a design document before slicing."
+ },
+ {
+  "expect": "godot-runtime-verify",
+  "prompt": "Running the Godot inventory scene throws null-node errors in _ready yet the item displays fine; is that working, or should I hold closing this slice? I have the full log."
+ },
+ {
+  "expect": "godot-scene-plan",
+  "prompt": "Before writing any GDScript for the phase 2 boss in Godot, I want to plan the scene structure: which are nodes, separate scenes, and autoloads, to avoid last time's tangle."
+ },
+ {
+  "expect": "graphql-contract-review",
+  "prompt": "The schema design for the new BFF (about 12 types, two subgraphs) is final but not implemented; review it critically now, before the mobile app depends on it."
+ },
+ {
+  "expect": "harvest-session-learnings",
+  "prompt": "I wasted three hours on a worker cache approach that could never work because of process restarts; before this session ends, record that lesson so the next task avoids it."
+ },
+ {
+  "expect": "im-stuck",
+  "prompt": "I've been going in circles on this task for two hours, reviewed the same thing three times, and can't tell whether the plan or the code is the problem."
+ },
+ {
+  "expect": "image-to-spec",
+  "prompt": "I have no Figma, only a client's screenshot of the checkout screen; turn the image into a spec the team can build from, marking what is observed versus my guess."
+ },
+ {
+  "expect": "impact-analysis",
+  "prompt": "Before changing the stored phone number format in the database, I need to understand how many places depend on that field, including the SMS and CRM integrations."
+ },
+ {
+  "expect": "implement-approved-slice",
+  "prompt": "Slice 2, only the SMS code resend endpoint and its test, was approved yesterday and its files are in the plan; write that code now, touching nothing else."
+ },
+ {
+  "expect": "implement-fleet",
+  "prompt": "The plan is approved and its first four steps share no files (two screens, a notification worker, an email template); I want to build all four in parallel without conflicts."
+ },
+ {
+  "expect": "implement-slice-complement",
+  "prompt": "Slice 3 is implemented and working; three small leftovers remain (error message typo, missing catch log in the handler, empty-list test), all within the same intent, no new scope."
+ },
+ {
+  "expect": "implementation-plan",
+  "prompt": "The change size is understood and behavior rules are settled; now split it into small reviewable deliverables that ship one at a time without downtime, and say where to start."
+ },
+ {
+  "expect": "incident-triage",
+  "prompt": "Yesterday's 6pm deploy broke production checkout with 500s from a null tax_id on line 87 of the payment service; decide now whether to hotfix directly or plan it fully."
+ },
+ {
+  "expect": "invariants-and-non-goals",
+  "prompt": "Before touching the checkout flow, I want to write down what must not change and what is out of scope this round, so I don't refactor the coupon module."
+ },
+ {
+  "expect": "inventory-snapshot",
+  "prompt": "Design published a Figma library update yesterday; I need a current snapshot of what was added, renamed, and already built on our side to plan the week."
+ },
+ {
+  "expect": "journey-map",
+  "prompt": "Courier onboarding takes about five screens before the first accepted ride, and nobody documented what happens when a document is rejected midway; I need the full flow mapped, including detours."
+ },
+ {
+  "expect": "jtbd-switch-interviewer",
+  "prompt": "My charter claims accounting firms leave spreadsheets for the automatic report, but that is my own guess; I want half-hour interviews with 9 recent migrated customers to validate it."
+ },
+ {
+  "expect": "mcp-server-vet",
+  "prompt": "A colleague sent an MCP server for Jira tickets that asks for a full-permission token; before enabling it, I want its tools inspected for what they really do."
+ },
+ {
+  "expect": "migration-safety-steward",
+  "prompt": "Before applying tomorrow's SQL migration (new required column plus index on a 40M-row orders table) to production, find where it will lock writes, since a similar one blocked writes for 8 minutes."
+ },
+ {
+  "expect": "pattern-doc",
+  "prompt": "Every new screen handles empty lists differently, so write one generic, reusable spec for how empty states should work that also fits future products."
+ },
+ {
+  "expect": "performance-budget",
+  "prompt": "Before rewriting the orders list next week, set concrete numeric targets per metric (p95 latency near 900ms, bundle over 400kb) so reviews stop arguing by gut feeling."
+ },
+ {
+  "expect": "portfolio-review",
+  "prompt": "Show open work across four projects side by side, so I can see which are blocked waiting on others or abandoned, pick today's work, and spot finished but unarchived tasks."
+ },
+ {
+  "expect": "post-deploy-verifier",
+  "prompt": "After deploying the new login slice to production Friday night, verify item by item that its promised behavior is live, and define the rollback triggers, since a flag once stayed off unnoticed."
+ },
+ {
+  "expect": "post-review-pivot",
+  "prompt": "PR review rejected the data model: it must be per user, not per account, so migration and contract change, but I keep the calculation logic. Sort what stays from what reverts before editing."
+ },
+ {
+  "expect": "postmortem-author",
+  "prompt": "Yesterday's outage is resolved (rolled back the deploy, payments normal), but it's the second time in two months for the same cause. I need a blameless write-up for Thursday's CTO meeting."
+ },
+ {
+  "expect": "pr-feedback-ingest",
+  "prompt": "PR #412 came back with 14 comments from the review bot and a teammate, all within agreed scope; I want them organized into a traceable list tied to slices before fixing."
+ },
+ {
+  "expect": "pr-package",
+  "prompt": "Both parts are done, the branch sits on origin/develop with a stable diff, and I need to send it for review today with a good description and reviewer focus points."
+ },
+ {
+  "expect": "problem-framing",
+  "prompt": "The CEO asked for a sales metrics dashboard, but the real problem is probably a report a colleague builds by hand every Friday; before starting anything, I want to sharpen the request into one defensible objective."
+ },
+ {
+  "expect": "project-bootstrap",
+  "prompt": "New client this week, a clinic scheduling app, nothing set up yet; I want the product context recorded before the first task so I stop repeating the briefing."
+ },
+ {
+  "expect": "prompt-shape",
+  "prompt": "I need to review my payment module changes, but my vague request would get a generic answer again; help me write a proper request with files and expected output."
+ },
+ {
+  "expect": "release-plan",
+  "prompt": "The new login flow ships next week and failure would take down the whole app; I want to decide a gradual rollout and the signal that triggers rollback."
+ },
+ {
+  "expect": "repo-consistency-sweep",
+  "prompt": "Both slices are done; before opening the PR, scan the diff for repetitive mechanical defects like swapped arguments, missing tenant filters and swallowed errors, not architecture."
+ },
+ {
+  "expect": "resolve-contract-gaps",
+  "prompt": "Product docs say an expired coupon blocks checkout, but the code only warns and support assumes 24 more hours; I need one single rule decided to proceed."
+ },
+ {
+  "expect": "resume-from-state",
+  "prompt": "After two weeks away I opened a fresh chat on the CSV importer task and need a status rundown of where it stands and what was decided, before touching any file."
+ },
+ {
+  "expect": "review-hard",
+  "prompt": "I just changed the scheduling service and worry I missed an edge case; I want a skeptical review of what could really break before sending it to the team, not style nits."
+ },
+ {
+  "expect": "rls-auth-boundary-auditor",
+  "prompt": "Before applying to prod tomorrow, check my new Supabase migration for invites and audit_log tables: I doubt the policies enforce org_id correctly, especially on insert and service_role functions."
+ },
+ {
+  "expect": "screen-spec",
+  "prompt": "The designer finished the checkout frame in Figma and sent the node link; I want a spec with components, spacing, copy, and error states so devs can build it unaided."
+ },
+ {
+  "expect": "screen-spec-fleet",
+  "prompt": "I have 11 delivery-driver flow frames mapped in Figma, node ids in a spreadsheet, same persona, and need all 11 documented today, so one at a time is too slow."
+ },
+ {
+  "expect": "security-review",
+  "prompt": "Before opening the PR for my finished refresh-token login and password-reset work (about 400 lines), review it as an attacker: data access across users, log leaks, session hijacking."
+ },
+ {
+  "expect": "self-critique-and-revise",
+  "prompt": "My freshly written slice plan is loose: some steps lack done criteria and two depend on each other unstated. Point out the flaws and return a corrected version before I show the team."
+ },
+ {
+  "expect": "skill-vet",
+  "prompt": "I downloaded a skill folder with SKILL.md and helper scripts from GitHub, isolated outside the project. Read everything and tell me if it is trustworthy before I install it, since the README may differ from the files."
+ },
+ {
+  "expect": "slice-closure",
+  "prompt": "I finished the third step and manually validated it in staging because automated tests missed that case; two minor adjustments remain that are not part of it. Is it closed or must I fix them first?"
+ },
+ {
+  "expect": "slo-define",
+  "prompt": "Every payments API slowdown turns into an opinion fight between support and the team, with nothing written saying when to pause features for stability; Grafana and Sentry have over a year of history."
+ },
+ {
+  "expect": "stack-currency-check",
+  "prompt": "Before I write auth with Next 15 and Supabase, check the official docs for the currently recommended pattern, since mine may be two versions old and deprecated."
+ },
+ {
+  "expect": "stack-recommend",
+  "prompt": "I'm starting a new fleet management web system for a client with framework, database and auth undecided, and I want current stack recommendations, not guesses at outdated versions."
+ },
+ {
+  "expect": "state-reconcile",
+  "prompt": "The task state says stage 3, the notes show stages 4 and 5 closed, and the plan lists something I dropped last week; I don't trust any of it, so reconcile them."
+ },
+ {
+  "expect": "sync-task-state",
+  "prompt": "I just finished slice 3 and am stopping for today, but the task record still says slice 2; update it to what actually happened so I can resume tomorrow."
+ },
+ {
+  "expect": "targeted-questions",
+  "prompt": "Before I plan the partner webhook replacement, ask me only the few facts that change the outcome (API version, retry ownership, signed payload) instead of assuming, no long questionnaire."
+ },
+ {
+  "expect": "task-close",
+  "prompt": "The boleto reprocessing PR merged yesterday and every step is closed with nothing pending, but its folder still shows as in progress; I want it fully retired."
+ },
+ {
+  "expect": "task-init",
+  "prompt": "I'm starting the email-sending migration to the new provider on the acme project; nothing is open for it yet, so set up the initial structure and record before coding."
+ },
+ {
+  "expect": "task-init-fleet",
+  "prompt": "The REST to GraphQL migration will run as three separate tracks (api-server, mobile app, website) with different owners; open all three at once with folder structure and memory, without repeating setup."
+ },
+ {
+  "expect": "task-workspace",
+  "prompt": "I'm working two tasks in the same repo and keep stashing to switch branches, and already lost changes once; give this task its own repo copy and branch."
+ },
+ {
+  "expect": "team-update",
+  "prompt": "Write a short, direct three-line message for the team channel with the login task's status, since people asked twice today; it shouldn't turn into a document."
+ },
+ {
+  "expect": "test-strategy",
+  "prompt": "The next plan step touches payout calculation and billing reprocessing with retries; I lack time to cover everything and need to know where to focus testing so customer money isn't broken."
+ },
+ {
+  "expect": "unity-scene-plan",
+  "prompt": "Before starting the Unity car driving feature (chase camera, gamepad input), I want to settle scene objects, prefabs and script responsibilities first, instead of writing scripts ad hoc again."
+ },
+ {
+  "expect": "verify-against-rubric",
+  "prompt": "I've reread the payments migration delivery package too often to see its flaws; I want an independent reviewer with no task history to check it item by item against our locked criteria."
+ },
+ {
+  "expect": "verify-against-rubric-fleet",
+  "prompt": "I have 7 closed slice notes and one shared quality checklist; I want each judged separately by a reviewer who hasn't seen the others, then a summary of which checklist items fail repeatedly."
+ },
+ {
+  "expect": "web-runtime-verify",
+  "prompt": "Landing page build and typecheck pass, but that doesn't cover narrow-screen overflow or console errors on load; serve the built output and verify in a real browser before I close the slice."
+ },
+ {
+  "expect": "what-next",
+  "prompt": "I just closed validation for stage 2 and the task records are up to date; tell me only the next thing to do, no process explanation or re-review."
+ },
+ {
+  "expect": "where-we-at",
+  "prompt": "The task plan has 6 slices, 3 closed and the fourth half done; before tomorrow's call I want an honest read of what really remains, since I feel behind the files."
+ },
+ {
+  "expect": "workflow-guide",
+  "prompt": "I'm in my second week with this process and don't get why some steps must come before others; explain where this task stands and what comes next, since I must teach a colleague tomorrow."
+ }
+]

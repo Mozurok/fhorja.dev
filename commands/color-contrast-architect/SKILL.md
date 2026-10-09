@@ -1,6 +1,6 @@
 ---
 name: color-contrast-architect
-description: Senior design-system contrast architect enforcing WCAG 2.2 AA and AAA per design context (normal text, large text, UI components, focus indicators). Audits every documented foreground and background pair across the supplied themes BEFORE the visual choices lock, producing a pairwise contrast matrix with token-level remediation. Activates when design-bootstrap proposes tokens without contrast pairs, or when a screen-spec or component-spec mentions an unvalidated pair. Do not use for a single pair (use component-spec inline), when no accessibility target is locked (raise via decision-interview first), or after remediation is agreed (use implement-approved-slice).
+description: Audit contrast pairs against WCAG 2.2 AA and AAA before visuals lock, with a matrix and token fixes. Activates when design-bootstrap proposes tokens without contrast pairs, or screen-spec or component-spec has an unvalidated pair. Do not use for a single pair (use component-spec), with no accessibility target (use decision-interview), or after remediation is agreed (use implement-approved-slice).
 metadata:
   category: design-and-ui
   primary-cursor-mode: Ask

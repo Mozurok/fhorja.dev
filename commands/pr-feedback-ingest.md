@@ -1,6 +1,6 @@
 ---
 name: pr-feedback-ingest
-description: Turn PR feedback (Greptile, CI, bots, humans) into a structured traceable backlog aligned with the task artifacts, so the next execution step can be a narrow implement-approved-slice or a small planning touch without losing alignment. Corrective scope only. Use when a PR is open with review feedback and you want each item mapped to files, slices, and memory updates before coding. Do not use when feedback requires a new product direction or contract (use post-review-pivot), when there is no feedback payload to ingest, or when only task-memory drift exists (use state-reconcile or sync-task-state).
+description: Turn PR feedback (Greptile, CI, bots, humans) into a traceable backlog, so the next step is a narrow implement-approved-slice. Corrective scope only. Use when a PR has review feedback to map to files and slices. Do not use for a new direction or contract (use post-review-pivot), no payload, or task-memory drift only (use state-reconcile or sync-task-state).
 metadata:
   category: delivery-and-communication
   primary-cursor-mode: Ask

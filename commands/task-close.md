@@ -1,6 +1,6 @@
 ---
 name: task-close
-description: Perform the terminal task lifecycle transition for a finished task: verify the spec done-conditions, set TASK_STATE.md to its final closed state, and move the task folder from active/ to archive/. The symmetric counterpart to task-init and the only official way to close a whole task. Use when every slice is closed, the work is merged or explicitly waived, and the whole task is ending. Do not use when only a single slice is ending (use slice-closure), when implementation or review is still in progress, when the goal is only to assess progress (use where-we-at) or sync memory (use sync-task-state), or when a follow-up is really new scope (use task-init for a new task). Before archiving a long session, use harvest-session-learnings to sweep durable lessons. For picking the next thread after archiving, use portfolio-review.
+description: Close a whole finished task: verify the spec done-conditions, set TASK_STATE.md to its final closed state, and move the folder from active/ to archive/. Use when all slices are closed, the work is merged or explicitly waived, and the task is ending. Do not use for one slice (use slice-closure), unfinished work, progress checks (use where-we-at), memory sync (use sync-task-state), or new scope (use task-init). Before archiving: harvest-session-learnings. Next: portfolio-review.
 metadata:
   category: execution-and-closure
   primary-cursor-mode: Agent
@@ -108,22 +108,21 @@ Required output:
 
 ### Substrate digest fallback
 <!-- shared:substrate-digest-fallback -->
-**Digest fallback when the canonical helper is unreachable.** `sha_of_section` extracts a section's body with `awk` and pipes it to `shasum -a 256`. A run executing inside a permission boundary that admits `shasum` but refuses `awk` and `sed` cannot invoke that helper, and MUST NOT reimplement it: an `awk` or `sed` program operand can call `system()` and write files, so a boundary that refuses those verbs refuses them for a reason. Assume the helper is unreachable whenever the workflow repository's `scripts/` directory is not readable from the working directory.
+**Digest fallback when the canonical helper is unreachable.** `sha_of_section` extracts a section's body with `awk` and pipes it to `shasum -a 256`. A run inside a permission boundary that admits `shasum` but refuses `awk` and `sed` cannot invoke that helper, and MUST NOT reimplement it. Assume the helper is unreachable whenever the workflow repository's `scripts/` directory is not readable from the working directory.
 
 WHERE the canonical per-section digest helper is unreachable, the write SHALL use a whole-file SHA-256 and SHALL declare the reduced scope:
 
 ```bash
-# One call per file. `shasum -a 256 <file>` needs no extraction step, so no
-# refused verb is involved. Read the hash (the first field) out of the output;
+# One call per file. Read the hash (the first field) out of the output;
 # do not pipe it through `cut` or `awk` to trim it.
 shasum -a 256 TASK_STATE.md
 ```
 
-Then add `"sha_scope":"file"` to that JSONL line, so a validator distinguishes a file digest from a section digest instead of inferring it. Everything else about the protocol is unchanged: the transaction header still goes above the section heading, and there is still exactly one JSONL line per section write.
+Then add `"sha_scope":"file"` to that JSONL line, so a validator distinguishes a file digest from a section digest. The rest of the protocol is unchanged: the transaction header still goes above the section heading, and there is exactly one JSONL line per section write.
 
-Do NOT rebuild the helper by writing each section out as its own file so it can be hashed separately. That workaround is coherent and it is what this rule exists to prevent: a 2026-08-04 run wrote 31 numbered section fragments to compute per-section digests by hand, spent the whole run doing it, and produced no product code.
+Do NOT rebuild the helper by writing each section out as its own file to hash it separately.
 
-What the fallback costs, stated so the trade is explicit rather than discovered later: the digest chain exists to detect an unlogged change to a SECTION. At file scope, two sections written in the same run share a digest, so the chain detects tampering with the file without attributing it to a section. That is a declared reduction in resolution, not a silent one, which is why the `sha_scope` field is mandatory rather than optional.
+At file scope two sections written in the same run share a digest, so the `sha_scope` field is mandatory, not optional.
 ### Claim grounding (active epistemic humility)
 <!-- shared:claim-grounding -->
 **Claim grounding (active epistemic humility).** This block governs what you may assert and how you record it. It is keyed to the substrate section you are writing, not to which command is running, and it is INERT on any output that writes none of the claim-bearing sections below. Full contract and rationale: `wos/active-epistemic-humility.md`.
@@ -158,35 +157,35 @@ Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
 Use the adaptive ending format of `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract`. Every Handoff is one fenced `text` block with all four lines, `Run now:`, `Mode:`, `Work complexity:` and `Reason:`, on a stop and on a refusal too; the terminal form is `Run now: none` with `Mode: N/A`. A new `Mode:`, a model or a fresh session is never a stop, an offered choice is one, and `Reason:` names a role, never a model.
 ### Deliverable reconcile (closure gate, per ADR-0056)
 <!-- shared:deliverable-reconcile -->
-**Deliverable reconcile (per ADR-0056).** Reconcile the task's `## Requested deliverables` ledger in `TASK_STATE.md` against the delivered work. The gate is lifecycle-aware: it hard-fails only when the run is finalizing the whole task, and reports without failing at a mid-task checkpoint.
+**Deliverable reconcile (per ADR-0056).** Reconcile the task's `## Requested deliverables` ledger in `TASK_STATE.md` against the delivered work. Hard-fails only when finalizing the whole task; reports without failing at a mid-task checkpoint.
 
-1. Locate the ledger. Read `## Requested deliverables` in `TASK_STATE.md`. WHEN the section is absent (a legacy task that predates the ledger), OR its only row is the `- none named` sentinel (a brief that named no concrete deliverable), this gate is a no-op: skip it and proceed.
+1. Read `## Requested deliverables` in `TASK_STATE.md`. WHEN the section is absent (legacy task), OR its only row is the `- none named` sentinel, this gate is a no-op: skip it and proceed.
 
-2. Classify the context. A finalization run is `task-close`, or `review-hard` run as the pre-PR final pass. A checkpoint run is `where-we-at` or `slice-closure` (and any `review-hard` run that is not the pre-PR final). At a checkpoint a row still tagged `in-scope` that is not yet done is normal remaining work, not a defect.
+2. Classify the context. Finalization: `task-close`, or `review-hard` as the pre-PR final pass. Checkpoint: `where-we-at`, `slice-closure`, and any other `review-hard` run. At a checkpoint an `in-scope` row not yet done is normal remaining work.
 
-3. Define reconciled vs silent omission. A row is reconciled when it is `done` (in the delivered work) or `de-scoped:<reason>` with that reason recorded in `DECISIONS.md`. A deliverable named in the brief that has NO ledger row at all, or a row that was dropped without a recorded de-scope, is a silent omission. To detect the no-row case you MUST cross-check the ledger against the brief: read the task's `README.md` (which `task-init` seeds from the brief) and the original request when it is in conversation context, and confirm every deliverable named there has a `## Requested deliverables` row. WHEN no brief artifact is available to cross-check, reconcile the rows that exist and state in the output that ledger-vs-brief completeness could not be re-verified (do not claim it was).
+3. Reconciled vs silent omission. A row is reconciled when it is `done` or `de-scoped:<reason>` with that reason recorded in `DECISIONS.md`. A deliverable named in the brief with NO ledger row, or a row dropped without a recorded de-scope, is a silent omission. You MUST cross-check the ledger against the brief: read the task's `README.md` (which `task-init` seeds from the brief, its `## Brief` section) and the original request when in context, and confirm every deliverable named there has a row. WHEN no brief artifact is available, reconcile the rows that exist and state that ledger-vs-brief completeness could not be re-verified (do not claim it was).
 
 4. Apply the gate by context.
-   - WHEN finalizing: IF any row is unreconciled (still `in-scope`, or a silent omission per step 3), THEN this command's output is invalid. Name each unreconciled deliverable, state whether it should be delivered or de-scoped, and route to `implementation-plan` (plan the missing work) or `decision-interview` (a de-scope, which only the person's answer records). A provisional decision never de-scopes (ADR-0233): in an attended chain on a task branch or under standing authorization (ADR-0244) the row stays `in-scope` and is listed as `Not delivered, needs you: <deliverable>: <what is undecided>` in `TASK_STATE.md ## Open questions / blockers`, and `task-close` still holds it unreconciled, while `review-hard`'s pre-PR pass only lists it.
-   - WHILE at a checkpoint: report each not-yet-done `in-scope` row as remaining work and do NOT invalidate output on that basis. A silent omission (step 3) is NOT normal progress: name the missing deliverable, record it in the `TASK_STATE.md` checkpoint output as a must-address finding (never a bare one-line mention), and route it as the finalization branch does. Neither case invalidates the output at a checkpoint; that happens only when finalizing.
+   - WHEN finalizing: IF any row is unreconciled (still `in-scope`, or a silent omission per step 3), THEN this command's output is invalid. Name each unreconciled deliverable, say whether it should be delivered or de-scoped, and route to `implementation-plan` (plan the missing work) or `decision-interview` (a de-scope, which only the person's answer records). A provisional decision never de-scopes (ADR-0233): in an attended chain on a task branch or under standing authorization (ADR-0244) the row stays `in-scope` and is listed as `Not delivered, needs you: <deliverable>: <what is undecided>` in `TASK_STATE.md ## Open questions / blockers`: `task-close` still holds it unreconciled, `review-hard`'s pre-PR pass only lists it.
+   - WHILE at a checkpoint: report each not-yet-done `in-scope` row as remaining work and do NOT invalidate output on that basis. A silent omission (step 3) is NOT normal progress: name the missing deliverable, record it in the `TASK_STATE.md` checkpoint output as a must-address finding (never a bare one-line mention), and route it as the finalization branch does. Neither case invalidates the output at a checkpoint.
 
 A de-scope is allowed; silence is not.
 ### References status (finalization gate, X2)
 Dedup: WHEN this same closure already carries a review-hard References status verdict (the pre-PR final pass), cite that recorded verdict here instead of re-running the reconcile.
 <!-- shared:references-reconcile -->
-**References reconcile (X2, 2026-07-18).** Reconcile the references a task cited (its `REFERENCES.md` deliverable, an `EXTERNAL_RESEARCH.md`, or the project-level references it grounded in) against what the task actually shipped, enforcing "cite only what you used." Lifecycle-aware: it reports at a mid-task checkpoint and hard-fails only when finalizing the whole task.
+**References reconcile.** Reconcile the references a task cited (`REFERENCES.md`, `EXTERNAL_RESEARCH.md`, or project-level references) against what it shipped. Reports at a mid-task checkpoint; hard-fails only when finalizing the whole task.
 
-1. Gate on presence. This sub-check fires only WHEN the task produced or cited references: a `REFERENCES.md` or `EXTERNAL_RESEARCH.md` in the task folder, or a `Grounded in:` citation in the shipped work. WHEN none is present, it is a no-op: skip and proceed.
+1. This sub-check fires only WHEN the task produced or cited references: a `REFERENCES.md` or `EXTERNAL_RESEARCH.md` in the task folder, or a `Grounded in:` citation in the shipped work. WHEN none is present, it is a no-op: skip and proceed.
 
-2. Classify the context. A finalization run is `task-close` (or `review-hard` as the pre-PR final pass). A checkpoint run is `slice-closure` or `where-we-at`. At a checkpoint a cited reference not yet reflected is normal in-progress work, not a defect.
+2. Finalization: `task-close` (or `review-hard` as the pre-PR final pass). Checkpoint: `slice-closure` or `where-we-at`. At a checkpoint a cited reference not yet reflected is normal in-progress work.
 
-3. Reconcile cited vs reflected. For each reference the task cited, confirm the shipped work materially reflects it (a real layout, behavior, or decision traceable to that reference), not merely a name-drop. A reference cited with no material trace in the shipped work is a cited-but-unused reference: this is the failure the brief names ("if the final result does not reflect the references you cited, the REFERENCES.md is wrong").
+3. Reconcile cited vs reflected. For each cited reference, confirm the shipped work materially reflects it (a real layout, behavior, or decision traceable to it), not merely a name-drop. A reference with no material trace is cited-but-unused.
 
 4. Apply the gate by context.
-   - WHEN finalizing: IF any cited reference is unused (no material trace) THEN name it and require either removing the citation or pointing to where it is reflected, and route to `implement-slice-complement` (fix the citation) before closing.
+   - WHEN finalizing: IF any cited reference is unused (no material trace) THEN name it and require removing the citation or pointing to where it is reflected, and route to `implement-slice-complement` before closing.
    - WHILE at a checkpoint: report each cited-but-unused reference as a must-address finding (name it, route to `implement-slice-complement`), and do NOT invalidate the whole output on that basis.
 
-"Cite only what you used" is the invariant. This is the produce-side gate for the `capture-references` and `external-research` artifacts, the design-and-research analog of the deliverable-reconcile completeness check.
+"Cite only what you used" is the invariant.
 ### Definition of done (command output)
 - Done-conditions checklist is complete: each of the five conditions has a verdict (met / not-met / waived) with evidence or an explicit user waiver.
 - Closure floors: every floor in `wos/closure-floors.task-close.md`, and on a Godot-, mobile-, web- or backend-HTTP-signature task every task-close variant in `wos/platform-runtime-floors.md`, was applied as its own `On missing evidence:` line states, and the task record cites the subsections read. An unsatisfied floor that refuses (commit-evidence, integrity, unresolved-revision, Godot feel-verdict) makes the result **blocked**, not archived, routed as its gate bullet above says; a floor that records or reconciles writes its line, closure proceeds, and item 7a lists every `unverified:` line.

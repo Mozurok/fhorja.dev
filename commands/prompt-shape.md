@@ -1,6 +1,6 @@
 ---
 name: prompt-shape
-description: Shape the best possible prompt for the current task and workflow phase. Aligns the prompt content with the intended editor mode and the chosen command's required inputs, producing a copy-paste-ready handoff. Use when prompt precision would materially improve the next workflow action, the next step is known but the current prompt or context is too vague or broad or missing required inputs for the chosen command, or the user wants a copy-paste-ready prompt aligned with the intended editor mode. Do not use when the existing prompt is already scoped and explicit and phase-appropriate (return a no-op and route forward instead), the real blocker is missing facts or undecided policy (use targeted-questions or decision-interview), the real need is recovery from loop or confusion (use im-stuck), or the real need is pedagogical explanation of the current phase (use workflow-guide).
+description: Shape the best prompt for the current task and workflow phase, matching the editor mode and the command's required inputs, as a copy-paste-ready handoff. Use when the prompt is too vague or lacks required inputs for the next action, or a copy-paste-ready prompt is wanted. Do not use when the prompt is already explicit, the blocker is missing facts or policy (use targeted-questions or decision-interview), for loop or confusion recovery (use im-stuck), or phase explanation (use workflow-guide).
 metadata:
   category: prompt-tooling
   primary-cursor-mode: Ask

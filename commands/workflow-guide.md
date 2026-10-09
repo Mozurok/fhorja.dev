@@ -1,6 +1,6 @@
 ---
 name: workflow-guide
-description: Pedagogical onboarding helper that explains which command and editor mode should be used now, why, and the next 2-3 steps in a practical way for users still learning the workflow phases. Heavier than what-next; the heavier sequence is justified only when the user wants to understand the workflow itself. Use when the user wants a more guided explanation of the current moment, the user wants to understand the workflow itself, a short recommended sequence for the next few steps would be useful, or the user is new to this workflow (first few sessions) or onboarding a teammate. Do not use when the user only wants a fast next-step answer (use what-next; same routing decision, lower overhead), the user is already fluent in the workflow phases (what-next is the right default), or the task is stuck and needs im-stuck instead.
+description: Pedagogical onboarding helper that explains which command and editor mode to use now, why, and the next 2-3 steps, for users still learning the workflow phases. Use when the user wants a guided explanation of the moment or the workflow, a short recommended sequence, or is new or onboarding a teammate. Do not use for a fast next-step answer (use what-next), when the user is fluent in the phases, or the task is stuck (use im-stuck).
 metadata:
   category: state-and-navigation
   primary-cursor-mode: Ask

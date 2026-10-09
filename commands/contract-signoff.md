@@ -1,6 +1,6 @@
 ---
 name: contract-signoff
-description: Harden the current decision set into a clean, normative source of truth with no residual ambiguity, then persist the result in DECISIONS.md and TASK_STATE.md as explicit reviewable edits (no silent intent drift). Use when key decisions are already resolved, the task has a stable contract or policy direction, and the remaining work is to harden wording and remove interpretation risk before planning or implementation. Do not use when major ambiguities remain unresolved, the task still needs decision-interview or resolve-contract-gaps, or the task is still in broad discovery.
+description: Harden the current decision set into a normative source of truth with no residual ambiguity, saved in DECISIONS.md and TASK_STATE.md as reviewable edits. Use when decisions are resolved, the contract direction is stable, and wording needs hardening before planning or implementation. Do not use when major ambiguities remain, the task needs decision-interview or resolve-contract-gaps, or it is in broad discovery.
 metadata:
   category: contracts-and-decisions
   primary-cursor-mode: Plan

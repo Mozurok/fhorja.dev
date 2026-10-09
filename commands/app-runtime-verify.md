@@ -1,6 +1,6 @@
 ---
 name: app-runtime-verify
-description: Verify a built mobile or app runtime at runtime: run the app (device, emulator, or headless), read the captured output (native logcat, iOS device log, or the Metro/JS console), classify runtime errors against a per-stack taxonomy, and decide a PASS/FAIL gate for the slice's acceptance behavior. The run's real output IS the evidence; a claimed-but-not-shown run is unverified. React Native/Expo and Unity mobile are the documented adapters. Do not use to plan a screen (use implementation-plan), to write or fix code (use implement-approved-slice), to triage a failure into a fix size (use incident-triage), to verify a Godot scene (use godot-runtime-verify), or with no implemented app to run.
+description: Verify a mobile or app runtime: run the app (device, emulator, or headless), read captured output (logcat, iOS device log, or Metro/JS console), classify errors per stack, and decide a PASS/FAIL gate. Adapters: React Native/Expo, Unity mobile. Do not use to plan a screen (use implementation-plan), to write or fix code (use implement-approved-slice), to triage a failure (use incident-triage), for a Godot scene (use godot-runtime-verify), or with no app to run.
 metadata:
   category: runtime-verification
   primary-cursor-mode: Agent

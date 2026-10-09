@@ -1,6 +1,6 @@
 ---
 name: invariants-and-non-goals
-description: Identify the invariants, non-goals, and forbidden changes for the active task, then persist them as INVARIANTS_AND_NON_GOALS.md so implementation boundaries are locked before planning or coding. Use when impact analysis is done or mostly clear, the task may touch sensitive behavior or contracts or schema or runtime paths, and implementation boundaries need to be locked before planning or coding. Do not use when the task is still too unclear to define safe boundaries, the current need is to ask missing factual questions first (use targeted-questions), or the task is already deep in implementation and boundaries are already locked.
+description: Identify the invariants, non-goals, and forbidden changes for the task and persist them, locking implementation boundaries before planning or coding. Use when impact analysis is done or mostly clear and the task may touch sensitive behavior, contracts, schema, or runtime. Do not use when the task is too unclear, facts missing (use targeted-questions), or boundaries are locked.
 metadata:
   category: contracts-and-decisions
   primary-cursor-mode: Ask

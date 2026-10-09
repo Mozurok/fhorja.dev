@@ -1,7 +1,7 @@
 ---
 name: code-context-map
 description: |-
-  Generate and re-sync an AI-readable code context map (a ranked, token-budgeted, layered Markdown map of files, imports, signatures, invoke edges, and typed external boundary calls: db/http/queue) for a target project (or, from a seed file, its import chain), written to a gitignored folder inside that project and regenerated on invoke. Extraction is ripgrep-based by default, with optional parser augmentation when a parser is already present; no embeddings. The map is a seed for grep, not a replacement for reading code. Opt-in; not part of default task init. Use when an assistant needs fast structural orientation before editing a codebase, when onboarding to an unfamiliar repo, or when an existing map is stale. Do not use to locate one specific behavior (use code-locate), to analyze the blast radius of a planned change (use impact-analysis), to introspect a database schema (use db-context-supabase), or without a target codebase path.
+  Generate and re-sync an AI-readable code context map (ranked, token-budgeted Markdown of files, imports, signatures, and typed boundary calls) for a target project (or, from a seed file, its import chain). Opt-in; not part of default task init. Use when fast structural orientation is needed before editing, when onboarding to an unfamiliar repo, or when an existing map is stale. Do not use to locate one behavior (use code-locate), for blast radius (use impact-analysis), for a database schema (use db-context-supabase), or without a target codebase path.
 metadata:
   category: "discovery-and-scoping"
   primary-cursor-mode: "Agent"

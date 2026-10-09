@@ -1,7 +1,7 @@
 ---
 name: stack-recommend
 description: |-
-  Research and recommend a technology stack for the active project by consulting official documentation, quality articles, and AAA company practices for latest stable versions. Accepts optional user-provided reference links. Produces a STACK_RECOMMENDATION.md inside the active task folder with versioned recommendations, compatibility notes, and trade-offs grounded in sources. Use when the project stack is undecided or needs validation, when starting a new project from zero, or when evaluating a technology upgrade. Do not use when the stack is already locked in DECISIONS.md, when the question is about a single library (use external-research), or when no active task folder exists yet (run task-init first).
+  Research and recommend a technology stack for the project from official docs and AAA company practices, with versioned recommendations and trade-offs. Use when the stack is undecided or needs validation, a project starts from zero, or an upgrade is weighed. Do not use when DECISIONS.md locks the stack, for one library (use external-research), or with no task folder (run task-init first).
 metadata:
   category: "research-and-sourcing"
   primary-cursor-mode: "Ask"

@@ -1,6 +1,6 @@
 ---
 name: journey-map
-description: Document a user journey from screen references and a user story input. Produces a journey spec doc matching the JOURNEY_SPEC.md template with outcome, screen flow, components consumed, critical states, accessibility, security, and performance sections. Use when mapping a user flow across multiple screens. Do not use when documenting a single screen (use screen-spec) or a reusable pattern (use pattern-doc).
+description: Document a user journey from screen references and a user story: outcome, screen flow, components consumed, critical states, accessibility, security, performance. Use when mapping a user flow across screens. Do not use for a single screen (use screen-spec) or a reusable pattern (use pattern-doc).
 metadata:
   category: design-and-ui
   primary-cursor-mode: Agent

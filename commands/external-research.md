@@ -1,6 +1,6 @@
 ---
 name: external-research
-description: Synthesize multiple external sources into a task-scoped EXTERNAL_RESEARCH.md grounded in REFERENCES.md entries, with comparative analysis and a recommendation visually separated from the source-grounded findings. Never invents claims. Sources are captured first via capture-references. Use when the task depends on several external sources (vendor comparisons, regulatory evaluations, framework choices) and synthesis, not just capture, is what is missing. Do not use when a single source suffices or the research is project-level (use capture-references), when the question is internal (use code-locate or impact-analysis), or with no active task folder (run task-init first). For 3 or more distinct angles, use external-research-fleet.
+description: Synthesize multiple external sources into a task-scoped EXTERNAL_RESEARCH.md grounded in REFERENCES.md, with comparative analysis and a recommendation. Use when sources need synthesis, not capture. Do not use for one source or project research (use capture-references), internal questions (use code-locate or impact-analysis), or no task (run task-init first). For 3+ angles, use external-research-fleet.
 metadata:
   category: research-and-sourcing
   primary-cursor-mode: Ask

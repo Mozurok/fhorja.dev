@@ -1,7 +1,7 @@
 ---
 name: mcp-server-vet
 description: |-
-  Read-only safety inspection of a third-party MCP server BEFORE it is added to a config or trusted. Reads the declared tool descriptions, input schemas, scopes, transport, and env and secret surface, which the README alone does not carry, compares declared behavior against what the tools expose, scans for tool-description poisoning, over-broad scopes, egress and credential access, config tampering and hidden Unicode, and returns an add, decline or sandbox verdict for a human to approve. Never installs, never auto-trusts. Do not use to vet a third-party skill or plugin (use skill-vet), to review first-party product code (use review-hard or security-review), or to fetch a remote server definition from the web (record its origin via capture-references, then obtain a local copy out of band first).
+  Read-only inspection of a third-party MCP server BEFORE it is added or trusted: scans tool descriptions and scopes for poisoning, returns an add, decline or sandbox verdict for a human. Never installs. Do not use to vet a skill or plugin (use skill-vet), to review first-party code (use review-hard or security-review), or to fetch a remote server definition (record its origin via capture-references, then get a local copy out of band).
 metadata:
   category: "audit-and-sweep"
   primary-cursor-mode: "Ask"

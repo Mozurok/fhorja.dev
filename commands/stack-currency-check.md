@@ -1,6 +1,6 @@
 ---
 name: stack-currency-check
-description: Verify that the patterns the model is about to use for a given framework+version are current per official docs, and cache the result as CURRENT_PATTERNS.md at the project level. Prevents the "gold-standard audit" anti-pattern where training-data defaults ship outdated patterns (e.g. Supabase getSession when getUser is current, sequential await when Promise.all is recommended). Use when impact-analysis flags greenfield work in an established framework, when starting a new project with frameworks released or updated after the model's training cutoff, or when an existing CURRENT_PATTERNS.md is stale (>30 days). Do not use when working incrementally on an established codebase with clear internal precedent, when the question is about choosing the stack itself (use stack-recommend), or when fetching an arbitrary URL (use capture-references).
+description: Verify that the patterns the model will use for a framework and version are current per official docs, and cache it as CURRENT_PATTERNS.md for the project. Use when impact-analysis flags greenfield work in an established framework, a new project uses newer-than-cutoff frameworks, or that file is stale (>30 days). Do not use for incremental work with internal precedent, stack choice (use stack-recommend), or fetching an arbitrary URL (use capture-references).
 metadata:
   category: research-and-sourcing
   primary-cursor-mode: Ask

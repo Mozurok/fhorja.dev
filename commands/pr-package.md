@@ -1,6 +1,6 @@
 ---
 name: pr-package
-description: Prepare a clean delivery package for GitHub from the real git diff against an explicit base branch, persisted as PR_PACKAGE.md. Produces the branch name, commit messages, the git commands, PR title and body, and reviewer attention points, and never invents work outside the diff. Per-repo when SOURCE_OF_TRUTH.md has a Repositories section. Use when scope is complete and the diff is real and stable. Do not use during active implementation, when the diff is still changing, when you only need a quick branch and commit name (use branch-commit), when the trigger is review feedback (use pr-feedback-ingest or post-review-pivot), or when the need is only slice closure (use slice-closure). After the draft, use self-critique-and-revise.
+description: Prepare a GitHub PR delivery package (branch, commits, PR title and body, reviewer notes) from the real git diff against an explicit base branch, persisted as PR_PACKAGE.md, never inventing work outside the diff. Use when scope is done and diff is stable. Do not use mid-implementation, for a branch name (use branch-commit), review feedback (use pr-feedback-ingest or post-review-pivot), or just slice closure (use slice-closure). Then use self-critique-and-revise.
 metadata:
   category: delivery-and-communication
   primary-cursor-mode: Ask

@@ -221,10 +221,10 @@ def fixture_script(entry):
 def probe_script(entry):
     """A read-only probe for a scenario with no fixture, run against the repository itself.
 
-    Scenario 01 writes into the repository it runs in (a project folder and its task
-    files), so it needs no fixture, but its criteria still name files. The
-    probe reports those files after each turn, so the grader reads them instead of the
-    response's account of them."""
+    A scenario that writes into the repository it runs in needs no fixture, but its
+    criteria may still name files. The probe reports those files after each turn, so
+    the grader reads them instead of the response's account of them. No shipped
+    scenario uses this path now: scenario 01 moved to a fixture."""
     rel = entry.get("probe")
     return os.path.join(REPO_ROOT, rel) if rel else None
 

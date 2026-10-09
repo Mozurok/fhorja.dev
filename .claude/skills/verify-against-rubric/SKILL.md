@@ -1,7 +1,7 @@
 ---
 name: verify-against-rubric
 description: |-
-  Spawn a stateless sub-agent (Claude Code `Agent` tool, Cursor agent mode, or equivalent) with ONLY the artifact path plus the locked rubric plus read-only tools. Sub-agent returns a structured verdict (satisfied, needs_revision, or failed) plus per-criterion feedback. Distinct from self-critique-and-revise (same-context; rewrites in place). Use after pr-package, contract-signoff, or implement-approved-slice on HIGH-complexity slices when independent verification matters more than throughput. Not as a routine pass on LOW or MEDIUM slices (self-critique-and-revise covers those at lower cost), but always when approve-plan (ADR-0208) or a zero-finding review-hard verdict (ADR-0145) dispatches it. Do not use when no locked rubric exists yet or the rubric is vague (run resolve-contract-gaps first), or when no active task folder exists yet (run task-init first). For 4 or more artifacts against one rubric, use verify-against-rubric-fleet.
+  Spawn a stateless, independent sub-agent with ONLY the artifact path, the locked rubric and read-only tools, returning a structured per-criterion verdict. Use after pr-package, contract-signoff, or implement-approved-slice on HIGH-complexity slices needing independent verification; not on LOW or MEDIUM slices (self-critique-and-revise), but always when approve-plan or a zero-finding review-hard dispatches it. Do not use without a rubric (use resolve-contract-gaps) or task (use task-init). For 4+ artifacts, use verify-against-rubric-fleet.
 metadata:
   category: "planning-and-validation"
   primary-cursor-mode: "Plan"

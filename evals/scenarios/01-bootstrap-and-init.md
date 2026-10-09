@@ -16,7 +16,11 @@ This exercises:
 
 ## Setup
 
-None. The scenario assumes a clean checkout of `my_work_tasks` and an empty (or non-existent) `projects/<client>__<project>/` for whatever throwaway identifier you choose.
+A throwaway task repository: a git repository on `main` with one commit, a `.gitignore` that lists `projects/`, and an empty `projects/` folder. Nothing else. There is no `projects/acme__widget-pricing/` yet, so the first turn creates the project layer from nothing.
+
+The spine runner builds it with `evals/fixtures/spine/01-bootstrap.sh` in a temp directory, once for both turns, so turn 2 reads the charter turn 1 wrote. `{fixture}` in the prompts is that directory. After each turn its probe reports what was written under `projects/acme__widget-pricing`: the H2 headings of `PROJECT_CHARTER.md` and `REFERENCES.md`, the task folder and its files, the `TASK_STATE.md` section count, and the `## Project-level memory` lines of `SOURCE_OF_TRUTH.md`. Criteria about files are graded against that report. For a manual run, build the directory yourself and substitute its path.
+
+The prompts point the run at a throwaway task repository instead of the `my_work_tasks` checkout, so a correct stop for a missing `projects/` folder cannot occur because the folder is there.
 
 ## Input prompt (turn 1: project-bootstrap)
 
@@ -24,6 +28,7 @@ None. The scenario assumes a clean checkout of `my_work_tasks` and an empty (or 
 Run @commands/project-bootstrap.md
 
 Project: acme__widget-pricing
+Task repository: {fixture}
 Objective: A backend service that computes per-customer widget prices based on contract tier and seasonal modifiers. Phase 1 is read-only price queries; future phases may add admin-side price overrides.
 Stack: TypeScript, Node 20, Postgres 16 via Supabase, deployed on Fly.io.
 Repositories: single repo (no multi-repo setup).
@@ -40,6 +45,7 @@ Mode: Ask
 Run @commands/task-init.md
 
 Project: acme__widget-pricing
+Task repository: {fixture}
 Task slug: 2026-05-08_initial-price-query
 Description: Implement the GET /v1/prices/:customer_id endpoint that returns the customer's effective price list. Contract is decided; schema is known; need to wire the handler, the DB query, and a focused integration test.
 Mode: Ask
@@ -90,3 +96,4 @@ Mode: Ask
 ## History
 
 - 2026-05-08: scenario authored. Initial pass criteria defined; not yet run against a model.
+- 2026-10-08: setup changed from none to a fixture (`evals/fixtures/spine/01-bootstrap.sh`). Run in the workflow checkout, a checkout without `projects/` made a correct stop read as a failure and one with it took the run's writes. The prompts now name the task repository. Pass criteria unchanged.

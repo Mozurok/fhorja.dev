@@ -1,6 +1,6 @@
 ---
 name: image-to-spec
-description: Generate a design-system spec from a raw image file (a screenshot, mockup, or captured app screen) when there is no Figma source. Reads the image with vision and emits a COMPONENT_SPEC.md-shaped doc (--component) or a SCREEN_SPEC.md-shaped doc (--screen), auto-detecting the mode when no flag is given. A gated --gameplay mode (ADR-0084, off by default) instead derives a MECHANICS_SPEC.md behavior contract for a 2D or 3D game from screenshots, extracted video frames, and playtest notes, with every rule in EARS form tagged observed, assumed, or open. Every observation is marked proposed because an image is an inference source, not a source of truth. Use when you have only an image and want a structured spec the design cluster can consume. Do not use when a Figma node exists (use component-spec or screen-spec), when you want code rather than a spec, or to push the image into Figma (that is generate_figma_design, a separate capability).
+description: Generate a design-system spec from an image (screenshot, mockup, or app screen) when there is no Figma source: a component spec (--component) or screen spec (--screen), auto-detected. A gated --gameplay mode (off by default) derives a game MECHANICS_SPEC.md from screenshots and playtest notes. Use when you have only an image and want a structured spec. Do not use when a Figma node exists (use component-spec or screen-spec), for code, or to push the image into Figma (that is generate_figma_design).
 metadata:
   category: design-and-ui
   primary-cursor-mode: Agent

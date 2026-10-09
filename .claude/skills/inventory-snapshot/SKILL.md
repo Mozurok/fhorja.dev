@@ -1,7 +1,7 @@
 ---
 name: inventory-snapshot
 description: |-
-  Snapshot the upstream Figma component library into docs/research/_inventory/figma_components.md. For each Figma component: name, inferred tier, node ID, and whether a spec/code/story exists in the WOS-UI surface. Produces delta vs previous snapshot. Use after design ships a Figma library update or to seed the inventory at project start. Do not use when no Figma source is available or when only auditing one component (use design-spec-review instead).
+  Snapshot the Figma component library (name, tier, node ID, spec/code/story status per component) with a delta vs the previous snapshot. Use after a Figma update or to seed the inventory. Do not use without a Figma source or for one component (use design-spec-review).
 metadata:
   category: "discovery-and-scoping"
   primary-cursor-mode: "Ask"

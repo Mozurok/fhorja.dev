@@ -1,6 +1,6 @@
 ---
 name: db-context-postgres
-description: Validate that a generic Postgres database (Cloud SQL, GKE Autopilot, RDS, self-hosted) is reachable via psql or pg_dump, introspect a user-scoped subset of the schema (extensions, tables, columns, indexes, foreign keys, optionally RLS policies and functions), and persist it as DB_CONTEXT.md with one cross-link in SOURCE_OF_TRUTH.md. Read-only introspection, never destructive SQL. Opt-in. Use when the task touches a non-Supabase Postgres and planning needs verified rather than assumed schema, or when an existing DB_CONTEXT.md is stale. Do not use without an active task folder (run task-init first), when the task touches no database, when the target is Supabase (use db-context-supabase), or to record a schema decision (use decision-interview).
+description: Validate that a non-Supabase Postgres database (Cloud SQL, RDS, self-hosted) is reachable, introspect a scoped subset of its schema, and persist it as DB_CONTEXT.md. Read-only, opt-in. Use when work touches that database and planning needs verified schema, or DB_CONTEXT.md is stale. Do not use without a task (run task-init first), when the task touches no database, for Supabase (use db-context-supabase), or to record a schema decision (use decision-interview).
 metadata:
   category: database-context
   primary-cursor-mode: Ask

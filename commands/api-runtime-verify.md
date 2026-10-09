@@ -1,6 +1,6 @@
 ---
 name: api-runtime-verify
-description: Verify an implemented backend HTTP surface at runtime: per route, record the request actually made, the status, the content-type, and the observed body shape, assert each response against the slice's acceptance behavior, and decide a PASS/FAIL/BLOCKED gate. The probe's real output IS the evidence: a route whose output is not shown is unverified, never PASS. Capability-routed, and it routes fixes rather than applying them. Do not use to review a contract before implementation (use api-contract-review or graphql-contract-review), to write or fix code (use implement-approved-slice), to triage a failure into a fix size (use incident-triage), for a browser, app, or Godot surface, or with no running backend to probe.
+description: Verify a built backend HTTP surface at runtime: per route, record the response, assert it against the slice's acceptance behavior, and decide PASS/FAIL/BLOCKED. Do not use to review a contract before implementation (use api-contract-review or graphql-contract-review), write code (use implement-approved-slice), triage a failure (use incident-triage), for a browser, app, or Godot surface, or with no running backend.
 metadata:
   category: runtime-verification
   primary-cursor-mode: Agent

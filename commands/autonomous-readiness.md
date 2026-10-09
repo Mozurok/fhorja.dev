@@ -1,6 +1,6 @@
 ---
 name: autonomous-readiness
-description: Decide whether an already-defined project is ready to boot an unattended overnight run, and refuse until it is. Reads the project's own definition artifacts through the shared definition-completeness reader, emits a per-criterion ledger with a BOOT or NOT-READY verdict naming every missing item, and returns NOT-READY when a declared runtime surface has no evidence adapter rather than booting blind. It reports and routes: it never answers a criterion on the operator's behalf, never records a decision as user input, and a BOOT verdict never substitutes for plan approval. Use before handing a night to autonomous-run. Do not use to approve a plan (use approve-plan), to drive the run itself (use autonomous-run), to view a run already in flight (use autonomous-board), or to shape a fuzzy objective before a task exists (use problem-framing).
+description: Decide whether an already-defined project is ready to boot an unattended overnight run, and refuse until it is. Emits a per-criterion ledger with a BOOT or NOT-READY verdict naming every missing item. Use before handing a night to autonomous-run. Do not use to approve a plan (use approve-plan), to drive the run itself (use autonomous-run), to view a run in flight (use autonomous-board), or to shape a fuzzy objective before a task exists (use problem-framing).
 metadata:
   category: autonomy
   primary-cursor-mode: Ask

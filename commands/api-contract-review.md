@@ -1,6 +1,6 @@
 ---
 name: api-contract-review
-description: Review an API contract (endpoints, request/response shapes, error codes, auth model) BEFORE implementation for naming consistency, versioning, pagination, idempotency, and alignment with existing endpoints. Distinct from review-hard (post-implementation risk) and repo-consistency-sweep (pattern matching on written code). Use when designing new endpoints or modifying existing API contracts. Do not use when the API is already implemented (use review-hard or repo-consistency-sweep instead).
+description: Review an API contract (shapes, errors, auth model) BEFORE implementation for naming, versioning, pagination, idempotency, and fit with existing endpoints. Use when designing or changing endpoints. Do not use when the API is already implemented (use review-hard or repo-consistency-sweep).
 metadata:
   category: contracts-and-decisions
   primary-cursor-mode: Ask

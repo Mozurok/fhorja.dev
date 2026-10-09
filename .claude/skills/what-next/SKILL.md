@@ -1,7 +1,7 @@
 ---
 name: what-next
 description: |-
-  Determine the current stage of the active task and recommend the single best immediate next command, editor mode, and work complexity. Routes based on TASK_STATE.md, DECISIONS.md, and IMPLEMENTATION_PLAN.md without reopening broad discovery. Use when the user wants a fast operational answer for what to do next, when the task already has enough state to avoid rediscovery, and when the next step is not obvious from current artifacts. Do not use when the task is brand new (use task-init), when resuming after context loss (use resume-from-state), when the user wants a comparative explanation of multiple candidates, or when the task is stuck in a loop (use im-stuck).
+  Determine the active task's stage and recommend the single best immediate next command, editor mode, and work complexity from task artifacts, without reopening discovery. Use when you need a fast next-step answer from existing state and the next step is not obvious. Do not use when brand new (use task-init), after context loss (use resume-from-state), to compare candidates, or when looping (use im-stuck).
 metadata:
   category: "state-and-navigation"
   primary-cursor-mode: "Ask"
@@ -13,16 +13,6 @@ metadata:
   provenance: "first-party"
   suggested-model: "claude-haiku-4-5"
 ---
-> **Output contract, in brief.** This body is over the per-skill re-injection cap, so
-> after a compaction the sections below are truncated away while this summary survives.
-> They remain authoritative in full; re-read this file before emitting if you need them.
->
-> - `Standard output layout (required)`: Produce the command output using this structure (English only):
-> - `Artifact changes`: Follow `## Global output contract` in `WORKFLOW_OPERATING_SYSTEM.md` for `APPLIED` / `PROPOSED` / `SKIP` rules. Every listed file...
-> - `Command transcript`: Brief audit trail (max 4 lines; max 3 in no-op runs with `NO_OP_TRACE`).
-> - `Handoff`: Use the adaptive ending format of `WORKFLOW_OPERATING_SYSTEM.md` `## Global output contract`. Every Handoff is one fenced `text` b...
-> - `Definition of done (command output)`: Exactly one primary next command is recommended (fallback only if truly necessary).
-
 
 Act as a senior/staff workflow orchestrator for the active engineering task.
 
@@ -102,22 +92,21 @@ Required output:
 9. What to avoid doing now
 
 ### Substrate digest fallback
-**Digest fallback when the canonical helper is unreachable.** `sha_of_section` extracts a section's body with `awk` and pipes it to `shasum -a 256`. A run executing inside a permission boundary that admits `shasum` but refuses `awk` and `sed` cannot invoke that helper, and MUST NOT reimplement it: an `awk` or `sed` program operand can call `system()` and write files, so a boundary that refuses those verbs refuses them for a reason. Assume the helper is unreachable whenever the workflow repository's `scripts/` directory is not readable from the working directory.
+**Digest fallback when the canonical helper is unreachable.** `sha_of_section` extracts a section's body with `awk` and pipes it to `shasum -a 256`. A run inside a permission boundary that admits `shasum` but refuses `awk` and `sed` cannot invoke that helper, and MUST NOT reimplement it. Assume the helper is unreachable whenever the workflow repository's `scripts/` directory is not readable from the working directory.
 
 WHERE the canonical per-section digest helper is unreachable, the write SHALL use a whole-file SHA-256 and SHALL declare the reduced scope:
 
 ```bash
-# One call per file. `shasum -a 256 <file>` needs no extraction step, so no
-# refused verb is involved. Read the hash (the first field) out of the output;
+# One call per file. Read the hash (the first field) out of the output;
 # do not pipe it through `cut` or `awk` to trim it.
 shasum -a 256 TASK_STATE.md
 ```
 
-Then add `"sha_scope":"file"` to that JSONL line, so a validator distinguishes a file digest from a section digest instead of inferring it. Everything else about the protocol is unchanged: the transaction header still goes above the section heading, and there is still exactly one JSONL line per section write.
+Then add `"sha_scope":"file"` to that JSONL line, so a validator distinguishes a file digest from a section digest. The rest of the protocol is unchanged: the transaction header still goes above the section heading, and there is exactly one JSONL line per section write.
 
-Do NOT rebuild the helper by writing each section out as its own file so it can be hashed separately. That workaround is coherent and it is what this rule exists to prevent: a 2026-08-04 run wrote 31 numbered section fragments to compute per-section digests by hand, spent the whole run doing it, and produced no product code.
+Do NOT rebuild the helper by writing each section out as its own file to hash it separately.
 
-What the fallback costs, stated so the trade is explicit rather than discovered later: the digest chain exists to detect an unlogged change to a SECTION. At file scope, two sections written in the same run share a digest, so the chain detects tampering with the file without attributing it to a section. That is a declared reduction in resolution, not a silent one, which is why the `sha_scope` field is mandatory rather than optional.
+At file scope two sections written in the same run share a digest, so the `sha_scope` field is mandatory, not optional.
 ### Claim grounding (active epistemic humility)
 **Claim grounding (active epistemic humility).** This block governs what you may assert and how you record it. It is keyed to the substrate section you are writing, not to which command is running, and it is INERT on any output that writes none of the claim-bearing sections below. Full contract and rationale: `wos/active-epistemic-humility.md`.
 

@@ -1,6 +1,6 @@
 ---
 name: apply-sweep-triage
-description: Persist the user's triage decisions (apply, decline, discuss) from a SWEEP snapshot into REVIEW_PREFERENCES.md so future sweeps suppress declined findings and track applied fixes. Use after the user has edited the triage values in a SWEEP snapshot file produced by repo-consistency-sweep. Do not use when no sweep snapshot exists or when the user has not yet set triage values.
+description: Persist triage decisions (apply, decline, discuss) into REVIEW_PREFERENCES.md so future sweeps suppress declined findings. Use after editing triage values in a SWEEP snapshot from repo-consistency-sweep. Do not use without a snapshot or before triage values are set.
 metadata:
   category: audit-and-sweep
   primary-cursor-mode: Agent

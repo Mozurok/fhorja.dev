@@ -1,6 +1,6 @@
 ---
 name: project-bootstrap
-description: Initialize a new project context inside the task repository before any task exists. Creates projects/<client>__<project>/, PROJECT_CHARTER.md, REFERENCES.md skeleton, and active/ plus archive/ subfolders so subsequent task-init runs have grounded project-level memory to consume. Use when starting a brand-new project, product, initiative, or client engagement, projects/<client>__<project>/ does not yet exist, or you need to capture project-level context (objective, stack, planned repositories, constraints, references) before opening the first task. Do not use when the project folder already exists (use task-init to start a new task on top of it), you only need a new task on an existing project, you only need to capture external references for an existing project (use capture-references), or the work is task-scoped and short enough that bootstrap ceremony adds no value.
+description: Initialize a new project context before any task exists: project folder, charter file, references skeleton, and active/ and archive/ folders for tasks. Use when starting a brand-new project, product, initiative, or client engagement with no project folder yet, or when project-level context is needed before the first task. Do not use when the project folder exists (use task-init), for external references (use capture-references), or for task-scoped work too small for bootstrap.
 metadata:
   category: project-initialization
   primary-cursor-mode: Ask

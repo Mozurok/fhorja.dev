@@ -1,6 +1,6 @@
 ---
 name: godot-scene-plan
-description: Plan the Godot scene and node structure for a 2D or 3D game feature before any GDScript is written: the scene tree, node types and responsibilities, autoloads, signal wiring, the input map, and the resources and sub-scenes to create. Produces GODOT_SCENE_PLAN.md, a design-time plan an editor or a human builds against. Capability-routed and MCP-agnostic. A 3D plan SHALL declare its renderer tier or it is incomplete. Do not use to frame whether the game idea is right (use problem-framing in its game-design mode), to slice an already-planned build (use implementation-plan), to analyze blast radius of an existing project (use impact-analysis), to verify a running scene (use godot-runtime-verify), or with no active task folder (run task-init first).
+description: Plan the Godot scene and node structure for a 2D or 3D game feature before GDScript is written: scene tree, nodes, autoloads, signals, input map. A 3D plan SHALL declare its renderer tier. Do not use for game-idea framing (use problem-framing in its game-design mode), slicing a plan (use implementation-plan), blast radius (use impact-analysis), scene verification (use godot-runtime-verify), or with no task folder (run task-init).
 metadata:
   category: game-and-engine
   primary-cursor-mode: Agent

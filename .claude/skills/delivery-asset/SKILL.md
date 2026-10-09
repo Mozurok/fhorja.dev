@@ -1,7 +1,7 @@
 ---
 name: delivery-asset
 description: |-
-  Generate an outward-facing delivery artifact (executive summary, slack or email update, demo script, release note, blog post draft) from the current task's work, scoped per audience and per format. Grounds every claim in the task artifacts and never invents metrics, customer impact, or marketing claims. Use when delivery needs audience-specific framing beyond a PR description or a team status note. Do not use when the audience is a code reviewer (use pr-package), for a quick team status update (use team-update), or with no active task folder (run task-init first).
+  Generate an outward-facing delivery artifact (executive summary, slack or email update, demo script, release note, blog post draft) per audience and format, grounded in task artifacts with no invented claims. Use when delivery needs audience-specific framing beyond a PR description or team status note. Do not use for a code reviewer (use pr-package), a quick team status update (use team-update), or with no active task folder (run task-init first).
 metadata:
   category: "delivery-and-communication"
   primary-cursor-mode: "Ask"

@@ -1,6 +1,6 @@
 ---
 name: task-workspace
-description: Provision, report, or attach a dedicated git worktree and branch for the active task on a git-backed project, so multiple tasks run in parallel on one repository without colliding on a single working tree. Opt-in and git-gated: a non-git project or an un-opted task is a no-op. Records the worktree path and task branch in SOURCE_OF_TRUTH.md and runs standalone to retrofit a task already in progress. Use when a task needs an isolated working tree and branch, or to attach one to an in-flight task. Do not use for the ephemeral slice-level worktrees implement-fleet already manages, for a non-git project, or to close the whole task (task-close owns teardown).
+description: Provision, report, or attach a dedicated git worktree and branch for the active task so parallel tasks do not collide on one working tree. Opt-in, git-gated. Use when a task needs an isolated worktree and branch, or to attach one to an in-flight task. Do not use for the ephemeral slice-level worktrees implement-fleet manages, a non-git project, or closing the task (task-close owns teardown).
 metadata:
   category: state-and-navigation
   primary-cursor-mode: Agent

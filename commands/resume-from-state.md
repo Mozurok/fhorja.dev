@@ -1,6 +1,6 @@
 ---
 name: resume-from-state
-description: Resume the task from TASK_STATE.md and the linked artifacts, reconstruct the current truth, and determine the best next step. Brings back full context after a session break or a chat switch. Also owns the explicit --lost-session recovery mode for when the transcript itself is lost: a capped, read-only sweep of the harness session files that proposes context with provenance. Use when work resumes in a new chat, or the task was paused and needs fast reconstruction. Do not use for a brand-new task (use task-init), when the need is only to sync memory after progress (use sync-task-state), or when the artifacts are stale or contradictory and must be corrected first (use sync-task-state for narrow drift, state-reconcile when drift is wide).
+description: Resume the task from TASK_STATE.md and linked artifacts, reconstruct the truth, and pick the next step after a session break or chat switch. Also owns --lost-session recovery (read-only). Use when work resumes in a new chat or a task was paused. Do not use for a new task (use task-init), only syncing memory, or stale or contradictory artifacts (use sync-task-state for narrow drift, state-reconcile for wide).
 metadata:
   category: state-and-navigation
   primary-cursor-mode: Ask

@@ -1,6 +1,6 @@
 ---
 name: a11y-audit
-description: Senior accessibility auditor mapping a UI surface (screen, flow, or component set) to WCAG 2.2 at a named conformance level. Produces ACCESSIBILITY_AUDIT.md, a per-criterion conformance ledger that splits machine-checkable rows from a manual-review queue, with severity and concrete remediation per finding. Activates when a screen-spec or an implemented surface has no conformance ledger, or when a delivery surface needs a conformance pass before sign-off. Do not use for a contrast-only request (use color-contrast-architect for at least three documented pairs, component-spec when its inputs exist, or targeted-questions for missing pair-specific evidence), for a single component against its spec (use design-spec-review), or when the task has no user-facing UI.
+description: Accessibility auditor mapping a UI surface (screen, flow, or component set) to WCAG 2.2 at a named conformance level, as a per-criterion conformance ledger. Activates when a screen-spec or implemented surface has no ledger, or before sign-off. Do not use for contrast-only requests (use color-contrast-architect for 3+ documented pairs, component-spec when its inputs exist, or targeted-questions for missing evidence), a single component (use design-spec-review), or without UI.
 metadata:
   category: audit-and-sweep
   primary-cursor-mode: Ask

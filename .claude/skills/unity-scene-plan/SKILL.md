@@ -1,7 +1,7 @@
 ---
 name: unity-scene-plan
 description: |-
-  Plan the Unity GameObject hierarchy and component architecture for a 3D feature before any C# is written: the scene and prefab structure, what each MonoBehaviour owns, the input model, and, for multiplayer, the networked-authority declarations. Produces UNITY_SCENE_PLAN.md. Capability-routed and MCP-agnostic. A 3D plan SHALL declare its render pipeline and a multiplayer plan SHALL declare its topology, or the plan is incomplete. Do not use to frame whether the game idea is right (use problem-framing in its game-design mode), to slice an already-planned build (use implementation-plan), to analyze blast radius of an existing project (use impact-analysis), to verify a running build (use app-runtime-verify with its Unity adapter), or with no active task folder (run task-init first).
+  Plan the Unity GameObject hierarchy and components for a 3D feature before any C#: scenes, prefabs, MonoBehaviour ownership, input model, networked authority for multiplayer. A 3D plan SHALL declare its render pipeline and a multiplayer plan its topology. Do not use to frame the game idea (use problem-framing in its game-design mode), slice a planned build (use implementation-plan), analyze blast radius (use impact-analysis), verify a running build (use app-runtime-verify), or without an active task folder (run task-init first).
 metadata:
   category: "game-and-engine"
   primary-cursor-mode: "Agent"

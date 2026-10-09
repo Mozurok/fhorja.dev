@@ -1,7 +1,7 @@
 ---
 name: graphql-contract-review
 description: |-
-  Review a GraphQL schema and a Backend-for-Frontend (BFF) contract BEFORE implementation, against a GraphQL-specific checklist: schema shape and nullability (null-bubbling), errors-as-data unions, N+1 and DataLoader, query cost and depth limits, cursor-connection pagination, federation entity ownership, breaking-change gate (schema checks), auth layering and BFF token posture, BFF thinness, and partial-failure degradation. Distinct from api-contract-review (REST and HTTP) and review-hard (post-implementation risk). Capability-routed, not stack-locked. Use when designing a new GraphQL schema, a federated subgraph, or a BFF contract, or modifying an existing one. Do not use for a REST contract (use api-contract-review), when the schema is already implemented (use review-hard or repo-consistency-sweep), or with no active task folder (run task-init first).
+  Review a GraphQL schema and a Backend-for-Frontend (BFF) contract BEFORE implementation against a GraphQL checklist (nullability, N+1, cost limits, federation, BFF thinness). Use when designing or modifying a GraphQL schema, a federated subgraph, or a BFF contract. Do not use for a REST contract (use api-contract-review), an implemented schema (use review-hard or repo-consistency-sweep), or with no active task folder (run task-init first).
 metadata:
   category: "contracts-and-decisions"
   primary-cursor-mode: "Ask"

@@ -1,6 +1,6 @@
 ---
 name: implement-slice-complement
-description: Execute a bounded micro-delta (adjustments, fixes, polish, missed checklist items) that stays inside the same slice intent and the locked decisions, then record evidence in slice notes without churning unrelated artifacts. Use when a slice is implemented or ready-to-close-with-follow-ups, you found a narrow gap (bug, typo, test, log line, copy, small refactor under the same acceptance story), and you can state it as a numbered micro-delta list over a small named file set. Do not use when the work is net-new scope (use implementation-plan plus a new slice), when correctness-critical ambiguity is open (use targeted-questions or decision-interview), when it would materially alter signed-off decisions (use post-review-pivot), when only memory needs updating (use sync-task-state), or when only closure judgment is needed (use slice-closure).
+description: Execute a bounded micro-delta (fixes, polish, missed checklist items) inside the same slice intent and locked decisions, with evidence in slice notes. Use when a slice is implemented or ready-to-close-with-follow-ups and a narrow gap (bug, typo, test, log line, copy, refactor) fits a numbered micro-delta list over named files. Do not use for net-new scope (use implementation-plan), ambiguity (use targeted-questions or decision-interview), changed signed-off decisions (use post-review-pivot), memory updates (use sync-task-state), or closure judgment (use slice-closure).
 metadata:
   category: execution-and-closure
   primary-cursor-mode: Agent
